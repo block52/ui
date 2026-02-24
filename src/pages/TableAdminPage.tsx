@@ -33,13 +33,13 @@ interface TableData {
     gameFormat: string;
     minPlayers: number;
     maxPlayers: number;
-    currentPlayers: number;
+    currentPlayers?: number;
     minBuyIn: string;
     maxBuyIn: string;
     smallBlind: string;
     bigBlind: string;
     timeout?: number;
-    status: string;
+    status?: string;
     creator?: string;
     createdAt?: string;
 }

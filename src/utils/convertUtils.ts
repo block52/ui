@@ -11,12 +11,12 @@ export interface GameWithFormat {
     maxBuyIn: string;
     minPlayers: number;
     maxPlayers: number;
-    currentPlayers: number;
+    currentPlayers?: number;
     gameFormat: GameFormat | "unknown";
     gameVariant: GameVariant | "unknown";
     smallBlind: string;
     bigBlind: string;
-    status: string;
+    status?: string;
     creator?: string;
     timeout?: number;
     createdAt?: string;
@@ -43,12 +43,10 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         maxBuyIn: opts.maxBuyIn,
         minPlayers: opts.minPlayers,
         maxPlayers: opts.maxPlayers,
-        currentPlayers: 0,
         gameFormat: getGameFormat(game.format),
         gameVariant: getGameVariant(game.variant),
         smallBlind: opts.smallBlind,
         bigBlind: opts.bigBlind,
-        status: "waiting",
         creator: game.creator,
         timeout: opts.timeout,
         createdAt: game.createdAt,

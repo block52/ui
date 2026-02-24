@@ -216,7 +216,7 @@ const TableList: React.FC = () => {
                                     </td>
                                     <td className="px-4 py-4 text-center">
                                         <span className="text-white font-semibold">
-                                            {game.currentPlayers}/{game.maxPlayers}
+                                            {game.currentPlayers ?? "\u2014"}/{game.maxPlayers}
                                         </span>
                                     </td>
                                     <td className="px-4 py-4 text-center">
@@ -229,7 +229,7 @@ const TableList: React.FC = () => {
                                             href={`/table/${game.gameId}`}
                                             target="_blank"
                                             rel="noopener noreferrer"
-                                            aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
+                                            aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers ?? "unknown"} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
                                             className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
                                         >
                                             Join

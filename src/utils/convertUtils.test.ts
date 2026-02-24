@@ -31,12 +31,12 @@ describe("convertUtils", () => {
             expect(result.maxBuyIn).toBe("50000000");
             expect(result.minPlayers).toBe(2);
             expect(result.maxPlayers).toBe(9);
-            expect(result.currentPlayers).toBe(0);
+            expect(result.currentPlayers).toBeUndefined();
             expect(result.gameFormat).toBe(GameFormat.CASH);
             expect(result.gameVariant).toBe(GameVariant.TEXAS_HOLDEM);
             expect(result.smallBlind).toBe("50000");
             expect(result.bigBlind).toBe("100000");
-            expect(result.status).toBe("waiting");
+            expect(result.status).toBeUndefined();
             expect(result.creator).toBe("cosmos1abc");
             expect(result.timeout).toBe(30);
             expect(result.createdAt).toBe("2026-02-04T10:00:00Z");
