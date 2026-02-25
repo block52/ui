@@ -7,6 +7,8 @@ import useAllowance from "../../hooks/wallet/useAllowance";
 import useDecimal from "../../hooks/wallet/useDecimals";
 import useApprove from "../../hooks/wallet/useApprove";
 import spinner from "../../assets/spinning-circles.svg";
+import btcLogo from "../../assets/crypto/btc.svg";
+import usdcLogo from "../../assets/crypto/usdc.svg";
 import useWalletBalance from "../../hooks/wallet/useWalletBalance";
 import { toast } from "react-toastify";
 import { COSMOS_BRIDGE_ADDRESS, PROXY_URL } from "../../config/constants";
@@ -259,7 +261,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                                     }`}
                                 >
                                     <div className="text-center">
-                                        <div className="text-2xl mb-1">₿</div>
+                                        <img src={btcLogo} alt="BTC" className="w-8 h-8 rounded-full mx-auto mb-1" />
                                         <div className="text-sm font-semibold text-white">
                                             Pay with Crypto
                                         </div>
@@ -277,7 +279,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                                     }`}
                                 >
                                     <div className="text-center">
-                                        <div className="text-2xl mb-1">$</div>
+                                        <img src={usdcLogo} alt="USDC" className="w-8 h-8 rounded-full mx-auto mb-1" />
                                         <div className="text-sm font-semibold text-white">
                                             Deposit via Web3
                                         </div>
