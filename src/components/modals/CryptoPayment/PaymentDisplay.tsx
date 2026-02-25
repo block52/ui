@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import { toast } from "react-toastify";
 import type { PaymentDisplayProps } from "../types";
+import { toSmallestUnit, ethToWei } from "../../../utils/currencyUtils";
 import styles from "./PaymentDisplay.module.css";
 
 // USDT ERC-20 contract address on Ethereum mainnet
@@ -24,25 +25,6 @@ const CURRENCY_INFO: Record<string, { display: string; network: string }> = {
     ada: { display: "ADA", network: "Cardano Network" },
     xrp: { display: "XRP", network: "XRP Ledger" },
 };
-
-/**
- * Convert a human-readable token amount to its smallest unit (BigInt string).
- * e.g. toSmallestUnit(1.5, 6) => "1500000"
- */
-function toSmallestUnit(amount: number, decimals: number): string {
-    const parts = amount.toString().split(".");
-    const whole = parts[0];
-    const frac = (parts[1] || "").padEnd(decimals, "0").slice(0, decimals);
-    return BigInt(whole + frac).toString();
-}
-
-/**
- * Convert ETH amount to wei string.
- * e.g. ethToWei(0.01) => "10000000000000000"
- */
-function ethToWei(amount: number): string {
-    return toSmallestUnit(amount, 18);
-}
 
 const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
     paymentAddress,
