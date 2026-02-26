@@ -102,10 +102,6 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                         className={`${inputFieldClassName} px-1 lg:px-2 py-1 rounded text-xs lg:text-sm w-[80px] lg:w-[100px] transition-all duration-200 border`}
                         disabled={disabled}
                     />
-                    <div className="text-[8px] lg:text-[10px] text-right leading-snug text-gray-400">
-                        <div>Min: ${min.toFixed(2)}</div>
-                        <div>Max: ${formattedMax}</div>
-                    </div>
                 </div>
             )}
 
