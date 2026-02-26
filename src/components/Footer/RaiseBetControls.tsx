@@ -18,7 +18,8 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     disabled,
     onAmountChange,
     onIncrement,
-    onDecrement
+    onDecrement,
+    onAllIn
 }) => {
     return (
         <>
@@ -48,6 +49,7 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
                     previousActions={previousActions}
                     disabled={disabled}
                     onAmountSelect={onAmountChange}
+                    onAllIn={onAllIn}
                 />
             )}
         </>

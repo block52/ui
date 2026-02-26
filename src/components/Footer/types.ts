@@ -158,6 +158,7 @@ export interface RaiseBetControlsProps {
     onAmountChange: (amount: number) => void;
     onIncrement: () => void;
     onDecrement: () => void;
+    onAllIn: () => void;
 }
 
 /**
@@ -189,4 +190,5 @@ export interface PotSizedBetButtonsProps {
     previousActions: ActionDTO[];
     disabled: boolean;
     onAmountSelect: (amount: number) => void;
+    onAllIn: () => void;
 }
