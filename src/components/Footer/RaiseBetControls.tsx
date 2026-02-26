@@ -9,6 +9,7 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     maxAmount,
     formattedMaxAmount,
     step,
+    displayOffset,
     totalPotMicro,
     callAmountMicro,
     isInvalid,
@@ -30,6 +31,7 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
                 max={maxAmount}
                 step={step}
                 formattedMax={formattedMaxAmount}
+                displayOffset={displayOffset}
                 isInvalid={isInvalid}
                 disabled={disabled}
                 isMobileLandscape={isMobileLandscape}

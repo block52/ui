@@ -149,6 +149,7 @@ export interface RaiseBetControlsProps {
     maxAmount: number;
     formattedMaxAmount: string;
     step: number;
+    displayOffset: number;
     totalPotMicro: bigint;
     callAmountMicro: bigint;
     isInvalid: boolean;
@@ -171,6 +172,7 @@ export interface RaiseSliderProps {
     max: number;
     step: number;
     formattedMax: string;
+    displayOffset: number;
     isInvalid: boolean;
     disabled: boolean;
     isMobileLandscape: boolean;

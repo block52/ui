@@ -27,6 +27,7 @@ import {
 // Import utils
 import { getActionByType, hasAction } from "../../utils/actionUtils";
 import { getAutoDealEnabled, getAutoPostBlindsEnabled } from "../../utils/urlParams";
+import { getRaiseToAmount } from "../../utils/raiseUtils";
 
 // Import sub-components
 import { ActionButton } from "./ActionButton";
@@ -433,6 +434,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
                                         maxAmount={hasBetAction ? maxBet : maxRaise}
                                         formattedMaxAmount={formattedMaxBetAmount}
                                         step={getStep()}
+                                        displayOffset={
+                                            hasRaiseAction
+                                                ? getRaiseToAmount(raiseAmount, gameState?.previousActions || [], gameState?.round || TexasHoldemRound.ANTE, userAddress || "") - raiseAmount
+                                                : 0
+                                        }
                                         totalPotMicro={totalPotMicro}
                                         callAmountMicro={callAmountMicro}
                                         isInvalid={isRaiseAmountInvalid}
