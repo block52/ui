@@ -18,6 +18,7 @@ import { useOptimisticAction, OptimisticAction } from "./useOptimisticAction";
 import type { OptimisticActionType } from "./useOptimisticAction";
 import { useAutoDeal } from "./useAutoDeal";
 import { useAutoPostBlinds } from "./useAutoPostBlinds";
+import { useAutoNewHand } from "./useAutoNewHand";
 
 export {
     betHand,
@@ -40,7 +41,8 @@ export {
     useOptimisticAction,
     OptimisticAction,
     useAutoDeal,
-    useAutoPostBlinds
+    useAutoPostBlinds,
+    useAutoNewHand
 };
 
 export type { OptimisticActionType, SitInMethod };
