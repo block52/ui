@@ -107,7 +107,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                 flex items-center justify-center gap-2 transform hover:scale-105
                                 ${isCompact ? "py-2 px-3 text-xs" : "py-2.5 px-4 text-sm"}`}
                         >
-                            Wait For Next Blind
+                            Sit In On Next Big Blind
                         </button>
                         <button
                             onClick={() => handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW)}
@@ -117,7 +117,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                 flex items-center justify-center gap-2 transform hover:scale-105
                                 ${isCompact ? "py-2 px-3 text-xs" : "py-2.5 px-4 text-sm"}`}
                         >
-                            Post And Play
+                            Post Required Blinds Now
                         </button>
                     </div>
                 </div>

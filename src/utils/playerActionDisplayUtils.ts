@@ -49,8 +49,8 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
     // 1. Pending: player already confirmed sit-in, waiting for action
     if (playerStatus === PlayerStatus.SITTING_IN) {
         const waitingMessage = sitInMethod === SIT_IN_METHOD_POST_NOW
-            ? "Waiting to Post And Play..."
-            : "Waiting For Next Blind...";
+            ? "Waiting to Post Required Blinds..."
+            : "Waiting For Next Big Blind...";
         return { kind: "pending", waitingMessage };
     }
 

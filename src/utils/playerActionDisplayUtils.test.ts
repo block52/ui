@@ -291,7 +291,7 @@ describe("getPlayerActionDisplay", () => {
             playerStatus: PlayerStatus.SITTING_IN,
             sitInMethod: SIT_IN_METHOD_NEXT_BB,
         });
-        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Blind..." });
+        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Big Blind..." });
     });
 
     it("returns pending with post-now message when method is post-now", () => {
@@ -300,7 +300,7 @@ describe("getPlayerActionDisplay", () => {
             playerStatus: PlayerStatus.SITTING_IN,
             sitInMethod: SIT_IN_METHOD_POST_NOW,
         });
-        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting to Post And Play..." });
+        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting to Post Required Blinds..." });
     });
 
     it("returns pending with next-bb message when method is null", () => {
@@ -309,7 +309,7 @@ describe("getPlayerActionDisplay", () => {
             playerStatus: PlayerStatus.SITTING_IN,
             sitInMethod: null,
         });
-        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Blind..." });
+        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Big Blind..." });
     });
 
     it("returns pending even if legalActions contains SIT_IN", () => {
@@ -330,7 +330,7 @@ describe("getPlayerActionDisplay", () => {
             sitInMethod: SIT_IN_METHOD_NEXT_BB,
             totalSeatedPlayers: 1,
         });
-        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Blind..." });
+        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Big Blind..." });
     });
 
     // --- No actions ---
