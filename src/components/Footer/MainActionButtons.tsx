@@ -105,7 +105,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                         </>
                     ) : (
                         <>
-                            {isAllIn ? "JAM" : canRaise ? "RAISE TO" : "BET"}{" "}
+                            {canRaise ? "RAISE TO" : "BET"}{" "}
                             <span className={styles.amountAccent}>${raiseToAmount.toFixed(2)}</span>
                         </>
                     )}
