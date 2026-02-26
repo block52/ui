@@ -412,6 +412,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
                                     isRaiseAmountInvalid={isRaiseAmountInvalid}
                                     playerStatus={userPlayer?.status || PlayerStatus.SEATED}
                                     loading={loadingAction}
+                                    isAllIn={raiseAmount >= (hasBetAction ? maxBet : maxRaise)}
                                     isMobileLandscape={isMobileLandscape}
                                     currentRound={gameState?.round || TexasHoldemRound.ANTE}
                                     previousActions={gameState?.previousActions || []}

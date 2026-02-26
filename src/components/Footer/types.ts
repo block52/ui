@@ -129,6 +129,7 @@ export interface MainActionButtonsProps {
     currentRound: TexasHoldemRound;
     previousActions: ActionDTO[];
     userAddress: string;
+    isAllIn: boolean;
     onFold: () => void;
     onCheck: () => void;
     onCall: () => void;
