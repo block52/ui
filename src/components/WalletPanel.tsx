@@ -15,7 +15,7 @@ interface WalletPanelProps {
     onTransfer: () => void;
     onCreateWallet: () => void;
     onImportWallet: () => void;
-    usdcBalance: string; // Optional prop to display balance from parent component
+    usdcBalance: string;
 }
 
 /**
