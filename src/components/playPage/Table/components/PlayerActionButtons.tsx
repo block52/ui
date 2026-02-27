@@ -6,8 +6,8 @@
  * Responsive design for mobile, tablet, and desktop viewports.
  */
 
-import React, { useEffect, useRef } from "react";
-import { LegalActionDTO } from "@block52/poker-vm-sdk";
+import React, { useState, useEffect, useRef } from "react";
+import { LegalActionDTO, SIT_OUT_METHOD_NEXT_HAND, SIT_OUT_METHOD_NEXT_BB } from "@block52/poker-vm-sdk";
 import { handleSitOut, handleSitIn } from "../../../common/actionHandlers";
 import { SIT_IN_METHOD_NEXT_BB, SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
@@ -26,17 +26,6 @@ export interface PlayerActionButtonsProps {
     hasActivePlayers: boolean;
 }
 
-const SitOutIcon: React.FC<{ size: string }> = ({ size }) => (
-    <svg xmlns="http://www.w3.org/2000/svg" className={size} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-        />
-    </svg>
-);
-
 export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     isMobile,
     isMobileLandscape,
@@ -51,6 +40,27 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
 }) => {
     const isCompact = isMobile || isMobileLandscape;
     const positionClass = isMobileLandscape ? "bottom-2 left-2" : isMobile ? "bottom-[260px] right-4" : "bottom-20 left-4";
+
+    const [sitOutNextHand, setSitOutNextHand] = useState(false);
+    const [sitOutNextBB, setSitOutNextBB] = useState(false);
+
+    const handleToggleSitOutNextHand = () => {
+        const newValue = !sitOutNextHand;
+        setSitOutNextHand(newValue);
+        if (newValue) {
+            setSitOutNextBB(false);
+            handleSitOut(tableId, currentNetwork, SIT_OUT_METHOD_NEXT_HAND);
+        }
+    };
+
+    const handleToggleSitOutNextBB = () => {
+        const newValue = !sitOutNextBB;
+        setSitOutNextBB(newValue);
+        if (newValue) {
+            setSitOutNextHand(false);
+            handleSitOut(tableId, currentNetwork, SIT_OUT_METHOD_NEXT_BB);
+        }
+    };
 
     const display = getPlayerActionDisplay({
         playerStatus, sitInMethod, legalActions, totalSeatedPlayers, handNumber, hasActivePlayers
@@ -141,27 +151,30 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         case "sit-out-button":
             return (
                 <div className={`fixed z-30 ${positionClass}`}>
-                    {isCompact ? (
-                        <button
-                            onClick={() => handleSitOut(tableId, currentNetwork)}
-                            className="btn-sit-out text-white font-medium py-1.5 px-3 rounded-lg shadow-md text-xs
-                                backdrop-blur-sm transition-all duration-300 border
-                                flex items-center justify-center gap-2 transform hover:scale-105"
-                        >
-                            <SitOutIcon size="h-3 w-3" />
-                            Sit Out
-                        </button>
-                    ) : (
-                        <button
-                            onClick={() => handleSitOut(tableId, currentNetwork)}
-                            className="btn-sit-out text-white font-medium py-2 px-4 rounded-lg shadow-md text-sm
-                                backdrop-blur-sm transition-all duration-300 border
-                                flex items-center justify-center gap-2 transform hover:scale-105"
-                        >
-                            <SitOutIcon size="h-4 w-4" />
-                            Sit Out
-                        </button>
-                    )}
+                    <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                        <label className="flex items-center mb-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={sitOutNextHand}
+                                onChange={handleToggleSitOutNextHand}
+                                className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                            />
+                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
+                                Sit Out Next Hand
+                            </span>
+                        </label>
+                        <label className="flex items-center cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={sitOutNextBB}
+                                onChange={handleToggleSitOutNextBB}
+                                className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                            />
+                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
+                                Sit Out Next Big Blind
+                            </span>
+                        </label>
+                    </div>
                 </div>
             );
 

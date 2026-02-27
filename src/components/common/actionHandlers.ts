@@ -9,12 +9,13 @@ import {
     sitIn,
     SIT_IN_METHOD_NEXT_BB,
     sitOut,
+    SIT_OUT_METHOD_NEXT_HAND,
     startNewHand,
     postSmallBlind,
     postBigBlind,
     raiseHand
 } from "../../hooks/playerActions";
-import type { SitInMethod } from "../../hooks/playerActions";
+import type { SitInMethod, SitOutMethod } from "../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 
 /**
@@ -142,9 +143,20 @@ const handleDeal = createSimpleHandler("deal", dealCards, {
 
 const handleStartNewHand = createSimpleHandler("start new hand", startNewHand);
 
-const handleSitOut = createSimpleHandler("sit out", sitOut, {
-    successLog: "Sit out completed successfully"
-});
+const handleSitOut = async (
+    tableId: string | undefined,
+    network: NetworkEndpoints,
+    method: SitOutMethod = SIT_OUT_METHOD_NEXT_HAND
+): Promise<string | null> => {
+    if (!tableId) return null;
+    try {
+        const result = await sitOut(tableId, network, method);
+        return result?.hash || null;
+    } catch (error: unknown) {
+        console.error("Failed to sit out:", error);
+        return null;
+    }
+};
 
 const handleSitIn = async (
     tableId: string | undefined,
