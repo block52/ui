@@ -57,16 +57,16 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         const handleJoinClick = useCallback(() => {
             if (!canJoinThisSeat) return;
             
-            // Initialize buy-in amount with minBuyIn for Cash games
-            const minBuyInDollars = formatUSDCToSimpleDollars(gameOptions?.minBuyIn);
-            setBuyInAmount(minBuyInDollars);
+            // Initialize buy-in amount with maxBuyIn for Cash games
+            const maxBuyInDollars = formatUSDCToSimpleDollars(gameOptions?.maxBuyIn);
+            setBuyInAmount(maxBuyInDollars);
             
             // Open buy-in modal directly (skip confirmation modal)
             setShowBuyInModal(true);
             setJoinError(null);
             setJoinSuccess(false);
             setJoinResponse(null);
-        }, [canJoinThisSeat, gameOptions?.minBuyIn]);
+        }, [canJoinThisSeat, gameOptions?.maxBuyIn]);
 
         const handleSeatClick = useCallback(() => {
             if (!isUserAlreadyPlaying && canJoinThisSeat) {
