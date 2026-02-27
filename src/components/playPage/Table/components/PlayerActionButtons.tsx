@@ -6,8 +6,8 @@
  * Responsive design for mobile, tablet, and desktop viewports.
  */
 
-import React, { useState, useEffect, useRef } from "react";
-import { LegalActionDTO, SIT_OUT_METHOD_NEXT_HAND, SIT_OUT_METHOD_NEXT_BB } from "@block52/poker-vm-sdk";
+import React, { useEffect, useRef } from "react";
+import { LegalActionDTO } from "@block52/poker-vm-sdk";
 import { handleSitOut, handleSitIn } from "../../../common/actionHandlers";
 import { SIT_IN_METHOD_NEXT_BB, SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
@@ -21,6 +21,7 @@ export interface PlayerActionButtonsProps {
     currentNetwork: NetworkEndpoints;
     playerStatus: string | null;
     sitInMethod: string | null;
+    pendingSitOut: string | null;
     totalSeatedPlayers: number;
     handNumber: number;
     hasActivePlayers: boolean;
@@ -34,6 +35,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     currentNetwork,
     playerStatus,
     sitInMethod,
+    pendingSitOut,
     totalSeatedPlayers,
     handNumber,
     hasActivePlayers
@@ -41,25 +43,12 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     const isCompact = isMobile || isMobileLandscape;
     const positionClass = isMobileLandscape ? "bottom-2 left-2" : isMobile ? "bottom-[260px] right-4" : "bottom-20 left-4";
 
-    const [sitOutNextHand, setSitOutNextHand] = useState(false);
-    const [sitOutNextBB, setSitOutNextBB] = useState(false);
+    // Checkbox is driven by pendingSitOut from game state (not local state)
+    const isChecked = pendingSitOut === "next-hand";
 
     const handleToggleSitOutNextHand = () => {
-        const newValue = !sitOutNextHand;
-        setSitOutNextHand(newValue);
-        if (newValue) {
-            setSitOutNextBB(false);
-            handleSitOut(tableId, currentNetwork, SIT_OUT_METHOD_NEXT_HAND);
-        }
-    };
-
-    const handleToggleSitOutNextBB = () => {
-        const newValue = !sitOutNextBB;
-        setSitOutNextBB(newValue);
-        if (newValue) {
-            setSitOutNextHand(false);
-            handleSitOut(tableId, currentNetwork, SIT_OUT_METHOD_NEXT_BB);
-        }
+        // Toggle: sends SIT_OUT to either queue or cancel
+        handleSitOut(tableId, currentNetwork);
     };
 
     const display = getPlayerActionDisplay({
@@ -154,26 +143,15 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             return (
                 <div className={`fixed z-30 ${positionClass}`}>
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                        <label className="flex items-center mb-2 cursor-pointer">
-                            <input
-                                type="checkbox"
-                                checked={sitOutNextHand}
-                                onChange={handleToggleSitOutNextHand}
-                                className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
-                            />
-                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
-                                Sit Out Next Hand
-                            </span>
-                        </label>
                         <label className="flex items-center cursor-pointer">
                             <input
                                 type="checkbox"
-                                checked={sitOutNextBB}
-                                onChange={handleToggleSitOutNextBB}
+                                checked={isChecked}
+                                onChange={handleToggleSitOutNextHand}
                                 className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
                             />
-                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
-                                Sit Out Next Big Blind
+                            <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                                Sit Out Next Hand
                             </span>
                         </label>
                     </div>

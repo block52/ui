@@ -10,6 +10,7 @@ export interface PlayerLegalActionsResult extends BaseHookReturn {
     playerStatus: PlayerStatus | null;
     playerSeat: number | null;
     sitInMethod: string | null;
+    pendingSitOut: string | null;
     foldActionIndex: number | null;
     actionTurnIndex: number;
     isPlayerInGame: boolean;

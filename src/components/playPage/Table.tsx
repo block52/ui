@@ -252,7 +252,7 @@ const Table = React.memo(() => {
     }, []);
 
     // Use the hook directly instead of getting it from context
-    const { legalActions: playerLegalActions, playerStatus, sitInMethod } = usePlayerLegalActions();
+    const { legalActions: playerLegalActions, playerStatus, sitInMethod, pendingSitOut } = usePlayerLegalActions();
 
     // Add the usePlayerSeatInfo hook
     const { currentUserSeat } = usePlayerSeatInfo();
@@ -833,6 +833,7 @@ const Table = React.memo(() => {
                 currentNetwork={currentNetwork}
                 playerStatus={playerStatus}
                 sitInMethod={sitInMethod}
+                pendingSitOut={pendingSitOut}
                 totalSeatedPlayers={tableActivePlayers.length}
                 handNumber={handNumber}
                 hasActivePlayers={hasActivePlayers}
