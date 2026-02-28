@@ -71,7 +71,7 @@ const Dashboard: React.FC = () => {
     const [showCreateGameModal, setShowCreateGameModal] = useState(false);
     const [selectedContractAddress, setSelectedContractAddress] = useState("0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7");
     const [createGameError, setCreateGameError] = useState("");
-    
+
     // Modal game options
     const [modalGameFormat, setModalGameFormat] = useState<GameFormat>(GameFormat.SIT_AND_GO);
     const [modalSitAndGoBuyIn, setModalSitAndGoBuyIn] = useState(1); // Single buy-in for Sit & Go
@@ -82,9 +82,9 @@ const Dashboard: React.FC = () => {
     // Selected blind level (index in BLIND_LEVELS array)
     const [selectedBlindLevel, setSelectedBlindLevel] = useState(DEFAULT_BLIND_LEVEL_INDEX);
     // Buy-in fields in Big Blinds (BB) for Cash games
-    const [modalMinBuyInBB, setModalMinBuyInBB] = useState(20);   // 20 BB default
-    const [modalMaxBuyInBB, setModalMaxBuyInBB] = useState(100);  // 100 BB default
-    
+    const [modalMinBuyInBB, setModalMinBuyInBB] = useState(20); // 20 BB default
+    const [modalMaxBuyInBB, setModalMaxBuyInBB] = useState(100); // 100 BB default
+
     // Get current blind values from selected level (memoized to prevent unnecessary recalculation)
     const modalSmallBlind = useMemo(() => BLIND_LEVELS[selectedBlindLevel].smallBlind, [selectedBlindLevel]);
     const modalBigBlind = useMemo(() => BLIND_LEVELS[selectedBlindLevel].bigBlind, [selectedBlindLevel]);
@@ -100,7 +100,6 @@ const Dashboard: React.FC = () => {
 
     // USDC Deposit Modal
     const [showUSDCDepositModal, setShowUSDCDepositModal] = useState(false);
-
 
     // Cosmos wallet state and hooks
     const cosmosWallet = useCosmosWallet();
@@ -165,7 +164,6 @@ const Dashboard: React.FC = () => {
                 smallBlind: modalSmallBlind,
                 bigBlind: modalBigBlind
             };
-
 
             // Use the createTable function from the hook (Cosmos SDK)
             const txHash = await createTable(gameOptions);
@@ -277,7 +275,6 @@ const Dashboard: React.FC = () => {
 
             const txHash = await cosmosWallet.sendTokens(transferRecipient, amountInSmallestUnit, "usdc");
 
-
             // Reset form and close modal
             setTransferRecipient("");
             setTransferAmount("");
@@ -357,20 +354,19 @@ const Dashboard: React.FC = () => {
             {/* Wallet Generated Notification */}
             {showWalletGeneratedNotification && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
-                    <div
-                        className={`px-6 py-4 rounded-xl shadow-2xl border flex items-center gap-4 ${styles.walletGeneratedNotice}`}
-                    >
+                    <div className={`px-6 py-4 rounded-xl shadow-2xl border flex items-center gap-4 ${styles.walletGeneratedNotice}`}>
                         <span className="text-2xl">🎉</span>
                         <div>
                             <p className="text-white font-bold">Block52 Wallet Created!</p>
                             <p className="text-white/80 text-sm">
-                                Visit <a href="/wallet" className="underline font-semibold hover:text-white">/wallet</a> to view your seed phrase and manage your wallet.
+                                Visit{" "}
+                                <a href="/wallet" className="underline font-semibold hover:text-white">
+                                    /wallet
+                                </a>{" "}
+                                to view your seed phrase and manage your wallet.
                             </p>
                         </div>
-                        <button
-                            onClick={() => setShowWalletGeneratedNotification(false)}
-                            className="text-white/80 hover:text-white ml-2"
-                        >
+                        <button onClick={() => setShowWalletGeneratedNotification(false)} className="text-white/80 hover:text-white ml-2">
                             ✕
                         </button>
                     </div>
@@ -380,16 +376,10 @@ const Dashboard: React.FC = () => {
             {/* Password Protection Modal */}
             {!isAuthenticated && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                    <div
-                        className={`backdrop-blur-md p-8 rounded-xl w-96 shadow-2xl relative overflow-hidden ${styles.passwordModal}`}
-                    >
+                    <div className={`backdrop-blur-md p-8 rounded-xl w-96 shadow-2xl relative overflow-hidden ${styles.passwordModal}`}>
                         {/* Web3 styled background */}
-                        <div
-                            className={`absolute inset-0 rounded-xl ${styles.passwordModalOverlay}`}
-                        ></div>
-                        <div
-                            className={`absolute top-0 left-0 w-full h-1 animate-pulse ${styles.passwordModalTopBar}`}
-                        ></div>
+                        <div className={`absolute inset-0 rounded-xl ${styles.passwordModalOverlay}`}></div>
+                        <div className={`absolute top-0 left-0 w-full h-1 animate-pulse ${styles.passwordModalTopBar}`}></div>
 
                         <div className="relative z-10">
                             <div className="flex items-center justify-center mb-4">
@@ -397,9 +387,7 @@ const Dashboard: React.FC = () => {
                             </div>
 
                             <div className="flex items-center justify-center mb-6">
-                                <div
-                                    className={`w-16 h-16 rounded-full flex items-center justify-center ${styles.passwordIconCircle}`}
-                                >
+                                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${styles.passwordIconCircle}`}>
                                     <svg className={`w-8 h-8 ${styles.brandPrimaryText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                         <path
                                             strokeLinecap="round"
@@ -495,9 +483,7 @@ const Dashboard: React.FC = () => {
                     {/* Import B52 Wallet Seed Phrase Modal */}
                     {showCosmosImportModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div
-                                className={`p-6 rounded-xl w-[440px] shadow-2xl border ${styles.modalPanel}`}
-                            >
+                            <div className={`p-6 rounded-xl w-[440px] shadow-2xl border ${styles.modalPanel}`}>
                                 <h3 className="text-xl font-bold text-white mb-2 whitespace-nowrap">Import B52 Wallet Seed Phrase</h3>
                                 <div className={styles.modalTitleDivider} />
                                 <div className="space-y-4">
@@ -541,9 +527,7 @@ const Dashboard: React.FC = () => {
                     {/* New B52 Wallet Created Modal - shows seed phrase */}
                     {showNewWalletModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div
-                                className={`p-6 rounded-xl w-[480px] shadow-2xl border ${styles.modalPanel}`}
-                            >
+                            <div className={`p-6 rounded-xl w-[480px] shadow-2xl border ${styles.modalPanel}`}>
                                 <h3 className="text-xl font-bold text-white mb-2">New B52 Wallet Created</h3>
                                 <div className={styles.modalTitleDivider} />
                                 <p className="text-gray-400 text-sm mb-4">
@@ -551,11 +535,14 @@ const Dashboard: React.FC = () => {
                                 </p>
 
                                 {/* Warning */}
-                                <div
-                                    className={`p-3 rounded-lg mb-4 flex items-start gap-3 ${styles.dangerWarningBox}`}
-                                >
+                                <div className={`p-3 rounded-lg mb-4 flex items-start gap-3 ${styles.dangerWarningBox}`}>
                                     <svg className={`w-5 h-5 flex-shrink-0 mt-0.5 ${styles.dangerText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth="2"
+                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                        />
                                     </svg>
                                     <p className={`text-sm ${styles.dangerText}`}>
                                         Never share your seed phrase with anyone. Anyone with this phrase can access your funds.
@@ -589,7 +576,12 @@ const Dashboard: React.FC = () => {
                                             ) : (
                                                 <>
                                                     <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth="2"
+                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                        />
                                                     </svg>
                                                     Copy
                                                 </>
@@ -645,20 +637,14 @@ const Dashboard: React.FC = () => {
                     {/* USDC Transfer Modal */}
                     {showCosmosTransferModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div
-                                className={`p-6 rounded-xl w-96 shadow-2xl border ${styles.modalPanel}`}
-                            >
+                            <div className={`p-6 rounded-xl w-96 shadow-2xl border ${styles.modalPanel}`}>
                                 <h3 className="text-xl font-bold text-white mb-4">Send</h3>
                                 <div className="space-y-4">
                                     {/* Available Balance Display */}
-                                    <div
-                                        className={`p-3 rounded-lg ${styles.balanceBox}`}
-                                    >
+                                    <div className={`p-3 rounded-lg ${styles.balanceBox}`}>
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-400 text-sm">Available Balance:</span>
-                                            <span className={`font-bold ${styles.brandPrimaryText}`}>
-                                                {getTransferTokenBalance()} USDC
-                                            </span>
+                                            <span className={`font-bold ${styles.brandPrimaryText}`}>{getTransferTokenBalance()} USDC</span>
                                         </div>
                                     </div>
 
@@ -712,9 +698,7 @@ const Dashboard: React.FC = () => {
                     {/* Create New Game Modal */}
                     {showCreateGameModal && (
                         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div
-                                className={`p-6 rounded-xl w-96 shadow-2xl border ${styles.modalPanel}`}
-                            >
+                            <div className={`p-6 rounded-xl w-96 shadow-2xl border ${styles.modalPanel}`}>
                                 <h3 className="text-xl font-bold text-white mb-4">Create New Table</h3>
                                 <div className="space-y-4">
                                     <div>
@@ -809,7 +793,10 @@ const Dashboard: React.FC = () => {
                                                 <div className="flex gap-2 flex-wrap">
                                                     <button
                                                         type="button"
-                                                        onClick={() => { setModalMinBuyInBB(20); setModalMaxBuyInBB(100); }}
+                                                        onClick={() => {
+                                                            setModalMinBuyInBB(20);
+                                                            setModalMaxBuyInBB(100);
+                                                        }}
                                                         className={`px-3 py-1 text-xs rounded transition-all duration-200 ${
                                                             modalMinBuyInBB === 20 && modalMaxBuyInBB === 100
                                                                 ? "bg-blue-600 text-white"
@@ -820,7 +807,10 @@ const Dashboard: React.FC = () => {
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => { setModalMinBuyInBB(40); setModalMaxBuyInBB(200); }}
+                                                        onClick={() => {
+                                                            setModalMinBuyInBB(40);
+                                                            setModalMaxBuyInBB(200);
+                                                        }}
                                                         className={`px-3 py-1 text-xs rounded transition-all duration-200 ${
                                                             modalMinBuyInBB === 40 && modalMaxBuyInBB === 200
                                                                 ? "bg-blue-600 text-white"
@@ -831,7 +821,10 @@ const Dashboard: React.FC = () => {
                                                     </button>
                                                     <button
                                                         type="button"
-                                                        onClick={() => { setModalMinBuyInBB(100); setModalMaxBuyInBB(300); }}
+                                                        onClick={() => {
+                                                            setModalMinBuyInBB(100);
+                                                            setModalMaxBuyInBB(300);
+                                                        }}
                                                         className={`px-3 py-1 text-xs rounded transition-all duration-200 ${
                                                             modalMinBuyInBB === 100 && modalMaxBuyInBB === 300
                                                                 ? "bg-blue-600 text-white"
@@ -876,9 +869,7 @@ const Dashboard: React.FC = () => {
                                                     <p className="text-sm text-green-400">
                                                         ${calculatedMinBuyIn.toFixed(2)} - ${calculatedMaxBuyIn.toFixed(2)}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 mt-1">
-                                                        Based on ${modalBigBlind.toFixed(2)} BB
-                                                    </p>
+                                                    <p className="text-xs text-gray-500 mt-1">Based on ${modalBigBlind.toFixed(2)} BB</p>
                                                 </div>
                                             )}
                                         </>
@@ -964,6 +955,7 @@ const Dashboard: React.FC = () => {
                                     onTransfer={() => setShowCosmosTransferModal(true)}
                                     onCreateWallet={handleCreateNewWallet}
                                     onImportWallet={() => setShowCosmosImportModal(true)}
+                                    usdcBalance={getTransferTokenBalance()}
                                 />
                                 <TransactionPanel />
                             </div>
@@ -1006,7 +998,6 @@ const Dashboard: React.FC = () => {
                             }}
                         />
                     )}
-
                 </>
             )}
         </div>
