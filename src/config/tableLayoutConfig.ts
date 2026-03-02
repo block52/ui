@@ -319,7 +319,7 @@ export const viewportConfigs: Record<string, ViewportConfig> = {
       scale: 1,           // Base scale - actual scaling handled by calculateTableZoom()
       translateX: "-50%",   // Center horizontally
       translateY: "20%",   // Moved up to account for removed header
-      rotation: 180         // Needs to be 180 for proper orientation
+      rotation: 0         // No rotation needed since we're using zoom to handle landscape scaling
     },
     
     // PLAYER SEAT POSITIONS
