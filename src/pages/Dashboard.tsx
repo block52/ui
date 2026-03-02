@@ -956,8 +956,9 @@ const Dashboard: React.FC = () => {
                                     onCreateWallet={handleCreateNewWallet}
                                     onImportWallet={() => setShowCosmosImportModal(true)}
                                     usdcBalance={getTransferTokenBalance()}
+                                    cosmosWalletAddress={cosmosWallet.address}
                                 />
-                                <TransactionPanel />
+                                <TransactionPanel cosmosWalletAddress={cosmosWallet.address} usdcBalance={getTransferTokenBalance()} />
                             </div>
 
                             {/* Right column: Table List (takes remaining space) */}
