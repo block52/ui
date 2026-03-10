@@ -107,17 +107,6 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             return (
                 <div className={`fixed z-30 ${positionClass}`}>
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                        <label className="flex items-center mb-2 cursor-pointer">
-                            <input
-                                type="radio"
-                                name="sit-in-method"
-                                onChange={() => handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW)}
-                                className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
-                            />
-                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
-                                Wait for Next Hand
-                            </span>
-                        </label>
                         <label className="flex items-center cursor-pointer">
                             <input
                                 type="radio"
@@ -126,7 +115,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                 className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
                             />
                             <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
-                                Post Required Blinds Now
+                                Wait for Next Hand
                             </span>
                         </label>
                     </div>
