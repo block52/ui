@@ -7,7 +7,7 @@ import {
     muckCards,
     showCards,
     sitIn,
-    SIT_IN_METHOD_NEXT_BB,
+    SIT_IN_METHOD_POST_NOW,
     sitOut,
     SIT_OUT_METHOD_NEXT_HAND,
     startNewHand,
@@ -161,7 +161,7 @@ const handleSitOut = async (
 const handleSitIn = async (
     tableId: string | undefined,
     network: NetworkEndpoints,
-    method: SitInMethod = SIT_IN_METHOD_NEXT_BB
+    method: SitInMethod = SIT_IN_METHOD_POST_NOW
 ): Promise<string | null> => {
     if (!tableId) return null;
     try {

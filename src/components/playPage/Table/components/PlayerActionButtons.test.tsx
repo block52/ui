@@ -1,0 +1,150 @@
+import React from "react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import { NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
+import { PlayerActionButtons, PlayerActionButtonsProps } from "./PlayerActionButtons";
+import { SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
+import type { NetworkEndpoints } from "../../../../context/NetworkContext";
+
+// Mock action handlers
+const mockHandleSitIn = jest.fn();
+const mockHandleSitOut = jest.fn();
+jest.mock("../../../common/actionHandlers", () => ({
+    handleSitIn: (...args: unknown[]) => mockHandleSitIn(...args),
+    handleSitOut: (...args: unknown[]) => mockHandleSitOut(...args),
+}));
+
+// Mock getPlayerActionDisplay — import the real module so we can spy on it
+jest.mock("../../../../utils/playerActionDisplayUtils", () => {
+    const actual = jest.requireActual("../../../../utils/playerActionDisplayUtils");
+    return {
+        ...actual,
+        getPlayerActionDisplay: jest.fn(actual.getPlayerActionDisplay),
+    };
+});
+
+const mockNetwork: NetworkEndpoints = {
+    rpc: "http://localhost:26657",
+    rest: "http://localhost:1317",
+    wsUrl: "ws://localhost:26657/websocket",
+    chainId: "test-chain",
+};
+
+const action = (a: string) => ({
+    action: a as NonPlayerActionType,
+    min: undefined,
+    max: undefined,
+    index: 0,
+});
+
+const baseProps: PlayerActionButtonsProps = {
+    isMobile: false,
+    isMobileLandscape: false,
+    legalActions: [],
+    tableId: "table-123",
+    currentNetwork: mockNetwork,
+    playerStatus: null,
+    sitInMethod: null,
+    pendingSitOut: null,
+    totalSeatedPlayers: 0,
+    handNumber: 1,
+    hasActivePlayers: false,
+};
+
+beforeEach(() => {
+    mockHandleSitIn.mockClear();
+    mockHandleSitOut.mockClear();
+});
+
+describe("PlayerActionButtons", () => {
+    it("renders null when display kind is none", () => {
+        const { container } = render(
+            <PlayerActionButtons
+                {...baseProps}
+                totalSeatedPlayers={3}
+                handNumber={2}
+                legalActions={[]}
+            />
+        );
+        expect(container.firstChild).toBeNull();
+    });
+
+    it("renders waiting for players message for solo player", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                totalSeatedPlayers={1}
+            />
+        );
+        expect(screen.getByText("Waiting for players to join...")).toBeInTheDocument();
+    });
+
+    it("renders a Sit In button (not radio buttons) for sit-in-options", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        expect(screen.getByRole("button", { name: "Sit In" })).toBeInTheDocument();
+        expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+    });
+
+    it("Sit In button calls handleSitIn with POST_NOW", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Sit In" }));
+        expect(mockHandleSitIn).toHaveBeenCalledWith(
+            "table-123",
+            mockNetwork,
+            SIT_IN_METHOD_POST_NOW
+        );
+    });
+
+    it("does NOT render Sit In Next Big Blind text anywhere", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        expect(screen.queryByText(/Sit In Next Big Blind/i)).not.toBeInTheDocument();
+    });
+
+    it("renders pending state with waiting message", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                playerStatus={PlayerStatus.SITTING_IN}
+                totalSeatedPlayers={3}
+                sitInMethod={SIT_IN_METHOD_POST_NOW}
+            />
+        );
+        expect(screen.getByText("Waiting to sit in...")).toBeInTheDocument();
+    });
+
+    it("renders sit-out checkbox when SIT_OUT action available", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_OUT)]}
+                totalSeatedPlayers={3}
+                handNumber={2}
+            />
+        );
+        expect(screen.getByRole("checkbox")).toBeInTheDocument();
+        expect(screen.getByText("Sit Out Next Hand")).toBeInTheDocument();
+    });
+});
