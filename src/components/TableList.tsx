@@ -204,23 +204,15 @@ const TableList: React.FC = () => {
                                             <span className="text-gray-300 font-mono text-sm">{formatBuyIn(game)}</span>
                                         </td>
                                         <td className="px-4 py-4 text-center">
-                                            {game.currentPlayers < game.maxPlayers ? (
-                                                <a
-                                                    href={`/table/${game.gameId}`}
-                                                    target="_blank"
-                                                    rel="noopener noreferrer"
-                                                    aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
-                                                    className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
-                                                >
-                                                    Join
-                                                </a>
-                                            ) : (
-                                                <span
-                                                    className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
-                                                >
-                                                    Full
-                                                </span>
-                                            )}
+                                            <a
+                                                href={`/table/${game.gameId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
+                                                className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
+                                            >
+                                                {game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
+                                            </a>
                                         </td>
                                     </tr>
                                 );
