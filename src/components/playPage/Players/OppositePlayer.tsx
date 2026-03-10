@@ -37,7 +37,7 @@ type OppositePlayerProps = {
 };
 
 const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
-    const { playerData, stackValue, isFolded, isAllIn, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
+    const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
     const { winnerInfo } = useWinnerInfo();
     const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
 
@@ -68,7 +68,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     }, [winnerInfo, index]);
 
     // 2) dim non-winners when someone has won, also dim busted players like sitting out
-    const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSittingOut || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
+    const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
 
     // Get winner amount if this player is a winner
     const winnerAmount = React.useMemo(() => {
@@ -142,7 +142,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     >
                         {/* Progress bar is not shown in showdown */}
                         {!isWinner && round !== "showdown" && <ProgressBar index={index} />}
-                        {!isWinner && isSittingOut && (
+                        {!isWinner && (isSeated || isSittingOut) && (
                             <span className={`font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>SITTING OUT</span>
                         )}
                         {!isWinner && isFolded && (
