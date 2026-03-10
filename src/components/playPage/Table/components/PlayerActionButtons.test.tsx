@@ -79,7 +79,7 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("Waiting for players to join...")).toBeInTheDocument();
     });
 
-    it("renders a Sit In button (not radio buttons) for sit-in-options", () => {
+    it("renders radio buttons for sit-in-options", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -89,11 +89,13 @@ describe("PlayerActionButtons", () => {
                 hasActivePlayers={true}
             />
         );
-        expect(screen.getByRole("button", { name: "Sit In" })).toBeInTheDocument();
-        expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+        const radios = screen.getAllByRole("radio");
+        expect(radios).toHaveLength(2);
+        expect(screen.getByText("Wait for Next Hand")).toBeInTheDocument();
+        expect(screen.getByText("Post Required Blinds Now")).toBeInTheDocument();
     });
 
-    it("Sit In button calls handleSitIn with POST_NOW", () => {
+    it("radio buttons both call handleSitIn with POST_NOW", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -103,7 +105,18 @@ describe("PlayerActionButtons", () => {
                 hasActivePlayers={true}
             />
         );
-        fireEvent.click(screen.getByRole("button", { name: "Sit In" }));
+        const radios = screen.getAllByRole("radio");
+
+        fireEvent.click(radios[0]);
+        expect(mockHandleSitIn).toHaveBeenCalledWith(
+            "table-123",
+            mockNetwork,
+            SIT_IN_METHOD_POST_NOW
+        );
+
+        mockHandleSitIn.mockClear();
+
+        fireEvent.click(radios[1]);
         expect(mockHandleSitIn).toHaveBeenCalledWith(
             "table-123",
             mockNetwork,
