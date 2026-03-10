@@ -7,7 +7,7 @@ describe("convertUtils", () => {
         creator: "cosmos1abc",
         format: GameFormat.CASH,
         variant: GameVariant.TEXAS_HOLDEM,
-        currentPlayers: 2,
+        currentPlayers: 0,
         gameOptions: {
             minBuyIn: "5000000",
             maxBuyIn: "50000000",
