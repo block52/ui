@@ -48,8 +48,9 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
 
     // 1. Pending: player already confirmed sit-in, waiting for action
     if (playerStatus === PlayerStatus.SITTING_IN) {
-        const waitingMessage = sitInMethod === SIT_IN_METHOD_POST_NOW
-            ? "Waiting to Post Required Blinds..."
+        // Default to post-now message; next-bb deferred (poker-vm#1895)
+        const waitingMessage = sitInMethod === SIT_IN_METHOD_POST_NOW || sitInMethod === null
+            ? "Waiting to sit in..."
             : "Waiting For Next Big Blind...";
         return { kind: "pending", waitingMessage };
     }
