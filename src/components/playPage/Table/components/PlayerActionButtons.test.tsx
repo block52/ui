@@ -23,10 +23,11 @@ jest.mock("../../../../utils/playerActionDisplayUtils", () => {
 });
 
 const mockNetwork: NetworkEndpoints = {
+    name: "test",
     rpc: "http://localhost:26657",
     rest: "http://localhost:1317",
-    wsUrl: "ws://localhost:26657/websocket",
-    chainId: "test-chain",
+    grpc: "localhost:9090",
+    ws: "ws://localhost:26657/websocket",
 };
 
 const action = (a: string) => ({
