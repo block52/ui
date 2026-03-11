@@ -1,10 +1,12 @@
 import { useMemo } from "react";
+import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { PlayerChipDataReturn } from "../../types/index";
 import { useGameStateContext } from "../../context/GameStateContext";
 
 /**
  * Custom hook to fetch and provide player chip data for each seat
- * FIXED: Only shows current round betting, not accumulated totals
+ * FIXED: Only shows chips for players in active gameplay (not SEATED, SITTING_OUT, etc.)
+ * Shows current round betting only, not accumulated totals
  */
 export const usePlayerChipData = (): PlayerChipDataReturn => {
     const { gameState, isLoading, error } = useGameStateContext();
@@ -23,10 +25,24 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
         gameState.players.forEach(player => {
             if (!player.seat || !player.address) return;
 
+            // ONLY show chips for players who are actively playing
+            // Don't show chips for SEATED (just joined, game not started),
+            // SITTING_OUT, BUSTED, WAITING, SITTING_IN, or SHOWING players
+            const shouldShowChips = (
+                player.status === PlayerStatus.ACTIVE ||
+                player.status === PlayerStatus.ALL_IN ||
+                player.status === PlayerStatus.FOLDED
+            );
+
+            if (!shouldShowChips) {
+                amounts[player.seat] = "0";
+                return;
+            }
+
             // FIXED: Only show chips based on current round logic
             let chipAmount = "0";
 
-            if (currentRound === "ante" || currentRound === "preflop") {
+            if (currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP) {
                 // During ante/preflop, show accumulated bets (includes blinds)
                 chipAmount = player.sumOfBets || "0";
             } else {
