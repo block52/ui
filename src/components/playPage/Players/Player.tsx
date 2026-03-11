@@ -122,7 +122,14 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                     </span>
                 );
             }
-            if (isSeated || isSittingOut) {
+            if (isSeated) {
+                return (
+                    <span className={`font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>
+                        SEATED
+                    </span>
+                );
+            }
+            if (isSittingOut) {
                 return (
                     <span className={`font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>
                         SITTING OUT
