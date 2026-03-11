@@ -342,7 +342,9 @@ export interface PlayerDataReturn extends BaseHookReturn {
     stackValue: number;
     isFolded: boolean;
     isAllIn: boolean;
+    isSeated: boolean;
     isSittingOut: boolean;
+    isSittingIn: boolean;
     isBusted: boolean;
     holeCards: string[];
     round: TexasHoldemRound | null;
