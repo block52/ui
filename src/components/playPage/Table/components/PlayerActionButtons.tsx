@@ -115,7 +115,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                 className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
                             />
                             <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
-                                Wait for Next Hand
+                                Sit in on Next Available Hand and Post Required Blinds
                             </span>
                         </label>
                     </div>
