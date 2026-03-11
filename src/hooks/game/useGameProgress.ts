@@ -43,8 +43,8 @@ export const useGameProgress = (_tableId?: string): GameProgressReturn => {
             return defaultState;
         }
 
-        // Filter for active players (not folded and not sitting out)
-        const activePlayers = gameState.players.filter((player: PlayerDTO) => player.status !== PlayerStatus.FOLDED && player.status !== PlayerStatus.SITTING_OUT);
+        // Filter for active players (not folded, not sitting out, and not seated)
+        const activePlayers = gameState.players.filter((player: PlayerDTO) => player.status !== PlayerStatus.FOLDED && player.status !== PlayerStatus.SITTING_OUT && player.status !== PlayerStatus.SEATED);
 
         // Game is in progress if there are at least 2 active players
         const isGameInProgress = activePlayers.length > 1;

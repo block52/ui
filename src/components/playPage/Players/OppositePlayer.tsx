@@ -142,7 +142,10 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     >
                         {/* Progress bar is not shown in showdown */}
                         {!isWinner && round !== "showdown" && <ProgressBar index={index} />}
-                        {!isWinner && (isSeated || isSittingOut) && (
+                        {!isWinner && isSeated && (
+                            <span className={`font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>SEATED</span>
+                        )}
+                        {!isWinner && isSittingOut && (
                             <span className={`font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>SITTING OUT</span>
                         )}
                         {!isWinner && isFolded && (
