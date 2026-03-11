@@ -41,7 +41,7 @@ const TableList: React.FC = () => {
 
     // Check if there are any cash games to determine if we should show Stakes column
     const hasCashGames = React.useMemo(() => {
-        return games.some((game) => !isTournamentFormat(game.gameFormat));
+        return games.some(game => !isTournamentFormat(game.gameFormat));
     }, [games]);
 
     // Use environment variables for club branding
@@ -66,12 +66,7 @@ const TableList: React.FC = () => {
                     <h2 className="text-xl font-bold text-white">Available Tables</h2>
                 </div>
                 <div className="flex items-center justify-center py-12">
-                    <svg
-                        className="animate-spin h-8 w-8 mr-3 text-blue-500"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                    >
+                    <svg className="animate-spin h-8 w-8 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path
                             className="opacity-75"
@@ -103,10 +98,7 @@ const TableList: React.FC = () => {
                         </svg>
                     </div>
                     <p className="text-gray-300 mb-4">{error.message}</p>
-                    <button
-                        onClick={refetch}
-                        className={`px-4 py-2 rounded-lg text-white transition-all hover:opacity-90 ${styles.actionButton}`}
-                    >
+                    <button onClick={refetch} className={`px-4 py-2 rounded-lg text-white transition-all hover:opacity-90 ${styles.actionButton}`}>
                         Retry
                     </button>
                 </div>
@@ -141,12 +133,7 @@ const TableList: React.FC = () => {
                             <tr>
                                 <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
                                     <div className="mb-4">
-                                        <svg
-                                            className="w-12 h-12 mx-auto text-gray-600"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
+                                        <svg className="w-12 h-12 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
@@ -163,80 +150,73 @@ const TableList: React.FC = () => {
                             games.map((game: GameWithFormat) => {
                                 const isTournament = isTournamentFormat(game.gameFormat);
                                 return (
-                                <tr
-                                    key={game.gameId}
-                                    className="hover:bg-gray-700/50 transition-colors"
-                                >
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <img
-                                                src={clubLogo}
-                                                alt={clubName}
-                                                className="w-6 h-6 object-contain"
-                                            />
-                                            <span className="text-white">{clubName}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="text-gray-300 font-mono text-sm">
-                                                {`${game.gameId.slice(0, 4)}...${game.gameId.slice(-4)}`}
-                                            </span>
-                                            <button
-                                                onClick={() => copyToClipboard(game.gameId)}
-                                                className="text-gray-400 hover:text-white hover:opacity-90 transition-colors"
-                                                title="Copy game ID"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                    {hasCashGames && (
-                                        <td className="px-4 py-4 text-center">
-                                            {!isTournament ? (
-                                                <span className="text-white font-bold">
-                                                    ${formatMicroAsUsdc(game.smallBlind, 2)} / ${formatMicroAsUsdc(game.bigBlind, 2)}
-                                                </span>
-                                            ) : (
-                                                <span className="text-gray-500">-</span>
-                                            )}
+                                    <tr key={game.gameId} className="hover:bg-gray-700/50 transition-colors">
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <img src={clubLogo} alt={clubName} className="w-6 h-6 object-contain" />
+                                                <span className="text-white">{clubName}</span>
+                                            </div>
                                         </td>
-                                    )}
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-white capitalize">
-                                            {formatGameFormatDisplay(game.gameFormat)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-white capitalize">
-                                            {formatGameVariantDisplay(game.gameVariant)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-white font-semibold">
-                                            {game.currentPlayers}/{game.maxPlayers}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-gray-300 font-mono text-sm">
-                                            {formatBuyIn(game)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <a
-                                            href={`/table/${game.gameId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
-                                            className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
-                                        >
-                                            Join
-                                        </a>
-                                    </td>
-                                </tr>
-                            );})
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span className="text-gray-300 font-mono text-sm">
+                                                    {`${game.gameId.slice(0, 4)}...${game.gameId.slice(-4)}`}
+                                                </span>
+                                                <button
+                                                    onClick={() => copyToClipboard(game.gameId)}
+                                                    className="text-gray-400 hover:text-white hover:opacity-90 transition-colors"
+                                                    title="Copy game ID"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth="2"
+                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        {hasCashGames && (
+                                            <td className="px-4 py-4 text-center">
+                                                {!isTournament ? (
+                                                    <span className="text-white font-bold">
+                                                        ${formatMicroAsUsdc(game.smallBlind, 2)} / ${formatMicroAsUsdc(game.bigBlind, 2)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-500">-</span>
+                                                )}
+                                            </td>
+                                        )}
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-white capitalize">{formatGameFormatDisplay(game.gameFormat)}</span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-white capitalize">{formatGameVariantDisplay(game.gameVariant)}</span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-white font-semibold">
+                                                {game.currentPlayers}/{game.maxPlayers}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-gray-300 font-mono text-sm">{formatBuyIn(game)}</span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <a
+                                                href={`/table/${game.gameId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
+                                                className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
+                                            >
+                                                {game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
+                                            </a>
+                                        </td>
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>

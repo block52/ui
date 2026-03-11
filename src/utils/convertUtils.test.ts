@@ -7,6 +7,7 @@ describe("convertUtils", () => {
         creator: "cosmos1abc",
         format: GameFormat.CASH,
         variant: GameVariant.TEXAS_HOLDEM,
+        currentPlayers: 0,
         gameOptions: {
             minBuyIn: "5000000",
             maxBuyIn: "50000000",
@@ -14,11 +15,11 @@ describe("convertUtils", () => {
             maxPlayers: 9,
             smallBlind: "50000",
             bigBlind: "100000",
-            timeout: 30,
+            timeout: 30
         },
         createdAt: "2026-02-04T10:00:00Z",
         updatedAt: "2026-02-04T10:05:00Z",
-        ...overrides,
+        ...overrides
     });
 
     describe("convertGameListItemToGameWithFormat", () => {
@@ -71,7 +72,7 @@ describe("convertUtils", () => {
             const game = makeGameListItem({
                 creator: undefined,
                 createdAt: undefined,
-                updatedAt: undefined,
+                updatedAt: undefined
             });
             const result = convertGameListItemToGameWithFormat(game);
             expect(result.creator).toBeUndefined();
@@ -87,10 +88,7 @@ describe("convertUtils", () => {
 
     describe("convertGameList", () => {
         it("should convert all valid games", () => {
-            const games = [
-                makeGameListItem({ gameId: "game_001" }),
-                makeGameListItem({ gameId: "game_002", format: GameFormat.SIT_AND_GO }),
-            ];
+            const games = [makeGameListItem({ gameId: "game_001" }), makeGameListItem({ gameId: "game_002", format: GameFormat.SIT_AND_GO })];
             const result = convertGameList(games);
             expect(result).toHaveLength(2);
             expect(result[0].gameId).toBe("game_001");
@@ -103,16 +101,13 @@ describe("convertUtils", () => {
             const games = [
                 makeGameListItem({ gameId: "game_good" }),
                 makeGameListItem({ gameId: "game_bad", gameOptions: undefined as any }),
-                makeGameListItem({ gameId: "game_good2" }),
+                makeGameListItem({ gameId: "game_good2" })
             ];
             const result = convertGameList(games);
             expect(result).toHaveLength(2);
             expect(result[0].gameId).toBe("game_good");
             expect(result[1].gameId).toBe("game_good2");
-            expect(warnSpy).toHaveBeenCalledWith(
-                "[convertGameList] Game missing gameOptions, skipping:",
-                "game_bad"
-            );
+            expect(warnSpy).toHaveBeenCalledWith("[convertGameList] Game missing gameOptions, skipping:", "game_bad");
             warnSpy.mockRestore();
         });
 
@@ -123,10 +118,7 @@ describe("convertUtils", () => {
 
         it("should return empty array when all games lack gameOptions", () => {
             const warnSpy = jest.spyOn(console, "warn").mockImplementation();
-            const games = [
-                makeGameListItem({ gameId: "bad1", gameOptions: undefined as any }),
-                makeGameListItem({ gameId: "bad2", gameOptions: null as any }),
-            ];
+            const games = [makeGameListItem({ gameId: "bad1", gameOptions: undefined as any }), makeGameListItem({ gameId: "bad2", gameOptions: null as any })];
             const result = convertGameList(games);
             expect(result).toEqual([]);
             expect(warnSpy).toHaveBeenCalledTimes(2);
