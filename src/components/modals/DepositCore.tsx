@@ -45,7 +45,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
     const [selectedToken, setSelectedToken] = useState<DepositToken>("USDC");
     const tokenAddress = getTokenAddress(selectedToken);
 
-    const { open, isConnected, address } = useUserWalletConnect();
+    const { open, disconnect, isConnected, address } = useUserWalletConnect();
     const { deposit, depositToken, isDepositPending, isDepositConfirmed, isPending, depositError } = useDepositUSDC();
     const { isApprovePending, isApproveConfirmed, isLoading, approve, approveError } = useApprove();
     const [amount, setAmount] = useState<string>("0");
@@ -368,10 +368,18 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                             )}
 
                             {address && (
-                                <div className="mb-4 p-3 rounded-lg bg-gray-900 border border-gray-700">
-                                    <p className="text-gray-400 text-sm mb-1">Connected Address</p>
-                                    <p className="text-white font-mono text-sm break-all">{address}</p>
-                                </div>
+                                <>
+                                    <div className="mb-2 p-3 rounded-lg bg-gray-900 border border-gray-700">
+                                        <p className="text-gray-400 text-sm mb-1">Connected Address</p>
+                                        <p className="text-white font-mono text-sm break-all">{address}</p>
+                                    </div>
+                                    <button
+                                        onClick={disconnect}
+                                        className="w-full mb-4 py-2.5 px-3 rounded-lg text-white font-semibold bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 transition duration-300 shadow-md"
+                                    >
+                                        Disconnect Wallet
+                                    </button>
+                                </>
                             )}
 
                             {/* Token Selector */}
