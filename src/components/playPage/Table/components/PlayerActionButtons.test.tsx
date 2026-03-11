@@ -79,7 +79,7 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("Waiting for players to join...")).toBeInTheDocument();
     });
 
-    it("renders Wait for Next Hand radio for sit-in-options", () => {
+    it("renders sit-in radio for sit-in-options", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -90,10 +90,10 @@ describe("PlayerActionButtons", () => {
             />
         );
         expect(screen.getByRole("radio")).toBeInTheDocument();
-        expect(screen.getByText("Wait for Next Hand")).toBeInTheDocument();
+        expect(screen.getByText("Sit in on Next Available Hand and Post Required Blinds")).toBeInTheDocument();
     });
 
-    it("Wait for Next Hand radio calls handleSitIn with POST_NOW", () => {
+    it("sit-in radio calls handleSitIn with POST_NOW", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
