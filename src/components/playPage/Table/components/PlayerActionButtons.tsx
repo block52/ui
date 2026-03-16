@@ -107,15 +107,23 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             return (
                 <div className={`fixed z-30 ${positionClass}`}>
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                        <button
-                            onClick={() => handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW)}
-                            className={`w-full bg-green-600 hover:bg-green-500 text-white font-medium rounded-lg shadow-md
-                                backdrop-blur-sm transition-all duration-300 border border-green-400/30
-                                flex items-center justify-center gap-2 transform hover:scale-105
-                                ${isCompact ? "py-1.5 px-3 text-xs" : "py-2 px-4 text-sm"}`}
+                        <label
+                            className="flex items-center cursor-pointer"
+                            onClick={(e) => {
+                                e.preventDefault();
+                                handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
+                            }}
                         >
-                            Sit In
-                        </button>
+                            <input
+                                type="radio"
+                                name="sit-in-method"
+                                onChange={() => handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW)}
+                                className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
+                            />
+                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
+                                Sit in on Next Available Hand and Post Required Blinds
+                            </span>
+                        </label>
                     </div>
                 </div>
             );

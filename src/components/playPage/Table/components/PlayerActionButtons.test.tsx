@@ -79,7 +79,7 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("Waiting for players to join...")).toBeInTheDocument();
     });
 
-    it("renders a Sit In button (not radio buttons) for sit-in-options", () => {
+    it("renders a radio button for sit-in-options", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -89,11 +89,11 @@ describe("PlayerActionButtons", () => {
                 hasActivePlayers={true}
             />
         );
-        expect(screen.getByRole("button", { name: "Sit In" })).toBeInTheDocument();
-        expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+        expect(screen.getByRole("radio")).toBeInTheDocument();
+        expect(screen.getByText(/Sit in on Next Available Hand/i)).toBeInTheDocument();
     });
 
-    it("Sit In button calls handleSitIn with POST_NOW", () => {
+    it("radio button calls handleSitIn with POST_NOW", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -103,25 +103,12 @@ describe("PlayerActionButtons", () => {
                 hasActivePlayers={true}
             />
         );
-        fireEvent.click(screen.getByRole("button", { name: "Sit In" }));
+        fireEvent.click(screen.getByRole("radio"));
         expect(mockHandleSitIn).toHaveBeenCalledWith(
             "table-123",
             mockNetwork,
             SIT_IN_METHOD_POST_NOW
         );
-    });
-
-    it("does NOT render Sit In Next Big Blind text anywhere", () => {
-        render(
-            <PlayerActionButtons
-                {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN)]}
-                totalSeatedPlayers={3}
-                handNumber={5}
-                hasActivePlayers={true}
-            />
-        );
-        expect(screen.queryByText(/Sit In Next Big Blind/i)).not.toBeInTheDocument();
     });
 
     it("renders pending state with waiting message", () => {
