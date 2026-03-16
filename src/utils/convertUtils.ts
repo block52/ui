@@ -43,7 +43,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         maxBuyIn: opts.maxBuyIn,
         minPlayers: opts.minPlayers,
         maxPlayers: opts.maxPlayers,
-        currentPlayers: game.currentPlayers ? game.currentPlayers : 0,
+        currentPlayers: 0,
         gameFormat: getGameFormat(game.format),
         gameVariant: getGameVariant(game.variant),
         smallBlind: opts.smallBlind,
