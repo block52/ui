@@ -107,11 +107,24 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             return (
                 <div className={`fixed z-30 ${positionClass}`}>
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                        <label className="flex items-center cursor-pointer">
+                        <label
+                            className="flex items-center cursor-pointer"
+                            onClick={(e) => {
+                                console.log("🎯 Label clicked! TableId:", tableId, "Network:", currentNetwork);
+                                e.preventDefault();
+                                handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
+                            }}
+                        >
                             <input
                                 type="radio"
                                 name="sit-in-method"
-                                onChange={() => handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW)}
+                                onChange={() => {
+                                    console.log("🎯 Radio onChange fired! TableId:", tableId, "Network:", currentNetwork);
+                                    handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
+                                }}
+                                onClick={(e) => {
+                                    console.log("🎯 Radio onClick fired! TableId:", tableId, "Network:", currentNetwork);
+                                }}
                                 className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
                             />
                             <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>

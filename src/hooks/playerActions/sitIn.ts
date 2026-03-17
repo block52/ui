@@ -21,7 +21,17 @@ export async function sitIn(
     network: NetworkEndpoints,
     method: SitInMethod = SIT_IN_METHOD_POST_NOW
 ): Promise<PlayerActionResult> {
+    console.log("🔧 sitIn() called with:", { tableId, method });
+    console.log("🔑 Getting signing client...");
     const { signingClient, userAddress } = await getSigningClient(network);
+    console.log("✅ Signing client obtained, userAddress:", userAddress);
+
+    console.log("📡 Calling SDK performAction with:", {
+        tableId,
+        action: "sit-in",
+        amount: "0n",
+        data: `method=${method}`
+    });
 
     const transactionHash = await signingClient.performAction(
         tableId,
@@ -30,6 +40,7 @@ export async function sitIn(
         `method=${method}`
     );
 
+    console.log("✅ performAction returned hash:", transactionHash);
 
     return {
         hash: transactionHash,

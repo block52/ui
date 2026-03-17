@@ -29,6 +29,8 @@ import { generateCSSVariables } from "./utils/colorConfig";
 import { useEffect } from "react";
 import FaviconSetter from "./components/FaviconSetter";
 import { GlobalHeader } from "./components/GlobalHeader";
+import { ProfileAvatarProvider } from "./context/profile/ProfileAvatarContext";
+import { ProfileAvatarModal } from "./components/profile";
 
 const queryClient = new QueryClient();
 
@@ -65,6 +67,7 @@ function AppContent() {
         <div className="bg-[#2c3245] min-h-screen">
             <FaviconSetter />
             <GlobalHeader />
+            <ProfileAvatarModal />
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<Table />} />
@@ -121,7 +124,9 @@ function App() {
             <QueryClientProvider client={queryClient}>
                 <WagmiProvider config={wagmiAdapter.wagmiConfig}>
                     <GameStateProvider>
-                        <AppContent />
+                        <ProfileAvatarProvider>
+                            <AppContent />
+                        </ProfileAvatarProvider>
                     </GameStateProvider>
                 </WagmiProvider>
             </QueryClientProvider>

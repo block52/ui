@@ -14,6 +14,7 @@ import { colors } from "../../../utils/colorConfig";
 import { getCardImageUrl } from "../../../utils/cardImages";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
+import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import styles from "./PlayersCommon.module.css";
 
 const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
@@ -25,6 +26,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
 
         const { dealerSeat } = useDealerPosition();
         const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
+        const { getAvatarForAddress } = useProfileAvatar();
 
         // Check if this seat is the dealer
         const isDealer = dealerSeat === index;
@@ -43,6 +45,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
 
         // State for extension UI feedback
         const [isExtending, setIsExtending] = useState(false);
+        const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
         // Handle time extension
         const _handleExtendTime = () => {
@@ -175,6 +178,14 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
             [isWinner, color]
         );
 
+        const selectedAvatarUrl = useMemo(() => {
+            return getAvatarForAddress(playerData?.address, playerData?.avatar);
+        }, [getAvatarForAddress, playerData?.address, playerData?.avatar]);
+
+        useEffect(() => {
+            setAvatarLoadFailed(false);
+        }, [selectedAvatarUrl]);
+
         if (!playerData) {
             return <></>;
         }
@@ -197,7 +208,22 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                     </div>
                 )}
                 <div className="flex justify-center gap-1">{renderCards()}</div>
-                <div className="relative flex flex-col justify-end mt-[-6px] mx-1s">
+                <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
+                    {selectedAvatarUrl && !avatarLoadFailed && (
+                        <div className={styles.avatarChip}>
+                            <img
+                                src={selectedAvatarUrl}
+                                alt="Player avatar"
+                                className={styles.avatarImage}
+                                onError={() => setAvatarLoadFailed(true)}
+                            />
+                        </div>
+                    )}
+                    {selectedAvatarUrl && avatarLoadFailed && (
+                        <div className={`${styles.avatarChip} ${styles.avatarFallback}`}>
+                            NFT
+                        </div>
+                    )}
                     <div
                         style={statusBarStyle}
                         className="b-[0%] mt-[auto] w-full h-[55px] shadow-[1px_2px_6px_2px_rgba(0,0,0,0.3)] rounded-tl-2xl rounded-tr-2xl rounded-bl-md rounded-br-md flex flex-col"
