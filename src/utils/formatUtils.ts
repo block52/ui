@@ -1,6 +1,7 @@
 /**
  * Formatting utility functions for the UI
  */
+import { bech32 } from "bech32";
 
 /**
  * Truncates a hash string to show only the beginning and end
@@ -70,4 +71,43 @@ export const formatDuration = (seconds: number): string => {
         return `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
     }
     return `${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
+
+/**
+ * Converts a Cosmos proposer address from base64 or hex encoding to a bech32 address.
+ *
+ * The Cosmos REST API returns `proposer_address` as a base64-encoded 20-byte value.
+ * This function decodes it and re-encodes it as a proper bech32 address.
+ *
+ * @param raw - The raw proposer address string (base64 or already bech32)
+ * @param prefix - The bech32 human-readable prefix (default: "b52")
+ * @returns The bech32-encoded address, or the original string if conversion fails
+ * @example
+ * formatProposerAddress("0G4/v8tw0VZLT+zn+Si5wX4rNaI=") // "b5216phrl07twrg4vj60annlj29ec9lzkddz835f8u"
+ */
+export const formatProposerAddress = (raw: string, prefix = "b52"): string => {
+    if (!raw) return "";
+    // Already a bech32 address — return as-is
+    if (raw.startsWith(prefix)) return raw;
+    try {
+        // Attempt base64 decode → bech32
+        const bytes = Uint8Array.from(atob(raw), c => c.charCodeAt(0));
+        if (bytes.length === 20) {
+            const words = bech32.toWords(bytes);
+            return bech32.encode(prefix, words);
+        }
+    } catch {
+        // fall through to hex attempt
+    }
+    try {
+        // Attempt hex decode → bech32 (some RPC nodes return uppercase hex)
+        if (/^[0-9a-fA-F]{40}$/.test(raw)) {
+            const bytes = Uint8Array.from(raw.match(/.{1,2}/g)!.map(b => parseInt(b, 16)));
+            const words = bech32.toWords(bytes);
+            return bech32.encode(prefix, words);
+        }
+    } catch {
+        // fall through
+    }
+    return raw;
 };

@@ -4,6 +4,7 @@ import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { ClickableAddress } from "../../components/explorer/ClickableAddress";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
+import { formatProposerAddress } from "../../utils/formatUtils";
 import styles from "./BlockDetailPage.module.css";
 // Define block response type locally to match Cosmos API response
 interface CosmosBlockResponse {
@@ -391,7 +392,7 @@ export default function BlockDetailPage() {
                         <div>
                             <p className="text-gray-400 text-sm mb-1">Proposer Address</p>
                             <p className="font-mono text-sm">
-                                <ClickableAddress address={block.block.header.proposer_address || ""} />
+                                <ClickableAddress address={formatProposerAddress(block.block.header.proposer_address || "")} />
                             </p>
                         </div>
 
