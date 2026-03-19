@@ -1,114 +1,114 @@
 {
-    "name": "block52-poker-ui",
-    "version": "0.1.0",
-    "private": true,
-    "proxy": "=https://paymentservice.texashodl.net",
-    "dependencies": {
-        "@metamask/sdk": "~0.33.1",
-        "@block52/poker-vm-sdk": "1.1.9",
-        "@reown/appkit": "1.6.7",
-        "@reown/appkit-adapter-ethers": "1.6.7",
-        "@reown/appkit-adapter-wagmi": "1.6.7",
-        "@tanstack/react-query": "^5.81.5",
-        "@types/bip39": "^3.0.4",
-        "@types/node": "^25.5.0",
-        "@types/react": "^19.0.2",
-        "@types/react-dom": "^19.0.2",
-        "@types/uuid": "^11.0.0",
-        "axios": "^1.12.0",
-        "bech32": "^2.0.0",
-        "bigunit": "^1.2.5",
-        "bip39": "^3.1.0",
-        "buffer": "^6.0.3",
-        "chart.js": "^4.5.1",
-        "crypto-browserify": "^3.12.1",
-        "crypto-js": "^4.2.0",
-        "dotenv": "^17.3.1",
-        "ethers": "^6.15.0",
-        "framer-motion": "^12.37.0",
-        "process": "^0.11.10",
-        "qrcode.react": "^4.2.0",
-        "react": "^19.2.4",
-        "react-chartjs-2": "^5.3.1",
-        "react-devtools": "^7.0.1",
-        "react-dom": "^19.2.4",
-        "react-icons": "^5.3.0",
-        "react-router-dom": "^7.7.0",
-        "react-toastify": "^11.0.5",
-        "stream-browserify": "^3.0.0",
-        "swr": "^2.3.7",
-        "tailwind-scrollbar-hide": "^1.1.7",
-        "tailwindcss": "^3.4.14",
-        "unstorage": "^1.17.0",
-        "util": "^0.12.5",
-        "uuid": "^13.0.0",
-        "viem": "^2.47.4",
-        "wagmi": "^3.5.0"
-    },
-    "scripts": {
-        "dev": "vite --host 0.0.0.0 --port 5173",
-        "dev:lint": "eslint . --fix && vite --host 0.0.0.0 --port 5173",
-        "dev:nocheck": "vite --host 0.0.0.0 --port 5173",
-        "build": "tsc -b && vite build",
-        "start": "vite preview --host 0.0.0.0 --port 5173",
-        "lint": "eslint .",
-        "lint:fix": "eslint . --fix",
-        "lint:warn": "eslint . --fix --max-warnings=100",
-        "preview": "vite preview",
-        "test": "jest",
-        "test:coverage": "jest --coverage",
-        "test:watch": "jest --watch",
-        "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
-        "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\""
-    },
-    "eslintConfig": {
-        "extends": [
-            "react-app",
-            "react-app/jest"
-        ]
-    },
-    "browserslist": {
-        "production": [
-            ">0.2%",
-            "not dead",
-            "not op_mini all"
-        ],
-        "development": [
-            "last 1 chrome version",
-            "last 1 firefox version",
-            "last 1 safari version"
-        ]
-    },
-    "devDependencies": {
-        "@eslint/js": "^10.0.1",
-        "@testing-library/dom": "^10.4.0",
-        "@testing-library/jest-dom": "^6.6.3",
-        "@testing-library/react": "^16.1.0",
-        "@testing-library/user-event": "^14.5.2",
-        "@types/crypto-js": "^4.2.2",
-        "@types/jest": "^30.0.0",
-        "@vitejs/plugin-react": "^6.0.1",
-        "autoprefixer": "^10.4.20",
-        "eslint": "^10.0.3",
-        "eslint-plugin-react-hooks": "^7.0.1",
-        "eslint-plugin-react-refresh": "^0.5.2",
-        "globals": "^17.4.0",
-        "identity-obj-proxy": "^3.0.0",
-        "jest": "^30.3.0",
-        "jest-environment-jsdom": "^30.3.0",
-        "postcss": "^8.4.49",
-        "prettier": "^3.8.0",
-        "ts-jest": "^29.2.5",
-        "typescript": "^5.7.2",
-        "typescript-eslint": "^8.57.1",
-        "vite": "^8.0.0"
-    },
-    "engines": {
-        "node": "22.x",
-        "yarn": "1.22"
-    },
-    "resolutions": {
-        "rollup": "^4.34.9"
-    },
-    "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "name": "block52-poker-ui",
+  "version": "0.1.0",
+  "private": true,
+  "proxy": "=https://paymentservice.texashodl.net",
+  "dependencies": {
+    "@metamask/sdk": "~0.33.1",
+    "@block52/poker-vm-sdk": "1.1.9",
+    "@reown/appkit": "1.6.7",
+    "@reown/appkit-adapter-ethers": "1.6.7",
+    "@reown/appkit-adapter-wagmi": "1.6.7",
+    "@tanstack/react-query": "^5.81.5",
+    "@types/bip39": "^3.0.4",
+    "@types/node": "^25.5.0",
+    "@types/react": "^19.0.2",
+    "@types/react-dom": "^19.0.2",
+    "@types/uuid": "^11.0.0",
+    "axios": "^1.12.0",
+    "bech32": "^2.0.0",
+    "bigunit": "^1.2.5",
+    "bip39": "^3.1.0",
+    "buffer": "^6.0.3",
+    "chart.js": "^4.5.1",
+    "crypto-browserify": "^3.12.1",
+    "crypto-js": "^4.2.0",
+    "dotenv": "^17.3.1",
+    "ethers": "^6.15.0",
+    "framer-motion": "^12.37.0",
+    "process": "^0.11.10",
+    "qrcode.react": "^4.2.0",
+    "react": "^19.2.4",
+    "react-chartjs-2": "^5.3.1",
+    "react-devtools": "^7.0.1",
+    "react-dom": "^19.2.4",
+    "react-icons": "^5.3.0",
+    "react-router-dom": "^7.7.0",
+    "react-toastify": "^11.0.5",
+    "stream-browserify": "^3.0.0",
+    "swr": "^2.3.7",
+    "tailwind-scrollbar-hide": "^1.1.7",
+    "tailwindcss": "^3.4.14",
+    "unstorage": "^1.17.0",
+    "util": "^0.12.5",
+    "uuid": "^13.0.0",
+    "viem": "^2.47.4",
+    "wagmi": "^3.5.0"
+  },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0 --port 5173",
+    "dev:lint": "eslint . --fix && vite --host 0.0.0.0 --port 5173",
+    "dev:nocheck": "vite --host 0.0.0.0 --port 5173",
+    "build": "tsc -b && vite build",
+    "start": "vite preview --host 0.0.0.0 --port 5173",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "lint:warn": "eslint . --fix --max-warnings=100",
+    "preview": "vite preview",
+    "test": "jest",
+    "test:coverage": "jest --coverage",
+    "test:watch": "jest --watch",
+    "format": "prettier --write \"src/**/*.{ts,tsx,js,jsx,json,css,md}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,js,jsx,json,css,md}\""
+  },
+  "eslintConfig": {
+    "extends": [
+      "react-app",
+      "react-app/jest"
+    ]
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@testing-library/dom": "^10.4.0",
+    "@testing-library/jest-dom": "^6.6.3",
+    "@testing-library/react": "^16.1.0",
+    "@testing-library/user-event": "^14.5.2",
+    "@types/crypto-js": "^4.2.2",
+    "@types/jest": "^30.0.0",
+    "@vitejs/plugin-react": "^6.0.1",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^10.0.3",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.2",
+    "globals": "^17.4.0",
+    "identity-obj-proxy": "^3.0.0",
+    "jest": "^30.3.0",
+    "jest-environment-jsdom": "^30.3.0",
+    "postcss": "^8.4.49",
+    "prettier": "^3.8.0",
+    "ts-jest": "^29.2.5",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.57.1",
+    "vite": "^8.0.0"
+  },
+  "engines": {
+    "node": "22.x",
+    "yarn": "1.22"
+  },
+  "resolutions": {
+    "rollup": "^4.34.9"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
