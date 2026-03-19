@@ -86,6 +86,8 @@ function createHUGameState(overrides: Partial<TexasHoldemStateDTO> = {}): TexasH
         round: TexasHoldemRound.ANTE,
         winners: [],
         results: [],
+        legalActions: [],
+        availableSeats: [],
         signature: "game_sig",
         ...overrides
     };

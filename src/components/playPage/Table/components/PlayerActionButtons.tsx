@@ -84,21 +84,12 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             return (
                 <div className={`fixed z-30 ${positionClass}`}>
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2">
                             <div className="animate-pulse w-2 h-2 rounded-full bg-yellow-400" />
                             <span className={`text-yellow-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>
                                 {display.waitingMessage}
                             </span>
                         </div>
-                        <button
-                            onClick={() => handleSitOut(tableId, currentNetwork)}
-                            className={`w-full btn-sit-out text-white font-medium rounded-lg shadow-md
-                                backdrop-blur-sm transition-all duration-300 border
-                                flex items-center justify-center gap-2 transform hover:scale-105
-                                ${isCompact ? "py-1 px-2 text-xs" : "py-1.5 px-3 text-sm"}`}
-                        >
-                            Cancel
-                        </button>
                     </div>
                 </div>
             );
