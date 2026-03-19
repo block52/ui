@@ -7,7 +7,7 @@ import { COSMOS_BRIDGE_ADDRESS } from "../../config/constants";
 
 const useWithdraw = () => {
   const BRIDGE_ADDRESS = COSMOS_BRIDGE_ADDRESS;
-  const { data: hash, isPending, writeContract, error } = useWriteContract();
+  const { data: hash, isPending, mutate, error } = useWriteContract();
   const { address: userAddress } = useUserWalletConnect();
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
@@ -38,7 +38,7 @@ const useWithdraw = () => {
     }
 
     try {
-      writeContract({
+      mutate({
         address: BRIDGE_ADDRESS as `0x${string}`,
         abi: abi,
         functionName: FunctionName.Withdraw,
@@ -53,7 +53,7 @@ const useWithdraw = () => {
       console.error("[useWithdraw] Withdrawal transaction failed:", err);
       throw err;
     }
-  }, [userAddress, writeContract, BRIDGE_ADDRESS]);
+  }, [userAddress, mutate, BRIDGE_ADDRESS]);
 
   return useMemo(
     () => ({

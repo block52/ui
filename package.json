@@ -5,6 +5,7 @@
   "proxy": "=https://paymentservice.texashodl.net",
   "dependencies": {
     "@block52/poker-vm-sdk": "^1.1.7",
+    "@metamask/sdk": "~0.33.1",
     "@reown/appkit": "1.6.7",
     "@reown/appkit-adapter-ethers": "1.6.7",
     "@reown/appkit-adapter-wagmi": "1.6.7",
@@ -42,7 +43,7 @@
     "util": "^0.12.5",
     "uuid": "^13.0.0",
     "viem": "^2.47.4",
-    "wagmi": "^2.14.7"
+    "wagmi": "^3.5.0"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",

@@ -5,7 +5,7 @@ import { toast } from "react-toastify";
 import { ethers } from "ethers";
 import { formatMicroAsUsdc, usdcToMicroBigInt } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
-import { useAccount } from "wagmi";
+import { useConnection } from "wagmi";
 import { BRIDGE_WITHDRAWAL_ABI } from "../utils/bridge/abis";
 import { base64ToHex } from "../utils/encodingUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
@@ -35,7 +35,7 @@ interface Withdrawal {
 
 export default function WithdrawalDashboard() {
     const cosmosWallet = useCosmosWallet();
-    const { address: baseAddress, isConnected } = useAccount();
+    const { address: baseAddress, isConnected } = useConnection();
     const { currentNetwork } = useNetwork();
     const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
     const [isLoading, setIsLoading] = useState(false);

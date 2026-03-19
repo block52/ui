@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState, useCallback } from "react";
-import { useAccount as useWagmiAccount } from "wagmi";
+import { useConnection as useWagmiAccount } from "wagmi";
 import { ETH_CHAIN_ID } from "../../config/constants";
 import { createAuthPayload } from "../../utils/cosmos/signing";
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
@@ -46,16 +46,10 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [selectedAvatar, setSelectedAvatar] = useState<AvatarSelection | null>(null);
 
-    const {
-        walletNfts,
-        isLoadingNfts,
-        nftsError,
-        nftsWarning,
-        refreshWalletNfts,
-        hasContractsConfigured,
-        hasSourceConfigured,
-        sourceMode
-    } = useWalletNfts(address, isConnected);
+    const { walletNfts, isLoadingNfts, nftsError, nftsWarning, refreshWalletNfts, hasContractsConfigured, hasSourceConfigured, sourceMode } = useWalletNfts(
+        address,
+        isConnected
+    );
 
     useEffect(() => {
         if (!address && !cosmosAddress) {
@@ -64,8 +58,7 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
         }
 
         const storedSelection =
-            (address ? getStoredAvatarSelection(address, chainId) : null) ||
-            (cosmosAddress ? getStoredAvatarSelection(cosmosAddress, chainId) : null);
+            (address ? getStoredAvatarSelection(address, chainId) : null) || (cosmosAddress ? getStoredAvatarSelection(cosmosAddress, chainId) : null);
         setSelectedAvatar(storedSelection);
     }, [address, cosmosAddress, chainId]);
 
@@ -184,8 +177,10 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
                 return null;
             }
 
-            if ((address && targetAddress.toLowerCase() === address.toLowerCase()) ||
-                (cosmosAddress && targetAddress.toLowerCase() === cosmosAddress.toLowerCase())) {
+            if (
+                (address && targetAddress.toLowerCase() === address.toLowerCase()) ||
+                (cosmosAddress && targetAddress.toLowerCase() === cosmosAddress.toLowerCase())
+            ) {
                 return selectedAvatar?.imageUrl ?? null;
             }
 

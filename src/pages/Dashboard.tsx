@@ -6,7 +6,7 @@ import styles from "./Dashboard.module.css";
 
 // Ethereum Mainnet imports (for auto-switch to correct chain)
 import { ETH_CHAIN_ID } from "../config/constants";
-import { useAccount as useWagmiAccount, useSwitchChain } from "wagmi";
+import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
 import { calculateBuyIn } from "../utils/buyInUtils";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX } from "../constants/blindLevels";
@@ -58,7 +58,7 @@ const Dashboard: React.FC = () => {
 
     // Wagmi hooks for Ethereum Mainnet (USDC deposit bridge)
     const { chain } = useWagmiAccount();
-    const { switchChain } = useSwitchChain();
+    const switchChain = useSwitchChain();
 
     // Removed: Ethereum account hook - now using Cosmos wallet only
 
@@ -321,7 +321,7 @@ const Dashboard: React.FC = () => {
         const autoSwitchToEthereum = async () => {
             if (isConnected && chain?.id !== ETH_CHAIN_ID && switchChain) {
                 try {
-                    await switchChain({ chainId: ETH_CHAIN_ID });
+                    await switchChain.mutateAsync({ chainId: ETH_CHAIN_ID });
                 } catch (err) {
                     // Don't show error to user - they can manually switch if needed
                 }

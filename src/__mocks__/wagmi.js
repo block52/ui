@@ -1,8 +1,8 @@
 // Mock for wagmi - ESM package that Jest can't parse
 module.exports = {
     useWriteContract: jest.fn(() => ({
-        writeContract: jest.fn(),
-        writeContractAsync: jest.fn(),
+        mutate: jest.fn(),
+        mutateAsync: jest.fn(),
         data: undefined,
         error: null,
         isPending: false,
@@ -17,12 +17,12 @@ module.exports = {
         isError: false,
         error: null
     })),
-    useAccount: jest.fn(() => ({
+    useConnection: jest.fn(() => ({
         address: undefined,
         isConnected: false,
         isConnecting: false,
         isDisconnected: true,
-        status: 'disconnected'
+        status: "disconnected"
     })),
     useConnect: jest.fn(() => ({
         connect: jest.fn(),
