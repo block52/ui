@@ -64,9 +64,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             let defaultBuyIn = maxBuyInDollars;
             if (usdcBalance) {
                 const usdcAmount = microToUsdc(usdcBalance.amount);
-                defaultBuyIn = Math.min(parseFloat(maxBuyInDollars), usdcAmount).toFixed(2);
+                defaultBuyIn = Math.min(parseFloat(maxBuyInDollars), usdcAmount).toString();
             }
-
             setBuyInAmount(defaultBuyIn);
 
             // Open buy-in modal directly (skip confirmation modal)
@@ -291,7 +290,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                         {/* Manual input below slider */}
                                         <input
                                             type="number"
-                                            value={buyInAmount}
+                                            value={parseFloat(buyInAmount).toFixed(2)}
                                             onChange={e => setBuyInAmount(e.target.value)}
                                             placeholder="Enter amount"
                                             className={`w-full px-4 py-2 rounded-lg text-white text-center text-lg ${styles.buyInInput}`}
