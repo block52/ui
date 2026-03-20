@@ -23,6 +23,7 @@ import { colors } from "../../../utils/colorConfig";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/cardImages";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
+import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import styles from "./PlayersCommon.module.css";
 
 type OppositePlayerProps = {
@@ -40,6 +41,8 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
     const { winnerInfo } = useWinnerInfo();
     const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
+    const { getAvatarForAddress } = useProfileAvatar();
+    const [avatarLoadFailed, setAvatarLoadFailed] = React.useState(false);
 
     // Get equity for this player if available
     const playerEquity = React.useMemo((): number | null => {
@@ -90,6 +93,14 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         return playerShowingCards ? playerShowingCards.holeCards : null;
     }, [isShowingCards, showingPlayers, index]);
 
+    const selectedAvatarUrl = React.useMemo(() => {
+        return getAvatarForAddress(playerData?.address, playerData?.avatar);
+    }, [getAvatarForAddress, playerData?.address, playerData?.avatar]);
+
+    React.useEffect(() => {
+        setAvatarLoadFailed(false);
+    }, [selectedAvatarUrl]);
+
     if (!playerData) {
         return <></>;
     }
@@ -134,6 +145,21 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     )}
                 </div>
                 <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
+                    {selectedAvatarUrl && !avatarLoadFailed && (
+                        <div className={styles.avatarChip}>
+                            <img
+                                src={selectedAvatarUrl}
+                                alt="Player avatar"
+                                className={styles.avatarImage}
+                                onError={() => setAvatarLoadFailed(true)}
+                            />
+                        </div>
+                    )}
+                    {selectedAvatarUrl && avatarLoadFailed && (
+                        <div className={`${styles.avatarChip} ${styles.avatarFallback}`}>
+                            NFT
+                        </div>
+                    )}
                     <div
                         style={{ backgroundColor: isWinner ? colors.accent.success : (color || "#6b7280") }}
                         className={`b-[0%] mt-[auto] w-full h-[55px] shadow-[1px_2px_6px_2px_rgba(0,0,0,0.3)] rounded-tl-2xl rounded-tr-2xl rounded-bl-md rounded-br-md flex flex-col ${

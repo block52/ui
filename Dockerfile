@@ -1,25 +1,30 @@
 # Frontend UI Dockerfile
-FROM node:22.12-alpine
+# Build stage
+FROM node:22.12-alpine AS build
 
-# Install system dependencies
-RUN apk add --no-cache curl && rm -rf /var/cache/apk/*
-
-# Set working directory
 WORKDIR /app
 
 # Copy package files and install dependencies
 COPY package.json yarn.lock ./
-RUN yarn install --ignore-engines && yarn cache clean
+RUN yarn install --frozen-lockfile && yarn cache clean
 
-# Copy source code
+# Copy source code and build
 COPY . .
+RUN yarn build
 
-# Expose port for development server
+# Production stage
+FROM node:22.12-alpine
+
+RUN npm install -g serve
+
+WORKDIR /app
+
+# Copy built assets from build stage
+COPY --from=build /app/build ./build
+
 EXPOSE 5173
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:5173 || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:5173/ || exit 1
 
-# Start development server
-CMD ["yarn", "dev"]
+CMD ["serve", "-s", "build", "-l", "5173"]

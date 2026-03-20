@@ -10,10 +10,10 @@
 
 import React from "react";
 import { FaCopy } from "react-icons/fa";
-import { RiMoneyDollarCircleLine } from "react-icons/ri";
 import { LuPanelLeftOpen, LuPanelLeftClose } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
 import { NetworkSelector } from "../../../NetworkSelector";
+import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import styles from "./TableHeader.module.css";
@@ -188,12 +188,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             </>
                         )}
                     </div>
-
-                    <div
-                        className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 cursor-pointer rounded-full shadow-md border transition-all duration-300 flex-shrink-0 ${styles.depositButton}`}
-                        onClick={handleDepositClick}
-                    >
-                        <RiMoneyDollarCircleLine className="hover:scale-110 transition-transform duration-200" size={16} />
+                    <div className="ml-2 flex-shrink-0">
+                        <ProfileAvatarButton title="Open avatar picker" />
                     </div>
                 </div>
             </div>
