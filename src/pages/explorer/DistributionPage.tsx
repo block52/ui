@@ -77,16 +77,25 @@ export default function DistributionPage() {
         fetchData();
     }, [fetchData]);
 
+    // Sort cards into canonical order: rank (2-A) then suit (h,d,c,s)
+    const RANK_ORDER = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
+    const SUIT_ORDER = ["h", "d", "c", "s"];
+    const sortedCardStats = [...cardStats].sort((a, b) => {
+        const rankDiff = RANK_ORDER.indexOf(a.rank.toUpperCase()) - RANK_ORDER.indexOf(b.rank.toUpperCase());
+        if (rankDiff !== 0) return rankDiff;
+        return SUIT_ORDER.indexOf(a.suit.toLowerCase()) - SUIT_ORDER.indexOf(b.suit.toLowerCase());
+    });
+
     // Derive totals from card stats
-    const totalCardsDealt = cardStats.reduce((sum, c) => sum + c.total_appearances, 0);
+    const totalCardsDealt = sortedCardStats.reduce((sum, c) => sum + c.total_appearances, 0);
 
     // Prepare data for Chart.js
     const chartData = {
-        labels: cardStats.map(c => c.card),
+        labels: sortedCardStats.map(c => c.card),
         datasets: [
             {
                 label: "Card Frequency",
-                data: cardStats.map(c => c.total_appearances),
+                data: sortedCardStats.map(c => c.total_appearances),
                 backgroundColor: "rgba(75, 192, 192, 0.6)",
                 borderColor: "rgba(75, 192, 192, 1)",
                 borderWidth: 1
