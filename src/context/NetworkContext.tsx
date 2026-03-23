@@ -41,9 +41,9 @@ export interface NetworkEndpoints {
 //
 // Same pattern applies to all validator domains (block52.xyz, texashodl.net, etc.)
 //
-// NETWORK STATUS (Last tested: 2025-11-05):
+// NETWORK STATUS (Last tested: 2026-03-23):
+// ✅ Block52 (node1.block52.xyz) - Official production node (default)
 // ✅ Localhost - Works with `ignite chain serve`
-// ❌ Block52 (node1.block52.xyz) - Currently not responding/down
 // ✅ Texas Hodl (node.texashodl.net) - Working, use for production testing
 //
 // CLI TEST COMMANDS (run in terminal to verify endpoints):
@@ -74,23 +74,7 @@ export interface NetworkEndpoints {
  *   wss://node.texashodl.net/ws (production via nginx proxy)
  */
 export const NETWORK_PRESETS: NetworkEndpoints[] = [
-    // [0] ✅ Localhost - Default for local development with `ignite chain serve`
-    {
-        name: "Localhost",
-        rpc: "http://localhost:26657",
-        rest: "http://localhost:1317",
-        grpc: "http://localhost:9090",
-        ws: "ws://localhost:8585/ws" // WebSocket server for real-time game updates (port 8585)
-    },
-    // [1] ✅ Texas Hodl - Recommended for production testing
-    {
-        name: "Texas Hodl",
-        rpc: "https://node.texashodl.net/rpc/",
-        rest: "https://node.texashodl.net",
-        grpc: "grpcs://node.texashodl.net:9443",
-        ws: "wss://node.texashodl.net/ws" // WebSocket endpoint for table/game updates
-    },
-    // [2] ✅ Block52 - Official node (default for production builds)
+    // [0] ✅ Block52 - Official node (default)
     // Using HTTPS endpoints via NGINX reverse proxy to avoid mixed content errors
     // NOTE: /rpc/ requires trailing slash due to nginx location block configuration
     {
@@ -99,6 +83,22 @@ export const NETWORK_PRESETS: NetworkEndpoints[] = [
         rest: "https://node1.block52.xyz",
         grpc: "grpcs://node1.block52.xyz:9443",
         ws: "wss://node1.block52.xyz/ws" // WebSocket endpoint for table/game updates
+    },
+    // [1] ✅ Localhost - Default for local development with `ignite chain serve`
+    {
+        name: "Localhost",
+        rpc: "http://localhost:26657",
+        rest: "http://localhost:1317",
+        grpc: "http://localhost:9090",
+        ws: "ws://localhost:8585/ws" // WebSocket server for real-time game updates (port 8585)
+    },
+    // [2] ✅ Texas Hodl - Recommended for production testing
+    {
+        name: "Texas Hodl",
+        rpc: "https://node.texashodl.net/rpc/",
+        rest: "https://node.texashodl.net",
+        grpc: "grpcs://node.texashodl.net:9443",
+        ws: "wss://node.texashodl.net/ws" // WebSocket endpoint for table/game updates
     },
     // [3] ✅ Miller Services - Sync node on DigitalOcean SYD1
     // Added: 2025-12-22
@@ -134,16 +134,16 @@ export const NetworkProvider: React.FC<{ children: ReactNode }> = ({ children })
                 const parsed = JSON.parse(saved);
                 // Validate that the parsed object has the ws property (for backward compatibility)
                 if (!parsed.ws) {
-                    return NETWORK_PRESETS[2]; // Block52
+                    return NETWORK_PRESETS[0]; // Block52
                 }
                 return parsed;
             } catch {
                 // If localStorage is corrupted, default to Block52
-                return NETWORK_PRESETS[2]; // Block52
+                return NETWORK_PRESETS[0]; // Block52
             }
         }
         // First time user - default to Block52
-        return NETWORK_PRESETS[2]; // Block52
+        return NETWORK_PRESETS[0]; // Block52
     });
 
     // Initialize discovered networks from localStorage

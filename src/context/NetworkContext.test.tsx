@@ -43,19 +43,19 @@ describe("NetworkContext", () => {
             expect(NETWORK_PRESETS).toHaveLength(4);
         });
 
-        it("should have Localhost as first preset", () => {
-            expect(NETWORK_PRESETS[0].name).toBe("Localhost");
-            expect(NETWORK_PRESETS[0].ws).toBe("ws://localhost:8585/ws");
+        it("should have Block52 as first preset", () => {
+            expect(NETWORK_PRESETS[0].name).toBe("Block52");
+            expect(NETWORK_PRESETS[0].ws).toBe("wss://node1.block52.xyz/ws");
         });
 
-        it("should have Texas Hodl as second preset", () => {
-            expect(NETWORK_PRESETS[1].name).toBe("Texas Hodl");
-            expect(NETWORK_PRESETS[1].ws).toBe("wss://node.texashodl.net/ws");
+        it("should have Localhost as second preset", () => {
+            expect(NETWORK_PRESETS[1].name).toBe("Localhost");
+            expect(NETWORK_PRESETS[1].ws).toBe("ws://localhost:8585/ws");
         });
 
-        it("should have Block52 as third preset", () => {
-            expect(NETWORK_PRESETS[2].name).toBe("Block52");
-            expect(NETWORK_PRESETS[2].ws).toBe("wss://node1.block52.xyz/ws");
+        it("should have Texas Hodl as third preset", () => {
+            expect(NETWORK_PRESETS[2].name).toBe("Texas Hodl");
+            expect(NETWORK_PRESETS[2].ws).toBe("wss://node.texashodl.net/ws");
         });
 
         it("should have Miller Services as fourth preset", () => {
