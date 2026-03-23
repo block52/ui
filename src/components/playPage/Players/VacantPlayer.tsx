@@ -308,7 +308,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                 {/* User Balance */}
                                 <div className="mb-6">
                                     <div className="text-xs text-gray-400 mb-2">Your USDC Balance:</div>
-                                     {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
+                                    {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
                                     {cosmosWallet.balance.length > 0 ? (
                                         cosmosWallet.balance.map((balance, idx) => {
                                             if (balance.denom === "usdc") {
