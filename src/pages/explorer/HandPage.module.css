@@ -1,0 +1,314 @@
+/* ---- Container styles (shared with other explorer pages) ---- */
+
+.containerCard {
+    background-color: color-mix(in srgb, var(--ui-bg-dark) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.headerCard {
+    background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 20%, transparent) 0%, color-mix(in srgb, var(--brand-secondary) 20%, transparent) 100%);
+    border-bottom: 2px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+.brandText {
+    color: var(--brand-primary);
+}
+
+.brandTextHover:hover {
+    color: var(--accent-glow);
+}
+
+.successText {
+    color: var(--accent-success);
+}
+
+.dangerText {
+    color: var(--accent-danger);
+}
+
+.subtleBrandButton {
+    background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    color: var(--brand-primary);
+    border: 1px solid var(--brand-primary);
+}
+
+.subtleBrandButton:hover {
+    background-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+/* ---- Poker Table Visualization ---- */
+
+.tableContainer {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    max-height: 520px;
+    position: relative;
+}
+
+.tableFelt {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background: radial-gradient(ellipse at center, #1a5c2a 0%, #0f3d1a 60%, #0a2a12 100%);
+    border-radius: 9999px / 50%;
+    border: 6px solid #3a2a1a;
+    box-shadow:
+        0 0 0 3px #5a4a3a,
+        0 0 0 8px #2a1a0a,
+        0 8px 32px rgba(0, 0, 0, 0.6),
+        inset 0 0 60px rgba(0, 0, 0, 0.3);
+    overflow: visible;
+}
+
+/* ---- Hand info badge (top-left of table) ---- */
+
+.handBadge {
+    position: absolute;
+    top: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 5;
+}
+
+.roundBadge {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* ---- Pot display (center above cards) ---- */
+
+.potArea {
+    position: absolute;
+    top: 28%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    z-index: 5;
+}
+
+.potLabel {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.8rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.potValue {
+    color: #fbbf24;
+    font-weight: 700;
+}
+
+.mainPotLabel {
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 0.65rem;
+    margin-top: 2px;
+}
+
+/* ---- Community cards (center of table) ---- */
+
+.communityCards {
+    position: absolute;
+    top: 42%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    display: flex;
+    gap: 6px;
+    z-index: 5;
+}
+
+.communityCard {
+    width: 56px;
+    height: 80px;
+    border-radius: 4px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.communityCardPlaceholder {
+    width: 56px;
+    height: 80px;
+    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+}
+
+/* ---- Seat wrapper (positioned around the table) ---- */
+
+.seatWrapper {
+    position: absolute;
+    z-index: 10;
+}
+
+/* ---- Player card (each player seat) ---- */
+
+.playerCard {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 110px;
+    padding: 6px 10px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    backdrop-filter: blur(8px);
+    transition: opacity 0.2s;
+}
+
+.playerDimmed {
+    opacity: 0.45;
+}
+
+.playerInfo {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1px;
+}
+
+.playerAddress {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.65rem;
+    font-family: monospace;
+}
+
+.playerStack {
+    color: #ffffff;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.playerBet {
+    color: #fbbf24;
+    font-size: 0.65rem;
+    font-weight: 600;
+}
+
+/* ---- Hole cards ---- */
+
+.holeCards {
+    display: flex;
+    gap: 3px;
+    margin-bottom: 4px;
+}
+
+.holeCard {
+    width: 38px;
+    height: 54px;
+    border-radius: 3px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* ---- Dealer button ---- */
+
+.dealerChip {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    z-index: 20;
+    filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.5));
+}
+
+/* ---- Status badge ---- */
+
+.statusBadge {
+    margin-top: 2px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-size: 0.55rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.status_folded {
+    background: rgba(239, 68, 68, 0.2);
+    color: #f87171;
+}
+
+.status_all_in {
+    background: rgba(251, 191, 36, 0.2);
+    color: #fbbf24;
+}
+
+.status_busted {
+    background: rgba(107, 114, 128, 0.2);
+    color: #9ca3af;
+}
+
+.status_sitting_out {
+    background: rgba(107, 114, 128, 0.15);
+    color: #6b7280;
+}
+
+/* ---- Deck seed watermark ---- */
+
+.seedWatermark {
+    position: absolute;
+    bottom: 12%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: rgba(255, 255, 255, 0.15);
+    font-size: 0.6rem;
+    font-family: monospace;
+    white-space: nowrap;
+    z-index: 5;
+    cursor: default;
+}
+
+/* ---- Hand list sidebar ---- */
+
+.handListItem {
+    background: transparent;
+}
+
+.handListItem:hover {
+    background: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+}
+
+.handListSelected {
+    background: color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    border-left: 3px solid var(--brand-primary);
+}
+
+/* ---- Responsive ---- */
+
+@media (max-width: 768px) {
+    .communityCard {
+        width: 42px;
+        height: 60px;
+    }
+
+    .communityCardPlaceholder {
+        width: 42px;
+        height: 60px;
+    }
+
+    .holeCard {
+        width: 30px;
+        height: 42px;
+    }
+
+    .playerCard {
+        min-width: 90px;
+        padding: 4px 8px;
+    }
+
+    .playerStack {
+        font-size: 0.75rem;
+    }
+
+    .playerAddress {
+        font-size: 0.55rem;
+    }
+}
