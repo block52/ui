@@ -70,12 +70,14 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                                 {potDisplayValues.isTournamentStyle ? ` ${potDisplayValues.totalPot}` : ` $${potDisplayValues.totalPot}`}
                             </span>
                         </div>
-                        <div className="pot-display-secondary">
-                            Main Pot:
-                            <span className="pot-value-bold">
-                                {potDisplayValues.isTournamentStyle ? ` ${potDisplayValues.mainPot}` : ` $${potDisplayValues.mainPot}`}
-                            </span>
-                        </div>
+                        {potDisplayValues.mainPot !== potDisplayValues.totalPot && (
+                            <div className="pot-display-secondary">
+                                Main Pot:
+                                <span className="pot-value-bold">
+                                    {potDisplayValues.isTournamentStyle ? ` ${potDisplayValues.mainPot}` : ` $${potDisplayValues.mainPot}`}
+                                </span>
+                            </div>
+                        )}
                     </>
                 )}
 
