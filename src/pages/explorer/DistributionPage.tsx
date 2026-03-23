@@ -112,7 +112,7 @@ export default function DistributionPage() {
             },
             title: {
                 display: true,
-                text: "Card Distribution Across All Games (Proves Randomness)",
+                text: "Card Distribution Across All Hands (Proves Randomness)",
                 color: "#ffffff"
             },
             tooltip: {
@@ -210,7 +210,7 @@ export default function DistributionPage() {
                                 </div>
                                 <div className="flex gap-6 mt-3 text-xs text-gray-500">
                                     <span>Hands: {indexerStatus.total_hands.toLocaleString()}</span>
-                                    <span>Games: {indexerStatus.total_games.toLocaleString()}</span>
+                                    <span>Hands: {indexerStatus.total_games.toLocaleString()}</span>
                                     <span>Last block: #{indexerStatus.last_block_indexed.toLocaleString()}</span>
                                 </div>
                             </div>
@@ -220,10 +220,10 @@ export default function DistributionPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             <div className="bg-gray-800 rounded-lg shadow p-6 border border-gray-700">
                                 <h3 className="text-sm font-medium text-gray-400">
-                                    {summary ? "Unique Games" : "Total Cards in Deck"}
+                                    {summary ? "Unique Hands" : "Total Cards in Deck"}
                                 </h3>
                                 <p className="text-3xl font-bold mt-2 text-white">
-                                    {summary ? summary.unique_games.toLocaleString() : "52"}
+                                    {summary ? summary.total_hands.toLocaleString() : "52"}
                                 </p>
                             </div>
                             <div className="bg-gray-800 rounded-lg shadow p-6 border border-gray-700">
