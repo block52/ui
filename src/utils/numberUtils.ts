@@ -190,3 +190,13 @@ export const formatChipAmount = (chipAmount: string | bigint | undefined | null)
         return "0.00";
     }
 };
+
+/** Format a numeric dollar value for display: "12.50" */
+export function formatDollars(value: number): string {
+    return value.toFixed(2);
+}
+
+/** Parse a dollar string back to a number. Returns NaN if invalid. */
+export function parseDollars(str: string): number {
+    return parseFloat(str);
+}

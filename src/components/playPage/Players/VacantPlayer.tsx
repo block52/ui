@@ -24,7 +24,7 @@ import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { joinTable } from "../../../hooks/playerActions/joinTable";
 import { useGameOptions } from "../../../hooks/game/useGameOptions";
 import CustomDealer from "../../../assets/CustomDealer.svg";
-import { formatUSDCToSimpleDollars } from "../../../utils/numberUtils";
+import { formatDollars, formatUSDCToSimpleDollars } from "../../../utils/numberUtils";
 import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
 import { useNetwork } from "../../../context/NetworkContext";
@@ -44,7 +44,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         const [joinSuccess, setJoinSuccess] = useState(false);
         const [, setJoinResponse] = useState<any>(null);
         const [buyInAmount, setBuyInAmount] = useState<string>("");
-
+        const [buyInAmountDisplay, setBuyInAmountDisplay] = useState<string>("");
         const { dealerSeat } = useDealerPosition();
 
         // Check if this seat is the dealer
@@ -67,7 +67,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 defaultBuyIn = Math.min(parseFloat(maxBuyInDollars), usdcAmount).toString();
             }
             setBuyInAmount(defaultBuyIn);
-
+            setBuyInAmountDisplay(formatDollars(parseFloat(defaultBuyIn)));
             // Open buy-in modal directly (skip confirmation modal)
             setShowBuyInModal(true);
             setJoinError(null);
@@ -105,7 +105,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         const exceedsBalance = useMemo(() => {
             const buyInValue = parseFloat(buyInAmount) || 0;
             const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
-            if (!usdcBalance) return false;
+            if (!usdcBalance) return true; // If user has no USDC balance, treat as exceeding balance
             const usdcAmount = microToUsdc(usdcBalance.amount);
             if (usdcAmount < minBuyInNum) return true; // If user balance is less than minimum buy-in, always show as exceeding balance
             return buyInValue > usdcAmount;
@@ -140,11 +140,11 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 const buyInValue = parseFloat(buyInDollars);
 
                 if (buyInValue < minBuyInDollars) {
-                    setJoinError(`Buy-in must be at least $${minBuyInDollars.toFixed(2)}`);
+                    setJoinError(`Buy-in must be at least $${formatDollars(minBuyInDollars)}`);
                     return;
                 }
                 if (buyInValue > maxBuyInDollars) {
-                    setJoinError(`Buy-in cannot exceed $${maxBuyInDollars.toFixed(2)}`);
+                    setJoinError(`Buy-in cannot exceed $${formatDollars(maxBuyInDollars)}`);
                     return;
                 }
             }
@@ -266,8 +266,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                         {/* Slider with min/max labels */}
                                         <div className="mb-3">
                                             <div className="flex justify-between text-xs text-gray-400 mb-2">
-                                                <span>${minBuyInNum.toFixed(2)}</span>
-                                                <span>${maxBuyInNum.toFixed(2)}</span>
+                                                <span>${formatDollars(minBuyInNum)}</span>
+                                                <span>${formatDollars(maxBuyInNum)}</span>
                                             </div>
                                             <input
                                                 type="range"
@@ -277,7 +277,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                     if (!isNaN(val)) {
                                                         // Round to nearest step to align with bigBlindValue increments
                                                         const steppedValue = Math.round(val / bigBlindValue) * bigBlindValue;
-                                                        setBuyInAmount(Math.max(minBuyInNum, Math.min(steppedValue, maxBuyInNum)).toFixed(2));
+                                                        setBuyInAmount(formatDollars(Math.max(minBuyInNum, Math.min(steppedValue, maxBuyInNum))));
+                                                        setBuyInAmountDisplay(formatDollars(Math.max(minBuyInNum, Math.min(steppedValue, maxBuyInNum))));
                                                     }
                                                 }}
                                                 min={minBuyInNum.toString()}
@@ -290,8 +291,11 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                         {/* Manual input below slider */}
                                         <input
                                             type="number"
-                                            value={parseFloat(buyInAmount).toFixed(2)}
-                                            onChange={e => setBuyInAmount(e.target.value)}
+                                            value={parseFloat(buyInAmountDisplay) ? buyInAmountDisplay : "0"}
+                                            onChange={e => {
+                                                setBuyInAmount(e.target.value);
+                                                setBuyInAmountDisplay(e.target.value);
+                                            }}
                                             placeholder="Enter amount"
                                             className={`w-full px-4 py-2 rounded-lg text-white text-center text-lg ${styles.buyInInput}`}
                                             step={bigBlindValue.toString()}
@@ -304,24 +308,34 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                 {/* User Balance */}
                                 <div className="mb-6">
                                     <div className="text-xs text-gray-400 mb-2">Your USDC Balance:</div>
-                                    {cosmosWallet.balance.map((balance, idx) => {
-                                        if (balance.denom === "usdc") {
-                                            const usdcAmount = microToUsdc(balance.amount);
-                                            const buyInValue = parseFloat(buyInAmount) || 0;
-                                            const exceedsBalance = buyInValue > usdcAmount;
-                                            return (
-                                                <div key={idx} className={`p-3 rounded-lg ${styles.balanceCard}`}>
-                                                    <div className="flex justify-between items-center">
-                                                        <span className="text-white font-semibold">USDC</span>
-                                                        <span className={`text-lg font-bold ${exceedsBalance ? "text-red-400" : "text-white"}`}>
-                                                            ${usdcAmount.toFixed(2)}
-                                                        </span>
+                                     {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
+                                    {cosmosWallet.balance.length > 0 ? (
+                                        cosmosWallet.balance.map((balance, idx) => {
+                                            if (balance.denom === "usdc") {
+                                                const usdcAmount = microToUsdc(balance.amount);
+                                                const buyInValue = parseFloat(buyInAmount) || 0;
+                                                const exceedsBalance = buyInValue > usdcAmount;
+                                                return (
+                                                    <div key={idx} className={`p-3 rounded-lg ${styles.balanceCard}`}>
+                                                        <div className="flex justify-between items-center">
+                                                            <span className="text-white font-semibold">USDC</span>
+                                                            <span className={`text-lg font-bold ${exceedsBalance ? "text-red-400" : "text-white"}`}>
+                                                                ${formatDollars(usdcAmount)}
+                                                            </span>
+                                                        </div>
                                                     </div>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    })}
+                                                );
+                                            }
+                                            return null;
+                                        })
+                                    ) : (
+                                        <div className={`p-3 rounded-lg ${styles.balanceCard}`}>
+                                            <div className="flex justify-between items-center">
+                                                <span className="text-white font-semibold">USDC</span>
+                                                <span className={`text-lg font-bold ${exceedsBalance ? "text-red-400" : "text-white"}`}>$0.00</span>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
 
                                 {/* Error Message */}
