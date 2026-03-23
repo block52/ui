@@ -196,13 +196,8 @@ export default function DistributionPage() {
                                         }}
                                     />
                                 </div>
-                                <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
+                                <div className="mt-2 text-xs text-gray-400">
                                     <span>{indexerStatus.percent_complete.toFixed(1)}% complete</span>
-                                    <span>
-                                        {indexerStatus.total_blocks - indexerStatus.blocks_indexed > 0
-                                            ? `${(indexerStatus.total_blocks - indexerStatus.blocks_indexed).toLocaleString()} blocks remaining`
-                                            : "Fully synced"}
-                                    </span>
                                 </div>
                                 <div className="flex gap-6 mt-3 text-xs text-gray-500">
                                     <span>Hands: {indexerStatus.total_hands.toLocaleString()}</span>
