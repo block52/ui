@@ -24,7 +24,7 @@ import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { joinTable } from "../../../hooks/playerActions/joinTable";
 import { useGameOptions } from "../../../hooks/game/useGameOptions";
 import CustomDealer from "../../../assets/CustomDealer.svg";
-import { formatDollars, formatUSDCToSimpleDollars } from "../../../utils/numberUtils";
+import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "../../../utils/numberUtils";
 import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
 import { useNetwork } from "../../../context/NetworkContext";
@@ -313,7 +313,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                         cosmosWallet.balance.map((balance, idx) => {
                                             if (balance.denom === "usdc") {
                                                 const usdcAmount = microToUsdc(balance.amount);
-                                                const buyInValue = parseFloat(buyInAmount) || 0;
+                                                const buyInValue = parseDollars(buyInAmount) || 0;
                                                 const exceedsBalance = buyInValue > usdcAmount;
                                                 return (
                                                     <div key={idx} className={`p-3 rounded-lg ${styles.balanceCard}`}>
