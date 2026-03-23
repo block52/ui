@@ -136,8 +136,8 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                         ) : (
                             // Show card backs for opponents (they shouldn't see actual cards)
                             <>
-                                <img src={getCardBackUrl(cardBackStyle)} alt="Opposite Player Card" width={60} height={80} className="mb-[11px]"  />
-                                <img src={getCardBackUrl(cardBackStyle)} alt="Opposite Player Card" width={60} height={80} className="mb-[11px]"  />
+                                <img src={getCardBackUrl(cardBackStyle)} alt="Opposite Player Card" width={60} height={80} className="mb-[11px] rounded-[5px]" />
+                                <img src={getCardBackUrl(cardBackStyle)} alt="Opposite Player Card" width={60} height={80} className="mb-[11px] rounded-[5px]" />
                             </>
                         )
                     ) : (
