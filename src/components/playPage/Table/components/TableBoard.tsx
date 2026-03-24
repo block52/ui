@@ -64,7 +64,10 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 {!isSitAndGoWaitingForPlayers && (
                     <>
                         <TotalPotDisplay amount={potDisplayValues.totalPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
-                        <MainPotDisplay amount={potDisplayValues.mainPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                        {/* Only show Main Pot when not in preflop (i.e., when community cards are dealt) */}
+                        {!potDisplayValues.isPreflop && (
+                            <MainPotDisplay amount={potDisplayValues.mainPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                        )}
                     </>
                 )}
 

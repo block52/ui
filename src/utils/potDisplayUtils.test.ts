@@ -1,4 +1,4 @@
-import { GameFormat } from "@block52/poker-vm-sdk";
+import { GameFormat, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { formatPotDisplay, formatChipCount } from "./potDisplayUtils";
 
 describe("formatChipCount", () => {
@@ -60,6 +60,43 @@ describe("formatPotDisplay", () => {
             const result = formatPotDisplay(["2000000", "500000"], "3000000", GameFormat.CASH);
             expect(result.mainPot).toBe("2.00");
             expect(result.totalPot).toBe("3.00");
+        });
+    });
+
+    describe("isPreflop detection", () => {
+        it("returns isPreflop=true when round is PREFLOP", () => {
+            const result = formatPotDisplay(["1000"], "1000", GameFormat.CASH, TexasHoldemRound.PREFLOP);
+            expect(result.isPreflop).toBe(true);
+        });
+
+        it("returns isPreflop=true when round is ANTE", () => {
+            const result = formatPotDisplay(["1000"], "1000", GameFormat.CASH, TexasHoldemRound.ANTE);
+            expect(result.isPreflop).toBe(true);
+        });
+
+        it("returns isPreflop=true when round is undefined", () => {
+            const result = formatPotDisplay(["1000"], "1000", GameFormat.CASH, undefined);
+            expect(result.isPreflop).toBe(true);
+        });
+
+        it("returns isPreflop=false when round is FLOP", () => {
+            const result = formatPotDisplay(["1000"], "1000", GameFormat.CASH, TexasHoldemRound.FLOP);
+            expect(result.isPreflop).toBe(false);
+        });
+
+        it("returns isPreflop=false when round is TURN", () => {
+            const result = formatPotDisplay(["1000"], "1000", GameFormat.CASH, TexasHoldemRound.TURN);
+            expect(result.isPreflop).toBe(false);
+        });
+
+        it("returns isPreflop=false when round is RIVER", () => {
+            const result = formatPotDisplay(["1000"], "1000", GameFormat.CASH, TexasHoldemRound.RIVER);
+            expect(result.isPreflop).toBe(false);
+        });
+
+        it("returns isPreflop=false when round is SHOWDOWN", () => {
+            const result = formatPotDisplay(["1000"], "1000", GameFormat.CASH, TexasHoldemRound.SHOWDOWN);
+            expect(result.isPreflop).toBe(false);
         });
     });
 });

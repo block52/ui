@@ -514,8 +514,8 @@ const Table = React.memo(() => {
 
     const potDisplayValues = useMemo(() => {
         const pots = Array.isArray(gameState?.pots) ? (gameState?.pots as string[]) : [];
-        return formatPotDisplay(pots, gameState?.totalPot, gameFormat);
-    }, [gameState?.pots, gameState?.totalPot, gameFormat]);
+        return formatPotDisplay(pots, gameState?.totalPot, gameFormat, gameState?.round);
+    }, [gameState?.pots, gameState?.totalPot, gameFormat, gameState?.round]);
 
 
 
