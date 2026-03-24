@@ -9,7 +9,7 @@
     "@reown/appkit": "1.6.7",
     "@reown/appkit-adapter-ethers": "1.6.7",
     "@reown/appkit-adapter-wagmi": "1.6.7",
-    "@tanstack/react-query": "^5.91.2",
+    "@tanstack/react-query": "^5.95.2",
     "@types/bip39": "^3.0.4",
     "@types/node": "^25.5.0",
     "@types/react": "^19.0.2",
@@ -33,7 +33,7 @@
     "react-devtools": "^7.0.1",
     "react-dom": "^19.2.4",
     "react-icons": "^5.3.0",
-    "react-router-dom": "^7.7.0",
+    "react-router-dom": "^7.13.2",
     "react-toastify": "^11.0.5",
     "stream-browserify": "^3.0.0",
     "swr": "^2.3.7",
@@ -42,8 +42,8 @@
     "unstorage": "^1.17.0",
     "util": "^0.12.5",
     "uuid": "^13.0.0",
-    "viem": "^2.47.4",
-    "wagmi": "^3.5.0"
+    "viem": "^2.47.6",
+    "wagmi": "^3.6.0"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 5173",
@@ -89,7 +89,7 @@
     "@types/jest": "^30.0.0",
     "@vitejs/plugin-react": "^6.0.1",
     "autoprefixer": "^10.4.20",
-    "eslint": "^10.0.3",
+    "eslint": "^10.1.0",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.5.2",
     "globals": "^17.4.0",
@@ -100,8 +100,8 @@
     "prettier": "^3.8.0",
     "ts-jest": "^29.2.5",
     "typescript": "^5.7.2",
-    "typescript-eslint": "^8.57.1",
-    "vite": "^8.0.0"
+    "typescript-eslint": "^8.57.2",
+    "vite": "^8.0.2"
   },
   "engines": {
     "node": "22.x",
