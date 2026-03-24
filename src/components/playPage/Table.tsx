@@ -45,6 +45,7 @@
 
 import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
+import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
 // Position arrays now come from useTableLayout hook
 // // Position arrays now come from useTableLayout hook
 // import { playerPosition, dealerPosition, vacantPlayerPosition } from "../../utils/PositionArray";
@@ -141,11 +142,6 @@ const NetworkDisplay = memo(({ isMainnet = false }: NetworkDisplayProps) => {
 });
 
 NetworkDisplay.displayName = "NetworkDisplay";
-
-// Helper to format chip counts for tournament display with commas
-const formatChipCount = (chips: number): string => {
-    return chips.toLocaleString("en-US");
-};
 
 
 const Table = React.memo(() => {
@@ -517,33 +513,8 @@ const Table = React.memo(() => {
     const balanceFormatted = useMemo(() => (accountBalance ? formatUSDCToSimpleDollars(accountBalance) : "0.00"), [accountBalance]);
 
     const potDisplayValues = useMemo(() => {
-        // pots[0] = main pot (completed rounds only)
-        // totalPot = live total (main pot + current round bets)
         const pots = Array.isArray(gameState?.pots) ? (gameState?.pots as string[]) : [];
-        const mainPotRaw = pots.length > 0 ? BigInt(pots[0]) : 0n;
-        const totalPotRaw = gameState?.totalPot ? BigInt(gameState.totalPot) : mainPotRaw;
-
-        // Check if this is a tournament-style game
-        const isTournamentStyle = isTournamentFormat(gameFormat) || isSitAndGoFormat(gameFormat);
-
-        let totalPotCalculated: string;
-        let mainPotCalculated: string;
-
-        if (isTournamentStyle) {
-            // Tournament: pot is chip count, display with commas
-            totalPotCalculated = totalPotRaw === 0n ? "0" : formatChipCount(Number(totalPotRaw));
-            mainPotCalculated = mainPotRaw === 0n ? "0" : formatChipCount(Number(mainPotRaw));
-        } else {
-            // Cash game: pot is USDC microunits, convert to dollars
-            totalPotCalculated = totalPotRaw === 0n ? "0.00" : formatUSDCToSimpleDollars(totalPotRaw.toString());
-            mainPotCalculated = mainPotRaw === 0n ? "0.00" : formatUSDCToSimpleDollars(mainPotRaw.toString());
-        }
-
-        return {
-            totalPot: totalPotCalculated,
-            mainPot: mainPotCalculated,
-            isTournamentStyle
-        };
+        return formatPotDisplay(pots, gameState?.totalPot, gameFormat);
     }, [gameState?.pots, gameState?.totalPot, gameFormat]);
 
 

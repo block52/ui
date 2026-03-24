@@ -208,9 +208,6 @@
     margin-top: 4px;
 }
 
-.pot-value-bold {
-    font-weight: 700;
-}
 
 @media (min-width: 640px) {
     .pot-display-secondary {

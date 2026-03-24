@@ -10,16 +10,15 @@
 
 import React, { useMemo } from "react";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
+import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import OppositePlayerCards from "../../Card/OppositePlayerCards";
+import { TotalPotDisplay } from "./TotalPotDisplay";
+import { MainPotDisplay } from "./MainPotDisplay";
 
 export interface TableBoardProps {
     // Display data
     clubLogo: string;
-    potDisplayValues: {
-        totalPot: string;
-        mainPot: string;
-        isTournamentStyle: boolean;
-    };
+    potDisplayValues: PotDisplayValues;
     communityCards: string[];
 
     // State flags
@@ -64,18 +63,8 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 {/* Hide pot display when sit-and-go is waiting for players */}
                 {!isSitAndGoWaitingForPlayers && (
                     <>
-                        <div className="pot-display">
-                            Total Pot:
-                            <span className="pot-value-bold">
-                                {potDisplayValues.isTournamentStyle ? ` ${potDisplayValues.totalPot}` : ` $${potDisplayValues.totalPot}`}
-                            </span>
-                        </div>
-                        <div className="pot-display-secondary">
-                            Main Pot:
-                            <span className="pot-value-bold">
-                                {potDisplayValues.isTournamentStyle ? ` ${potDisplayValues.mainPot}` : ` $${potDisplayValues.mainPot}`}
-                            </span>
-                        </div>
+                        <TotalPotDisplay amount={potDisplayValues.totalPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                        <MainPotDisplay amount={potDisplayValues.mainPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
                     </>
                 )}
 
