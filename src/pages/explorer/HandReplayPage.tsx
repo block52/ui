@@ -3,8 +3,6 @@ import { useParams, Link } from "react-router-dom";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import { getCardImageUrl } from "../../utils/cardImages";
-import { FaCopy, FaCheck } from "react-icons/fa";
-import { toast } from "react-toastify";
 import type { HandDetail, HandListItem, HandListResponse } from "./types";
 
 const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || "https://indexer.block52.xyz";
@@ -16,8 +14,6 @@ export default function HandReplayPage() {
     const [hands, setHands] = useState<HandListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [copiedUrl, setCopiedUrl] = useState(false);
-
     const fetchHand = useCallback(async () => {
         if (!gameId) {
             setError("No game ID provided. URL format: /explorer/hand/{gameId}/{handNumber}");
@@ -58,18 +54,6 @@ export default function HandReplayPage() {
     useEffect(() => {
         fetchHand();
     }, [fetchHand]);
-
-    const shareUrl = `${window.location.origin}/explorer/hand/${gameId}/${handNumber}`;
-
-    const handleCopyUrl = () => {
-        navigator.clipboard.writeText(shareUrl).then(() => {
-            setCopiedUrl(true);
-            toast.success("Hand URL copied to clipboard!");
-            setTimeout(() => setCopiedUrl(false), 2000);
-        }).catch(() => {
-            toast.error("Failed to copy URL");
-        });
-    };
 
     // Parse community and hole cards from revealed_cards
     const communityCards = useMemo(() => {
@@ -154,18 +138,10 @@ export default function HandReplayPage() {
                     </div>
                 ) : hand ? (
                     <>
-                        {/* Header with share button */}
-                        <div className="flex items-center justify-between mb-6">
+                        <div className="mb-6">
                             <h2 className="text-2xl font-bold text-white">
                                 Hand #{hand.hand_number}
                             </h2>
-                            <button
-                                onClick={handleCopyUrl}
-                                className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors text-sm"
-                            >
-                                {copiedUrl ? <FaCheck /> : <FaCopy />}
-                                {copiedUrl ? "Copied!" : "Share Hand"}
-                            </button>
                         </div>
 
                         {/* Hand Info Card */}
