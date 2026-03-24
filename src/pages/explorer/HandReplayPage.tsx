@@ -19,26 +19,33 @@ export default function HandReplayPage() {
     const [copiedUrl, setCopiedUrl] = useState(false);
 
     const fetchHand = useCallback(async () => {
-        if (!gameId || !handNumber) return;
+        if (!gameId) {
+            setError("No game ID provided. URL format: /explorer/hand/{gameId}/{handNumber}");
+            setLoading(false);
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
+
+            // Always fetch the hands list for this game
+            const listRes = await fetch(`${INDEXER_URL}/api/v1/hands?game_id=${gameId}&limit=100`);
+            if (listRes.ok) {
+                const listData: HandListResponse = await listRes.json();
+                setHands(listData.data);
+            }
+
+            // If no hand number, show the list only
+            if (!handNumber) {
+                setLoading(false);
+                return;
+            }
 
             const res = await fetch(`${INDEXER_URL}/api/v1/hands/${gameId}/${handNumber}`);
             if (!res.ok) throw new Error(`Hand not found (${res.status})`);
             const data: HandDetail = await res.json();
             setHand(data);
-
-            // Also fetch all hands for this game for navigation
-            try {
-                const listRes = await fetch(`${INDEXER_URL}/api/v1/hands?game_id=${gameId}&limit=100`);
-                if (listRes.ok) {
-                    const listData: HandListResponse = await listRes.json();
-                    setHands(listData.data);
-                }
-            } catch {
-                // Non-critical
-            }
 
             setLoading(false);
         } catch (err) {
@@ -120,6 +127,30 @@ export default function HandReplayPage() {
                                 Retry
                             </button>
                         </div>
+                    </div>
+                ) : !handNumber && hands.length > 0 ? (
+                    /* Hands list mode — no hand number in URL */
+                    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+                        <h2 className="text-2xl font-bold text-white mb-2">
+                            Hands for Game
+                        </h2>
+                        <p className="text-gray-400 font-mono text-sm mb-6">{gameId}</p>
+                        <p className="text-gray-300 mb-4">{hands.length} hand{hands.length !== 1 ? "s" : ""} found</p>
+                        <div className="flex flex-wrap gap-2">
+                            {[...hands].sort((a, b) => a.hand_number - b.hand_number).map(h => (
+                                <Link
+                                    key={h.hand_number}
+                                    to={`/explorer/hand/${h.game_id}/${h.hand_number}`}
+                                    className="px-3 py-1.5 rounded text-sm transition-colors bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                >
+                                    Hand #{h.hand_number}
+                                </Link>
+                            ))}
+                        </div>
+                    </div>
+                ) : !handNumber ? (
+                    <div className="text-center py-12">
+                        <p className="text-lg text-gray-400">No hands found for this game.</p>
                     </div>
                 ) : hand ? (
                     <>
