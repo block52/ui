@@ -29,6 +29,7 @@ import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
+import { USDCDepositModal } from "../../modals";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
@@ -46,6 +47,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         const [buyInAmount, setBuyInAmount] = useState<string>("");
         const [buyInAmountDisplay, setBuyInAmountDisplay] = useState<string>("");
         const { dealerSeat } = useDealerPosition();
+        // USDC Deposit Modal
+        const [showUSDCDepositModal, setShowUSDCDepositModal] = useState(false);
 
         // Check if this seat is the dealer
         const isDealer = dealerSeat === index;
@@ -207,6 +210,11 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             [isUserAlreadyPlaying, canJoinThisSeat, index]
         );
 
+        // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
+        const handleDepositClick = useCallback(() => {
+            setShowBuyInModal(false); // Ensure buy-in modal is closed
+            setShowUSDCDepositModal(true);
+        }, []);
         return (
             <>
                 <div className="absolute cursor-pointer" style={containerStyle} onClick={handleSeatClick}>
@@ -372,6 +380,12 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                         )}
                                     </button>
                                     <button
+                                        onClick={handleDepositClick}
+                                        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 flex items-center justify-center ${styles.confirmButton}`}
+                                    >
+                                        Top Up Game Wallet
+                                    </button>
+                                    <button
                                         onClick={() => setShowBuyInModal(false)}
                                         className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 ${styles.cancelButton}`}
                                         disabled={isJoining}
@@ -390,6 +404,21 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                         {/* Future loading animation will go here */}
                     </div>
                 )}
+                {showUSDCDepositModal &&
+                    createPortal(
+                        <>
+                            <USDCDepositModal
+                                isOpen={showUSDCDepositModal}
+                                onClose={() => setShowUSDCDepositModal(false)}
+                                onSuccess={() => {
+                                    // Balance will auto-refresh on next page interaction
+                                    setShowUSDCDepositModal(false);
+                                    setShowBuyInModal(true);
+                                }}
+                            />
+                        </>,
+                        document.body
+                    )}
             </>
         );
     },
