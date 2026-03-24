@@ -251,7 +251,10 @@ export default function HandPage() {
 
     // Fetch hands from indexer
     const fetchHands = useCallback(async () => {
-        if (!gameId) return;
+        if (!gameId) {
+            setHandsLoaded(true);
+            return;
+        }
         try {
             const res = await fetch(`${INDEXER_URL}/api/v1/hands?game_id=${encodeURIComponent(gameId)}`);
             if (!res.ok) throw new Error(`Indexer returned ${res.status}`);
@@ -260,6 +263,8 @@ export default function HandPage() {
         } catch (err: any) {
             console.error("Error fetching hands from indexer:", err);
             // Non-fatal — we can still show the table without hand list
+        } finally {
+            setHandsLoaded(true);
         }
     }, [gameId]);
 
@@ -322,14 +327,17 @@ export default function HandPage() {
     }, [fetchHands]);
 
     // Load game state when selected hand changes
+    // Only call fetchCurrentGameState after fetchHands has completed (handsLoaded)
+    const [handsLoaded, setHandsLoaded] = useState(false);
+
     useEffect(() => {
         if (selectedHand) {
             fetchGameState(selectedHand.block_height);
-        } else if (gameId && hands.length === 0) {
-            // No hands from indexer yet — try current state
+        } else if (handsLoaded && hands.length === 0 && gameId) {
+            // Indexer returned no hands — fall back to current state
             fetchCurrentGameState();
         }
-    }, [selectedHand, gameId, hands.length, fetchGameState, fetchCurrentGameState]);
+    }, [selectedHand, handsLoaded, hands.length, gameId, fetchGameState, fetchCurrentGameState]);
 
     // Select a hand from the sidebar
     const selectHand = (hand: HandData) => {
@@ -344,7 +352,7 @@ export default function HandPage() {
         return () => { document.title = "Block52 Chain"; };
     }, [gameId, selectedHand]);
 
-    if (loading && !gameState) {
+    if ((loading || !handsLoaded) && !gameState) {
         return (
             <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
                 <AnimatedBackground />
@@ -361,7 +369,8 @@ export default function HandPage() {
         );
     }
 
-    if (error && !gameState) {
+    if (!gameState) {
+        // Show error or "not found" when we have no game state to render
         return (
             <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
                 <AnimatedBackground />
@@ -369,7 +378,8 @@ export default function HandPage() {
                     <svg className={`h-16 w-16 mx-auto mb-4 ${styles.dangerText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <h2 className="text-2xl font-bold text-white mb-4">{error}</h2>
+                    <h2 className="text-2xl font-bold text-white mb-4">{error || "Hand not found"}</h2>
+                    <p className="text-gray-400 text-sm mb-4">Could not load game state for this hand.</p>
                     <button onClick={() => navigate("/explorer")} className={`px-6 py-2 rounded-lg font-bold transition-colors duration-200 ${styles.subtleBrandButton}`}>
                         Back to Explorer
                     </button>
