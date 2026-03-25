@@ -260,7 +260,7 @@ export default function HandPage() {
             if (!res.ok) throw new Error(`Indexer returned ${res.status}`);
             const data: HandsResponse = await res.json();
             setHands(data.data);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error fetching hands from indexer:", err);
             // Non-fatal — we can still show the table without hand list
         } finally {
@@ -289,8 +289,8 @@ export default function HandPage() {
 
             const parsed: TexasHoldemStateDTO = JSON.parse(data.game_state);
             setGameState(parsed);
-        } catch (err: any) {
-            setError(err.message || "Failed to fetch game state");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to fetch game state");
             console.error("Error fetching game state:", err);
         } finally {
             setLoading(false);
@@ -314,8 +314,8 @@ export default function HandPage() {
 
             const parsed: TexasHoldemStateDTO = JSON.parse(data.game_state);
             setGameState(parsed);
-        } catch (err: any) {
-            setError(err.message || "Failed to fetch game state");
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : "Failed to fetch game state");
         } finally {
             setLoading(false);
         }
