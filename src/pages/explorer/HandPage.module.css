@@ -266,6 +266,28 @@
     cursor: default;
 }
 
+.tableShareIcon {
+    position: absolute;
+    top: 8%;
+    right: 6%;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.5);
+    color: rgba(255, 255, 255, 0.5);
+    transition: color 0.2s, background 0.2s;
+    cursor: pointer;
+}
+
+.tableShareIcon:hover {
+    color: #fff;
+    background: rgba(0, 0, 0, 0.8);
+}
+
 /* ---- Hand list sidebar ---- */
 
 .handListItem {
