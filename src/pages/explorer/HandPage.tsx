@@ -5,7 +5,6 @@ import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { useNetwork } from "../../context/NetworkContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
-import { ShareOnXButton } from "../../components/common/ShareOnXButton";
 import styles from "./HandPage.module.css";
 
 const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || "https://indexer.block52.xyz";
@@ -138,7 +137,7 @@ function PlayerCard({ player, isDealer }: { player: PlayerDTO; isDealer: boolean
     );
 }
 
-function ReadOnlyTable({ gameState, handData, shareUrl }: { gameState: TexasHoldemStateDTO; handData?: HandData; shareUrl?: string }) {
+function ReadOnlyTable({ gameState, handData }: { gameState: TexasHoldemStateDTO; handData?: HandData }) {
     const activePlayers = gameState.players.filter(p => p.address && p.address !== "0x0000000000000000000000000000000000000000");
     const allSeats = activePlayers.map(p => p.seat).sort((a, b) => a - b);
     const totalSeats = allSeats.length;
@@ -217,21 +216,8 @@ function ReadOnlyTable({ gameState, handData, shareUrl }: { gameState: TexasHold
                     </div>
                 )}
 
-                {/* Share on X icon */}
-                {shareUrl && (
-                    <a
-                        href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(shareUrl)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={styles.tableShareIcon}
-                        title="Share on X"
-                    >
-                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                        </svg>
-                    </a>
-                )}
             </div>
+
         </div>
     );
 }
@@ -446,20 +432,24 @@ export default function HandPage() {
                                             </p>
                                         </div>
                                     )}
-                                    <ShareOnXButton
-                                        url={`${window.location.origin}/explorer/hand/${gameId}${selectedHand ? `?hand=${selectedHand.hand_number}` : ""}`}
-                                    />
+                                    <a
+                                        href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(`${window.location.origin}/explorer/hand/${gameId}${selectedHand ? `?hand=${selectedHand.hand_number}` : ""}`)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        title="Share on X"
+                                        className="text-gray-400 hover:text-white transition-colors"
+                                    >
+                                        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                        </svg>
+                                    </a>
                                 </div>
                             </div>
                         </div>
 
                         {/* Table visualization */}
                         {gameState && (
-                            <ReadOnlyTable
-                                gameState={gameState}
-                                handData={selectedHand || undefined}
-                                shareUrl={`${window.location.origin}/explorer/hand/${gameId}${selectedHand ? `?hand=${selectedHand.hand_number}` : ""}`}
-                            />
+                            <ReadOnlyTable gameState={gameState} handData={selectedHand || undefined} />
                         )}
 
                         {/* Previous actions log */}
