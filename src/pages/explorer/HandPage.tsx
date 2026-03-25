@@ -138,7 +138,13 @@ function PlayerCard({ player, isDealer }: { player: PlayerDTO; isDealer: boolean
 }
 
 function ReadOnlyTable({ gameState, handData }: { gameState: TexasHoldemStateDTO; handData?: HandData }) {
-    const activePlayers = gameState.players.filter(p => p.address && p.address !== "0x0000000000000000000000000000000000000000");
+    const activePlayers = gameState.players.filter(p => {
+        if (!p.address) return false;
+        // Filter out zero/null addresses (hex or bech32)
+        if (/^0x0+$/.test(p.address)) return false;
+        if (p.address === "b521qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq6qtnh3") return false;
+        return true;
+    });
     const allSeats = activePlayers.map(p => p.seat).sort((a, b) => a - b);
     const totalSeats = allSeats.length;
 
