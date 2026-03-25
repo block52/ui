@@ -138,21 +138,10 @@ export default function HandReplayPage() {
                     </div>
                 ) : hand ? (
                     <>
-                        <div className="flex items-center justify-between mb-6">
+                        <div className="mb-6">
                             <h2 className="text-2xl font-bold text-white">
                                 Hand #{hand.hand_number}
                             </h2>
-                            <a
-                                href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(`${window.location.origin}/explorer/hand/${gameId}/${handNumber}`)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                title="Share on X"
-                                className="text-gray-400 hover:text-white transition-colors"
-                            >
-                                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
-                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
-                                </svg>
-                            </a>
                         </div>
 
                         {/* Hand Info Card */}
