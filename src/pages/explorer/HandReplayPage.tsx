@@ -3,6 +3,7 @@ import { useParams, Link } from "react-router-dom";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import { getCardImageUrl } from "../../utils/cardImages";
+import { ShareOnXButton } from "../../components/common/ShareOnXButton";
 import type { HandDetail, HandListItem, HandListResponse } from "./types";
 
 const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || "https://indexer.block52.xyz";
@@ -138,10 +139,11 @@ export default function HandReplayPage() {
                     </div>
                 ) : hand ? (
                     <>
-                        <div className="mb-6">
+                        <div className="flex items-center justify-between mb-6">
                             <h2 className="text-2xl font-bold text-white">
                                 Hand #{hand.hand_number}
                             </h2>
+                            <ShareOnXButton url={`${window.location.origin}/explorer/hand/${gameId}/${handNumber}`} />
                         </div>
 
                         {/* Hand Info Card */}

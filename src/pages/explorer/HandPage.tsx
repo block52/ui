@@ -5,6 +5,7 @@ import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { useNetwork } from "../../context/NetworkContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { ShareOnXButton } from "../../components/common/ShareOnXButton";
 import styles from "./HandPage.module.css";
 
 const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || "https://indexer.block52.xyz";
@@ -415,20 +416,25 @@ export default function HandPage() {
                                     <h1 className="text-xl font-extrabold text-white">Hand Replay</h1>
                                     <p className="text-gray-400 text-xs font-mono mt-1 break-all">{gameId}</p>
                                 </div>
-                                {selectedHand && (
-                                    <div className="text-right text-sm">
-                                        <span className="text-gray-400">Block </span>
-                                        <Link
-                                            to={`/explorer/block/${selectedHand.block_height}`}
-                                            className={`font-mono ${styles.brandText}`}
-                                        >
-                                            #{selectedHand.block_height}
-                                        </Link>
-                                        <p className="text-gray-500 text-xs">
-                                            {new Date(selectedHand.created_at).toLocaleString()}
-                                        </p>
-                                    </div>
-                                )}
+                                <div className="flex items-center gap-3">
+                                    {selectedHand && (
+                                        <div className="text-right text-sm">
+                                            <span className="text-gray-400">Block </span>
+                                            <Link
+                                                to={`/explorer/block/${selectedHand.block_height}`}
+                                                className={`font-mono ${styles.brandText}`}
+                                            >
+                                                #{selectedHand.block_height}
+                                            </Link>
+                                            <p className="text-gray-500 text-xs">
+                                                {new Date(selectedHand.created_at).toLocaleString()}
+                                            </p>
+                                        </div>
+                                    )}
+                                    <ShareOnXButton
+                                        url={`${window.location.origin}/explorer/hand/${gameId}${selectedHand ? `?hand=${selectedHand.hand_number}` : ""}`}
+                                    />
+                                </div>
                             </div>
                         </div>
 
