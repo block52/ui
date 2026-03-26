@@ -828,6 +828,10 @@ const Table = React.memo(() => {
                 totalSeatedPlayers={tableActivePlayers.length}
                 handNumber={handNumber}
                 hasActivePlayers={hasActivePlayers}
+                currentStack={currentPlayerData?.stack || "0"}
+                minBuyIn={gameOptions?.minBuyIn || "0"}
+                maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                walletBalance={accountBalance}
             />
 
             {/* All Table Modals */}

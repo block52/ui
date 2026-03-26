@@ -12,18 +12,18 @@
  */
 
 import * as React from "react";
+import { useParams } from "react-router-dom";
 import Badge from "../common/Badge";
-import ProgressBar from "../common/ProgressBar";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { useShowingCardsByAddress } from "../../../hooks/player/useShowingCardsByAddress";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import CustomDealer from "../../../assets/CustomDealer.svg";
-import { colors } from "../../../utils/colorConfig";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/cardImages";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
+import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import styles from "./PlayersCommon.module.css";
 
 type OppositePlayerProps = {
@@ -38,8 +38,10 @@ type OppositePlayerProps = {
 };
 
 const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
+    const { id } = useParams<{ id: string }>();
     const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
     const { winnerInfo } = useWinnerInfo();
+    const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
     const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
     const { getAvatarForAddress } = useProfileAvatar();
     const [avatarLoadFailed, setAvatarLoadFailed] = React.useState(false);
@@ -110,7 +112,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
             {/* Main player display */}
             <div
                 key={index}
-                className={`${opacityClass} absolute flex flex-col justify-center w-[160px] h-[140px] mt-[40px] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-[20] ${styles.secondaryText} ${styles.positionTransition}`}
+                className={`${opacityClass} absolute flex flex-col justify-center w-[160px] h-[140px] mt-[40px] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-[10] ${styles.secondaryText} ${styles.positionTransition}`}
                 style={{
                     left: left,
                     top: top
@@ -160,39 +162,8 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                             NFT
                         </div>
                     )}
-                    <div
-                        style={{ backgroundColor: isWinner ? colors.accent.success : (color || "#6b7280") }}
-                        className={`b-[0%] mt-[auto] w-full h-[55px] shadow-[1px_2px_6px_2px_rgba(0,0,0,0.3)] rounded-tl-2xl rounded-tr-2xl rounded-bl-md rounded-br-md flex flex-col ${
-                            isWinner 
-                        }`}
-                    >
-                        {/* Progress bar is not shown in showdown */}
-                        {!isWinner && round !== "showdown" && <ProgressBar index={index} />}
-                        {!isWinner && isSeated && (
-                            <span className={`font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>SEATED</span>
-                        )}
-                        {!isWinner && isSittingOut && (
-                            <span className={`font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>SITTING OUT</span>
-                        )}
-                        {!isWinner && isFolded && (
-                            <span className={`animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center ${styles.whiteText}`}>FOLD</span>
-                        )}
-                        {!isWinner && isAllIn && (
-                            <span className={`animate-progress delay-2000 flex flex-col items-center w-full mb-2 mt-auto gap-0 justify-center ${styles.whiteText}`}>
-                                <span>ALL IN</span>
-                                {playerEquity !== null && (
-                                    <span className="text-yellow-400 font-bold text-sm">
-                                        {playerEquity.toFixed(1)}%
-                                    </span>
-                                )}
-                            </span>
-                        )}
-                        {isWinner && winnerAmount && (
-                            <span className={`font-bold flex items-center justify-center w-full h-8 mt-[22px] gap-1 text-base ${styles.whiteText}`}>
-                                WINS: {winnerAmount}
-                            </span>
-                        )}
-                    </div>
+                    {/* Spacer preserves the 55px flow height the old status bar occupied */}
+                    <div className="w-full h-[55px]" />
                     <div className="absolute top-[-10px] w-full">
                         <Badge
                             count={index}
@@ -200,10 +171,19 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                             color={color}
                             tournamentPlace={tournamentResult?.place}
                             tournamentPayout={tournamentResult?.payout}
+                            isWinner={isWinner}
+                            winnerAmount={winnerAmount}
+                            isTurnTimerActive={isTurnTimerActive}
+                            round={round}
+                            isFolded={isFolded}
+                            isAllIn={isAllIn}
+                            isSeated={isSeated}
+                            isSittingOut={isSittingOut}
+                            playerEquity={playerEquity}
                         />
                     </div>
 
-                    {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
+                    {/* Dealer Button */}
                     {isDealer && (
                         <div className="absolute top-[-85px] right-[-40px] w-12 h-12 z-20">
                             <img src={CustomDealer} alt="Dealer Button" className="w-full h-full" />

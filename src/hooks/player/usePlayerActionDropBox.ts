@@ -7,8 +7,12 @@ export interface PlayerActionDisplay {
   action: string;
   amount?: string;
   isVisible: boolean;
+  isTextHiding: boolean;
   isAnimatingOut: boolean;
 }
+
+const TEXT_HIDE_DURATION = 150;
+const EXIT_ANIMATION_DURATION = 500;
 
 // Map action types to display text using the actual enum values
 const ACTION_DISPLAY_MAP: Record<string, string> = {
@@ -59,6 +63,7 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
     action: "",
     amount: "",
     isVisible: false,
+    isTextHiding: false,
     isAnimatingOut: false
   });
 
@@ -120,6 +125,7 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
         action: "",
         amount: "",
         isVisible: false,
+        isTextHiding: false,
         isAnimatingOut: false
       });
       lastProcessedActionRef.current = null;
@@ -135,11 +141,18 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
         action: displayValues.action,
         amount: displayValues.amount,
         isVisible: true,
+        isTextHiding: false,
         isAnimatingOut: false
       });
 
       // Set timeout to hide after 2 seconds
       hideTimeoutRef.current = setTimeout(() => {
+        setDisplayState(prev => ({
+          ...prev,
+          isTextHiding: true
+        }));
+
+        setTimeout(() => {
         setDisplayState(prev => ({
           ...prev,
           isAnimatingOut: true
@@ -151,9 +164,11 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
             action: "",
             amount: "",
             isVisible: false,
+            isTextHiding: false,
             isAnimatingOut: false
           });
-        }, 500);
+        }, EXIT_ANIMATION_DURATION);
+        }, TEXT_HIDE_DURATION);
       }, 2000);
     }
   }, [actionKey, displayValues, latestAction]);

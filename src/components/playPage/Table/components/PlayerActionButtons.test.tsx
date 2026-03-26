@@ -5,6 +5,16 @@ import { PlayerActionButtons, PlayerActionButtonsProps } from "./PlayerActionBut
 import { SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 
+// Mock BuyChipsButton to avoid import.meta.env issues
+jest.mock("../../../BuyChipsButton", () => {
+    return function MockBuyChipsButton() { return null; };
+});
+
+// Mock useTableTopUp hook
+jest.mock("../../../../hooks/game/useTableTopUp", () => ({
+    useTableTopUp: () => ({ topUp: jest.fn(), loading: false, error: null }),
+}));
+
 // Mock action handlers
 const mockHandleSitIn = jest.fn();
 const mockHandleSitOut = jest.fn();
@@ -49,6 +59,10 @@ const baseProps: PlayerActionButtonsProps = {
     totalSeatedPlayers: 0,
     handNumber: 1,
     hasActivePlayers: false,
+    currentStack: "0",
+    minBuyIn: "100000000",
+    maxBuyIn: "1000000000",
+    walletBalance: "500000000",
 };
 
 beforeEach(() => {
@@ -57,7 +71,7 @@ beforeEach(() => {
 });
 
 describe("PlayerActionButtons", () => {
-    it("renders null when display kind is none", () => {
+    it("renders nothing visible when display kind is none and no top-up available", () => {
         const { container } = render(
             <PlayerActionButtons
                 {...baseProps}
@@ -66,6 +80,7 @@ describe("PlayerActionButtons", () => {
                 legalActions={[]}
             />
         );
+        // BuyChipsButton is mocked to return null, so container should be empty
         expect(container.firstChild).toBeNull();
     });
 

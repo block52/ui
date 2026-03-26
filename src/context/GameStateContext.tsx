@@ -7,6 +7,10 @@ import type { ValidationError } from "../components/playPage/TableErrorPage";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
 const ENABLE_REST_FALLBACK = false;
+const AVATAR_SYNC_DEBUG =
+    typeof process !== "undefined" &&
+    process.env.NODE_ENV !== "production" &&
+    ["1", "true"].includes((process.env.VITE_DEBUG_AVATAR_SYNC || "").toLowerCase());
 
 /**
  * GameStateContext - Centralized WebSocket state management
@@ -177,6 +181,24 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                                 rawData: message
                             });
                             return;
+                        }
+
+                        if (AVATAR_SYNC_DEBUG) {
+                            const playersWithAvatars = gameStateData.players
+                                .filter(player => Boolean(player.avatar))
+                                .map(player => ({
+                                    seat: player.seat,
+                                    address: player.address,
+                                    avatar: player.avatar
+                                }));
+
+                            if (playersWithAvatars.length > 0) {
+                                console.info("[ProfileAvatarDebug] Incoming websocket avatars", {
+                                    gameId: message.gameId,
+                                    event: message.event,
+                                    playersWithAvatars
+                                });
+                            }
                         }
 
                         // Validate the game state data
