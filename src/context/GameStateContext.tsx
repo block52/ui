@@ -8,9 +8,8 @@ import type { ValidationError } from "../components/playPage/TableErrorPage";
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
 const ENABLE_REST_FALLBACK = false;
 const AVATAR_SYNC_DEBUG =
-    typeof process !== "undefined" &&
-    process.env.NODE_ENV !== "production" &&
-    ["1", "true"].includes((process.env.VITE_DEBUG_AVATAR_SYNC || "").toLowerCase());
+    import.meta.env.DEV &&
+    ["1", "true"].includes((import.meta.env.VITE_DEBUG_AVATAR_SYNC || "").toLowerCase());
 
 /**
  * GameStateContext - Centralized WebSocket state management

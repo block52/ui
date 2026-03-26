@@ -3,6 +3,7 @@ import { GameFormat, GameVariant, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
+import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
 
 // Type for rake configuration options
 export interface RakeOptions {
@@ -100,8 +101,8 @@ export const useNewTable = (): UseNewTableReturn => {
             // Default to Texas Hold'em for now (only variant currently supported)
             const gameVariant = GameVariant.TEXAS_HOLDEM;
 
-            // Timeout in seconds (5 minutes = 300 seconds)
-            const timeoutSeconds = 300;
+            // Timeout in seconds from centralised timer config
+            const timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
 
             // Call SigningCosmosClient.createGame()
             const txHash = await signingClient.createGame(
