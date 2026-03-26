@@ -6,12 +6,13 @@
  * Responsive design for mobile, tablet, and desktop viewports.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useOptimistic, startTransition } from "react";
 import { LegalActionDTO } from "@block52/poker-vm-sdk";
 import { handleSitOut, handleSitIn } from "../../../common/actionHandlers";
 import { SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { getPlayerActionDisplay } from "../../../../utils/playerActionDisplayUtils";
+import { toast } from "react-toastify";
 
 export interface PlayerActionButtonsProps {
     isMobile: boolean;
@@ -45,6 +46,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
 
     // Optimistic local state for immediate visual feedback
     const [optimisticChecked, setOptimisticChecked] = useState<boolean | null>(null);
+    const [optimisticSitIn, setOptimisticSitIn] = useOptimistic<boolean>(false)
 
     // Sync optimistic state with server state when it arrives
     const serverChecked = pendingSitOut === "next-hand";
@@ -79,6 +81,18 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         }
     }, [display.kind, tableId, currentNetwork]);
 
+    const handleSitInClick = async () => {
+        try {
+            startTransition(async () => {
+                console.log("🎯 Label clicked! TableId:", tableId, "Network:", currentNetwork);
+                setOptimisticSitIn(true);
+                await handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
+            })
+        } catch (error) {
+            toast.error("Failed to sit in" + error)
+        }
+    }
+
     switch (display.kind) {
         case "pending":
             return (
@@ -100,26 +114,20 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
                         <label
                             className="flex items-center cursor-pointer"
-                            onClick={(e) => {
-                                console.log("🎯 Label clicked! TableId:", tableId, "Network:", currentNetwork);
-                                e.preventDefault();
-                                handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
-                            }}
+                            onClick={handleSitInClick}
                         >
                             <input
                                 type="radio"
                                 name="sit-in-method"
-                                onChange={() => {
-                                    console.log("🎯 Radio onChange fired! TableId:", tableId, "Network:", currentNetwork);
-                                    handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
-                                }}
+                                onChange={handleSitInClick}
+                                checked={optimisticSitIn}
                                 onClick={(e) => {
                                     console.log("🎯 Radio onClick fired! TableId:", tableId, "Network:", currentNetwork);
                                 }}
                                 className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
                             />
                             <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
-                                Sit in on Next Available Hand and Post Required Blinds
+                                {optimisticSitIn ? "Sitting in..." : "Sit in on Next Available Hand and Post Required Blinds"}
                             </span>
                         </label>
                     </div>
