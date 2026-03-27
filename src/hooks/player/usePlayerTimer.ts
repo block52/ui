@@ -122,7 +122,7 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
     }, [isNextToAct, isCurrentUser, extensionInfo.hasUsedExtension, seatKey, lastActionTimestamp]);
 
     // Auto-action logic (check first, then fold if check not available)
-    const handleAutoAction = useCallback(async () => {
+    const _handleAutoAction = useCallback(async () => {
         // Use a flag to prevent concurrent executions
         if (latestValues.current.isExecutingAutoAction) {
             return;
@@ -188,16 +188,16 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
         return () => clearInterval(interval);
     }, [isNextToAct]); // Re-run effect when player becomes active/inactive
 
-    // Auto-action when timer expires — auto-check or auto-fold
-    useEffect(() => {
-        if (timeRemaining === 0 && isNextToAct && isCurrentUser) {
-            const timeoutId = setTimeout(() => {
-                handleAutoAction();
-            }, 500); // Small delay to ensure state is stable
+    // Auto-action when timer expires - COMMENTED OUT TO DISABLE AUTO-FOLD/AUTO-CHECK
+    // useEffect(() => {
+    //     if (timeRemaining === 0 && isNextToAct && isCurrentUser) {
+    //         const timeoutId = setTimeout(() => {
+    //             _handleAutoAction();
+    //         }, 500); // Small delay to ensure state is stable
 
-            return () => clearTimeout(timeoutId);
-        }
-    }, [timeRemaining, isNextToAct, isCurrentUser, handleAutoAction]);
+    //         return () => clearTimeout(timeoutId);
+    //     }
+    // }, [timeRemaining, isNextToAct, isCurrentUser, _handleAutoAction]);
 
     // Reset auto-action timer when next to act changes
     useEffect(() => {
@@ -205,7 +205,7 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
     }, [gameState?.nextToAct]);
 
     // Calculate progress (0-100) via shared util
-    const progress = useMemo(() => {
+    const _progress = useMemo(() => {
         if (!isNextToAct) return 0;
         return calcProgressPercent(currentTime, lastActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
     }, [currentTime, lastActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
@@ -220,7 +220,7 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
     return {
         playerStatus: player?.status || PlayerStatus.SEATED,
         timeoutValue: timeoutInSeconds, // Dynamic timeout from game options
-        progress, // Progress percentage (0-100)
+        progress: Math.ceil(timeoutInSeconds - timeRemaining), // Progress in seconds elapsed
         timeRemaining,
         isActive: isNextToAct && activePlayerCount >= 2, // Only show timer with 2+ players
         isLoading,

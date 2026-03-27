@@ -46,7 +46,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
         // Handle time extension
-        const handleExtendTime = () => {
+        const _handleExtendTime = () => {
             setIsExtending(true);
 
             // Use the timer hook's extend function
@@ -177,7 +177,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                             value={stackValue}
                             color={color}
                             canExtend={shouldShowTimerExtension}
-                            onExtend={shouldShowTimerExtension ? handleExtendTime : undefined}
+                            // onExtend={shouldShowTimerExtension ? handleExtendTime : undefined}
                             tournamentPlace={tournamentResult?.place}
                             tournamentPayout={tournamentResult?.payout}
                             isWinner={isWinner}
