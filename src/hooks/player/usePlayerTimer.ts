@@ -212,7 +212,7 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
 
     // Debug logging (only in development)
     useEffect(() => {
-        if (process.env.NODE_ENV === "development" && isNextToAct && isCurrentUser) {
+        if (import.meta.env.DEV && isNextToAct && isCurrentUser) {
             const _extensionStatus = extensionInfo.hasUsedExtension ? " (EXTENDED)" : "";
         }
     }, [timeRemaining, isNextToAct, isCurrentUser, playerSeat, timeoutInSeconds, extensionInfo.hasUsedExtension]);
