@@ -95,7 +95,7 @@ export default function BridgeAdminDashboard() {
 
     // Ethereum Mainnet configuration
     const bridgeContractAddress = COSMOS_BRIDGE_ADDRESS;
-    const ethRpcUrl = import.meta.env.VITE_ALCHEMY_URL || import.meta.env.VITE_MAINNET_RPC_URL;
+    const ethRpcUrl = import.meta.env.VITE_MAINNET_RPC_URL || import.meta.env.VITE_MAINNET_RPC_URL;
 
     // Get STAKE balance from wallet for gas fees
     const stakeBalance = useMemo(() => {
@@ -112,9 +112,9 @@ export default function BridgeAdminDashboard() {
 
     // Validate Alchemy URL is configured
     useEffect(() => {
-        if (!import.meta.env.VITE_ALCHEMY_URL) {
+        if (!import.meta.env.VITE_MAINNET_RPC_URL) {
             const errorMsg =
-                "⚠️ VITE_ALCHEMY_URL is not configured in .env file. Please add your Alchemy API key to enable bridge deposit queries. See ui/README.md for setup instructions.";
+                "⚠️ VITE_MAINNET_RPC_URL is not configured in .env file. Please add your Alchemy API key to enable bridge deposit queries. See ui/README.md for setup instructions.";
             setConfigError(errorMsg);
             console.error(errorMsg);
             toast.error("Alchemy API key not configured. Bridge queries may fail.");
@@ -497,7 +497,7 @@ export default function BridgeAdminDashboard() {
                                 <h3 className="text-red-200 font-semibold mb-1">Configuration Required</h3>
                                 <p className="text-red-300 text-sm">{configError}</p>
                                 <div className="mt-2 text-red-300 text-xs font-mono bg-red-950/50 p-2 rounded">
-                                    Add to .env: VITE_ALCHEMY_URL="https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY"
+                                    Add to .env: VITE_MAINNET_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY"
                                 </div>
                             </div>
                         </div>

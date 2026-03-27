@@ -13,7 +13,7 @@ const getProfileNftConfig = (): ProfileNftConfig => {
     return {
         chainId: Number(import.meta.env.VITE_PROFILE_NFT_CHAIN_ID || ETH_CHAIN_ID),
         indexerUrlTemplate: import.meta.env.VITE_PROFILE_NFT_INDEXER_URL || "",
-        fallbackAlchemyUrl: import.meta.env.VITE_ALCHEMY_URL || ""
+        fallbackAlchemyUrl: import.meta.env.VITE_MAINNET_RPC_URL || ""
     };
 };
 
@@ -37,6 +37,7 @@ interface IndexerNftItem {
     };
     image?: {
         cachedUrl?: string;
+        thumbnailUrl?: string;
         pngUrl?: string;
         originalUrl?: string;
     };
@@ -118,7 +119,7 @@ export const useWalletNfts = (walletAddress: string | undefined, isConnected: bo
                     return null;
                 }
 
-                const rawImage = item.image?.cachedUrl || item.image?.pngUrl || item.image?.originalUrl || item.metadata?.image || item.rawMetadata?.image || item.raw?.metadata?.image || "";
+                const rawImage = item.image?.cachedUrl || item.image?.thumbnailUrl || item.image?.pngUrl || item.image?.originalUrl || item.metadata?.image || item.rawMetadata?.image || item.raw?.metadata?.image || "";
                 const imageUrl = normalizeIpfsUri(rawImage);
 
                 if (!isAllowedAvatarUrl(imageUrl)) {
@@ -191,7 +192,7 @@ export const useWalletNfts = (walletAddress: string | undefined, isConnected: bo
         }
 
         if (!hasSourceConfigured) {
-            const missingConfigError = "No NFT indexer configured. Set VITE_PROFILE_NFT_INDEXER_URL or VITE_ALCHEMY_URL.";
+            const missingConfigError = "No NFT indexer configured. Set VITE_PROFILE_NFT_INDEXER_URL or VITE_MAINNET_RPC_URL.";
             console.error(`${NFT_LOG_PREFIX} Missing source config`);
             setWalletNfts([]);
             setNftsError(missingConfigError);

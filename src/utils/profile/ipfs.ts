@@ -1,4 +1,5 @@
 const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
+const ARWEAVE_GATEWAY = "https://arweave.net/";
 
 export const normalizeIpfsUri = (value: string | undefined | null): string => {
     if (!value) {
@@ -9,6 +10,10 @@ export const normalizeIpfsUri = (value: string | undefined | null): string => {
         return value.replace("ipfs://", IPFS_GATEWAY);
     }
 
+    if (value.startsWith("ar://")) {
+        return value.replace("ar://", ARWEAVE_GATEWAY);
+    }
+
     return value;
 };
 
@@ -17,5 +22,5 @@ export const isAllowedAvatarUrl = (url: string): boolean => {
         return false;
     }
 
-    return url.startsWith("https://") || url.startsWith("http://");
+    return url.startsWith("https://") || url.startsWith("http://") || url.startsWith("data:");
 };

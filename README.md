@@ -123,7 +123,7 @@ VITE_PROFILE_AVATAR_UPDATE_URL=https://your-backend.example.com/api/profile/avat
 
 Notes:
 
-- NFT discovery uses wallet-owned NFTs from an indexer source via `VITE_PROFILE_NFT_INDEXER_URL` or `VITE_ALCHEMY_URL`.
+- NFT discovery uses wallet-owned NFTs from an indexer source via `VITE_PROFILE_NFT_INDEXER_URL` or `VITE_MAINNET_RPC_URL`.
 - `VITE_PROFILE_AVATAR_UPDATE_URL` enables signed avatar persistence/broadcast integration.
 
 ## Available Scripts

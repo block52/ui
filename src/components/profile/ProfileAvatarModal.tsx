@@ -78,7 +78,7 @@ export const ProfileAvatarModal: React.FC = () => {
 
                         {!hasSourceConfigured && (
                             <p className={styles.emptyText}>
-                                No wallet NFT indexer configured. Set VITE_PROFILE_NFT_INDEXER_URL or VITE_ALCHEMY_URL.
+                                No wallet NFT indexer configured. Set VITE_PROFILE_NFT_INDEXER_URL or VITE_MAINNET_RPC_URL.
                             </p>
                         )}
 
