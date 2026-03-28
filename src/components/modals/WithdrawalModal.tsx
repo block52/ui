@@ -463,11 +463,14 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                             >
                                 Complete on Ethereum
                             </button>
+                            <p className="text-center text-sm text-gray-400">
+                                You can complete this withdrawal later from the Withdrawal Dashboard
+                            </p>
                             <button
                                 onClick={onClose}
-                                className="w-full py-2 px-4 rounded-lg font-semibold text-gray-400 hover:text-white transition"
+                                className={`w-full py-2 px-4 rounded-lg font-semibold text-white transition hover:opacity-80 ${styles.cancelActionButton}`}
                             >
-                                Complete Later
+                                Close
                             </button>
                         </div>
                     </div>

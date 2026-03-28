@@ -393,12 +393,14 @@ export default function WithdrawalDashboard() {
                                     filteredWithdrawals.map(withdrawal => (
                                         <tr key={withdrawal.nonce} className="hover:bg-gray-700/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-white font-mono text-sm">#{withdrawal.nonce}</span>
+                                                <span className="text-white font-mono text-sm" title={withdrawal.nonce}>
+                                                    #{withdrawal.nonce.slice(0, 10)}...{withdrawal.nonce.slice(-4)}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-white font-mono text-xs" title={withdrawal.baseAddress}>
-                                                        {withdrawal.baseAddress.slice(0, 10)}...{withdrawal.baseAddress.slice(-8)}
+                                                    <span className="text-white font-mono text-sm">
+                                                        {withdrawal.baseAddress}
                                                     </span>
                                                     <button
                                                         onClick={() => {
@@ -423,26 +425,17 @@ export default function WithdrawalDashboard() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
                                                 {withdrawal.status === "pending" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-900/50 text-yellow-300 border border-yellow-700">
-                                                        ⏳ Awaiting Signature
-                                                    </span>
+                                                    <span className="text-sm text-yellow-400">Pending</span>
                                                 )}
                                                 {withdrawal.status === "signed" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-900/50 text-blue-300 border border-blue-700">
-                                                        ✍️ Signed (Ready)
-                                                    </span>
+                                                    <span className="text-sm text-blue-400">Signed</span>
                                                 )}
                                                 {withdrawal.status === "completed" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-300 border border-green-700">
-                                                        ✅ Completed
-                                                    </span>
+                                                    <span className="text-sm text-green-400">Completed</span>
                                                 )}
                                                 {withdrawal.status === "error" && (
-                                                    <span
-                                                        className="px-3 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-300 border border-red-700 cursor-help"
-                                                        title={withdrawal.errorMessage}
-                                                    >
-                                                        ❌ Error
+                                                    <span className="text-sm text-red-400 cursor-help" title={withdrawal.errorMessage}>
+                                                        Error
                                                     </span>
                                                 )}
                                             </td>

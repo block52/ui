@@ -79,6 +79,7 @@ function AppContent() {
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
                 <Route path="/wallet" element={<CosmosWalletPage />} />
                 {/* User-facing routes */}
+                <Route path="/withdrawals" element={<WithdrawalDashboard />} />
                 <Route path="/bridge/withdrawals" element={<WithdrawalDashboard />} />
                 {/* Admin routes - consolidated under /admin */}
                 <Route path="/admin" element={<AdminDashboard />} />
