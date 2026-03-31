@@ -277,7 +277,7 @@ describe("HTTPClient", () => {
 
 ### Tech Stack
 
-- **React 18** - UI framework
+- **React 19** - UI framework
 - **TypeScript 5** - Type safety
 - **Vite** - Build tool and dev server
 - **TailwindCSS** - Styling
