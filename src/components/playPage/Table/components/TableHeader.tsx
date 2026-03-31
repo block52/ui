@@ -8,10 +8,12 @@
  * Hidden in mobile landscape mode.
  */
 
-import React from "react";
-import { FaCopy, FaShare } from "react-icons/fa";
+import React, { useState } from "react";
+import { FaCopy, FaShare, FaQrcode } from "react-icons/fa";
 import { LuPanelLeftOpen, LuPanelLeftClose } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
+import { QRCodeSVG } from "qrcode.react";
+import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay } from "../../../../utils/gameFormatUtils";
@@ -86,6 +88,9 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     handleLeaveTableClick,
     handleShareHand,
 }) => {
+    const [showQR, setShowQR] = useState(false);
+    const tableUrl = `${window.location.origin}/table/${tableId}`;
+
     // Hidden in mobile landscape
     if (isMobileLandscape) {
         return null;
@@ -123,6 +128,15 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <FaCopy size={12} />
                         <span className="hidden sm:inline">Copy Table Link</span>
                         <span className="sm:hidden">Copy Link</span>
+                    </button>
+                    {/* QR Code Button */}
+                    <button
+                        onClick={() => setShowQR(true)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border ${styles.copyTableButton}`}
+                        title="Show QR code for table link"
+                    >
+                        <FaQrcode size={12} />
+                        <span className="hidden sm:inline">QR Code</span>
                     </button>
                     {/* Game Format & Variant Display - Desktop Only */}
                     {gameOptions && (
@@ -272,6 +286,28 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     )}
                 </div>
             </div>
+
+            {/* QR Code Modal */}
+            <Modal
+                isOpen={showQR}
+                onClose={() => setShowQR(false)}
+                title="Scan to Join Table"
+                titleIcon={<FaQrcode size={16} />}
+                widthClass="w-80"
+                patternId="hexagons-qr"
+            >
+                <div className="flex flex-col items-center gap-4">
+                    <div className="bg-white p-4 rounded-xl">
+                        <QRCodeSVG value={tableUrl} size={240} />
+                    </div>
+                    <button
+                        onClick={() => setShowQR(false)}
+                        className="w-full py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold hover:bg-gray-600 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 };
