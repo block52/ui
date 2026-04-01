@@ -4,7 +4,7 @@
   "private": true,
   "proxy": "=https://paymentservice.texashodl.net",
   "dependencies": {
-    "@block52/poker-vm-sdk": "1.1.14",
+    "@block52/poker-vm-sdk": "1.1.15",
     "@metamask/sdk": "^0.34.0",
     "@reown/appkit": "1.6.7",
     "@reown/appkit-adapter-ethers": "1.6.7",
