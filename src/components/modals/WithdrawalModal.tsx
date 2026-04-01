@@ -17,7 +17,7 @@ import styles from "./WithdrawalModal.module.css";
  * Handles the complete 2-step withdrawal flow:
  *   Step 1 (Cosmos): Initiate withdrawal signed by cosmos key with eth address in message.
  *          The validator then signs the withdrawal payload for the deposit contract.
- *   Step 2 (Ethereum): User calls the deposit contract withdraw() via MetaMask.
+ *   Step 2 (Ethereum): User calls the deposit contract withdraw() via Web3 wallet.
  *
  * The modal auto-polls for the validator signature after initiation so the user
  * never has to leave or manually refresh.
@@ -39,7 +39,7 @@ const SLOW_POLL_THRESHOLD = 20; // ~60 seconds
 
 const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const { balance: cosmosBalance, address: cosmosAddress, refreshBalance: refetchAccount } = useCosmosWallet();
-    const { address: web3Address, isConnected: isWeb3Connected, open: openWeb3Wallet } = useUserWalletConnect();
+    const { address: web3Address, isConnected: isWeb3Connected, open: openWalletConnect } = useUserWalletConnect();
     const { currentNetwork } = useNetwork();
     const { withdraw, hash: withdrawHash, isWithdrawConfirmed, withdrawError } = useWithdraw();
 
@@ -156,12 +156,12 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
     // ─── Step 1: Initiate withdrawal on Cosmos ───────────────────────────
     const handleWithdraw = async () => {
         if (!isWeb3Connected || !web3Address) {
-            setError("Please connect your MetaMask wallet first");
+            setError("Please connect your Web3 wallet first");
             return;
         }
 
         if (!ethers.isAddress(web3Address)) {
-            setError("Invalid MetaMask wallet address");
+            setError("Invalid Web3 wallet address");
             return;
         }
 
@@ -213,7 +213,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
         }
 
         if (!isWeb3Connected || !web3Address) {
-            setError("Please connect your MetaMask wallet");
+            setError("Please connect your Web3 wallet");
             return;
         }
 
@@ -308,19 +308,24 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                         </div>
 
                         {!isWeb3Connected || !web3Address ? (
-                            <div className={`mb-4 p-3 rounded-lg ${styles.warningAlert}`}>
-                                <p className={`font-semibold mb-2 ${styles.textWarning}`}>MetaMask Not Connected</p>
-                                <p className={`text-sm ${styles.textSecondary}`}>
-                                    Please connect your MetaMask wallet to withdraw funds. The withdrawal will be sent to your connected MetaMask address.
+                            <div className="mb-4">
+                                <p className={`text-sm mb-3 ${styles.textSecondary}`}>
+                                    Connect your Web3 wallet to withdraw funds. The withdrawal will be sent to your connected wallet address.
                                 </p>
+                                <button
+                                    onClick={() => openWalletConnect()}
+                                    className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition hover:opacity-90 ${styles.primaryActionButton}`}
+                                >
+                                    Connect Your Web3 Wallet
+                                </button>
                             </div>
                         ) : (
                             <div className="mb-4">
-                                <label className={`block text-sm mb-2 ${styles.textSecondary}`}>Withdrawal Address (MetaMask)</label>
+                                <label className={`block text-sm mb-2 ${styles.textSecondary}`}>Withdrawal Address</label>
                                 <div className={`p-3 rounded-lg ${styles.surfacePrimarySoft}`}>
                                     <p className={`font-mono text-sm ${styles.textPrimary}`}>{web3Address}</p>
                                 </div>
-                                <p className="text-xs mt-1 text-gray-500">Funds will be sent to your connected MetaMask wallet</p>
+                                <p className="text-xs mt-1 text-gray-500">Funds will be sent to your connected Web3 wallet</p>
                             </div>
                         )}
 
@@ -342,14 +347,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                         )}
 
                         <div className="flex flex-col space-y-3">
-                            {(!isWeb3Connected || !web3Address) && (
-                                <button
-                                    className={`w-full py-2 px-4 rounded-lg font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${styles.primaryActionButton}`}
-                                    onClick={openWeb3Wallet}
-                                >
-                                    Connect Your Web3 Wallet
-                                </button>
-                            )}
                             <button
                                 onClick={handleWithdraw}
                                 className={`w-full py-2 px-4 rounded-lg font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${styles.primaryActionButton}`}
@@ -451,7 +448,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                     <div className="text-center py-8">
                         <div className="animate-spin w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4" />
                         <p className="text-white font-semibold mb-2">Completing on Ethereum</p>
-                        <p className="text-gray-400 text-sm">Confirm the transaction in MetaMask...</p>
+                        <p className="text-gray-400 text-sm">Confirm the transaction in your wallet...</p>
                     </div>
                 )}
 

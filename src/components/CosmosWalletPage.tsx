@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { generateWallet as generateWalletSDK, createWalletFromMnemonic as createWalletSDK, getAddressFromMnemonic } from "@block52/poker-vm-sdk";
 import { setCosmosMnemonic, setCosmosAddress, getCosmosMnemonic, getCosmosAddress, clearCosmosData, isValidSeedPhrase } from "../utils/cosmos";
 import { AnimatedBackground } from "./common/AnimatedBackground";
+import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
 import styles from "./CosmosWalletPage.module.css";
 
 // Seed phrase word grid component
@@ -25,6 +26,7 @@ const SeedPhraseGrid = ({ mnemonic, hidden = false }: { mnemonic: string; hidden
 
 const CosmosWalletPage = () => {
     const navigate = useNavigate();
+    const { open: openWeb3Wallet, disconnect: disconnectWeb3, isConnected: isWeb3Connected, address: web3Address } = useUserWalletConnect();
     const [mnemonic, setMnemonic] = useState<string>("");
     const [address, setAddress] = useState<string>("");
     const [isGenerating, setIsGenerating] = useState(false);
@@ -341,6 +343,52 @@ const CosmosWalletPage = () => {
                         </div>
                     </div>
                 )}
+
+                {/* Web3 Wallet Panel */}
+                <div
+                    className={`backdrop-blur-sm rounded-xl p-5 mt-4 border shadow-lg ${styles.mainCard}`}
+                >
+                    <h2 className="text-xl font-bold text-white mb-4">Web3 Wallet</h2>
+                    {isWeb3Connected && web3Address ? (
+                        <div className="space-y-4">
+                            <div>
+                                <label className={`text-sm ${styles.textSecondary}`}>Connected Address</label>
+                                <div className="flex gap-2 items-center mt-1">
+                                    <input
+                                        type="text"
+                                        value={web3Address}
+                                        readOnly
+                                        className={`flex-1 text-white px-4 py-2 rounded-lg border font-mono text-sm ${styles.inputField}`}
+                                    />
+                                    <button
+                                        onClick={() => copyToClipboard(web3Address, "Web3 Address")}
+                                        className={`text-white px-4 py-2 rounded-lg transition-all hover:opacity-80 ${styles.primaryButton}`}
+                                    >
+                                        Copy
+                                    </button>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => disconnectWeb3()}
+                                className={`w-full text-white px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-80 ${styles.dangerButton}`}
+                            >
+                                Disconnect Web3 Wallet
+                            </button>
+                        </div>
+                    ) : (
+                        <div>
+                            <p className={`mb-4 text-sm ${styles.textSecondary}`}>
+                                Connect your Web3 wallet for deposits and withdrawals.
+                            </p>
+                            <button
+                                onClick={() => openWeb3Wallet()}
+                                className={`w-full text-white px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-80 ${styles.primaryButton}`}
+                            >
+                                Connect Your Web3 Wallet
+                            </button>
+                        </div>
+                    )}
+                </div>
 
                 {/* Error Display */}
                 {error && (

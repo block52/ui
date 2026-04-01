@@ -29,7 +29,7 @@ const useWithdraw = () => {
   ): Promise<void> => {
     if (!userAddress) {
       console.error("[useWithdraw] User wallet is not connected");
-      throw new Error("MetaMask wallet is not connected");
+      throw new Error("Web3 wallet is not connected");
     }
 
     if (!nonce || !receiver || amount <= 0n || !signature) {
