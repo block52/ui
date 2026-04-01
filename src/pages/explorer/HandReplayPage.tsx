@@ -5,7 +5,6 @@ import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import { getCardImageUrl } from "../../utils/cardImages";
 import type { HandDetail, HandListItem, HandListResponse } from "./types";
 import { useIndexerApi } from "../../context/IndexerApiContext";
-import Metadata from "../../components/common/Metadata";
 
 export default function HandReplayPage() {
     const { gameId, handNumber } = useParams<{ gameId: string; handNumber: string }>();
@@ -97,7 +96,6 @@ export default function HandReplayPage() {
     return (
         <div className="min-h-screen p-8 relative">
             <AnimatedBackground />
-            <Metadata />
             <div className="max-w-7xl mx-auto relative z-10">
                 <ExplorerHeader title="Hand Replay" />
 
