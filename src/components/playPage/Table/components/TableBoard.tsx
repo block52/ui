@@ -29,7 +29,7 @@ export interface TableBoardProps {
 
     // Styling
     cardBackStyle: CardBackStyle;
-    tableTheme: TableTheme;
+    tableTheme?: TableTheme;
 }
 
 export const TableBoard: React.FC<TableBoardProps> = ({
@@ -38,7 +38,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     communityCards,
     isSitAndGoWaitingForPlayers,
     cardBackStyle,
-    tableTheme
+    tableTheme = "modern"
 }) => {
     // Memoize community cards rendering
     const communityCardsElements = useMemo(() => {
