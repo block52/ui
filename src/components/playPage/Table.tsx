@@ -632,7 +632,10 @@ const Table = React.memo(() => {
     const [isMobileLandscape, setIsMobileLandscape] = useState(
         window.innerWidth <= 1024 && window.innerWidth > window.innerHeight && window.innerHeight <= 600
     );
-    const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">("modern");
+    const envTableStyle = import.meta.env.VITE_TABLE_STYLE;
+    const defaultTableStyle: "modern" | "classic" | "nouns" =
+        envTableStyle === "classic" || envTableStyle === "nouns" ? envTableStyle : "modern";
+    const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">(defaultTableStyle);
 
     // Update viewport mode on window resize
     useEffect(() => {
