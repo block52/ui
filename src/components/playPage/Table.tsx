@@ -632,7 +632,7 @@ const Table = React.memo(() => {
     const [isMobileLandscape, setIsMobileLandscape] = useState(
         window.innerWidth <= 1024 && window.innerWidth > window.innerHeight && window.innerHeight <= 600
     );
-    const [tableStyle, setTableStyle] = useState<"modern" | "classic">("modern");
+    const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">("modern");
 
     // Update viewport mode on window resize
     useEffect(() => {
@@ -860,24 +860,24 @@ const Table = React.memo(() => {
             <LayoutDebugOverlay />
             {/* Table style toggle */}
             <button
-                onClick={() => setTableStyle(s => s === "modern" ? "classic" : "modern")}
+                onClick={() => setTableStyle(s => s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern")}
                 style={{
                     position: "fixed",
                     bottom: 12,
                     left: 12,
                     zIndex: 999999,
                     padding: "6px 12px",
-                    borderRadius: 6,
-                    border: "2px solid #555",
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    color: "#ccc",
+                    borderRadius: tableStyle === "nouns" ? 0 : 6,
+                    border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
+                    backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
+                    color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
                     fontSize: 12,
-                    fontFamily: "monospace",
+                    fontFamily: tableStyle === "nouns" ? "'Silkscreen', monospace" : "monospace",
                     fontWeight: "bold",
                     cursor: "pointer"
                 }}
             >
-                Table: {tableStyle === "modern" ? "Modern" : "Classic"}
+                Table: {tableStyle === "modern" ? "Modern" : tableStyle === "classic" ? "Classic" : "Nouns"}
             </button>
             <GeometryFixedOverlay
                 containerWidth={tableLayout.containerWidth}
@@ -947,10 +947,16 @@ const Table = React.memo(() => {
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
-                <HexagonPattern patternId="hexagons-table" />
-                <div className="background-shimmer shimmer-animation" />
-                <div className="background-animated-static" />
-                <div className="background-base-static" />
+                {tableStyle !== "nouns" && <HexagonPattern patternId="hexagons-table" />}
+                {tableStyle === "nouns" ? (
+                    <div className="nouns-background" />
+                ) : (
+                    <>
+                        <div className="background-shimmer shimmer-animation" />
+                        <div className="background-animated-static" />
+                        <div className="background-base-static" />
+                    </>
+                )}
 
                 {/*//! TABLE — zoom-wrapper applies calculated transform */}
                 <div
@@ -959,25 +965,38 @@ const Table = React.memo(() => {
                 >
                     {/*//! 1000x500 table coordinate space — positioned at TABLE_ORIGIN (300,285) in the 1600x850 stage */}
                     <div ref={tableDivRef} className="w-[1000px] h-[500px] absolute" style={{ left: "300px", top: "285px" }}>
-                        {/* Outer rail — Ignition-style 3D depth (modern only) */}
-                        {tableStyle === "modern" && <div className="absolute z-10 rounded-[290px]" style={{
+                        {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
+                        {(tableStyle === "modern" || tableStyle === "nouns") && <div className="absolute z-10 rounded-[290px]" style={{
                             width: "1060px",
                             height: "560px",
                             left: "-30px",
                             top: "-30px",
-                            border: "10px solid rgba(100, 75, 40, 0.6)",
-                            boxShadow: "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
-                            background: "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
+                            border: tableStyle === "nouns"
+                                ? "10px solid rgba(26, 26, 46, 0.8)"
+                                : "10px solid rgba(100, 75, 40, 0.6)",
+                            boxShadow: tableStyle === "nouns"
+                                ? "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)"
+                                : "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
+                            background: tableStyle === "nouns"
+                                ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
+                                : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
                         }} />}
                         {/* Table felt surface */}
-                        <div className={`table-surface-shadow z-20 relative flex flex-col w-[1000px] h-[500px] text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
-                            style={{ borderColor: tableStyle === "classic" ? "rgba(255, 255, 255, 0.3)" : "rgba(255, 255, 255, 0.08)" }}>
+                        <div className={`table-surface-shadow z-20 relative flex flex-col w-[1000px] h-[500px] text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
+                            style={{
+                                borderColor: tableStyle === "nouns"
+                                    ? "rgba(214, 60, 94, 0.4)"
+                                    : tableStyle === "classic"
+                                        ? "rgba(255, 255, 255, 0.3)"
+                                        : "rgba(255, 255, 255, 0.08)"
+                            }}>
                             <TableBoard
                                 clubLogo={clubLogo}
                                 potDisplayValues={potDisplayValues}
                                 communityCards={tableDataValues.tableDataCommunityCards || []}
                                 isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
                                 cardBackStyle={cardBackStyle}
+                                tableTheme={tableStyle}
                             />
 
                             {/* Chips */}
