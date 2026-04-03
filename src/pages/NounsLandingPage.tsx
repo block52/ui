@@ -33,7 +33,7 @@ const NounsLandingPage: React.FC = () => {
             className="fixed inset-0 flex flex-col items-center justify-center px-4 z-50"
             style={{
                 background: "#ffffff",
-                fontFamily: "'Silkscreen', monospace",
+                fontFamily: "'Londrina Solid', cursive",
             }}
         >
             {/* Glasses logo */}
