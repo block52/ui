@@ -15,48 +15,6 @@
     background-color: var(--ui-bg-medium);
 }
 
-.topUpSlider {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 100%;
-    height: 6px;
-    border-radius: 3px;
-    background: var(--ui-bg-medium);
-    outline: none;
-    cursor: pointer;
-}
-
-.topUpSlider::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--brand-primary);
-    cursor: pointer;
-    border: 2px solid #fff;
-}
-
-.topUpSlider::-moz-range-thumb {
-    width: 18px;
-    height: 18px;
-    border-radius: 50%;
-    background: var(--brand-primary);
-    cursor: pointer;
-    border: 2px solid #fff;
-}
-
-.topUpSlider::-webkit-slider-runnable-track {
-    height: 6px;
-    border-radius: 3px;
-    background: var(--ui-bg-medium);
-}
-
-.topUpSlider::-moz-range-track {
-    height: 6px;
-    border-radius: 3px;
-    background: var(--ui-bg-medium);
-}
 
 .amountInput {
     background-color: var(--ui-bg-medium);

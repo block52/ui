@@ -150,26 +150,6 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                         <div className="font-bold">${maxTopUpFormatted}</div>
                     </button>
                 </div>
-                {/* Slider */}
-                <div className="mb-3">
-                    <input
-                        type="range"
-                        value={Math.min(
-                            Math.max(parseFloat(topUpAmount) || parseFloat(minTopUpFormatted), parseFloat(minTopUpFormatted)),
-                            parseFloat(maxTopUpFormatted)
-                        )}
-                        onChange={e => {
-                            const val = parseFloat(e.target.value);
-                            if (!isNaN(val)) {
-                                handleTopUpChange((Math.floor(val * 100) / 100).toFixed(2));
-                            }
-                        }}
-                        min={minTopUpFormatted}
-                        max={maxTopUpFormatted}
-                        step="0.01"
-                        className={`w-full cursor-pointer ${styles.topUpSlider}`}
-                    />
-                </div>
                 <div className="flex-1">
                     <input
                         type="number"
