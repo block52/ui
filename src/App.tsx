@@ -7,6 +7,7 @@ import { projectId, metadata, networks, wagmiAdapter } from "./config";
 import { base } from "@reown/appkit/networks";
 import { ToastContainer } from "react-toastify";
 import Dashboard from "./pages/Dashboard";
+import NounsLandingPage from "./pages/NounsLandingPage";
 import CosmosWalletPage from "./components/CosmosWalletPage";
 import BlocksPage from "./pages/explorer/BlocksPage";
 import BlockDetailPage from "./pages/explorer/BlockDetailPage";
@@ -104,7 +105,8 @@ function AppContent() {
                 <Route path="/explorer/hand/:gameId" element={<HandPage />} />
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/" element={import.meta.env.VITE_TABLE_STYLE === "nouns" ? <NounsLandingPage /> : <Dashboard />} />
             </Routes>
             <ToastContainer
                 position="top-right"
