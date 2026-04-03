@@ -36,5 +36,8 @@ export { useTableTurnIndex } from "./useTableTurnIndex";
 export { useSitAndGoPlayerResults } from "./useSitAndGoPlayerResults";
 export { useSitAndGoPlayerJoinRandomSeat } from "./useSitAndGoPlayerJoinRandomSeat";
 
+// Replay Mode
+export { useReplayMode } from "./useReplayMode";
+
 // Winner Display
 export { useWinnerInfo } from "./useWinnerInfo";

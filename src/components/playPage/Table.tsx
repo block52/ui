@@ -107,6 +107,8 @@ import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 // Table Error Page
 import TableErrorPage from "./TableErrorPage";
 import { useGameStartCountdown } from "../../hooks/game/useGameStartCountdown";
+import { useReplayMode } from "../../hooks/game/useReplayMode";
+import { useIndexerApi } from "../../context/IndexerApiContext";
 
 // Table Layout Configuration
 import { useTableLayout } from "../../hooks/game/useTableLayout";
@@ -369,14 +371,24 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, validationError, error } = useGameStateContext();
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, validationError, error, loadHistoricalState, isReplayMode, replayBlockNumber } = useGameStateContext();
     const { currentNetwork } = useNetwork();
+
+    // Replay mode — read blocknumber/actionindex query params
+    const { isReplayMode: hasReplayParams, blockNumber: replayBlockParam, actionIndex: replayActionIndex, clearReplayParams } = useReplayMode();
+    const indexerApi = useIndexerApi();
 
     useEffect(() => {
         if (id) {
-            subscribeToTable(id);
+            if (hasReplayParams && replayBlockParam) {
+                // Replay mode: fetch historical state from chain, no WebSocket
+                loadHistoricalState(id, replayBlockParam);
+            } else {
+                // Live mode: subscribe to WebSocket
+                subscribeToTable(id);
+            }
         }
-    }, [id, subscribeToTable]);
+    }, [id, hasReplayParams, replayBlockParam, subscribeToTable, loadHistoricalState]);
 
     // Card back style configuration - can be customized per club/table
     // Options: "default", "block52", "custom", or a custom URL
@@ -774,24 +786,46 @@ const Table = React.memo(() => {
         }
     }, [id]);
 
-    // Handler for sharing current hand replay URL
+    // Handler for sharing current hand as a table replay URL
     const handleShareHand = useCallback(async () => {
         if (!id || !handNumber) {
             toast.info("No hand data available to share");
             return;
         }
         try {
-            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
-            await navigator.clipboard.writeText(shareUrl);
-            toast.success("Hand replay URL copied to clipboard!", {
-                position: "top-right",
-                autoClose: 2000,
-            });
+            // Look up block height for current hand from indexer
+            const handData = await indexerApi.getHand(id, String(handNumber)) as { block_height?: number } | null;
+            if (handData?.block_height) {
+                const shareUrl = `${window.location.origin}/table/${id}?blocknumber=${handData.block_height}&actionindex=${actionCount}`;
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("Hand replay URL copied to clipboard!", {
+                    position: "top-right",
+                    autoClose: 2000,
+                });
+            } else {
+                // Fallback to explorer URL if block height not available
+                const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("Hand replay URL copied to clipboard!", {
+                    position: "top-right",
+                    autoClose: 2000,
+                });
+            }
         } catch (error) {
             console.error("Failed to copy share URL:", error);
-            toast.error("Failed to copy share URL.");
+            // Fallback to explorer URL on error
+            try {
+                const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
+                await navigator.clipboard.writeText(shareUrl);
+                toast.success("Hand replay URL copied to clipboard!", {
+                    position: "top-right",
+                    autoClose: 2000,
+                });
+            } catch {
+                toast.error("Failed to copy share URL.");
+            }
         }
-    }, [id, handNumber]);
+    }, [id, handNumber, actionCount, indexerApi]);
 
     // Memoize event handlers to prevent re-renders
     const handleLobbyClick = useCallback(() => {
@@ -859,6 +893,22 @@ const Table = React.memo(() => {
 
     return (
         <div className="table-container">
+            {/* Replay mode banner */}
+            {isReplayMode && replayBlockNumber && (
+                <div
+                    className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-4 py-2 px-4 text-sm"
+                    style={{ background: "rgba(214, 60, 94, 0.9)", color: "#fff" }}
+                >
+                    <span>Viewing hand at block #{replayBlockNumber}{replayActionIndex != null ? ` (action ${replayActionIndex})` : ""}</span>
+                    <button
+                        onClick={clearReplayParams}
+                        className="px-3 py-1 rounded text-xs font-bold transition-opacity hover:opacity-80"
+                        style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}
+                    >
+                        Go Live
+                    </button>
+                </div>
+            )}
             {/* DEBUG OVERLAY: Press D/C/B/S/G to toggle debug tools */}
             <LayoutDebugOverlay />
             {/* Table style toggle */}
@@ -1059,18 +1109,20 @@ const Table = React.memo(() => {
                 <LiveHandStrengthDisplay />
             </div>
 
-            {/*//! FOOTER */}
-            <div
-                className={`w-full flex justify-center items-center z-[10] ${
-                    isMobileLandscape
-                        ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                        : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                }`}
-            >
-                <div className={`w-full flex justify-center items-center h-full ${isMobileLandscape ? "max-w-[500px] px-2" : "max-w-[700px]"}`}>
-                    <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
+            {/*//! FOOTER — hidden in replay mode (read-only) */}
+            {!isReplayMode && (
+                <div
+                    className={`w-full flex justify-center items-center z-[10] ${
+                        isMobileLandscape
+                            ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                            : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                    }`}
+                >
+                    <div className={`w-full flex justify-center items-center h-full ${isMobileLandscape ? "max-w-[500px] px-2" : "max-w-[700px]"}`}>
+                        <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/*//! ACTION LOG OVERLAY */}
             <TableSidebar isOpen={openSidebar} />
@@ -1094,24 +1146,26 @@ const Table = React.memo(() => {
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
 
-            {/* Player Action Buttons */}
-            <PlayerActionButtons
-                isMobile={isMobile}
-                isMobileLandscape={isMobileLandscape}
-                legalActions={playerLegalActions}
-                tableId={id}
-                currentNetwork={currentNetwork}
-                playerStatus={playerStatus}
-                sitInMethod={sitInMethod}
-                pendingSitOut={pendingSitOut}
-                totalSeatedPlayers={tableActivePlayers.length}
-                handNumber={handNumber}
-                hasActivePlayers={hasActivePlayers}
-                currentStack={currentPlayerData?.stack || "0"}
-                minBuyIn={gameOptions?.minBuyIn || "0"}
-                maxBuyIn={gameOptions?.maxBuyIn || "0"}
-                walletBalance={accountBalance}
-            />
+            {/* Player Action Buttons — hidden in replay mode (read-only) */}
+            {!isReplayMode && (
+                <PlayerActionButtons
+                    isMobile={isMobile}
+                    isMobileLandscape={isMobileLandscape}
+                    legalActions={playerLegalActions}
+                    tableId={id}
+                    currentNetwork={currentNetwork}
+                    playerStatus={playerStatus}
+                    sitInMethod={sitInMethod}
+                    pendingSitOut={pendingSitOut}
+                    totalSeatedPlayers={tableActivePlayers.length}
+                    handNumber={handNumber}
+                    hasActivePlayers={hasActivePlayers}
+                    currentStack={currentPlayerData?.stack || "0"}
+                    minBuyIn={gameOptions?.minBuyIn || "0"}
+                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                    walletBalance={accountBalance}
+                />
+            )}
 
             {/* All Table Modals */}
             <TableModals

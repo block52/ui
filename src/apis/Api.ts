@@ -20,6 +20,10 @@ export class CosmosApi extends HTTPClient {
     public getAccounts = (limit?: number) => this.get(`/cosmos/auth/v1beta1/accounts${limit ? `?pagination.limit=${limit}` : ""}`);
     public getBalanceByAddress = (address: string) => this.get(`/cosmos/bank/v1beta1/balances/${address}`);
     public getGameState = (gameId: string) => this.get(`block52/pokerchain/poker/v1/game_state/${gameId}`);
+    public getGameStateAtBlock = (gameId: string, blockHeight: number) =>
+        this.get(`block52/pokerchain/poker/v1/game_state/${gameId}`, {
+            headers: { "x-cosmos-block-height": String(blockHeight) }
+        });
     public getWithdrawalRequests = () => this.get("/pokerchain/poker/withdrawal_requests");
     public getIsTxProcessed = (txHash: string) => this.get(`/block52/pokerchain/poker/v1/is_tx_processed/${txHash}`);
     public getNftAvatar = (cosmosAddress: string) => this.get(`/pokerchain/poker/nft_avatar/${cosmosAddress}`);
