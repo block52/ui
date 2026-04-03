@@ -1,14 +1,36 @@
 import React, { useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { useReadContract } from "wagmi";
 import { NounsGlasses } from "../components/playPage/Table/components/NounsGlasses";
 import { useCosmosWallet, useFindGames, useUserWalletConnect } from "../hooks";
 import { formatMicroAsUsdc } from "../constants/currency";
+
+const NOUNS_TOKEN_ADDRESS = "0x9C8fF314C9Bc7F6e59A9d9225Fb22946427eDC03" as const;
+const NOUNS_BALANCE_ABI = [
+    {
+        name: "balanceOf",
+        type: "function",
+        stateMutability: "view",
+        inputs: [{ name: "owner", type: "address" }],
+        outputs: [{ name: "", type: "uint256" }],
+    },
+] as const;
 
 const NounsLandingPage: React.FC = () => {
     const navigate = useNavigate();
     const { address, balance, isLoading: walletLoading } = useCosmosWallet();
     const { games, isLoading: gamesLoading } = useFindGames();
     const { open, isConnected, address: ethAddress, disconnect } = useUserWalletConnect();
+
+    const { data: nounsBalance } = useReadContract({
+        address: NOUNS_TOKEN_ADDRESS,
+        abi: NOUNS_BALANCE_ABI,
+        functionName: "balanceOf",
+        args: ethAddress ? [ethAddress as `0x${string}`] : undefined,
+        chainId: 1,
+    });
+
+    const nounsDisplay = nounsBalance ? Number(nounsBalance).toString() : "0";
 
     const usdcBalance = useMemo(() => {
         const usdc = balance.find(b => b.denom === "usdc");
@@ -55,27 +77,49 @@ const NounsLandingPage: React.FC = () => {
                 onchain poker for the nounish
             </p>
 
-            {/* Balance card */}
+            {/* Balance cards */}
             {address && (
-                <div
-                    className="rounded-xl px-8 py-6 mb-10 text-center"
-                    style={{
-                        border: "2px solid #e5e5e5",
-                        minWidth: 260,
-                    }}
-                >
-                    <p
-                        className="text-xs uppercase tracking-widest mb-2"
-                        style={{ color: "#aaa" }}
+                <div className="flex gap-6 mb-10">
+                    <div
+                        className="rounded-xl px-8 py-6 text-center"
+                        style={{
+                            border: "2px solid #e5e5e5",
+                            minWidth: 180,
+                        }}
                     >
-                        USDC Balance
-                    </p>
-                    <p
-                        className="text-3xl font-bold"
-                        style={{ color: "#1a1a2e" }}
+                        <p
+                            className="text-xs uppercase tracking-widest mb-2"
+                            style={{ color: "#aaa" }}
+                        >
+                            USDC Balance
+                        </p>
+                        <p
+                            className="text-3xl font-bold"
+                            style={{ color: "#1a1a2e" }}
+                        >
+                            {walletLoading ? "..." : `$${usdcBalance}`}
+                        </p>
+                    </div>
+                    <div
+                        className="rounded-xl px-8 py-6 text-center"
+                        style={{
+                            border: "2px solid #e5e5e5",
+                            minWidth: 180,
+                        }}
                     >
-                        {walletLoading ? "..." : `$${usdcBalance}`}
-                    </p>
+                        <p
+                            className="text-xs uppercase tracking-widest mb-2"
+                            style={{ color: "#aaa" }}
+                        >
+                            NOUNS$ Balance
+                        </p>
+                        <p
+                            className="text-3xl font-bold"
+                            style={{ color: "#1a1a2e" }}
+                        >
+                            {nounsDisplay}
+                        </p>
+                    </div>
                 </div>
             )}
 
