@@ -124,10 +124,10 @@ const NounsLandingPage: React.FC = () => {
             )}
 
             {/* Connect / Play buttons */}
-            <div className="flex flex-col items-center gap-4">
+            <div className="flex flex-col items-stretch gap-4" style={{ minWidth: 260 }}>
                 <button
                     onClick={isConnected ? disconnect : open}
-                    className="px-10 py-4 text-lg font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                    className="px-10 py-4 text-lg font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer w-full"
                     style={{
                         background: isConnected ? "#1a1a2e" : "#2b83f6",
                         color: "#ffffff",
@@ -141,7 +141,7 @@ const NounsLandingPage: React.FC = () => {
                 </button>
                 <button
                     onClick={handlePlayNow}
-                    className="px-10 py-4 text-lg font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                    className="px-10 py-4 text-lg font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer w-full"
                     style={{
                         background: "#d63c5e",
                         color: "#ffffff",
