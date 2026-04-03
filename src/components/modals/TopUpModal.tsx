@@ -19,14 +19,17 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
         // Max top-up capped by table max and wallet balance
         const maxTopUpAmount = Math.min(max - current, wallet);
 
+        // Always floor to nearest cent to avoid showing a value higher than actual available
+        const maxTopUpFloored = Math.floor(maxTopUpAmount * 100) / 100;
+
         return {
             currentStackFormatted: current.toFixed(2),
             maxBuyInFormatted: max.toFixed(2),
             walletBalanceFormatted: wallet.toFixed(2),
             minTopUpFormatted: minTopUpAmount.toFixed(2),
-            maxTopUpFormatted: maxTopUpAmount.toFixed(2),
+            maxTopUpFormatted: maxTopUpFloored.toFixed(2),
             minTopUpMicro: usdcToMicroBigInt(minTopUpAmount),
-            maxTopUpMicro: usdcToMicroBigInt(maxTopUpAmount)
+            maxTopUpMicro: usdcToMicroBigInt(maxTopUpFloored)
         };
     }, [currentStack, minBuyIn, maxBuyIn, walletBalance]);
 
@@ -115,17 +118,17 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
             isProcessing={isProcessing}
             patternId="hexagons-topup"
         >
-            {/* Current Stack */}
-            <div className={`mb-3 rounded-lg ${styles.infoCard}`}>
-                <div className="text-xs text-gray-400 mb-0.5">Current Stack</div>
-                <div className="text-lg font-bold text-white">${currentStackFormatted}</div>
-                <div className="text-xs text-gray-500 mt-0.5">Table Max: ${maxBuyInFormatted}</div>
-            </div>
-
-            {/* Wallet Balance */}
-            <div className={`mb-5 rounded-lg ${styles.infoCard}`}>
-                <div className="text-xs text-gray-400 mb-0.5">Wallet Balance</div>
-                <div className="text-lg font-bold text-white">${walletBalanceFormatted}</div>
+            {/* Current Stack + Wallet Balance — side by side, equal size */}
+            <div className="flex gap-2 mb-5">
+                <div className={`flex-1 rounded-lg ${styles.infoCard}`}>
+                    <div className="text-xs text-gray-400 mb-0.5">Current Stack</div>
+                    <div className="text-base font-bold text-white">${currentStackFormatted}</div>
+                    <div className="text-xs text-gray-500 mt-0.5">Max: ${maxBuyInFormatted}</div>
+                </div>
+                <div className={`flex-1 rounded-lg ${styles.infoCard}`}>
+                    <div className="text-xs text-gray-400 mb-0.5">Wallet Balance</div>
+                    <div className="text-base font-bold text-white">${walletBalanceFormatted}</div>
+                </div>
             </div>
 
             {/* Top-Up Amount Selection */}
@@ -146,6 +149,26 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                         <div className="text-xs text-gray-400">MAX</div>
                         <div className="font-bold">${maxTopUpFormatted}</div>
                     </button>
+                </div>
+                {/* Slider */}
+                <div className="mb-3">
+                    <input
+                        type="range"
+                        value={Math.min(
+                            Math.max(parseFloat(topUpAmount) || parseFloat(minTopUpFormatted), parseFloat(minTopUpFormatted)),
+                            parseFloat(maxTopUpFormatted)
+                        )}
+                        onChange={e => {
+                            const val = parseFloat(e.target.value);
+                            if (!isNaN(val)) {
+                                handleTopUpChange((Math.floor(val * 100) / 100).toFixed(2));
+                            }
+                        }}
+                        min={minTopUpFormatted}
+                        max={maxTopUpFormatted}
+                        step="0.01"
+                        className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${styles.topUpSlider}`}
+                    />
                 </div>
                 <div className="flex-1">
                     <input

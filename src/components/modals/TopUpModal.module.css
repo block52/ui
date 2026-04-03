@@ -8,11 +8,16 @@
 
 .infoCard {
     background-color: var(--ui-bg-medium);
-    padding: 0.625rem 0.875rem;
+    padding: 0.5rem 0.75rem;
 }
 
 .maxButton {
     background-color: var(--ui-bg-medium);
+}
+
+.topUpSlider {
+    background-color: var(--ui-bg-medium);
+    accent-color: var(--brand-primary);
 }
 
 .amountInput {
