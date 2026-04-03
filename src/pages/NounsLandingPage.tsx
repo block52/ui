@@ -8,7 +8,7 @@ const NounsLandingPage: React.FC = () => {
     const navigate = useNavigate();
     const { address, balance, isLoading: walletLoading } = useCosmosWallet();
     const { games, isLoading: gamesLoading } = useFindGames();
-    const { open, isConnected } = useUserWalletConnect();
+    const { open, isConnected, address: ethAddress, disconnect } = useUserWalletConnect();
 
     const usdcBalance = useMemo(() => {
         const usdc = balance.find(b => b.denom === "usdc");
@@ -81,20 +81,20 @@ const NounsLandingPage: React.FC = () => {
 
             {/* Connect / Play buttons */}
             <div className="flex flex-col items-center gap-4">
-                {!isConnected && (
-                    <button
-                        onClick={open}
-                        className="px-10 py-4 text-lg font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
-                        style={{
-                            background: "#2b83f6",
-                            color: "#ffffff",
-                            border: "none",
-                            letterSpacing: "0.05em",
-                        }}
-                    >
-                        Connect Wallet
-                    </button>
-                )}
+                <button
+                    onClick={isConnected ? disconnect : open}
+                    className="px-10 py-4 text-lg font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
+                    style={{
+                        background: isConnected ? "#1a1a2e" : "#2b83f6",
+                        color: "#ffffff",
+                        border: "none",
+                        letterSpacing: "0.05em",
+                    }}
+                >
+                    {isConnected
+                        ? `${ethAddress?.slice(0, 6)}...${ethAddress?.slice(-4)}`
+                        : "Connect Wallet"}
+                </button>
                 <button
                     onClick={handlePlayNow}
                     className="px-10 py-4 text-lg font-bold rounded-xl transition-all duration-200 hover:scale-105 active:scale-95 cursor-pointer"
