@@ -167,7 +167,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                         min={minTopUpFormatted}
                         max={maxTopUpFormatted}
                         step="0.01"
-                        className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${styles.topUpSlider}`}
+                        className={`w-full cursor-pointer ${styles.topUpSlider}`}
                     />
                 </div>
                 <div className="flex-1">
