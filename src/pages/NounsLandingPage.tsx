@@ -29,7 +29,7 @@ const NounsLandingPage: React.FC = () => {
 
     return (
         <div
-            className="min-h-screen flex flex-col items-center justify-center px-4"
+            className="fixed inset-0 flex flex-col items-center justify-center px-4 z-50"
             style={{
                 background: "#ffffff",
                 fontFamily: "'Silkscreen', monospace",
