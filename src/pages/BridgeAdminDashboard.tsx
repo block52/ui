@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback } from "react";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
@@ -8,12 +8,9 @@ import { getSigningClient } from "../utils/cosmos/client";
 import { BRIDGE_DEPOSITS_ABI } from "../utils/bridge/abis";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
-import { PROXY_URL, COSMOS_BRIDGE_ADDRESS } from "../config/constants";
+import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { usePaymentApi } from "../context/PaymentApiContext";
-
-// Minimum STAKE needed for gas fees (transaction costs ~2000 stake)
-const MIN_STAKE_FOR_GAS = 2000;
 
 /**
  * BridgeAdminDashboard - Admin interface for viewing and processing bridge deposits
@@ -96,16 +93,6 @@ export default function BridgeAdminDashboard() {
     // Ethereum Mainnet configuration
     const bridgeContractAddress = COSMOS_BRIDGE_ADDRESS;
     const ethRpcUrl = import.meta.env.VITE_MAINNET_RPC_URL || import.meta.env.VITE_MAINNET_RPC_URL;
-
-    // Get STAKE balance from wallet for gas fees
-    const stakeBalance = useMemo(() => {
-        const balance = cosmosWallet.balance.find(b => b.denom === "stake");
-        return balance ? parseInt(balance.amount) : 0;
-    }, [cosmosWallet.balance]);
-
-    // Check if user has enough STAKE for gas fees
-    const hasEnoughStake = stakeBalance >= MIN_STAKE_FOR_GAS;
-    const stakeBalanceFormatted = formatMicroAsUsdc(stakeBalance, 2);
 
     const api = useCosmosApi(currentNetwork.rest);
     const paymentApi = usePaymentApi();
@@ -412,11 +399,6 @@ export default function BridgeAdminDashboard() {
             return;
         }
 
-        if (!hasEnoughStake) {
-            toast.error("Insufficient STAKE for gas fees");
-            return;
-        }
-
         setIsProcessingAll(true);
         let successCount = 0;
         let failCount = 0;
@@ -499,31 +481,6 @@ export default function BridgeAdminDashboard() {
                                 <div className="mt-2 text-red-300 text-xs font-mono bg-red-950/50 p-2 rounded">
                                     Add to .env: VITE_MAINNET_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY"
                                 </div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                {/* Insufficient STAKE Warning */}
-                {cosmosWallet.address && !hasEnoughStake && (
-                    <div className="mb-6 bg-yellow-900/30 border-2 border-yellow-700 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-0.5">
-                                <svg className="w-6 h-6 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-yellow-200 font-semibold mb-1">Insufficient STAKE for Gas Fees</h3>
-                                <p className="text-yellow-300/80 text-sm">
-                                    You need STAKE tokens to pay for gas fees when processing deposits. Your current balance is{" "}
-                                    <strong>{stakeBalanceFormatted} STAKE</strong>.
-                                </p>
                             </div>
                         </div>
                     </div>
@@ -654,7 +611,7 @@ export default function BridgeAdminDashboard() {
                 </div>
 
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                     <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
                         <p className="text-gray-400 text-sm mb-1">Total Deposits</p>
                         <p className="text-2xl font-bold text-white">{totalDeposits}</p>
@@ -666,10 +623,6 @@ export default function BridgeAdminDashboard() {
                     <div className="bg-yellow-900/30 rounded-lg p-4 border border-yellow-700">
                         <p className="text-yellow-400 text-sm mb-1">Pending</p>
                         <p className="text-2xl font-bold text-yellow-300">{pendingCount}</p>
-                    </div>
-                    <div className={`rounded-lg p-4 border ${hasEnoughStake ? "bg-purple-900/30 border-purple-700" : "bg-red-900/30 border-red-700"}`}>
-                        <p className={`text-sm mb-1 ${hasEnoughStake ? "text-purple-400" : "text-red-400"}`}>Your STAKE (Gas)</p>
-                        <p className={`text-2xl font-bold ${hasEnoughStake ? "text-purple-300" : "text-red-300"}`}>{stakeBalanceFormatted}</p>
                     </div>
                 </div>
 
@@ -701,9 +654,9 @@ export default function BridgeAdminDashboard() {
                         </div>
                         <button
                             onClick={handleProcessAllPending}
-                            disabled={isProcessingAll || pendingCount === 0 || !cosmosWallet.address || !hasEnoughStake}
+                            disabled={isProcessingAll || pendingCount === 0 || !cosmosWallet.address}
                             className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-                            title={!hasEnoughStake ? "Need STAKE for gas fees" : pendingCount === 0 ? "No pending deposits" : ""}
+                            title={pendingCount === 0 ? "No pending deposits" : ""}
                         >
                             {isProcessingAll ? (
                                 <>
@@ -901,17 +854,14 @@ export default function BridgeAdminDashboard() {
                                                 {deposit.status === "pending" || deposit.status === "error" ? (
                                                     <button
                                                         onClick={() => handleProcessDeposit(deposit.index)}
-                                                        disabled={processingIndex === deposit.index || !cosmosWallet.address || !hasEnoughStake}
+                                                        disabled={processingIndex === deposit.index || !cosmosWallet.address}
                                                         className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 justify-center mx-auto"
-                                                        title={!hasEnoughStake ? "Need STAKE for gas fees" : ""}
                                                     >
                                                         {processingIndex === deposit.index ? (
                                                             <>
                                                                 <LoadingSpinner size="xs" />
                                                                 Processing...
                                                             </>
-                                                        ) : !hasEnoughStake ? (
-                                                            "No STAKE"
                                                         ) : (
                                                             "Process"
                                                         )}
