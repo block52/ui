@@ -52,8 +52,16 @@ import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
 import PokerActionPanel from "../Footer";
 
 // Extracted Table components
-import { TableHeader, TableBoard, TableSidebar, TableModals, PlayerSeating, TableStatusMessages, PlayerActionButtons, LayoutDebugInfo } from "./Table/components";
-
+import {
+    TableHeader,
+    TableBoard,
+    TableSidebar,
+    TableModals,
+    PlayerSeating,
+    TableStatusMessages,
+    PlayerActionButtons,
+    LayoutDebugInfo
+} from "./Table/components";
 
 import Chip from "./common/Chip";
 import defaultLogo from "../../assets/YOUR_CLUB.png";
@@ -113,7 +121,20 @@ import { useIndexerApi } from "../../context/IndexerApiContext";
 // Table Layout Configuration
 import { useTableLayout } from "../../hooks/game/useTableLayout";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
-import { getViewportMode, COMPONENT_SCALE, type PositionArrays, TABLE_CENTER_X, TABLE_CENTER_Y, TABLE_ORIGIN_X, TABLE_ORIGIN_Y, SEAT_COORDS, getContentBounds, VIEWPORT_PARAMS, PLAYER_UI_PADDING, type TableSize } from "../../config/stageGeometry";
+import {
+    getViewportMode,
+    COMPONENT_SCALE,
+    type PositionArrays,
+    TABLE_CENTER_X,
+    TABLE_CENTER_Y,
+    TABLE_ORIGIN_X,
+    TABLE_ORIGIN_Y,
+    SEAT_COORDS,
+    getContentBounds,
+    VIEWPORT_PARAMS,
+    PLAYER_UI_PADDING,
+    type TableSize
+} from "../../config/stageGeometry";
 import CustomDealer from "../../assets/CustomDealer.svg";
 import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
@@ -158,7 +179,9 @@ function useDebugToggle() {
     useEffect(() => {
         const cb = () => forceUpdate(n => n + 1);
         debugListeners.add(cb);
-        return () => { debugListeners.delete(cb); };
+        return () => {
+            debugListeners.delete(cb);
+        };
     }, []);
     return { showChips: _debugChips, showDealers: _debugDealers, showSeats: _debugSeats, showGeometry: _debugGeometry };
 }
@@ -173,11 +196,30 @@ const LayoutDebugOverlay = () => {
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
             // 1=all overlays, 2=geometry, 3=seats, 4=chips, 5=dealers, 6=crosshair
-            if (e.key === "1") { const s = !_debugGeometry; _debugGeometry = s; _debugChips = s; _debugDealers = s; _debugSeats = s; debugListeners.forEach(cb => cb()); }
-            if (e.key === "2") { _debugGeometry = !_debugGeometry; debugListeners.forEach(cb => cb()); }
-            if (e.key === "3") { _debugSeats = !_debugSeats; debugListeners.forEach(cb => cb()); }
-            if (e.key === "4") { _debugChips = !_debugChips; debugListeners.forEach(cb => cb()); }
-            if (e.key === "5") { _debugDealers = !_debugDealers; debugListeners.forEach(cb => cb()); }
+            if (e.key === "1") {
+                const s = !_debugGeometry;
+                _debugGeometry = s;
+                _debugChips = s;
+                _debugDealers = s;
+                _debugSeats = s;
+                debugListeners.forEach(cb => cb());
+            }
+            if (e.key === "2") {
+                _debugGeometry = !_debugGeometry;
+                debugListeners.forEach(cb => cb());
+            }
+            if (e.key === "3") {
+                _debugSeats = !_debugSeats;
+                debugListeners.forEach(cb => cb());
+            }
+            if (e.key === "4") {
+                _debugChips = !_debugChips;
+                debugListeners.forEach(cb => cb());
+            }
+            if (e.key === "5") {
+                _debugDealers = !_debugDealers;
+                debugListeners.forEach(cb => cb());
+            }
             if (e.key === "6") setVisible(v => !v);
         };
         window.addEventListener("keydown", handleKey);
@@ -206,17 +248,57 @@ const LayoutDebugOverlay = () => {
             <div style={{ position: "absolute", left: pos.x, top: 0, width: 1, height: "100%", backgroundColor: "rgba(255,0,0,0.4)" }} />
             <div style={{ position: "absolute", top: pos.y, left: 0, height: 1, width: "100%", backgroundColor: "rgba(255,0,0,0.4)" }} />
             <div
-                onMouseDown={(e) => { e.preventDefault(); setDragging(true); }}
-                style={{ position: "absolute", left: pos.x - 15, top: pos.y - 15, width: 30, height: 30, borderRadius: "50%", backgroundColor: "rgba(255, 0, 0, 0.8)", border: "2px solid white", cursor: "grab", pointerEvents: "auto", display: "flex", alignItems: "center", justifyContent: "center" }}
+                onMouseDown={e => {
+                    e.preventDefault();
+                    setDragging(true);
+                }}
+                style={{
+                    position: "absolute",
+                    left: pos.x - 15,
+                    top: pos.y - 15,
+                    width: 30,
+                    height: 30,
+                    borderRadius: "50%",
+                    backgroundColor: "rgba(255, 0, 0, 0.8)",
+                    border: "2px solid white",
+                    cursor: "grab",
+                    pointerEvents: "auto",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center"
+                }}
             >
                 <span style={{ color: "white", fontSize: 10, fontWeight: "bold" }}>+</span>
             </div>
-            <div style={{ position: "absolute", top: 8, right: 8, backgroundColor: "rgba(0,0,0,0.85)", color: "white", padding: "8px 12px", borderRadius: 8, fontFamily: "monospace", fontSize: 12, lineHeight: 1.6, pointerEvents: "auto", minWidth: 220 }}>
+            <div
+                style={{
+                    position: "absolute",
+                    top: 8,
+                    right: 8,
+                    backgroundColor: "rgba(0,0,0,0.85)",
+                    color: "white",
+                    padding: "8px 12px",
+                    borderRadius: 8,
+                    fontFamily: "monospace",
+                    fontSize: 12,
+                    lineHeight: 1.6,
+                    pointerEvents: "auto",
+                    minWidth: 220
+                }}
+            >
                 <div style={{ color: "#f87171", fontWeight: "bold", marginBottom: 4 }}>DEBUG (1=all 2=geo 3=seats 4=chips 5=dealers 6=crosshair)</div>
-                <div>Viewport: {window.innerWidth}x{window.innerHeight}</div>
-                <div>Mouse: {mousePos.x}, {mousePos.y}</div>
-                <div style={{ color: "#4ade80" }}>Marker: {pos.x}, {pos.y}</div>
-                <div>From bottom: {window.innerHeight - pos.y}px | From right: {window.innerWidth - pos.x}px</div>
+                <div>
+                    Viewport: {window.innerWidth}x{window.innerHeight}
+                </div>
+                <div>
+                    Mouse: {mousePos.x}, {mousePos.y}
+                </div>
+                <div style={{ color: "#4ade80" }}>
+                    Marker: {pos.x}, {pos.y}
+                </div>
+                <div>
+                    From bottom: {window.innerHeight - pos.y}px | From right: {window.innerWidth - pos.x}px
+                </div>
                 <div style={{ marginTop: 4, borderTop: "1px solid #444", paddingTop: 4 }}>
                     <span style={{ color: _debugChips ? "#4ade80" : "#666" }}>C:chips{_debugChips ? " ON" : ""} </span>
                     <span style={{ color: _debugDealers ? "#fbbf24" : "#666" }}>B:dealer{_debugDealers ? " ON" : ""} </span>
@@ -232,11 +314,49 @@ const LayoutDebugOverlay = () => {
 const PositionDebugMarkers: React.FC<{ positions: PositionArrays }> = ({ positions }) => {
     const debug = useDebugToggle();
     const markerStyle = (left: string, top: string, color: string, label: string, useBottom = false) => (
-        <div key={`${label}-${left}-${top}`} style={{ position: "absolute", left, ...(useBottom ? { bottom: top } : { top }), transform: "translate(-50%, -50%)", zIndex: 99999, pointerEvents: "none" }}>
-            <div style={{ width: 24, height: 24, borderRadius: "50%", backgroundColor: color, border: "2px solid white", display: "flex", alignItems: "center", justifyContent: "center", boxShadow: "0 0 8px rgba(0,0,0,0.5)" }}>
+        <div
+            key={`${label}-${left}-${top}`}
+            style={{
+                position: "absolute",
+                left,
+                ...(useBottom ? { bottom: top } : { top }),
+                transform: "translate(-50%, -50%)",
+                zIndex: 99999,
+                pointerEvents: "none"
+            }}
+        >
+            <div
+                style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: "50%",
+                    backgroundColor: color,
+                    border: "2px solid white",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    boxShadow: "0 0 8px rgba(0,0,0,0.5)"
+                }}
+            >
                 <span style={{ color: "white", fontSize: 8, fontWeight: "bold" }}>{label}</span>
             </div>
-            <div style={{ position: "absolute", top: 26, left: "50%", transform: "translateX(-50%)", backgroundColor: "rgba(0,0,0,0.8)", color: "white", fontSize: 8, padding: "1px 4px", borderRadius: 3, whiteSpace: "nowrap", fontFamily: "monospace" }}>{left},{top}</div>
+            <div
+                style={{
+                    position: "absolute",
+                    top: 26,
+                    left: "50%",
+                    transform: "translateX(-50%)",
+                    backgroundColor: "rgba(0,0,0,0.8)",
+                    color: "white",
+                    fontSize: 8,
+                    padding: "1px 4px",
+                    borderRadius: 3,
+                    whiteSpace: "nowrap",
+                    fontFamily: "monospace"
+                }}
+            >
+                {left},{top}
+            </div>
         </div>
     );
     return (
@@ -250,7 +370,10 @@ const PositionDebugMarkers: React.FC<{ positions: PositionArrays }> = ({ positio
 
 /** DEBUG: Geometry overlay — table center, seats, bounds box, header/footer lines. Toggle with G key. */
 const GeometryDebugOverlay: React.FC<{
-    tableSize: number; containerWidth: number; containerHeight: number; zoom: number;
+    tableSize: number;
+    containerWidth: number;
+    containerHeight: number;
+    zoom: number;
     tableDivRef?: React.RefObject<HTMLDivElement | null>;
 }> = ({ tableSize, containerWidth, containerHeight, zoom, tableDivRef }) => {
     const debug = useDebugToggle();
@@ -275,8 +398,16 @@ const GeometryDebugOverlay: React.FC<{
     const boundsMinX = trx(bounds.centerX - bounds.width / 2);
     const boundsMinY = tryy(bounds.centerY - bounds.height / 2);
 
-    let sMinX = Infinity, sMaxX = -Infinity, sMinY = Infinity, sMaxY = -Infinity;
-    for (const [x, y] of coords) { sMinX = Math.min(sMinX, trx(x)); sMaxX = Math.max(sMaxX, trx(x)); sMinY = Math.min(sMinY, tryy(y)); sMaxY = Math.max(sMaxY, tryy(y)); }
+    let sMinX = Infinity,
+        sMaxX = -Infinity,
+        sMinY = Infinity,
+        sMaxY = -Infinity;
+    for (const [x, y] of coords) {
+        sMinX = Math.min(sMinX, trx(x));
+        sMaxX = Math.max(sMaxX, trx(x));
+        sMinY = Math.min(sMinY, tryy(y));
+        sMaxY = Math.max(sMaxY, tryy(y));
+    }
 
     const tableDivEl = tableDivRef?.current;
     const containerParent = tableDivEl?.closest(".table-container");
@@ -295,15 +426,57 @@ const GeometryDebugOverlay: React.FC<{
     return (
         <>
             <svg style={{ position: "absolute", top: 0, left: 0, width: "900px", height: "450px", overflow: "visible", zIndex: 99998, pointerEvents: "none" }}>
-                <rect x={boundsMinX} y={boundsMinY} width={bounds.width} height={bounds.height} fill="none" stroke="#4ade80" strokeWidth={2} strokeDasharray="8 4" opacity={0.8} />
-                <text x={boundsMinX + 4} y={boundsMinY - 6} fill="#4ade80" fontSize={12} fontFamily="monospace">bounds {bounds.width.toFixed(0)}x{bounds.height.toFixed(0)}</text>
-                <rect x={sMinX} y={sMinY} width={sMaxX - sMinX} height={sMaxY - sMinY} fill="none" stroke="#22d3ee" strokeWidth={1.5} strokeDasharray="4 4" opacity={0.5} />
+                <rect
+                    x={boundsMinX}
+                    y={boundsMinY}
+                    width={bounds.width}
+                    height={bounds.height}
+                    fill="none"
+                    stroke="#4ade80"
+                    strokeWidth={2}
+                    strokeDasharray="8 4"
+                    opacity={0.8}
+                />
+                <text x={boundsMinX + 4} y={boundsMinY - 6} fill="#4ade80" fontSize={12} fontFamily="monospace">
+                    bounds {bounds.width.toFixed(0)}x{bounds.height.toFixed(0)}
+                </text>
+                <rect
+                    x={sMinX}
+                    y={sMinY}
+                    width={sMaxX - sMinX}
+                    height={sMaxY - sMinY}
+                    fill="none"
+                    stroke="#22d3ee"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 4"
+                    opacity={0.5}
+                />
                 <line x1={centerX - 30} y1={centerY} x2={centerX + 30} y2={centerY} stroke="#ef4444" strokeWidth={2} />
                 <line x1={centerX} y1={centerY - 30} x2={centerX} y2={centerY + 30} stroke="#ef4444" strokeWidth={2} />
                 <circle cx={centerX} cy={centerY} r={6} fill="#ef4444" stroke="white" strokeWidth={1.5} />
-                <text x={centerX + 12} y={centerY - 12} fill="#ef4444" fontSize={11} fontFamily="monospace" fontWeight="bold">CENTER</text>
-                {coords.map(([sx, sy], i) => (<line key={`line-${i}`} x1={centerX} y1={centerY} x2={trx(sx)} y2={tryy(sy)} stroke="rgba(255,255,255,0.3)" strokeWidth={1.5} strokeDasharray="6 3" />))}
-                {coords.map(([sx, sy], i) => (<g key={`seat-${i}`}><circle cx={trx(sx)} cy={tryy(sy)} r={14} fill="#3b82f6" stroke="white" strokeWidth={1.5} opacity={0.9} /><text x={trx(sx)} y={tryy(sy) + 4} fill="white" fontSize={10} fontFamily="monospace" fontWeight="bold" textAnchor="middle">{i + 1}</text></g>))}
+                <text x={centerX + 12} y={centerY - 12} fill="#ef4444" fontSize={11} fontFamily="monospace" fontWeight="bold">
+                    CENTER
+                </text>
+                {coords.map(([sx, sy], i) => (
+                    <line
+                        key={`line-${i}`}
+                        x1={centerX}
+                        y1={centerY}
+                        x2={trx(sx)}
+                        y2={tryy(sy)}
+                        stroke="rgba(255,255,255,0.3)"
+                        strokeWidth={1.5}
+                        strokeDasharray="6 3"
+                    />
+                ))}
+                {coords.map(([sx, sy], i) => (
+                    <g key={`seat-${i}`}>
+                        <circle cx={trx(sx)} cy={tryy(sy)} r={14} fill="#3b82f6" stroke="white" strokeWidth={1.5} opacity={0.9} />
+                        <text x={trx(sx)} y={tryy(sy) + 4} fill="white" fontSize={10} fontFamily="monospace" fontWeight="bold" textAnchor="middle">
+                            {i + 1}
+                        </text>
+                    </g>
+                ))}
             </svg>
             {/* Header/footer lines and info panel are rendered by GeometryFixedOverlay outside the zoom-wrapper */}
         </>
@@ -313,7 +486,10 @@ const GeometryDebugOverlay: React.FC<{
 /** DEBUG: Fixed overlay for header/footer lines + info panel.
  *  Rendered OUTSIDE the zoom-wrapper so position:fixed actually works. */
 const GeometryFixedOverlay: React.FC<{
-    containerWidth: number; containerHeight: number; zoom: number; tableSize: number;
+    containerWidth: number;
+    containerHeight: number;
+    zoom: number;
+    tableSize: number;
 }> = ({ containerWidth, containerHeight, zoom, tableSize }) => {
     const debug = useDebugToggle();
     const [panelPos, setPanelPos] = useState({ x: 20, y: 20 });
@@ -340,19 +516,66 @@ const GeometryFixedOverlay: React.FC<{
         <>
             <svg style={{ position: "fixed", top: 0, left: 0, width: "100vw", height: "100vh", zIndex: 999990, pointerEvents: "none" }}>
                 <line x1={0} y1={headerBottom} x2={window.innerWidth} y2={headerBottom} stroke="#f97316" strokeWidth={2} opacity={0.8} />
-                <text x={8} y={headerBottom + 14} fill="#f97316" fontSize={10} fontFamily="monospace">header bottom (y={headerBottom.toFixed(0)})</text>
+                <text x={8} y={headerBottom + 14} fill="#f97316" fontSize={10} fontFamily="monospace">
+                    header bottom (y={headerBottom.toFixed(0)})
+                </text>
                 <line x1={0} y1={footerTop} x2={window.innerWidth} y2={footerTop} stroke="#f97316" strokeWidth={2} opacity={0.8} />
-                <text x={8} y={footerTop - 6} fill="#f97316" fontSize={10} fontFamily="monospace">footer top (y={footerTop.toFixed(0)})</text>
+                <text x={8} y={footerTop - 6} fill="#f97316" fontSize={10} fontFamily="monospace">
+                    footer top (y={footerTop.toFixed(0)})
+                </text>
             </svg>
-            <div style={{ position: "fixed", left: panelPos.x, top: panelPos.y, zIndex: 999999, backgroundColor: "rgba(0,0,0,0.9)", color: "white", padding: "10px 14px", borderRadius: 8, fontFamily: "monospace", fontSize: 12, lineHeight: 1.7, cursor: dragging ? "grabbing" : "grab", userSelect: "none", border: "1px solid #f472b6", minWidth: 340 }}
-                onMouseDown={(e) => { e.preventDefault(); setDragging(true); dragStart.current = { x: e.clientX - panelPos.x, y: e.clientY - panelPos.y }; const onMove = (ev: MouseEvent) => setPanelPos({ x: ev.clientX - dragStart.current.x, y: ev.clientY - dragStart.current.y }); const onUp = () => { setDragging(false); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); }; window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp); }}>
+            <div
+                style={{
+                    position: "fixed",
+                    left: panelPos.x,
+                    top: panelPos.y,
+                    zIndex: 999999,
+                    backgroundColor: "rgba(0,0,0,0.9)",
+                    color: "white",
+                    padding: "10px 14px",
+                    borderRadius: 8,
+                    fontFamily: "monospace",
+                    fontSize: 12,
+                    lineHeight: 1.7,
+                    cursor: dragging ? "grabbing" : "grab",
+                    userSelect: "none",
+                    border: "1px solid #f472b6",
+                    minWidth: 340
+                }}
+                onMouseDown={e => {
+                    e.preventDefault();
+                    setDragging(true);
+                    dragStart.current = { x: e.clientX - panelPos.x, y: e.clientY - panelPos.y };
+                    const onMove = (ev: MouseEvent) => setPanelPos({ x: ev.clientX - dragStart.current.x, y: ev.clientY - dragStart.current.y });
+                    const onUp = () => {
+                        setDragging(false);
+                        window.removeEventListener("mousemove", onMove);
+                        window.removeEventListener("mouseup", onUp);
+                    };
+                    window.addEventListener("mousemove", onMove);
+                    window.addEventListener("mouseup", onUp);
+                }}
+            >
                 <div style={{ color: "#f472b6", fontWeight: "bold", marginBottom: 4 }}>GEOMETRY DEBUG (G) — drag to move</div>
-                <div>zoom: {zoom.toFixed(3)} | mode: {mode}</div>
-                <div>container: {containerWidth}x{containerHeight}</div>
-                <div>usable: {usableW.toFixed(0)}x{usableH.toFixed(0)} (footer={params.footerOverlay})</div>
-                <div style={{ color: "#4ade80" }}>bounds: {bounds.width.toFixed(0)}x{bounds.height.toFixed(0)} center=({bounds.centerX.toFixed(0)},{bounds.centerY.toFixed(0)})</div>
-                <div style={{ color: "#22d3ee" }}>seats: {coords.length} | scaleH={usableH > 0 ? (usableH / bounds.height).toFixed(3) : "?"} scaleW={usableW > 0 ? (usableW / bounds.width).toFixed(3) : "?"}</div>
-                <div style={{ color: "#f97316" }}>header: {headerBottom.toFixed(0)}px | footer: {footerTop}px | avail: {(footerTop - headerBottom).toFixed(0)}px</div>
+                <div>
+                    zoom: {zoom.toFixed(3)} | mode: {mode}
+                </div>
+                <div>
+                    container: {containerWidth}x{containerHeight}
+                </div>
+                <div>
+                    usable: {usableW.toFixed(0)}x{usableH.toFixed(0)} (footer={params.footerOverlay})
+                </div>
+                <div style={{ color: "#4ade80" }}>
+                    bounds: {bounds.width.toFixed(0)}x{bounds.height.toFixed(0)} center=({bounds.centerX.toFixed(0)},{bounds.centerY.toFixed(0)})
+                </div>
+                <div style={{ color: "#22d3ee" }}>
+                    seats: {coords.length} | scaleH={usableH > 0 ? (usableH / bounds.height).toFixed(3) : "?"} scaleW=
+                    {usableW > 0 ? (usableW / bounds.width).toFixed(3) : "?"}
+                </div>
+                <div style={{ color: "#f97316" }}>
+                    header: {headerBottom.toFixed(0)}px | footer: {footerTop}px | avail: {(footerTop - headerBottom).toFixed(0)}px
+                </div>
             </div>
         </>
     );
@@ -361,8 +584,31 @@ const GeometryFixedOverlay: React.FC<{
 const GeometryToggleButton: React.FC = () => {
     const debug = useDebugToggle();
     return (
-        <button onClick={() => { const s = !_debugGeometry; _debugGeometry = s; _debugChips = s; _debugDealers = s; _debugSeats = s; debugListeners.forEach(cb => cb()); }}
-            style={{ position: "fixed", bottom: 12, left: 12, zIndex: 999999, padding: "6px 12px", borderRadius: 6, border: `2px solid ${debug.showGeometry ? "#f472b6" : "#555"}`, backgroundColor: debug.showGeometry ? "rgba(244,114,182,0.2)" : "rgba(0,0,0,0.6)", color: debug.showGeometry ? "#f472b6" : "#888", fontSize: 12, fontFamily: "monospace", fontWeight: "bold", cursor: "pointer" }}>
+        <button
+            onClick={() => {
+                const s = !_debugGeometry;
+                _debugGeometry = s;
+                _debugChips = s;
+                _debugDealers = s;
+                _debugSeats = s;
+                debugListeners.forEach(cb => cb());
+            }}
+            style={{
+                position: "fixed",
+                bottom: 12,
+                left: 12,
+                zIndex: 999999,
+                padding: "6px 12px",
+                borderRadius: 6,
+                border: `2px solid ${debug.showGeometry ? "#f472b6" : "#555"}`,
+                backgroundColor: debug.showGeometry ? "rgba(244,114,182,0.2)" : "rgba(0,0,0,0.6)",
+                color: debug.showGeometry ? "#f472b6" : "#888",
+                fontSize: 12,
+                fontFamily: "monospace",
+                fontWeight: "bold",
+                cursor: "pointer"
+            }}
+        >
             [G] Geometry
         </button>
     );
@@ -371,7 +617,8 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, validationError, error, loadHistoricalState, isReplayMode, replayBlockNumber } = useGameStateContext();
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, validationError, error, loadHistoricalState, isReplayMode, replayBlockNumber } =
+        useGameStateContext();
     const { currentNetwork } = useNetwork();
 
     // Replay mode — read blocknumber/actionindex query params
@@ -408,7 +655,6 @@ const Table = React.memo(() => {
     // Update to use the imported hook
     const tableDataValues = useTableData();
     const { isUserAlreadyPlaying, emptySeatIndexes } = useVacantSeatData();
-
     // Determine if we're in a Sit & Go waiting for players state
     // This is true when: it's a sit-and-go, the user is seated, but not all seats are filled
     const isSitAndGoWaitingForPlayers = useMemo(() => {
@@ -634,9 +880,7 @@ const Table = React.memo(() => {
 
     // Check if any player is ACTIVE or ALL_IN (mirrors PVM's checkBootstrap logic)
     const hasActivePlayers = useMemo(() => {
-        return tableActivePlayers.some((p: PlayerDTO) =>
-            p.status === PlayerStatus.ACTIVE || p.status === PlayerStatus.ALL_IN
-        );
+        return tableActivePlayers.some((p: PlayerDTO) => p.status === PlayerStatus.ACTIVE || p.status === PlayerStatus.ALL_IN);
     }, [tableActivePlayers]);
 
     // Optimize window width detection - only check on resize
@@ -645,8 +889,7 @@ const Table = React.memo(() => {
         window.innerWidth <= 1024 && window.innerWidth > window.innerHeight && window.innerHeight <= 600
     );
     const envTableStyle = import.meta.env.VITE_TABLE_STYLE;
-    const defaultTableStyle: "modern" | "classic" | "nouns" =
-        envTableStyle === "classic" || envTableStyle === "nouns" ? envTableStyle : "modern";
+    const defaultTableStyle: "modern" | "classic" | "nouns" = envTableStyle === "classic" || envTableStyle === "nouns" ? envTableStyle : "modern";
     const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">(defaultTableStyle);
 
     // Update viewport mode on window resize
@@ -684,7 +927,6 @@ const Table = React.memo(() => {
     //         setStartIndex(rotationNeeded);
     //     }
     // }, [currentUserSeat]);
-
 
     // Winner animations
     const hasWinner = Array.isArray(winnerInfo) && winnerInfo.length > 0;
@@ -758,8 +1000,6 @@ const Table = React.memo(() => {
         return formatPotDisplay(pots, gameState?.totalPot, gameFormat, gameState?.round);
     }, [gameState?.pots, gameState?.totalPot, gameFormat, gameState?.round]);
 
-
-
     const copyToClipboard = useCallback((text: string) => {
         navigator.clipboard.writeText(text);
     }, []);
@@ -794,13 +1034,13 @@ const Table = React.memo(() => {
         }
         try {
             // Look up block height for current hand from indexer
-            const handData = await indexerApi.getHand(id, String(handNumber)) as { block_height?: number } | null;
+            const handData = (await indexerApi.getHand(id, String(handNumber))) as { block_height?: number } | null;
             if (handData?.block_height) {
                 const shareUrl = `${window.location.origin}/table/${id}?blocknumber=${handData.block_height}&actionindex=${actionCount}`;
                 await navigator.clipboard.writeText(shareUrl);
                 toast.success("Hand replay URL copied to clipboard!", {
                     position: "top-right",
-                    autoClose: 2000,
+                    autoClose: 2000
                 });
             } else {
                 // Fallback to explorer URL if block height not available
@@ -808,7 +1048,7 @@ const Table = React.memo(() => {
                 await navigator.clipboard.writeText(shareUrl);
                 toast.success("Hand replay URL copied to clipboard!", {
                     position: "top-right",
-                    autoClose: 2000,
+                    autoClose: 2000
                 });
             }
         } catch (error) {
@@ -819,7 +1059,7 @@ const Table = React.memo(() => {
                 await navigator.clipboard.writeText(shareUrl);
                 toast.success("Hand replay URL copied to clipboard!", {
                     position: "top-right",
-                    autoClose: 2000,
+                    autoClose: 2000
                 });
             } catch {
                 toast.error("Failed to copy share URL.");
@@ -861,7 +1101,7 @@ const Table = React.memo(() => {
 
         // Refresh balance after leaving
         fetchAccountBalance();
-    }, [id, userWalletAddress, currentPlayerData, currentNetwork, fetchAccountBalance]);
+    }, [id, currentPlayerData, currentNetwork, fetchAccountBalance]);
 
     // Show error page if connection/general error occurred
     if (error && id) {
@@ -899,7 +1139,10 @@ const Table = React.memo(() => {
                     className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-4 py-2 px-4 text-sm"
                     style={{ background: "rgba(214, 60, 94, 0.9)", color: "#fff" }}
                 >
-                    <span>Viewing hand at block #{replayBlockNumber}{replayActionIndex != null ? ` (action ${replayActionIndex})` : ""}</span>
+                    <span>
+                        Viewing hand at block #{replayBlockNumber}
+                        {replayActionIndex != null ? ` (action ${replayActionIndex})` : ""}
+                    </span>
                     <button
                         onClick={clearReplayParams}
                         className="px-3 py-1 rounded text-xs font-bold transition-opacity hover:opacity-80"
@@ -913,7 +1156,7 @@ const Table = React.memo(() => {
             <LayoutDebugOverlay />
             {/* Table style toggle */}
             <button
-                onClick={() => setTableStyle(s => s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern")}
+                onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
                 style={{
                     position: "fixed",
                     bottom: 12,
@@ -1012,37 +1255,42 @@ const Table = React.memo(() => {
                 )}
 
                 {/*//! TABLE — zoom-wrapper applies calculated transform */}
-                <div
-                    className={`${isMobile ? "zoom-wrapper-mobile" : "zoom-wrapper-desktop"}`}
-                    style={{ transform: tableLayout.tableTransform }}
-                >
+                <div className={`${isMobile ? "zoom-wrapper-mobile" : "zoom-wrapper-desktop"}`} style={{ transform: tableLayout.tableTransform }}>
                     {/*//! 1000x500 table coordinate space — positioned at TABLE_ORIGIN (300,285) in the 1600x850 stage */}
                     <div ref={tableDivRef} className="w-[1000px] h-[500px] absolute" style={{ left: "300px", top: "285px" }}>
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
-                        {(tableStyle === "modern" || tableStyle === "nouns") && <div className="absolute z-10 rounded-[290px]" style={{
-                            width: "1060px",
-                            height: "560px",
-                            left: "-30px",
-                            top: "-30px",
-                            border: tableStyle === "nouns"
-                                ? "10px solid rgba(26, 26, 46, 0.8)"
-                                : "10px solid rgba(100, 75, 40, 0.6)",
-                            boxShadow: tableStyle === "nouns"
-                                ? "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)"
-                                : "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
-                            background: tableStyle === "nouns"
-                                ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
-                                : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
-                        }} />}
+                        {(tableStyle === "modern" || tableStyle === "nouns") && (
+                            <div
+                                className="absolute z-10 rounded-[290px]"
+                                style={{
+                                    width: "1060px",
+                                    height: "560px",
+                                    left: "-30px",
+                                    top: "-30px",
+                                    border: tableStyle === "nouns" ? "10px solid rgba(26, 26, 46, 0.8)" : "10px solid rgba(100, 75, 40, 0.6)",
+                                    boxShadow:
+                                        tableStyle === "nouns"
+                                            ? "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)"
+                                            : "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
+                                    background:
+                                        tableStyle === "nouns"
+                                            ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
+                                            : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
+                                }}
+                            />
+                        )}
                         {/* Table felt surface */}
-                        <div className={`table-surface-shadow z-20 relative flex flex-col w-[1000px] h-[500px] text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
+                        <div
+                            className={`table-surface-shadow z-20 relative flex flex-col w-[1000px] h-[500px] text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
                             style={{
-                                borderColor: tableStyle === "nouns"
-                                    ? "rgba(214, 60, 94, 0.4)"
-                                    : tableStyle === "classic"
-                                        ? "rgba(255, 255, 255, 0.3)"
-                                        : "rgba(255, 255, 255, 0.08)"
-                            }}>
+                                borderColor:
+                                    tableStyle === "nouns"
+                                        ? "rgba(214, 60, 94, 0.4)"
+                                        : tableStyle === "classic"
+                                          ? "rgba(255, 255, 255, 0.3)"
+                                          : "rgba(255, 255, 255, 0.08)"
+                            }}
+                        >
                             <TableBoard
                                 clubLogo={clubLogo}
                                 potDisplayValues={potDisplayValues}
@@ -1053,15 +1301,16 @@ const Table = React.memo(() => {
                             />
 
                             {/* Chips */}
-                            {!isSitAndGoWaitingForPlayers && tableLayout.positions.chips.map((position, index) => {
-                                const chipAmount = getChipAmount(index + 1);
-                                if (chipAmount === "0" || chipAmount === "" || !chipAmount) return null;
-                                return (
-                                    <div key={`chip-${index}`} className="chip-position" style={{ left: position.left, bottom: position.bottom }}>
-                                        <Chip amount={chipAmount} />
-                                    </div>
-                                );
-                            })}
+                            {!isSitAndGoWaitingForPlayers &&
+                                tableLayout.positions.chips.map((position, index) => {
+                                    const chipAmount = getChipAmount(index + 1);
+                                    if (chipAmount === "0" || chipAmount === "" || !chipAmount) return null;
+                                    return (
+                                        <div key={`chip-${index}`} className="chip-position" style={{ left: position.left, bottom: position.bottom }}>
+                                            <Chip amount={chipAmount} />
+                                        </div>
+                                    );
+                                })}
                         </div>
 
                         {/* Dealer Button — rendered at table level using geometry positions */}
@@ -1070,8 +1319,7 @@ const Table = React.memo(() => {
                             const dPos = dIdx >= 0 ? tableLayout.positions.dealers[dIdx] : null;
                             if (!dPos) return null;
                             return (
-                                <div className="absolute w-12 h-12 z-[25]"
-                                    style={{ left: dPos.left, top: dPos.top, transform: "translate(-50%, -50%)" }}>
+                                <div className="absolute w-12 h-12 z-[25]" style={{ left: dPos.left, top: dPos.top, transform: "translate(-50%, -50%)" }}>
                                     <img src={CustomDealer} alt="Dealer Button" className="w-full h-full" />
                                 </div>
                             );
@@ -1179,6 +1427,7 @@ const Table = React.memo(() => {
                 tableId={id}
                 onAutoJoinSuccess={() => window.location.reload()}
                 isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
+                handleLeaveTableClick={handleLeaveTableClick}
                 recentTxHash={recentTxHash}
                 handleCloseTransactionPopup={handleCloseTransactionPopup}
                 isLeaveModalOpen={isLeaveModalOpen}
