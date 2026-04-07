@@ -7,6 +7,7 @@ import { foldHand } from "../playerActions/foldHand";
 import { checkHand } from "../playerActions/checkHand";
 import { usePlayerLegalActions } from "../playerActions/usePlayerLegalActions";
 import { useGameOptions } from "../game/useGameOptions";
+import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent } from "../../utils/timerUtils";
 
 // Global state to track time extensions per seat
 const timeExtensions = new Map<string, { extensionTime: number; hasUsedExtension: boolean }>();
@@ -30,23 +31,9 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
     // Get game options for timeout value
     const { gameOptions } = useGameOptions();
 
-    // Timer configuration - get from game options (now in milliseconds)
-    const TIMEOUT_DURATION = useMemo((): number => {
-        if (!gameOptions?.timeout) {
-            // console.warn("No timeout value from game options, using default 30 seconds");
-            return 30000; // 30 seconds default if no game options
-        }
-
-        // Log the raw timeout value to verify units
-
-        // Timeout now comes as milliseconds directly (e.g., 3000ms = 3 seconds)
-        return gameOptions.timeout;
-    }, [gameOptions]);
-
-    // Calculate timeout in seconds for display
-    const timeoutInSeconds = useMemo((): number => {
-        return Math.floor(TIMEOUT_DURATION / 1000);
-    }, [TIMEOUT_DURATION]);
+    // Timer configuration via shared util
+    const TIMEOUT_DURATION = useMemo(() => getTimeoutMs(gameOptions?.timeout), [gameOptions]);
+    const timeoutInSeconds = useMemo(() => timeoutToSeconds(TIMEOUT_DURATION), [TIMEOUT_DURATION]);
 
     // Create unique key for this seat
     const seatKey = `${tableId}-${playerSeat}`;
@@ -67,16 +54,11 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
         return gameState.players.find((p: PlayerDTO) => p.seat === playerSeat) || null;
     }, [gameState, playerSeat]);
 
-    // Get the last action timestamp from previousActions
-    const lastActionTimestamp = useMemo((): number => {
-        if (!gameState?.previousActions || gameState.previousActions.length === 0) {
-            return Date.now(); // Default to current time if no actions exist
-        }
-
-        // Get the most recent action timestamp
-        const sortedActions = [...gameState.previousActions].sort((a, b) => b.timestamp - a.timestamp);
-        return sortedActions[0].timestamp;
-    }, [gameState?.previousActions]);
+    // Get the last action timestamp (normalized to ms) via shared util
+    const lastActionTimestamp = useMemo(
+        () => getLatestActionTimestampMs(gameState?.previousActions),
+        [gameState?.previousActions]
+    );
 
     // Check if this player is next to act
     const isNextToAct = useMemo((): boolean => {
@@ -120,15 +102,10 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
         }
     }, [isNextToAct, seatKey, lastActionTimestamp]);
 
-    // Calculate time remaining based on last action timestamp + extensions
+    // Calculate time remaining via shared util
     const timeRemaining = useMemo((): number => {
         if (!isNextToAct) return 0;
-
-        const elapsed = currentTime - lastActionTimestamp;
-        const extensionMs = extensionInfo.hasUsedExtension ? TIMEOUT_DURATION : 0;
-        const totalTimeout = TIMEOUT_DURATION + extensionMs;
-        const remaining = Math.max(0, totalTimeout - elapsed);
-        return Math.ceil(remaining / 1000); // Convert to seconds
+        return calcTimeRemaining(currentTime, lastActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
     }, [currentTime, lastActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
 
     // Function to extend time
@@ -213,34 +190,29 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
 
     // Auto-action when timer expires - COMMENTED OUT TO DISABLE AUTO-FOLD/AUTO-CHECK
     // useEffect(() => {
-    //     if (timeRemaining === 0 && isNextToAct && isCurrentUser && !isFolding) {
+    //     if (timeRemaining === 0 && isNextToAct && isCurrentUser) {
     //         const timeoutId = setTimeout(() => {
-    //             handleAutoAction();
+    //             _handleAutoAction();
     //         }, 500); // Small delay to ensure state is stable
 
     //         return () => clearTimeout(timeoutId);
     //     }
-    // }, [timeRemaining, isNextToAct, isCurrentUser, isFolding, handleAutoAction]);
+    // }, [timeRemaining, isNextToAct, isCurrentUser, _handleAutoAction]);
 
     // Reset auto-action timer when next to act changes
     useEffect(() => {
         setLastAutoFoldTime(0);
     }, [gameState?.nextToAct]);
 
-    // Calculate progress (0-100)
+    // Calculate progress (0-100) via shared util
     const _progress = useMemo(() => {
         if (!isNextToAct) return 0;
-
-        const elapsed = currentTime - lastActionTimestamp;
-        const extensionMs = extensionInfo.hasUsedExtension ? TIMEOUT_DURATION : 0;
-        const totalTimeout = TIMEOUT_DURATION + extensionMs;
-        const progressPercentage = Math.min((elapsed / totalTimeout) * 100, 100);
-        return progressPercentage;
+        return calcProgressPercent(currentTime, lastActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
     }, [currentTime, lastActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
 
     // Debug logging (only in development)
     useEffect(() => {
-        if (process.env.NODE_ENV === "development" && isNextToAct && isCurrentUser) {
+        if (import.meta.env.DEV && isNextToAct && isCurrentUser) {
             const _extensionStatus = extensionInfo.hasUsedExtension ? " (EXTENDED)" : "";
         }
     }, [timeRemaining, isNextToAct, isCurrentUser, playerSeat, timeoutInSeconds, extensionInfo.hasUsedExtension]);

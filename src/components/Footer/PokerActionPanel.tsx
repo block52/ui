@@ -9,6 +9,9 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
 import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
 import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
+import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
+import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
+import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
 
 // Import action handlers
 import {
@@ -26,7 +29,7 @@ import {
 
 // Import utils
 import { getActionByType, hasAction } from "../../utils/actionUtils";
-import { getAutoDealEnabled, getAutoPostBlindsEnabled } from "../../utils/urlParams";
+import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled } from "../../utils/urlParams";
 import { getRaiseToAmount } from "../../utils/raiseUtils";
 
 // Import sub-components
@@ -100,6 +103,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
     const hasMuckAction = hasAction(legalActions, PlayerActionType.MUCK);
     const hasShowAction = hasAction(legalActions, PlayerActionType.SHOW);
     const hasDealAction = hasAction(legalActions, NonPlayerActionType.DEAL);
+    const hasNewHandAction = hasAction(legalActions, NonPlayerActionType.NEW_HAND);
 
     // Blind amounts - single source of truth from gameState.gameOptions (per Commandment 7)
     // Defined early so they can be used in useAutoPostBlinds hook
@@ -150,11 +154,52 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
         () => setLoadingAction(null) // onBlindError
     );
 
+    // Get timer data for the current user's seat (used by auto-fold)
+    const { timeRemaining } = usePlayerTimer(tableId, userPlayer?.seat);
+
+    // Auto-fold hook - automatically folds (or checks) when the action timer expires
+    // Can be disabled via URL query param: ?autofold=false
+    useAutoFold(
+        tableId,
+        network,
+        hasFoldAction,
+        hasCheckAction,
+        isUsersTurn,
+        timeRemaining,
+        (action) => setLoadingAction(action), // onAutoActionStarted
+        (action, txHash) => {
+            setLoadingAction(null);
+            if (onTransactionSubmitted) {
+                onTransactionSubmitted(txHash);
+            }
+        }, // onAutoActionComplete
+        () => setLoadingAction(null) // onAutoActionError
+    );
+
+    // Auto-new-hand hook - automatically triggers new hand when conditions are met
+    // Can be disabled via URL query param: ?autonewhand=false
+    useAutoNewHand(
+        tableId,
+        network,
+        hasNewHandAction,
+        isUsersTurn,
+        () => setLoadingAction("new-hand"), // onNewHandStarted
+        (txHash) => {
+            setLoadingAction(null);
+            if (onTransactionSubmitted) {
+                onTransactionSubmitted(txHash);
+            }
+        }, // onNewHandComplete
+        () => setLoadingAction(null) // onNewHandError
+    );
+
     // Check if auto-deal is enabled (cached on mount) - used for DealButtonGroup
     const autoDealEnabled = useMemo(() => getAutoDealEnabled(), []);
     // Check if auto-post blinds is enabled (cached on mount) - for conditional UI if needed
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const autoPostBlindsEnabled = useMemo(() => getAutoPostBlindsEnabled(), []);
+    // Check if auto-new-hand is enabled (cached on mount) - hide manual button when enabled
+    const autoNewHandEnabled = useMemo(() => getAutoNewHandEnabled(), []);
 
     // Show deal button if player has the deal action
     const shouldShowDealButton = hasDealAction && isUsersTurn;
@@ -352,8 +397,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
                     />
                 )}
 
-                {/* New Hand Button */}
-                {gameState?.round === TexasHoldemRound.END && (
+                {/* New Hand Button - hidden when auto-new-hand is enabled */}
+                {gameState?.round === TexasHoldemRound.END && !autoNewHandEnabled && (
                     <div className="flex justify-center mb-2 lg:mb-3">
                         <ActionButton
                             action="new-hand"

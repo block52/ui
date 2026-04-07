@@ -1,8 +1,11 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { useFindGames, GameWithFormat } from "../hooks/game/useFindGames";
+import { useDeleteGame } from "../hooks/game/useDeleteGame";
+import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { formatMicroAsUsdc } from "../constants/currency";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
+import DeleteTableModal from "./modals/DeleteTableModal";
 import styles from "./TableList.module.css";
 
 /**
@@ -33,6 +36,9 @@ const formatBuyIn = (game: GameWithFormat) => {
  */
 const TableList: React.FC = () => {
     const { games: rawGames, isLoading, error, refetch } = useFindGames();
+    const { deleteGame, isDeleting } = useDeleteGame();
+    const { address: cosmosAddress } = useCosmosWallet();
+    const [deleteModalGameId, setDeleteModalGameId] = useState<string | null>(null);
 
     // Sort games by available seats (least empty seats first, full tables last)
     const games = React.useMemo(() => {
@@ -41,7 +47,7 @@ const TableList: React.FC = () => {
 
     // Check if there are any cash games to determine if we should show Stakes column
     const hasCashGames = React.useMemo(() => {
-        return games.some((game) => !isTournamentFormat(game.gameFormat));
+        return games.some(game => !isTournamentFormat(game.gameFormat));
     }, [games]);
 
     // Use environment variables for club branding
@@ -59,6 +65,26 @@ const TableList: React.FC = () => {
         }
     };
 
+    // Handle delete game
+    const handleDeleteGame = useCallback(async () => {
+        if (!deleteModalGameId) return;
+        const result = await deleteGame(deleteModalGameId);
+        if (result) {
+            // Refresh the games list after successful deletion
+            refetch();
+        }
+    }, [deleteModalGameId, deleteGame, refetch]);
+
+    // Check if user is the creator of a game
+    const isCreator = (game: GameWithFormat) => {
+        return cosmosAddress && game.creator && game.creator.toLowerCase() === cosmosAddress.toLowerCase();
+    };
+
+    // Check if a game can be deleted (no active players)
+    const canDelete = (game: GameWithFormat) => {
+        return isCreator(game) && game.currentPlayers === 0;
+    };
+
     if (isLoading) {
         return (
             <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
@@ -66,12 +92,7 @@ const TableList: React.FC = () => {
                     <h2 className="text-xl font-bold text-white">Available Tables</h2>
                 </div>
                 <div className="flex items-center justify-center py-12">
-                    <svg
-                        className="animate-spin h-8 w-8 mr-3 text-blue-500"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                    >
+                    <svg className="animate-spin h-8 w-8 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                         <path
                             className="opacity-75"
@@ -103,10 +124,7 @@ const TableList: React.FC = () => {
                         </svg>
                     </div>
                     <p className="text-gray-300 mb-4">{error.message}</p>
-                    <button
-                        onClick={refetch}
-                        className={`px-4 py-2 rounded-lg text-white transition-all hover:opacity-90 ${styles.actionButton}`}
-                    >
+                    <button onClick={refetch} className={`px-4 py-2 rounded-lg text-white transition-all hover:opacity-90 ${styles.actionButton}`}>
                         Retry
                     </button>
                 </div>
@@ -134,19 +152,15 @@ const TableList: React.FC = () => {
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Players</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Buy-In</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
                         {games.length === 0 ? (
                             <tr>
-                                <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                                <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
                                     <div className="mb-4">
-                                        <svg
-                                            className="w-12 h-12 mx-auto text-gray-600"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                        >
+                                        <svg className="w-12 h-12 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                             <path
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
@@ -163,84 +177,105 @@ const TableList: React.FC = () => {
                             games.map((game: GameWithFormat) => {
                                 const isTournament = isTournamentFormat(game.gameFormat);
                                 return (
-                                <tr
-                                    key={game.gameId}
-                                    className="hover:bg-gray-700/50 transition-colors"
-                                >
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <img
-                                                src={clubLogo}
-                                                alt={clubName}
-                                                className="w-6 h-6 object-contain"
-                                            />
-                                            <span className="text-white">{clubName}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-4 py-4">
-                                        <div className="flex items-center justify-center gap-2">
-                                            <span className="text-gray-300 font-mono text-sm">
-                                                {`${game.gameId.slice(0, 4)}...${game.gameId.slice(-4)}`}
-                                            </span>
-                                            <button
-                                                onClick={() => copyToClipboard(game.gameId)}
-                                                className="text-gray-400 hover:text-white hover:opacity-90 transition-colors"
-                                                title="Copy game ID"
-                                            >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                    {hasCashGames && (
-                                        <td className="px-4 py-4 text-center">
-                                            {!isTournament ? (
-                                                <span className="text-white font-bold">
-                                                    ${formatMicroAsUsdc(game.smallBlind, 2)} / ${formatMicroAsUsdc(game.bigBlind, 2)}
+                                    <tr key={game.gameId} className="hover:bg-gray-700/50 transition-colors">
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <img src={clubLogo} alt={clubName} className="w-6 h-6 object-contain" />
+                                                <span className="text-white">{clubName}</span>
+                                            </div>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <span className="text-gray-300 font-mono text-sm">
+                                                    {`${game.gameId.slice(0, 4)}...${game.gameId.slice(-4)}`}
                                                 </span>
-                                            ) : (
-                                                <span className="text-gray-500">-</span>
+                                                <button
+                                                    onClick={() => copyToClipboard(game.gameId)}
+                                                    className="text-gray-400 hover:text-white hover:opacity-90 transition-colors"
+                                                    title="Copy game ID"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth="2"
+                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                        />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        </td>
+                                        {hasCashGames && (
+                                            <td className="px-4 py-4 text-center">
+                                                {!isTournament ? (
+                                                    <span className="text-white font-bold">
+                                                        ${formatMicroAsUsdc(game.smallBlind, 2)} / ${formatMicroAsUsdc(game.bigBlind, 2)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-500">-</span>
+                                                )}
+                                            </td>
+                                        )}
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-white capitalize">{formatGameFormatDisplay(game.gameFormat)}</span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-white capitalize">{formatGameVariantDisplay(game.gameVariant)}</span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-white font-semibold">
+                                                {game.currentPlayers}/{game.maxPlayers}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <span className="text-gray-300 font-mono text-sm">{formatBuyIn(game)}</span>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <a
+                                                href={`/table/${game.gameId}`}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
+                                                className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
+                                            >
+                                                {game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
+                                            </a>
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            {canDelete(game) && (
+                                                <button
+                                                    onClick={() => setDeleteModalGameId(game.gameId)}
+                                                    disabled={isDeleting}
+                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                    title="Delete table"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <path
+                                                            strokeLinecap="round"
+                                                            strokeLinejoin="round"
+                                                            strokeWidth="2"
+                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                                        />
+                                                    </svg>
+                                                    Delete
+                                                </button>
                                             )}
                                         </td>
-                                    )}
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-white capitalize">
-                                            {formatGameFormatDisplay(game.gameFormat)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-white capitalize">
-                                            {formatGameVariantDisplay(game.gameVariant)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-white font-semibold">
-                                            {game.currentPlayers}/{game.maxPlayers}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <span className="text-gray-300 font-mono text-sm">
-                                            {formatBuyIn(game)}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-4 text-center">
-                                        <a
-                                            href={`/table/${game.gameId}`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
-                                            className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
-                                        >
-                                            Join
-                                        </a>
-                                    </td>
-                                </tr>
-                            );})
+                                    </tr>
+                                );
+                            })
                         )}
                     </tbody>
                 </table>
             </div>
+
+            {/* Delete Table Modal */}
+            <DeleteTableModal
+                isOpen={!!deleteModalGameId}
+                onClose={() => setDeleteModalGameId(null)}
+                onConfirm={handleDeleteGame}
+                gameId={deleteModalGameId || ""}
+            />
         </div>
     );
 };

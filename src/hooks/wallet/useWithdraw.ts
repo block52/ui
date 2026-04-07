@@ -7,7 +7,7 @@ import { COSMOS_BRIDGE_ADDRESS } from "../../config/constants";
 
 const useWithdraw = () => {
   const BRIDGE_ADDRESS = COSMOS_BRIDGE_ADDRESS;
-  const { data: hash, isPending, writeContract, error } = useWriteContract();
+  const { data: hash, isPending, mutate, error } = useWriteContract();
   const { address: userAddress } = useUserWalletConnect();
 
   const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
@@ -29,7 +29,7 @@ const useWithdraw = () => {
   ): Promise<void> => {
     if (!userAddress) {
       console.error("[useWithdraw] User wallet is not connected");
-      throw new Error("MetaMask wallet is not connected");
+      throw new Error("Web3 wallet is not connected");
     }
 
     if (!nonce || !receiver || amount <= 0n || !signature) {
@@ -37,23 +37,19 @@ const useWithdraw = () => {
       throw new Error("Invalid withdrawal parameters");
     }
 
-    try {
-      writeContract({
-        address: BRIDGE_ADDRESS as `0x${string}`,
-        abi: abi,
-        functionName: FunctionName.Withdraw,
-        args: [
-          nonce as `0x${string}`,
-          receiver as `0x${string}`,
-          amount,
-          signature as `0x${string}`
-        ]
-      });
-    } catch (err) {
-      console.error("[useWithdraw] Withdrawal transaction failed:", err);
-      throw err;
-    }
-  }, [userAddress, writeContract, BRIDGE_ADDRESS]);
+    // Contract ABI: withdraw(uint256 amount, address receiver, bytes32 nonce, bytes signature)
+    mutate({
+      address: BRIDGE_ADDRESS as `0x${string}`,
+      abi: abi,
+      functionName: FunctionName.Withdraw,
+      args: [
+        amount,
+        receiver as `0x${string}`,
+        nonce as `0x${string}`,
+        signature as `0x${string}`
+      ]
+    });
+  }, [userAddress, mutate, BRIDGE_ADDRESS]);
 
   return useMemo(
     () => ({

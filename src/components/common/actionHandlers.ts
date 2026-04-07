@@ -7,7 +7,7 @@ import {
     muckCards,
     showCards,
     sitIn,
-    SIT_IN_METHOD_NEXT_BB,
+    SIT_IN_METHOD_POST_NOW,
     sitOut,
     SIT_OUT_METHOD_NEXT_HAND,
     startNewHand,
@@ -161,15 +161,20 @@ const handleSitOut = async (
 const handleSitIn = async (
     tableId: string | undefined,
     network: NetworkEndpoints,
-    method: SitInMethod = SIT_IN_METHOD_NEXT_BB
+    method: SitInMethod = SIT_IN_METHOD_POST_NOW
 ): Promise<string | null> => {
-    if (!tableId) return null;
+    console.log("🎲 handleSitIn called with:", { tableId, network, method });
+    if (!tableId) {
+        console.error("❌ handleSitIn: tableId is undefined");
+        return null;
+    }
     try {
+        console.log("📞 Calling sitIn action...");
         const result = await sitIn(tableId, network, method);
-        console.log("Sit in completed successfully");
+        console.log("✅ Sit in completed successfully, hash:", result?.hash);
         return result?.hash || null;
     } catch (error: unknown) {
-        console.error("Failed to sit in:", error);
+        console.error("❌ Failed to sit in:", error);
         return null;
     }
 };

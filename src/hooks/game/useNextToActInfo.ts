@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { PlayerDTO, LegalActionDTO } from "@block52/poker-vm-sdk";
 import { NextToActInfoReturn } from "../../types/index";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { getTimeoutMs, timeoutToSeconds } from "../../utils/timerUtils";
 
 /**
  * Custom hook to fetch and provide information about who is next to act
@@ -24,7 +25,7 @@ export const useNextToActInfo = (_tableId?: string): NextToActInfoReturn => {
             player: null,
             isCurrentUserTurn: false,
             availableActions: [],
-            timeRemaining: 30,
+            timeRemaining: 0,
             isLoading,
             error
         };
@@ -52,8 +53,8 @@ export const useNextToActInfo = (_tableId?: string): NextToActInfoReturn => {
             // Get available actions - ensure it's an array
             const availableActions: LegalActionDTO[] = Array.isArray(player.legalActions) ? player.legalActions : [];
 
-            // Calculate time remaining
-            const timeRemaining = player.timeout || 30;
+            // Use shared util for consistent timeout handling
+            const timeRemaining = timeoutToSeconds(getTimeoutMs(player.timeout));
 
             return {
                 seat: nextToActSeat,

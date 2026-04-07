@@ -2,11 +2,11 @@
 
 [![CI](https://github.com/block52/ui/actions/workflows/ci.yml/badge.svg)](https://github.com/block52/ui/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![React](https://img.shields.io/badge/React-18-61dafb.svg)](https://reactjs.org/)
+[![React](https://img.shields.io/badge/React-19-61dafb.svg)](https://react.dev/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178c6.svg)](https://www.typescriptlang.org/)
-[![Vite](https://img.shields.io/badge/Vite-5-646cff.svg)](https://vitejs.dev/)
+[![Vite](https://img.shields.io/badge/Vite-8-646cff.svg)](https://vitejs.dev/)
 
-A modern, customizable React-based poker interface for online poker rooms. Built with TypeScript, React 18, and TailwindCSS.
+A modern, customizable React-based poker interface for online poker rooms. Built with TypeScript, React 19, and TailwindCSS.
 
 ## Features
 
@@ -21,7 +21,7 @@ A modern, customizable React-based poker interface for online poker rooms. Built
 
 ### Prerequisites
 
-- Node.js 22+
+- Node.js 22.13+ (see `.nvmrc`)
 - Yarn package manager
 
 ### Installation
@@ -105,6 +105,27 @@ VITE_ACCENT_COLOR_GLOW=#fbbf24
 
 See [.env.example](.env.example) for all available configuration options.
 
+### NFT Avatar Discovery
+
+Configure how wallet NFTs are discovered for profile avatars:
+
+```env
+# Chain used for NFT discovery
+VITE_PROFILE_NFT_CHAIN_ID=1
+
+# Optional indexer URL template
+# Must include {owner}; {chainId} is optional
+VITE_PROFILE_NFT_INDEXER_URL=https://eth-mainnet.g.alchemy.com/nft/v3/YOUR_API_KEY/getNFTsForOwner?owner={owner}&withMetadata=true&pageSize=100
+
+# Optional backend endpoint to persist avatar and propagate to other players
+VITE_PROFILE_AVATAR_UPDATE_URL=https://your-backend.example.com/api/profile/avatar
+```
+
+Notes:
+
+- NFT discovery uses wallet-owned NFTs from an indexer source via `VITE_PROFILE_NFT_INDEXER_URL` or `VITE_MAINNET_RPC_URL`.
+- `VITE_PROFILE_AVATAR_UPDATE_URL` enables signed avatar persistence/broadcast integration.
+
 ## Available Scripts
 
 ```bash
@@ -119,7 +140,7 @@ yarn test:watch   # Run tests in watch mode
 
 ## Tech Stack
 
-- **[React 18](https://reactjs.org/)** - UI framework with hooks
+- **[React 19](https://react.dev/)** - UI framework with hooks
 - **[TypeScript 5](https://www.typescriptlang.org/)** - Type-safe JavaScript
 - **[Vite](https://vitejs.dev/)** - Next-generation build tool
 - **[TailwindCSS](https://tailwindcss.com/)** - Utility-first CSS
@@ -227,7 +248,7 @@ We welcome contributions! Please follow these steps:
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project is licensed under the MIT License.
 
 ## Links
 

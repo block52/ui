@@ -1,9 +1,14 @@
 .cancelButton {
-    background-color: var(--ui-text-secondary);
+    background-color: #dc2626;
+}
+
+.cancelButton:hover:not(:disabled) {
+    background-color: #b91c1c;
 }
 
 .infoCard {
     background-color: var(--ui-bg-medium);
+    padding: 0.5rem 0.875rem;
 }
 
 .maxButton {
@@ -31,3 +36,4 @@
 .noteText {
     color: var(--ui-text-secondary);
 }
+

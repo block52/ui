@@ -10,45 +10,47 @@ const COSMOS_BRIDGE_ABI = parseAbi([
 ]);
 
 const useDepositUSDC = () => {
-    const { data: hash, writeContract, isPending, error } = useWriteContract();
+    const { data: hash, mutateAsync, isPending, error } = useWriteContract();
 
     const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
         hash
     });
 
     // Deposit USDC directly via depositUnderlying - receiver is a Cosmos address string (e.g., "b521...")
-    const deposit = useCallback(async (amount: bigint, cosmosReceiver: string): Promise<void> => {
-        try {
-            const tx = await writeContract({
-                address: COSMOS_BRIDGE_ADDRESS as `0x${string}`,
-                abi: COSMOS_BRIDGE_ABI,
-                functionName: "depositUnderlying",
-                args: [amount, cosmosReceiver]
-            });
-
-            return tx;
-        } catch (err) {
-            console.error("CosmosBridge deposit failed:", err);
-            throw err;
-        }
-    }, [writeContract]);
+    const deposit = useCallback(
+        async (amount: bigint, cosmosReceiver: string): Promise<void> => {
+            try {
+                await mutateAsync({
+                    address: COSMOS_BRIDGE_ADDRESS as `0x${string}`,
+                    abi: COSMOS_BRIDGE_ABI,
+                    functionName: "depositUnderlying",
+                    args: [amount, cosmosReceiver]
+                });
+            } catch (err) {
+                console.error("CosmosBridge deposit failed:", err);
+                throw err;
+            }
+        },
+        [mutateAsync]
+    );
 
     // Deposit any ERC20 token via deposit() - auto-swaps to USDC if not the underlying token
-    const depositToken = useCallback(async (amount: bigint, cosmosReceiver: string, tokenAddress: string): Promise<void> => {
-        try {
-            const tx = await writeContract({
-                address: COSMOS_BRIDGE_ADDRESS as `0x${string}`,
-                abi: COSMOS_BRIDGE_ABI,
-                functionName: "deposit",
-                args: [amount, cosmosReceiver, tokenAddress as `0x${string}`]
-            });
-
-            return tx;
-        } catch (err) {
-            console.error("CosmosBridge depositToken failed:", err);
-            throw err;
-        }
-    }, [writeContract]);
+    const depositToken = useCallback(
+        async (amount: bigint, cosmosReceiver: string, tokenAddress: string): Promise<void> => {
+            try {
+                await mutateAsync({
+                    address: COSMOS_BRIDGE_ADDRESS as `0x${string}`,
+                    abi: COSMOS_BRIDGE_ABI,
+                    functionName: "deposit",
+                    args: [amount, cosmosReceiver, tokenAddress as `0x${string}`]
+                });
+            } catch (err) {
+                console.error("CosmosBridge depositToken failed:", err);
+                throw err;
+            }
+        },
+        [mutateAsync]
+    );
 
     return useMemo(
         () => ({

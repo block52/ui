@@ -1,0 +1,26 @@
+const IPFS_GATEWAY = "https://ipfs.io/ipfs/";
+const ARWEAVE_GATEWAY = "https://arweave.net/";
+
+export const normalizeIpfsUri = (value: string | undefined | null): string => {
+    if (!value) {
+        return "";
+    }
+
+    if (value.startsWith("ipfs://")) {
+        return value.replace("ipfs://", IPFS_GATEWAY);
+    }
+
+    if (value.startsWith("ar://")) {
+        return value.replace("ar://", ARWEAVE_GATEWAY);
+    }
+
+    return value;
+};
+
+export const isAllowedAvatarUrl = (url: string): boolean => {
+    if (!url) {
+        return false;
+    }
+
+    return url.startsWith("https://") || url.startsWith("http://") || url.startsWith("data:");
+};

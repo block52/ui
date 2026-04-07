@@ -142,9 +142,142 @@ const format = parseGameFormat(game.format);
 
 ---
 
+## The 7 Commandments of UI Architecture
+
+These rules standardize how API calls, state management, and testing are structured across the UI. **Violations create inconsistency and tech debt.** Established in PR #159.
+
+### 1. Centralized HTTPClient — No Raw Axios/Fetch
+
+All HTTP calls go through `src/apis/HTTPClient.ts`. Never import `axios` or use `fetch` directly in components or hooks.
+
+HTTPClient provides:
+- Typed methods: `get<T>()`, `post<T>()`, `put<T>()`, `delete<T>()`
+- Automatic Bearer token injection when `secure: true`
+- Unified error handling via `onError` / `setCustomOnError()`
+- Configurable timeout and abort signal support
+
+```typescript
+// ❌ WRONG — raw axios in a component
+import axios from "axios";
+const res = await axios.get("/api/data");
+
+// ✅ CORRECT — use an API class that extends HTTPClient
+import { PaymentApi } from "../apis/Api";
+const api = new PaymentApi({ baseUrl: PROXY_URL, secure: true, timeout: 5000 });
+const res = await api.getPaymentStatus(id);
+```
+
+### 2. API Class Pattern — Extend HTTPClient
+
+Domain API classes live in `src/apis/Api.ts`, extend HTTPClient, and expose public arrow function methods — one endpoint per method, no business logic.
+
+```typescript
+export class CosmosApi extends HTTPClient {
+    public getValidators = (limit?: number) =>
+        this.get(`/cosmos/staking/v1beta1/validators${limit ? `?pagination.limit=${limit}` : ""}`);
+    public getBalanceByAddress = (address: string) =>
+        this.get(`/cosmos/bank/v1beta1/balances/${address}`);
+}
+```
+
+**Rules:**
+- One class per API domain (`PaymentApi`, `CosmosApi`, `IndexerApi`)
+- Methods are public arrow functions calling `this.get/post/put/delete`
+- No state, no side effects, no business logic in API classes
+
+### 3. Context → Provider → Hook
+
+Each API domain gets three pieces in `src/context/`:
+
+1. **Context**: `createContext<XxxApi>(null as any)`
+2. **Provider**: `FC` component that creates the API instance with config
+3. **Hook**: `useXxxApi()` that calls `useContext`
+
+```typescript
+// src/context/PaymentApiContext.tsx
+const PaymentApiContext = createContext<PaymentApi>(null as any);
+
+export const PaymentApiProvider: FC<{ children: ReactNode }> = ({ children }) => {
+    const api = new PaymentApi({ baseUrl: PROXY_URL!, secure: true, timeout: 5000 });
+    return <PaymentApiContext.Provider value={api}>{children}</PaymentApiContext.Provider>;
+};
+
+export const usePaymentApi = (): PaymentApi => useContext(PaymentApiContext);
+```
+
+**Rules:**
+- Use `useMemo` when the API instance depends on dynamic values (e.g., `currentNetwork`)
+- Providers are composed in `App.tsx`
+- Components consume APIs only via hooks, never by constructing API classes directly
+
+### 4. Hook Composition
+
+- One `useState` per concern — never combine unrelated state into a single object
+- One `useEffect` per side-effect — separate timer, polling, and data-fetching effects
+- `useCallback` with explicit dependency arrays for functions passed to children or used in effects
+- Clean up intervals/subscriptions in effect return functions
+
+### 5. Error Handling in Async Code
+
+- Wrap async operations in try-catch inside `useCallback` / `useEffect`
+- Store errors in component state (`useState<string | null>(null)`)
+- Log with `console.error` — no silent failures
+- Use `setCustomOnError()` on API instances for cross-cutting error handling
+
+```typescript
+// ✅ CORRECT pattern
+const fetchData = useCallback(async () => {
+    try {
+        const result = await api.getData();
+        setData(result);
+    } catch (err) {
+        console.error("Failed to fetch data:", err);
+        setError(err instanceof Error ? err.message : "Unknown error");
+    }
+}, [api]);
+```
+
+### 6. Naming Conventions
+
+| Thing | Pattern | Example |
+|-------|---------|---------|
+| Custom hook | `use[Domain][Feature]` | `useDepositSession`, `usePaymentApi` |
+| API class | `[Domain]Api` | `PaymentApi`, `CosmosApi`, `IndexerApi` |
+| Context | `[Domain]ApiContext` | `PaymentApiContext` |
+| Provider | `[Domain]ApiProvider` | `CosmosApiProvider` |
+| Hook file | `use[Name].ts` | `useDepositSession.ts` |
+| Context file | `[Domain]ApiContext.tsx` | `PaymentApiContext.tsx` |
+
+### 7. API Testing Pattern
+
+Tests live in `src/tests/`. Mock axios at the module level, use describe blocks per HTTP method, test both success and error paths.
+
+```typescript
+jest.mock("axios");
+const mockedAxios = axios as jest.Mocked<typeof axios>;
+
+describe("HTTPClient", () => {
+    describe("GET", () => {
+        it("should return data on success", async () => {
+            mockedAxios.create.mockReturnValue({
+                get: jest.fn().mockResolvedValueOnce({ data: expected }),
+                interceptors: { request: { use: jest.fn() } }
+            } as any);
+            // ...
+        });
+
+        it("should call onError on failure", async () => {
+            // test error path
+        });
+    });
+});
+```
+
+---
+
 ### Tech Stack
 
-- **React 18** - UI framework
+- **React 19** - UI framework
 - **TypeScript 5** - Type safety
 - **Vite** - Build tool and dev server
 - **TailwindCSS** - Styling

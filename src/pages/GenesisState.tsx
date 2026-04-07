@@ -4,6 +4,8 @@ import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
+import { useCosmosApi } from "../context/CosmosApiContext";
+import { AccountBalanceResponse, AccountsResponse, ValidatorsResponse } from "./explorer/AllAccountsPage";
 
 interface GenesisAccount {
     address: string;
@@ -24,23 +26,28 @@ interface WellKnownAccount {
 const WELL_KNOWN_ACCOUNTS: WellKnownAccount[] = [
     {
         name: "alice",
-        mnemonic: "cement shadow leave crash crisp aisle model hip lend february library ten cereal soul bind boil bargain barely rookie odor panda artwork damage reason"
+        mnemonic:
+            "cement shadow leave crash crisp aisle model hip lend february library ten cereal soul bind boil bargain barely rookie odor panda artwork damage reason"
     },
     {
         name: "bob",
-        mnemonic: "vanish legend pelican blush control spike useful usage into any remove wear flee short october naive swear wall spy cup sort avoid agent credit"
+        mnemonic:
+            "vanish legend pelican blush control spike useful usage into any remove wear flee short october naive swear wall spy cup sort avoid agent credit"
     },
     {
         name: "charlie",
-        mnemonic: "video short denial minimum vague arm dose parrot poverty saddle kingdom life buyer globe fashion topic vicious theme voice keep try jacket fresh potato"
+        mnemonic:
+            "video short denial minimum vague arm dose parrot poverty saddle kingdom life buyer globe fashion topic vicious theme voice keep try jacket fresh potato"
     },
     {
         name: "diana",
-        mnemonic: "twice bacon whale space improve galaxy liberty trumpet outside sunny action reflect doll hill ugly torch ride gossip snack fork talk market proud nothing"
+        mnemonic:
+            "twice bacon whale space improve galaxy liberty trumpet outside sunny action reflect doll hill ugly torch ride gossip snack fork talk market proud nothing"
     },
     {
         name: "eve",
-        mnemonic: "raven mix autumn dismiss degree husband street slender maple muscle inch radar winner agent claw permit autumn expose power minute master scrub asthma retreat"
+        mnemonic:
+            "raven mix autumn dismiss degree husband street slender maple muscle inch radar winner agent claw permit autumn expose power minute master scrub asthma retreat"
     }
 ];
 
@@ -55,6 +62,7 @@ export default function GenesisState() {
     const cosmosWallet = useCosmosWallet();
     const cosmosAddress = cosmosWallet.address;
     const { currentNetwork } = useNetwork();
+    const cosmosApi = useCosmosApi(currentNetwork.rest);
 
     // Use REST endpoint from selected network (NetworkSelector dropdown)
     const COSMOS_REST_URL = currentNetwork.rest;
@@ -92,39 +100,35 @@ export default function GenesisState() {
 
         try {
             // Fetch all accounts
-            const accountsResponse = await fetch(`${COSMOS_REST_URL}/cosmos/auth/v1beta1/accounts`);
-            if (!accountsResponse.ok) {
-                throw new Error(`Failed to fetch accounts: ${accountsResponse.statusText}`);
-            }
-            const accountsData = await accountsResponse.json();
+            const accountsResponse = (await cosmosApi.getAccounts(1000)) as AccountsResponse;
+
+            const accountsData = accountsResponse.accounts;
 
             // Fetch validators
-            const validatorsResponse = await fetch(`${COSMOS_REST_URL}/cosmos/staking/v1beta1/validators`);
-            const validatorsData = validatorsResponse.ok ? await validatorsResponse.json() : { validators: [] };
-            setValidators(validatorsData.validators || []);
+            const validatorsResponse = (await cosmosApi.getValidators()) as ValidatorsResponse;
+            setValidators(validatorsResponse.validators || []);
 
             // Process accounts and fetch balances
             const processedAccounts: GenesisAccount[] = [];
 
-            for (const account of accountsData.accounts || []) {
+            for (const account of accountsData || []) {
                 const address = account.address || account.base_account?.address;
                 if (!address) continue;
 
                 // Fetch balance for this account
-                const balanceResponse = await fetch(`${COSMOS_REST_URL}/cosmos/bank/v1beta1/balances/${address}`);
-                const balanceData = balanceResponse.ok ? await balanceResponse.json() : { balances: [] };
+                const balanceResponse = (await cosmosApi.getBalanceByAddress(address)) as AccountBalanceResponse;
+                const balanceData = balanceResponse.balances || [];
 
                 // Check if this is a validator
-                const validator = validatorsData.validators?.find((v: any) =>
-                    v.operator_address && address.startsWith("b52") &&
-                    v.operator_address.replace("b52valoper", "b52") === address
+                const validator = validatorsResponse.validators?.find(
+                    (v: any) => v.operator_address && address.startsWith("b52") && v.operator_address.replace("b52valoper", "b52") === address
                 );
 
                 processedAccounts.push({
                     address,
                     accountNumber: account.account_number || account.base_account?.account_number || "0",
                     sequence: account.sequence || account.base_account?.sequence || "0",
-                    balances: balanceData.balances || [],
+                    balances: balanceData || [],
                     isValidator: !!validator,
                     moniker: validator?.description?.moniker
                 });
@@ -143,6 +147,7 @@ export default function GenesisState() {
         setLoadingBridgeState(true);
         try {
             // Fetch withdrawal requests
+            // Backend not yet Implemented
             const withdrawalsResponse = await fetch(`${COSMOS_REST_URL}/pokerchain/poker/withdrawal_requests`);
             const withdrawalsData = withdrawalsResponse.ok ? await withdrawalsResponse.json() : { withdrawal_requests: [] };
 
@@ -151,7 +156,7 @@ export default function GenesisState() {
             // const processedTxsData = processedTxsResponse.ok ? await processedTxsResponse.json() : { processed_eth_txs: [] };
 
             const state = {
-                withdrawal_requests: withdrawalsData.withdrawal_requests || [],
+                withdrawal_requests: withdrawalsData.withdrawal_requests || []
                 // processed_eth_txs: processedTxsData.processed_eth_txs || []
             };
 
@@ -201,9 +206,7 @@ export default function GenesisState() {
             <div className="min-h-screen p-8 relative">
                 <AnimatedBackground />
                 <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="text-center text-white text-xl">
-                        Loading genesis state...
-                    </div>
+                    <div className="text-center text-white text-xl">Loading genesis state...</div>
                 </div>
             </div>
         );
@@ -217,10 +220,7 @@ export default function GenesisState() {
                     <div className="bg-red-900/30 border border-red-500 rounded-lg p-6">
                         <h2 className="text-red-400 text-xl font-bold mb-2">Error Loading Genesis State</h2>
                         <p className="text-red-300">{error}</p>
-                        <button
-                            onClick={fetchGenesisState}
-                            className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg"
-                        >
+                        <button onClick={fetchGenesisState} className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
                             Retry
                         </button>
                     </div>
@@ -236,29 +236,18 @@ export default function GenesisState() {
                 {/* Header */}
                 <div className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-lg p-8 border border-blue-500/30 text-center">
                     <h1 className="text-4xl font-bold text-white mb-2">🔷 Genesis State - Block 0</h1>
-                    <p className="text-gray-300">
-                        Initial blockchain state when the chain was started. Shows which accounts exist from genesis.
-                    </p>
+                    <p className="text-gray-300">Initial blockchain state when the chain was started. Shows which accounts exist from genesis.</p>
                 </div>
 
                 {/* Your Wallet Status */}
                 {cosmosAddress && (
-                    <div className={`rounded-lg p-6 border-2 ${
-                        myWalletInGenesis
-                            ? "bg-green-900/20 border-green-500"
-                            : "bg-yellow-900/20 border-yellow-500"
-                    }`}>
+                    <div className={`rounded-lg p-6 border-2 ${myWalletInGenesis ? "bg-green-900/20 border-green-500" : "bg-yellow-900/20 border-yellow-500"}`}>
                         <h2 className="text-xl font-bold text-white mb-3">🔐 Your Connected Wallet</h2>
                         <div className="space-y-2">
                             <div className="flex items-center gap-2">
                                 <span className="text-gray-400">Address:</span>
-                                <code className="text-white font-mono text-sm bg-black/30 px-2 py-1 rounded">
-                                    {cosmosAddress}
-                                </code>
-                                <button
-                                    onClick={() => copyToClipboard(cosmosAddress, "Address")}
-                                    className="text-blue-400 hover:text-blue-300 text-sm"
-                                >
+                                <code className="text-white font-mono text-sm bg-black/30 px-2 py-1 rounded">{cosmosAddress}</code>
+                                <button onClick={() => copyToClipboard(cosmosAddress, "Address")} className="text-blue-400 hover:text-blue-300 text-sm">
                                     📋 Copy
                                 </button>
                             </div>
@@ -273,7 +262,8 @@ export default function GenesisState() {
                             {!myWalletInGenesis && (
                                 <div className="mt-3 p-4 bg-yellow-900/30 border border-yellow-600 rounded">
                                     <p className="text-yellow-200 text-sm">
-                                        💡 <strong>Tip:</strong> Your wallet doesn't have any tokens. Import one of the test account mnemonics below to get started!
+                                        💡 <strong>Tip:</strong> Your wallet doesn't have any tokens. Import one of the test account mnemonics below to get
+                                        started!
                                     </p>
                                 </div>
                             )}
@@ -283,9 +273,7 @@ export default function GenesisState() {
 
                 {/* Genesis Accounts */}
                 <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                    <h2 className="text-2xl font-bold text-white mb-4">
-                        📊 Genesis Accounts ({accounts.length})
-                    </h2>
+                    <h2 className="text-2xl font-bold text-white mb-4">📊 Genesis Accounts ({accounts.length})</h2>
 
                     <div className="space-y-4">
                         {accounts.map((account, index) => (
@@ -295,8 +283,8 @@ export default function GenesisState() {
                                     isMyWallet(account.address)
                                         ? "border-green-500 bg-green-900/10"
                                         : account.isValidator
-                                        ? "border-purple-500 bg-purple-900/10"
-                                        : "border-gray-600"
+                                          ? "border-purple-500 bg-purple-900/10"
+                                          : "border-gray-600"
                                 }`}
                             >
                                 <div className="flex items-start justify-between mb-3">
@@ -306,16 +294,10 @@ export default function GenesisState() {
                                                 {account.isValidator ? "👑 Validator" : `Account ${index + 1}`}
                                                 {account.moniker && ` - ${account.moniker}`}
                                             </span>
-                                            {isMyWallet(account.address) && (
-                                                <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
-                                                    YOU
-                                                </span>
-                                            )}
+                                            {isMyWallet(account.address) && <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">YOU</span>}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <code className="text-sm text-gray-300 font-mono break-all">
-                                                {account.address}
-                                            </code>
+                                            <code className="text-sm text-gray-300 font-mono break-all">{account.address}</code>
                                             <button
                                                 onClick={() => copyToClipboard(account.address, "Address")}
                                                 className="text-blue-400 hover:text-blue-300 text-xs flex-shrink-0"
@@ -331,11 +313,9 @@ export default function GenesisState() {
                                     <h4 className="text-sm text-gray-400 mb-2">Balances:</h4>
                                     {account.balances.length > 0 ? (
                                         <div className="space-y-1">
-                                            {account.balances.map((balance) => (
+                                            {account.balances.map(balance => (
                                                 <div key={balance.denom} className="flex items-center gap-2">
-                                                    <span className="text-white font-semibold">
-                                                        {formatAmount(balance.amount, balance.denom)}
-                                                    </span>
+                                                    <span className="text-white font-semibold">{formatAmount(balance.amount, balance.denom)}</span>
                                                 </div>
                                             ))}
                                         </div>
@@ -356,21 +336,15 @@ export default function GenesisState() {
 
                 {/* Well-Known Test Accounts */}
                 <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-lg p-6 border border-purple-500/30">
-                    <h2 className="text-2xl font-bold text-white mb-4">
-                        🔑 Well-Known Test Accounts
-                    </h2>
-                    <p className="text-gray-300 mb-4">
-                        These accounts are from config.yml. Import their mnemonics to get instant access to test tokens!
-                    </p>
+                    <h2 className="text-2xl font-bold text-white mb-4">🔑 Well-Known Test Accounts</h2>
+                    <p className="text-gray-300 mb-4">These accounts are from config.yml. Import their mnemonics to get instant access to test tokens!</p>
 
                     <div className="space-y-4">
-                        {WELL_KNOWN_ACCOUNTS.map((wellKnown) => {
+                        {WELL_KNOWN_ACCOUNTS.map(wellKnown => {
                             const derivedAddress = derivedAddresses.get(wellKnown.name);
 
                             // Try to find this account in genesis using derived address
-                            const genesisAccount = derivedAddress
-                                ? accounts.find(acc => acc.address === derivedAddress)
-                                : null;
+                            const genesisAccount = derivedAddress ? accounts.find(acc => acc.address === derivedAddress) : null;
 
                             const isMyWalletAccount = derivedAddress && cosmosAddress?.toLowerCase() === derivedAddress.toLowerCase();
 
@@ -378,32 +352,18 @@ export default function GenesisState() {
                                 <div
                                     key={wellKnown.name}
                                     className={`bg-gray-900/50 rounded-lg p-4 border ${
-                                        isMyWalletAccount
-                                            ? "border-green-500 bg-green-900/10"
-                                            : genesisAccount
-                                            ? "border-blue-500/50"
-                                            : "border-gray-600"
+                                        isMyWalletAccount ? "border-green-500 bg-green-900/10" : genesisAccount ? "border-blue-500/50" : "border-gray-600"
                                     }`}
                                 >
                                     <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
                                             <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="text-lg font-bold text-white capitalize">
-                                                    {wellKnown.name}
-                                                </h3>
-                                                {isMyWalletAccount && (
-                                                    <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">
-                                                        YOU
-                                                    </span>
-                                                )}
+                                                <h3 className="text-lg font-bold text-white capitalize">{wellKnown.name}</h3>
+                                                {isMyWalletAccount && <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">YOU</span>}
                                                 {genesisAccount ? (
-                                                    <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">
-                                                        ✅ In Genesis
-                                                    </span>
+                                                    <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">✅ In Genesis</span>
                                                 ) : (
-                                                    <span className="px-2 py-1 bg-yellow-600 text-white text-xs rounded-full">
-                                                        ⚠️ Not in Genesis
-                                                    </span>
+                                                    <span className="px-2 py-1 bg-yellow-600 text-white text-xs rounded-full">⚠️ Not in Genesis</span>
                                                 )}
                                             </div>
                                             <p className="text-xs text-gray-400">Test account from config.yml</p>
@@ -457,7 +417,8 @@ export default function GenesisState() {
 
                                         <div className="mt-2 p-3 bg-blue-900/20 border border-blue-600/30 rounded">
                                             <p className="text-xs text-blue-200">
-                                                💡 <strong>How to use:</strong> Copy the mnemonic above and import it into your Keplr wallet or Block52 wallet to access this test account.
+                                                💡 <strong>How to use:</strong> Copy the mnemonic above and import it into your Keplr wallet or Block52 wallet
+                                                to access this test account.
                                             </p>
                                         </div>
                                     </div>
@@ -470,31 +431,22 @@ export default function GenesisState() {
                 {/* Validators Info */}
                 {validators.length > 0 && (
                     <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                        <h2 className="text-2xl font-bold text-white mb-4">
-                            👑 Validators ({validators.length})
-                        </h2>
+                        <h2 className="text-2xl font-bold text-white mb-4">👑 Validators ({validators.length})</h2>
                         <div className="space-y-3">
-                            {validators.map((validator) => (
-                                <div
-                                    key={validator.operator_address}
-                                    className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4"
-                                >
+                            {validators.map(validator => (
+                                <div key={validator.operator_address} className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4">
                                     <div className="flex items-center justify-between">
                                         <div>
-                                            <h3 className="text-white font-semibold">
-                                                {validator.description?.moniker || "Unknown Validator"}
-                                            </h3>
-                                            <code className="text-xs text-gray-400 font-mono">
-                                                {validator.operator_address}
-                                            </code>
+                                            <h3 className="text-white font-semibold">{validator.description?.moniker || "Unknown Validator"}</h3>
+                                            <code className="text-xs text-gray-400 font-mono">{validator.operator_address}</code>
                                         </div>
                                         <div className="text-right">
                                             <div className="text-sm text-gray-400">Status</div>
-                                            <div className={`text-sm font-semibold ${
-                                                validator.status === "BOND_STATUS_BONDED"
-                                                    ? "text-green-400"
-                                                    : "text-yellow-400"
-                                            }`}>
+                                            <div
+                                                className={`text-sm font-semibold ${
+                                                    validator.status === "BOND_STATUS_BONDED" ? "text-green-400" : "text-yellow-400"
+                                                }`}
+                                            >
                                                 {validator.status === "BOND_STATUS_BONDED" ? "✅ Bonded" : "⚠️ Unbonded"}
                                             </div>
                                         </div>
@@ -512,7 +464,9 @@ export default function GenesisState() {
                     <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-4">
                         <h3 className="text-lg font-semibold text-white mb-2">⚠️ Why Export Bridge State?</h3>
                         <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                            <li>Withdrawals are <strong>real USDC</strong> transactions on Ethereum</li>
+                            <li>
+                                Withdrawals are <strong>real USDC</strong> transactions on Ethereum
+                            </li>
                             <li>If you reset the Block52 chain, withdrawal records will be lost</li>
                             <li>But Ethereum still knows about those nonces - must preserve them!</li>
                             <li>Export before reset, then import into new genesis to maintain integrity</li>
@@ -535,15 +489,11 @@ export default function GenesisState() {
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3">
                                     <div className="text-sm text-gray-400">Withdrawal Requests</div>
-                                    <div className="text-2xl font-bold text-blue-400">
-                                        {bridgeState.withdrawal_requests?.length || 0}
-                                    </div>
+                                    <div className="text-2xl font-bold text-blue-400">{bridgeState.withdrawal_requests?.length || 0}</div>
                                 </div>
                                 <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-3">
                                     <div className="text-sm text-gray-400">Processed ETH Txs</div>
-                                    <div className="text-2xl font-bold text-green-400">
-                                        {bridgeState.processed_eth_txs?.length || 0}
-                                    </div>
+                                    <div className="text-2xl font-bold text-green-400">{bridgeState.processed_eth_txs?.length || 0}</div>
                                 </div>
                             </div>
 
@@ -559,9 +509,7 @@ export default function GenesisState() {
                                     </button>
                                 </div>
                                 <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-xs text-gray-300 font-mono">
-                                        {JSON.stringify(bridgeState, null, 2)}
-                                    </pre>
+                                    <pre className="text-xs text-gray-300 font-mono">{JSON.stringify(bridgeState, null, 2)}</pre>
                                 </div>
                             </div>
 
@@ -610,10 +558,7 @@ export default function GenesisState() {
 
                 {/* Refresh Button */}
                 <div className="flex justify-center">
-                    <button
-                        onClick={fetchGenesisState}
-                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold"
-                    >
+                    <button onClick={fetchGenesisState} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">
                         🔄 Refresh Genesis State
                     </button>
                 </div>

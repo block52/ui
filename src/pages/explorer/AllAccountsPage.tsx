@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, use } from "react";
 import { useNavigate } from "react-router-dom";
 import { fromBech32, toBech32 } from "@cosmjs/encoding";
 import { getCosmosClient } from "../../utils/cosmos/client";
@@ -7,6 +7,7 @@ import { microToUsdc } from "../../constants/currency";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import styles from "./AllAccountsPage.module.css";
+import { useCosmosApi } from "../../context/CosmosApiContext";
 
 interface ValidatorInfo {
     operatorAddress: string;
@@ -25,6 +26,30 @@ interface AccountInfo {
     validatorStatus?: string;
 }
 
+export interface ValidatorsResponse {
+    pagination: {
+        next_key: string | null;
+        total: string;
+    };
+    validators: any[];
+}
+
+export interface AccountsResponse {
+    pagination: {
+        next_key: string | null;
+        total: string;
+    };
+    accounts: any[];
+}
+
+export interface AccountBalanceResponse {
+    pagination: {
+        next_key: string | null;
+        total: string;
+    };
+    balances: { denom: string; amount: string }[];
+}
+
 export default function AllAccountsPage() {
     const navigate = useNavigate();
     const { currentNetwork } = useNetwork();
@@ -35,6 +60,7 @@ export default function AllAccountsPage() {
     const [sortBy, setSortBy] = useState<"balance" | "address">("balance");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [searchFilter, setSearchFilter] = useState("");
+    const cosmosApi = useCosmosApi();
 
     // Convert validator operator address (b52valoper...) to account address (b521...)
     const valoperToAccount = (valoperAddr: string): string => {
@@ -59,7 +85,6 @@ export default function AllAccountsPage() {
             setLoading(true);
             setError(null);
 
-            const restEndpoint = currentNetwork.rest;
             const cosmosClient = getCosmosClient({
                 rpc: currentNetwork.rpc,
                 rest: currentNetwork.rest
@@ -72,10 +97,9 @@ export default function AllAccountsPage() {
             // Fetch validators first to identify validator accounts
             const validatorMap = new Map<string, ValidatorInfo>();
             try {
-                const validatorsResponse = await fetch(`${restEndpoint}/cosmos/staking/v1beta1/validators?pagination.limit=100`);
-                if (validatorsResponse.ok) {
-                    const validatorsData = await validatorsResponse.json();
-                    const validators = validatorsData.validators || [];
+                const validatorsResponse = (await cosmosApi.getValidators(100)) as ValidatorsResponse;
+                if (validatorsResponse) {
+                    const validators = validatorsResponse.validators || [];
 
                     validators.forEach((v: any) => {
                         const operatorAddress = v.operator_address;
@@ -99,23 +123,19 @@ export default function AllAccountsPage() {
             }
 
             // Fetch all accounts from the auth module
-            const accountsResponse = await fetch(`${restEndpoint}/cosmos/auth/v1beta1/accounts?pagination.limit=1000`);
+            const accountsResponse = (await cosmosApi.getAccounts()) as AccountsResponse;
 
-            if (!accountsResponse.ok) {
-                throw new Error(`Failed to fetch accounts: ${accountsResponse.status}`);
+            if (!accountsResponse) {
+                throw new Error("Failed to fetch accounts");
             }
 
-            const accountsData = await accountsResponse.json();
-            const rawAccounts = accountsData.accounts || [];
+            const rawAccounts = accountsResponse.accounts || [];
 
             // Process accounts and fetch balances for each
             const accountsWithBalances: AccountInfo[] = await Promise.all(
                 rawAccounts.map(async (account: any) => {
                     // Extract address based on account type
-                    const address = account.address ||
-                        account.base_account?.address ||
-                        account.base_vesting_account?.base_account?.address ||
-                        "";
+                    const address = account.address || account.base_account?.address || account.base_vesting_account?.base_account?.address || "";
 
                     // Determine account type
                     let type = "Unknown";
@@ -130,12 +150,9 @@ export default function AllAccountsPage() {
 
                     if (address) {
                         try {
-                            const balanceResponse = await fetch(
-                                `${restEndpoint}/cosmos/bank/v1beta1/balances/${address}`
-                            );
-                            if (balanceResponse.ok) {
-                                const balanceData = await balanceResponse.json();
-                                balances = balanceData.balances || [];
+                            const balanceResponse = (await cosmosApi.getBalanceByAddress(address)) as AccountBalanceResponse;
+                            if (balanceResponse) {
+                                balances = balanceResponse.balances || [];
 
                                 // Calculate total USDC value (sum usdc balances)
                                 balances.forEach(b => {
@@ -205,22 +222,17 @@ export default function AllAccountsPage() {
 
         // Apply search filter
         if (searchFilter) {
-            filtered = filtered.filter(a =>
-                a.address.toLowerCase().includes(searchFilter.toLowerCase()) ||
-                a.type.toLowerCase().includes(searchFilter.toLowerCase())
+            filtered = filtered.filter(
+                a => a.address.toLowerCase().includes(searchFilter.toLowerCase()) || a.type.toLowerCase().includes(searchFilter.toLowerCase())
             );
         }
 
         // Sort
         return [...filtered].sort((a, b) => {
             if (sortBy === "balance") {
-                return sortOrder === "desc"
-                    ? b.totalUsdcValue - a.totalUsdcValue
-                    : a.totalUsdcValue - b.totalUsdcValue;
+                return sortOrder === "desc" ? b.totalUsdcValue - a.totalUsdcValue : a.totalUsdcValue - b.totalUsdcValue;
             } else {
-                return sortOrder === "desc"
-                    ? b.address.localeCompare(a.address)
-                    : a.address.localeCompare(b.address);
+                return sortOrder === "desc" ? b.address.localeCompare(a.address) : a.address.localeCompare(b.address);
             }
         });
     }, [accounts, searchFilter, sortBy, sortOrder]);
@@ -239,10 +251,10 @@ export default function AllAccountsPage() {
         const value = microToUsdc(amount);
         // Map known denoms to display names
         const denomMap: Record<string, string> = {
-            "usdc": "USDC",
-            "uusdc": "USDC",
-            "stake": "STAKE",
-            "ustake": "STAKE"
+            usdc: "USDC",
+            uusdc: "USDC",
+            stake: "STAKE",
+            ustake: "STAKE"
         };
         const displayDenom = denomMap[denom.toLowerCase()] || denom.toUpperCase();
         return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${displayDenom}`;
@@ -255,7 +267,7 @@ export default function AllAccountsPage() {
 
     const toggleSort = (field: "balance" | "address") => {
         if (sortBy === field) {
-            setSortOrder(prev => prev === "asc" ? "desc" : "asc");
+            setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
         } else {
             setSortBy(field);
             setSortOrder("desc");
@@ -371,11 +383,13 @@ export default function AllAccountsPage() {
                                                                 <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
                                                                     Validator: {account.validatorMoniker}
                                                                 </span>
-                                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                                                    account.validatorStatus === "BONDED"
-                                                                        ? "bg-green-500/20 text-green-400"
-                                                                        : "bg-yellow-500/20 text-yellow-400"
-                                                                }`}>
+                                                                <span
+                                                                    className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                                                        account.validatorStatus === "BONDED"
+                                                                            ? "bg-green-500/20 text-green-400"
+                                                                            : "bg-yellow-500/20 text-yellow-400"
+                                                                    }`}
+                                                                >
                                                                     {account.validatorStatus}
                                                                 </span>
                                                             </div>
@@ -383,15 +397,15 @@ export default function AllAccountsPage() {
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span
-                                                        className={`px-2 py-1 rounded text-xs font-medium ${styles.typePill}`}
-                                                    >
-                                                        {account.type}
-                                                    </span>
+                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${styles.typePill}`}>{account.type}</span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
                                                     <span className="text-white font-bold">
-                                                        ${account.totalUsdcValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                                        $
+                                                        {account.totalUsdcValue.toLocaleString(undefined, {
+                                                            minimumFractionDigits: 2,
+                                                            maximumFractionDigits: 2
+                                                        })}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-right">
@@ -405,9 +419,7 @@ export default function AllAccountsPage() {
                                                                 </span>
                                                             ))}
                                                             {account.balances.length > 3 && (
-                                                                <span className="text-gray-500 text-xs">
-                                                                    +{account.balances.length - 3} more
-                                                                </span>
+                                                                <span className="text-gray-500 text-xs">+{account.balances.length - 3} more</span>
                                                             )}
                                                         </div>
                                                     )}

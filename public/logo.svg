@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 120">
+  <defs>
+    <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#c026d3;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#7c3aed;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#3b82f6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- b -->
+  <g fill="url(#grad)">
+    <rect x="0" y="0" width="16" height="100" rx="2"/>
+    <rect x="0" y="44" width="56" height="16" rx="2"/>
+    <rect x="0" y="84" width="56" height="16" rx="2"/>
+    <rect x="44" y="44" width="16" height="56" rx="2"/>
+
+    <!-- l -->
+    <rect x="68" y="0" width="16" height="100" rx="2"/>
+    <rect x="68" y="84" width="44" height="16" rx="2"/>
+
+    <!-- o -->
+    <rect x="124" y="44" width="56" height="16" rx="2"/>
+    <rect x="124" y="84" width="56" height="16" rx="2"/>
+    <rect x="124" y="44" width="16" height="56" rx="2"/>
+    <rect x="164" y="44" width="16" height="56" rx="2"/>
+
+    <!-- c -->
+    <rect x="192" y="44" width="56" height="16" rx="2"/>
+    <rect x="192" y="84" width="56" height="16" rx="2"/>
+    <rect x="192" y="44" width="16" height="56" rx="2"/>
+
+    <!-- k -->
+    <rect x="260" y="0" width="16" height="100" rx="2"/>
+    <rect x="276" y="56" width="16" height="16" rx="2"/>
+    <rect x="292" y="44" width="16" height="16" rx="2"/>
+    <rect x="292" y="68" width="16" height="16" rx="2"/>
+    <rect x="308" y="84" width="16" height="16" rx="2"/>
+
+    <!-- 5 -->
+    <rect x="340" y="10" width="64" height="16" rx="2"/>
+    <rect x="340" y="10" width="16" height="50" rx="2"/>
+    <rect x="340" y="44" width="64" height="16" rx="2"/>
+    <rect x="388" y="44" width="16" height="56" rx="2"/>
+    <rect x="340" y="84" width="64" height="16" rx="2"/>
+
+    <!-- 2 -->
+    <rect x="420" y="10" width="64" height="16" rx="2"/>
+    <rect x="468" y="10" width="16" height="50" rx="2"/>
+    <rect x="420" y="44" width="64" height="16" rx="2"/>
+    <rect x="420" y="44" width="16" height="56" rx="2"/>
+    <rect x="420" y="84" width="64" height="16" rx="2"/>
+
+    <!-- Diamond accent -->
+    <g transform="translate(498, 8)">
+      <rect x="0" y="0" width="12" height="12" rx="1" transform="rotate(45, 6, 6)" fill="url(#grad)" opacity="0.6"/>
+    </g>
+    <g transform="translate(505, 20)">
+      <rect x="0" y="0" width="8" height="8" rx="1" transform="rotate(45, 4, 4)" fill="url(#grad)" opacity="0.3"/>
+    </g>
+  </g>
+</svg>

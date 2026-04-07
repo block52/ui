@@ -70,25 +70,127 @@
   top: 100%;
   left: 0;
   right: 0;
-  margin-top: 0.25rem;
-  z-index: 30;
-  transition: all 0.5s ease-in-out;
+  margin-top: -22px;
+  height: 55px;
+  overflow: hidden;
+  z-index: -10;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transition: transform 0.5s ease-in-out, opacity 0.5s ease-in-out;
 }
 
-.action-display-box {
-  padding: 0.25rem 0.5rem;
-  border-radius: 0.375rem;
-  box-shadow: 0 10px 15px -3px color-mix(in srgb, #000000 10%, transparent), 0 4px 6px -2px color-mix(in srgb, #000000 5%, transparent);
+/* Unified Seat Banner Shell — single container for all banner modes */
+.seat-banner-shell {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: -22px;
+  height: 55px;
+  overflow: hidden;
+  z-index: -10;
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.seat-banner-visible {
+  transform: translateY(0);
+  opacity: 1;
+}
+
+.seat-banner-hidden {
+  transform: translateY(-8px);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.seat-banner-box {
+  width: 100%;
+  min-height: 55px;
+  height: 55px;
+  padding: 0.25rem 0.5rem 0.15rem;
+  border-radius: 1rem 1rem 0.375rem 0.375rem;
+  box-shadow: 0 2px 6px color-mix(in srgb, #000000 22%, transparent);
   border-width: 1px;
   border-style: solid;
-  border-opacity: 0.8;
   color: white;
   font-weight: 700;
   font-size: 0.75rem;
-  white-space: nowrap;
-  backdrop-filter: blur(4px);
+  white-space: normal;
   text-align: center;
-  transition: all 0.3s;
+  display: flex;
+  flex-direction: column;
+  /* align-items defaults to stretch so ProgressBar gets full width */
+  /* justify-content defaults to flex-start so mt-auto in children works */
+  transition: box-shadow 0.3s ease;
+}
+
+.seat-banner-text {
+  color: #ffffff;
+}
+
+/* Inner wrapper — must fill parent flex column so children's mt-auto works */
+.seat-banner-content-inner {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+}
+
+/* Content swap animation — used when shell is already visible (e.g. timer→action) */
+.seat-banner-content-swap {
+  animation: seatBannerContentSwap 0.25s ease-out;
+}
+
+@keyframes seatBannerContentSwap {
+  0% {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.action-display-bridge {
+  display: none;
+}
+
+.action-display-bridge-enter {
+  animation: actionBridgeIn 0.25s ease-out forwards;
+}
+
+.action-display-bridge-exit {
+  animation: actionBridgeOut 0.35s ease-in forwards;
+}
+
+.action-display-box {
+  width: 100%;
+  min-width: 0;
+  max-width: none;
+  min-height: 55px;
+  height: 55px;
+  padding: 0.25rem 0.5rem 0.15rem;
+  border-radius: 1rem 1rem 0.375rem 0.375rem;
+  box-shadow: 0 2px 6px color-mix(in srgb, #000000 22%, transparent);
+  border-width: 1px;
+  border-style: solid;
+  border-color: color-mix(in srgb, #ffffff 16%, transparent);
+  color: white;
+  font-weight: 700;
+  font-size: 0.75rem;
+  white-space: normal;
+  backdrop-filter: none;
+  text-align: center;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  transition: box-shadow 0.3s ease;
 }
 
 .action-display-content {
@@ -96,6 +198,17 @@
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
+  margin-top: auto;
+  margin-bottom: 0.35rem;
+  max-height: 94px;
+  overflow: hidden;
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out, max-height 0.15s ease-out;
+}
+
+.action-display-content-hide {
+  opacity: 0;
+  transform: translateY(-4px);
+  max-height: 0;
 }
 
 .action-display-text {
@@ -126,31 +239,53 @@
 @keyframes actionDropDown {
   from {
     opacity: 0;
-    transform: translateY(-10px) scale(0.95);
+    transform: translateY(-8px);
   }
   to {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
 }
 
 @keyframes actionRollAway {
   from {
     opacity: 1;
-    transform: translateY(0) scale(1);
+    transform: translateY(0);
   }
   to {
     opacity: 0;
-    transform: translateY(10px) scale(0.95);
+    transform: translateY(-8px);
   }
 }
 
 @keyframes actionPulse {
   0%, 100% { 
-    box-shadow: 0 4px 12px color-mix(in srgb, var(--brand-primary) 40%, transparent), 0 2px 4px color-mix(in srgb, #000000 30%, transparent); 
+    box-shadow: 0 2px 6px color-mix(in srgb, #000000 22%, transparent); 
   }
   50% { 
-    box-shadow: 0 6px 20px color-mix(in srgb, var(--brand-primary) 60%, transparent), 0 4px 8px color-mix(in srgb, #000000 40%, transparent); 
+    box-shadow: 0 3px 8px color-mix(in srgb, #000000 28%, transparent); 
+  }
+}
+
+@keyframes actionBridgeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes actionBridgeOut {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-2px);
   }
 }
 
@@ -229,8 +364,14 @@
   .action-display-enter,
   .action-display-exit,
   .action-display-pulse,
+  .action-display-bridge-enter,
+  .action-display-bridge-exit,
   .badge-tournament-results {
     animation: none;
+  }
+
+  .action-display-content {
+    transition: none;
   }
 
   .timer-extension-button {

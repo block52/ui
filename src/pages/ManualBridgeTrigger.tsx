@@ -33,7 +33,7 @@ export default function ManualBridgeTrigger() {
 
     // Bridge configuration - Ethereum Mainnet
     const bridgeContractAddress = COSMOS_BRIDGE_ADDRESS;
-    const ethRpcUrl = import.meta.env.VITE_ALCHEMY_URL || import.meta.env.VITE_MAINNET_RPC_URL;
+    const ethRpcUrl = import.meta.env.VITE_MAINNET_RPC_URL || import.meta.env.VITE_MAINNET_RPC_URL;
 
     const handleQueryDeposit = async () => {
         const index = parseInt(depositIndex);
@@ -43,7 +43,7 @@ export default function ManualBridgeTrigger() {
         }
 
         if (!ethRpcUrl) {
-            setError("Ethereum RPC URL not configured. Please add VITE_ALCHEMY_URL to .env file.");
+            setError("Ethereum RPC URL not configured. Please add VITE_MAINNET_RPC_URL to .env file.");
             return;
         }
 

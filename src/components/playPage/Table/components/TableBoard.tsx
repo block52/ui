@@ -10,16 +10,18 @@
 
 import React, { useMemo } from "react";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
+import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import OppositePlayerCards from "../../Card/OppositePlayerCards";
+import { TotalPotDisplay } from "./TotalPotDisplay";
+import { MainPotDisplay } from "./MainPotDisplay";
+import { NounsGlasses } from "./NounsGlasses";
+
+export type TableTheme = "modern" | "classic" | "nouns";
 
 export interface TableBoardProps {
     // Display data
     clubLogo: string;
-    potDisplayValues: {
-        totalPot: string;
-        mainPot: string;
-        isTournamentStyle: boolean;
-    };
+    potDisplayValues: PotDisplayValues;
     communityCards: string[];
 
     // State flags
@@ -27,6 +29,7 @@ export interface TableBoardProps {
 
     // Styling
     cardBackStyle: CardBackStyle;
+    tableTheme?: TableTheme;
 }
 
 export const TableBoard: React.FC<TableBoardProps> = ({
@@ -34,7 +37,8 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     potDisplayValues,
     communityCards,
     isSitAndGoWaitingForPlayers,
-    cardBackStyle
+    cardBackStyle,
+    tableTheme = "modern"
 }) => {
     // Memoize community cards rendering
     const communityCardsElements = useMemo(() => {
@@ -55,27 +59,24 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     return (
         <>
             {/* Club Logo */}
-            <div className="table-logo">
-                <img src={clubLogo} alt="Club Logo" />
+            <div className={`table-logo ${tableTheme === "nouns" ? "table-logo-nouns" : ""}`}>
+                {tableTheme === "nouns" ? (
+                    <NounsGlasses width={300} className="nouns-glasses-logo" />
+                ) : (
+                    <img src={clubLogo} alt="Club Logo" />
+                )}
             </div>
 
             {/* Central Display Area */}
-            <div className="flex flex-col items-center justify-center -mt-20">
+            <div className="flex flex-col items-center justify-center -mt-8">
                 {/* Hide pot display when sit-and-go is waiting for players */}
                 {!isSitAndGoWaitingForPlayers && (
                     <>
-                        <div className="pot-display">
-                            Total Pot:
-                            <span className="pot-value-bold">
-                                {potDisplayValues.isTournamentStyle ? ` ${potDisplayValues.totalPot}` : ` $${potDisplayValues.totalPot}`}
-                            </span>
-                        </div>
-                        <div className="pot-display-secondary">
-                            Main Pot:
-                            <span className="pot-value-bold">
-                                {potDisplayValues.isTournamentStyle ? ` ${potDisplayValues.mainPot}` : ` $${potDisplayValues.mainPot}`}
-                            </span>
-                        </div>
+                        <TotalPotDisplay amount={potDisplayValues.totalPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                        {/* Only show Main Pot when not in preflop (i.e., when community cards are dealt) */}
+                        {!potDisplayValues.isPreflop && (
+                            <MainPotDisplay amount={potDisplayValues.mainPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                        )}
                     </>
                 )}
 

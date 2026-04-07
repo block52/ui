@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getCosmosClient, clearCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
-import { truncateHash, formatTimestampRelative } from "../../utils/formatUtils";
+import { truncateHash, formatTimestampRelative, formatProposerAddress } from "../../utils/formatUtils";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
@@ -214,8 +214,8 @@ export default function BlocksPage() {
                                             )}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="font-mono text-xs text-white" title={block.block.header.proposer_address || ""}>
-                                                {truncateHash(block.block.header.proposer_address || "")}
+                                            <span className="font-mono text-xs text-blue-400" title={block.block.header.proposer_address || ""}>
+                                                {truncateHash(formatProposerAddress(block.block.header.proposer_address || ""))}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">

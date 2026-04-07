@@ -1,0 +1,29 @@
+.avatarButton {
+  width: 36px;
+  height: 36px;
+  border-radius: 9999px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 35%, transparent);
+  background-color: color-mix(in srgb, var(--ui-bg-medium) 60%, transparent);
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.avatarButton:hover {
+  transform: scale(1.04);
+  opacity: 0.9;
+}
+
+.avatarImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.fallbackText {
+  color: var(--brand-primary);
+  font-size: 0.75rem;
+  font-weight: 700;
+}

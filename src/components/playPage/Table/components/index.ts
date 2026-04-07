@@ -8,7 +8,7 @@ export { TableHeader } from "./TableHeader";
 export type { TableHeaderProps } from "./TableHeader";
 
 export { TableBoard } from "./TableBoard";
-export type { TableBoardProps } from "./TableBoard";
+export type { TableBoardProps, TableTheme } from "./TableBoard";
 
 export { TableSidebar } from "./TableSidebar";
 export type { TableSidebarProps } from "./TableSidebar";

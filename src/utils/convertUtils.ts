@@ -43,7 +43,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         maxBuyIn: opts.maxBuyIn,
         minPlayers: opts.minPlayers,
         maxPlayers: opts.maxPlayers,
-        currentPlayers: 0,
+        currentPlayers: game.currentPlayers ? game.currentPlayers : 0,
         gameFormat: getGameFormat(game.format),
         gameVariant: getGameVariant(game.variant),
         smallBlind: opts.smallBlind,
@@ -52,7 +52,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         creator: game.creator,
         timeout: opts.timeout,
         createdAt: game.createdAt,
-        updatedAt: game.updatedAt,
+        updatedAt: game.updatedAt
     };
 };
 

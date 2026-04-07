@@ -4,14 +4,7 @@ import { NETWORK_PRESETS, NetworkEndpoints, useNetwork } from "../context/Networ
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
-import {
-    DiscoveredNode,
-    discoverNodes,
-    probeNodes,
-    getCachedNodes,
-    cacheNodes,
-    clearNodeCache
-} from "../services/nodeDiscovery";
+import { DiscoveredNode, discoverNodes, probeNodes, getCachedNodes, cacheNodes, clearNodeCache } from "../services/nodeDiscovery";
 
 // Filter out localhost for production view
 const productionNodes = NETWORK_PRESETS.filter(n => n.name !== "Localhost");
@@ -34,16 +27,14 @@ export default function NodesPage() {
     const [isProbing, setIsProbing] = useState(false);
     const [nodeInfo, setNodeInfo] = useState<Record<string, NodeInfo>>({});
     const [validators, setValidators] = useState<ValidatorInfo[]>([]);
-
     // Fetch validators from the network
     const fetchValidators = useCallback(async () => {
         // Try fetching from the first online preset node
         for (const node of productionNodes) {
             try {
-                const response = await fetch(
-                    `${node.rest}/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED`,
-                    { signal: AbortSignal.timeout(10000) }
-                );
+                const response = await fetch(`${node.rest}/cosmos/staking/v1beta1/validators?status=BOND_STATUS_BONDED`, {
+                    signal: AbortSignal.timeout(10000)
+                });
                 if (response.ok) {
                     const data = await response.json();
                     const validatorList: ValidatorInfo[] = (data.validators || []).map((v: any) => ({
@@ -62,29 +53,31 @@ export default function NodesPage() {
 
     // Check if a moniker matches a validator
     // Handles variations like "Texas Hodl" matching "validator-texashodl"
-    const isValidator = useCallback((moniker: string): boolean => {
-        if (!moniker || validators.length === 0) return false;
-        // Normalize: lowercase, remove spaces/dashes/underscores
-        const normalize = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, "");
-        const normalizedMoniker = normalize(moniker);
-        return validators.some(v => {
-            const normalizedValidator = normalize(v.moniker);
-            // Check if either contains the other, or if they share significant overlap
-            return normalizedValidator.includes(normalizedMoniker) ||
-                   normalizedMoniker.includes(normalizedValidator) ||
-                   // Also check for partial matches like "texashodl" in "validator-texashodl"
-                   normalizedValidator.replace("validator", "").includes(normalizedMoniker.replace("validator", "")) ||
-                   normalizedMoniker.replace("validator", "").includes(normalizedValidator.replace("validator", ""));
-        });
-    }, [validators]);
+    const isValidator = useCallback(
+        (moniker: string): boolean => {
+            if (!moniker || validators.length === 0) return false;
+            // Normalize: lowercase, remove spaces/dashes/underscores
+            const normalize = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, "");
+            const normalizedMoniker = normalize(moniker);
+            return validators.some(v => {
+                const normalizedValidator = normalize(v.moniker);
+                // Check if either contains the other, or if they share significant overlap
+                return (
+                    normalizedValidator.includes(normalizedMoniker) ||
+                    normalizedMoniker.includes(normalizedValidator) ||
+                    // Also check for partial matches like "texashodl" in "validator-texashodl"
+                    normalizedValidator.replace("validator", "").includes(normalizedMoniker.replace("validator", "")) ||
+                    normalizedMoniker.replace("validator", "").includes(normalizedValidator.replace("validator", ""))
+                );
+            });
+        },
+        [validators]
+    );
 
     // Check node status and get block height
     const checkNode = useCallback(async (network: NetworkEndpoints): Promise<NodeInfo> => {
         try {
-            const response = await fetch(
-                `${network.rest}/cosmos/base/tendermint/v1beta1/blocks/latest`,
-                { signal: AbortSignal.timeout(5000) }
-            );
+            const response = await fetch(`${network.rest}/cosmos/base/tendermint/v1beta1/blocks/latest`, { signal: AbortSignal.timeout(5000) });
             if (!response.ok) {
                 return { status: "offline", blockHeight: null };
             }
@@ -110,7 +103,7 @@ export default function NodesPage() {
 
         // Check each node in parallel
         const results = await Promise.all(
-            productionNodes.map(async (network) => {
+            productionNodes.map(async network => {
                 const info = await checkNode(network);
                 return { name: network.name, info };
             })
@@ -155,17 +148,23 @@ export default function NodesPage() {
     }, []);
 
     // Handle adding a discovered node to the network selector
-    const handleAddToNetworks = useCallback((node: DiscoveredNode) => {
-        if (node.endpoints) {
-            addDiscoveredNetwork(node.endpoints);
-        }
-    }, [addDiscoveredNetwork]);
+    const handleAddToNetworks = useCallback(
+        (node: DiscoveredNode) => {
+            if (node.endpoints) {
+                addDiscoveredNetwork(node.endpoints);
+            }
+        },
+        [addDiscoveredNetwork]
+    );
 
     // Check if a node is already added to networks
-    const isNodeAdded = useCallback((node: DiscoveredNode) => {
-        if (!node.endpoints) return false;
-        return discoveredNetworks.some(n => n.name === node.endpoints!.name || n.rest === node.endpoints!.rest);
-    }, [discoveredNetworks]);
+    const isNodeAdded = useCallback(
+        (node: DiscoveredNode) => {
+            if (!node.endpoints) return false;
+            return discoveredNetworks.some(n => n.name === node.endpoints!.name || n.rest === node.endpoints!.rest);
+        },
+        [discoveredNetworks]
+    );
 
     // Load cached discovered nodes on mount
     useEffect(() => {
@@ -265,37 +264,36 @@ export default function NodesPage() {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-700">
-                                    {productionNodes.map((network) => {
+                                    {productionNodes.map(network => {
                                         const info = nodeInfo[network.name];
                                         const status = info?.status || "checking";
                                         const blockHeight = info?.blockHeight;
                                         const nodeIsValidator = isValidator(network.name);
 
                                         return (
-                                            <tr
-                                                key={network.name}
-                                                className="hover:bg-gray-700/50 transition-colors"
-                                            >
+                                            <tr key={network.name} className="hover:bg-gray-700/50 transition-colors">
                                                 <td className="px-6 py-4 whitespace-nowrap">
                                                     <span className="text-white font-semibold">{network.name}</span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                                        nodeIsValidator
-                                                            ? "bg-purple-900/50 text-purple-400"
-                                                            : "bg-blue-900/50 text-blue-400"
-                                                    }`}>
+                                                    <span
+                                                        className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                            nodeIsValidator ? "bg-purple-900/50 text-purple-400" : "bg-blue-900/50 text-blue-400"
+                                                        }`}
+                                                    >
                                                         {nodeIsValidator ? "Validator" : "Sync"}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap">
-                                                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                        status === "checking"
-                                                            ? "bg-yellow-900/50 text-yellow-400"
-                                                            : status === "online"
-                                                                ? "bg-green-900/50 text-green-400"
-                                                                : "bg-red-900/50 text-red-400"
-                                                    }`}>
+                                                    <span
+                                                        className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                            status === "checking"
+                                                                ? "bg-yellow-900/50 text-yellow-400"
+                                                                : status === "online"
+                                                                  ? "bg-green-900/50 text-green-400"
+                                                                  : "bg-red-900/50 text-red-400"
+                                                        }`}
+                                                    >
                                                         {status === "checking" ? "Checking..." : status === "online" ? "Online" : "Offline"}
                                                     </span>
                                                 </td>
@@ -309,9 +307,7 @@ export default function NodesPage() {
                                                     )}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <span className="font-mono text-xs text-gray-400">
-                                                        {network.rest}
-                                                    </span>
+                                                    <span className="font-mono text-xs text-gray-400">{network.rest}</span>
                                                 </td>
                                                 <td className="px-6 py-4 whitespace-nowrap text-right">
                                                     <Link
@@ -337,9 +333,7 @@ export default function NodesPage() {
                 <div>
                     <h2 className="text-lg font-semibold text-white mb-4">
                         Discovered Nodes
-                        {discoveredNodes.length > 0 && (
-                            <span className="ml-2 text-sm font-normal text-gray-400">({discoveredNodes.length} found)</span>
-                        )}
+                        {discoveredNodes.length > 0 && <span className="ml-2 text-sm font-normal text-gray-400">({discoveredNodes.length} found)</span>}
                     </h2>
 
                     {discoveredNodes.length === 0 ? (
@@ -366,44 +360,47 @@ export default function NodesPage() {
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-gray-700">
-                                        {discoveredNodes.map((node) => {
+                                        {discoveredNodes.map(node => {
                                             const added = isNodeAdded(node);
                                             const nodeIsValidator = isValidator(node.moniker);
                                             return (
-                                                <tr
-                                                    key={node.id}
-                                                    className="hover:bg-gray-700/50 transition-colors"
-                                                >
+                                                <tr key={node.id} className="hover:bg-gray-700/50 transition-colors">
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <span className="text-white font-semibold">{node.moniker}</span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                                            nodeIsValidator
-                                                                ? "bg-purple-900/50 text-purple-400"
-                                                                : "bg-blue-900/50 text-blue-400"
-                                                        }`}>
+                                                        <span
+                                                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                                nodeIsValidator ? "bg-purple-900/50 text-purple-400" : "bg-blue-900/50 text-blue-400"
+                                                            }`}
+                                                        >
                                                             {nodeIsValidator ? "Validator" : "Sync"}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                                            node.isIpBased
-                                                                ? "bg-orange-900/50 text-orange-400"
-                                                                : "bg-cyan-900/50 text-cyan-400"
-                                                        }`}>
+                                                        <span
+                                                            className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                                                node.isIpBased ? "bg-orange-900/50 text-orange-400" : "bg-cyan-900/50 text-cyan-400"
+                                                            }`}
+                                                        >
                                                             {node.isIpBased ? "IP" : "Domain"}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
-                                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                                            node.probeStatus === "pending"
-                                                                ? "bg-yellow-900/50 text-yellow-400"
+                                                        <span
+                                                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                                                                node.probeStatus === "pending"
+                                                                    ? "bg-yellow-900/50 text-yellow-400"
+                                                                    : node.probeStatus === "reachable"
+                                                                      ? "bg-green-900/50 text-green-400"
+                                                                      : "bg-red-900/50 text-red-400"
+                                                            }`}
+                                                        >
+                                                            {node.probeStatus === "pending"
+                                                                ? "Probing..."
                                                                 : node.probeStatus === "reachable"
-                                                                    ? "bg-green-900/50 text-green-400"
-                                                                    : "bg-red-900/50 text-red-400"
-                                                        }`}>
-                                                            {node.probeStatus === "pending" ? "Probing..." : node.probeStatus === "reachable" ? "Reachable" : "Unreachable"}
+                                                                  ? "Reachable"
+                                                                  : "Unreachable"}
                                                         </span>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap">
@@ -416,9 +413,7 @@ export default function NodesPage() {
                                                     <td className="px-6 py-4">
                                                         <div className="flex flex-col">
                                                             <span className="font-mono text-xs text-gray-400">{node.remoteIp}</span>
-                                                            {node.endpoints && (
-                                                                <span className="font-mono text-xs text-gray-500">{node.endpoints.rest}</span>
-                                                            )}
+                                                            {node.endpoints && <span className="font-mono text-xs text-gray-500">{node.endpoints.rest}</span>}
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4 whitespace-nowrap text-right">
@@ -442,7 +437,12 @@ export default function NodesPage() {
                                                                     >
                                                                         View Details
                                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" />
+                                                                            <path
+                                                                                strokeLinecap="round"
+                                                                                strokeLinejoin="round"
+                                                                                strokeWidth="2"
+                                                                                d="M9 5l7 7-7 7"
+                                                                            />
                                                                         </svg>
                                                                     </Link>
                                                                 </>

@@ -103,3 +103,50 @@ export interface IndexerStatus {
     total_hands: number;
     total_games: number;
 }
+
+// GET /api/v1/hands
+export interface HandListItem {
+    game_id: string;
+    hand_number: number;
+    block_height: number;
+    deck_seed: string;
+    deck: string;
+    tx_hash: string;
+    created_at: string;
+}
+
+export interface HandListResponse {
+    data: HandListItem[];
+    pagination: {
+        limit: number;
+        offset: number;
+        total: number;
+    };
+}
+
+// GET /api/v1/hands/:gameId/:handNumber
+export interface RevealedCard {
+    id: number;
+    game_id: string;
+    hand_number: number;
+    block_height: number;
+    card: string;
+    card_type: "community" | "hole";
+    position: number;
+    created_at: string;
+}
+
+export interface HandResult {
+    game_id: string;
+    hand_number: number;
+    block_height: number;
+    community_cards: string[];
+    winner_count: number;
+    tx_hash: string;
+    created_at: string;
+}
+
+export interface HandDetail extends HandListItem {
+    result: HandResult | null;
+    revealed_cards: RevealedCard[];
+}

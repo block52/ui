@@ -43,3 +43,43 @@ export const getAutoPostBlindsEnabled = (): boolean => {
     // Default to true if param is missing or any value other than "false"
     return autoblinds !== "false";
 };
+
+/**
+ * Check if auto-new-hand is enabled via query string parameter.
+ *
+ * Auto-new-hand is ENABLED by default. It can only be disabled by explicitly
+ * setting ?autonewhand=false in the URL.
+ *
+ * @returns true if auto-new-hand is enabled, false if explicitly disabled
+ *
+ * @example
+ * // URL: /table/123 -> returns true (default)
+ * // URL: /table/123?autonewhand=true -> returns true
+ * // URL: /table/123?autonewhand=false -> returns false
+ */
+export const getAutoNewHandEnabled = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    const autonewhand = params.get("autonewhand");
+    // Default to true if param is missing or any value other than "false"
+    return autonewhand !== "false";
+};
+
+/**
+ * Check if auto-fold on timeout is enabled via query string parameter.
+ *
+ * Auto-fold is ENABLED by default. It can only be disabled by explicitly
+ * setting ?autofold=false in the URL.
+ *
+ * @returns true if auto-fold is enabled, false if explicitly disabled
+ *
+ * @example
+ * // URL: /table/123 -> returns true (default)
+ * // URL: /table/123?autofold=true -> returns true
+ * // URL: /table/123?autofold=false -> returns false
+ */
+export const getAutoFoldEnabled = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    const autofold = params.get("autofold");
+    // Default to true if param is missing or any value other than "false"
+    return autofold !== "false";
+};

@@ -37,21 +37,24 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
 
     return (
         <div className="flex justify-between gap-1 lg:gap-2 mb-1">
-            {potBetOptions.map(({ label, variation }) => (
-                <button
-                    key={label}
-                    className="btn-pot px-1 lg:px-2 py-1 lg:py-1.5 rounded-lg w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 transform hover:scale-105"
-                    onClick={() => onAmountSelect(calculatePotBet(variation))}
-                    disabled={disabled}
-                >
-                    {label}
-                </button>
-            ))}
+            {potBetOptions.map(({ label, variation }) => {
+                const amount = calculatePotBet(variation);
+                return (
+                    <button
+                        key={label}
+                        className="btn-pot px-1 lg:px-2 py-1 lg:py-1.5 rounded-lg w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 transform hover:scale-105"
+                        onClick={() => onAmountSelect(amount)}
+                        disabled={disabled || amount < minAmount}
+                    >
+                        {label}
+                    </button>
+                );
+            })}
 
             <button
                 className="btn-pot px-1 lg:px-2 py-1 lg:py-1.5 rounded-lg w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 transform hover:scale-105"
                 onClick={() => onAmountSelect(calculatePotBet("1"))}
-                disabled={disabled}
+                disabled={disabled || calculatePotBet("1") < minAmount}
             >
                 Pot
             </button>

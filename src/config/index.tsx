@@ -1,6 +1,7 @@
 import { WagmiAdapter } from "@reown/appkit-adapter-wagmi";
-import { mainnet, base } from "@reown/appkit/networks";
+
 import type { AppKitNetwork } from "@reown/appkit/networks";
+import { mainnet, base } from "viem/chains";
 import { createConfig, http } from "wagmi";
 import { metaMask } from "wagmi/connectors";
 

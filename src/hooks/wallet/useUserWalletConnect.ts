@@ -1,5 +1,6 @@
-import { useAppKit, useAppKitAccount, useDisconnect } from "@reown/appkit/react";
-import { useEffect, useMemo, useState } from "react";
+import { useConnect, useConnection, useConnectors, useDisconnect } from "wagmi";
+import { useCallback, useMemo } from "react";
+import { injected } from "wagmi/connectors";
 
 interface UseUserWalletConnectResult {
     open: () => void;
@@ -9,23 +10,29 @@ interface UseUserWalletConnectResult {
 }
 
 const useUserWalletConnect = (): UseUserWalletConnectResult => {
-    const { open } = useAppKit();
-    const { disconnect } = useDisconnect();
-    const { address, isConnected } = useAppKitAccount();
-    const [connected, setConnected] = useState<boolean | null>(null);
+    const { mutateAsync: connect } = useConnect();
+    const connectors = useConnectors();
+    const { mutateAsync } = useDisconnect();
+    const { address, isConnected } = useConnection();
 
-    useEffect(() => {
-        setConnected(isConnected);
-    }, [isConnected]);
+    const open = useCallback(() => {
+        if (connectors.length > 0) {
+            connect({ connector: injected() }); // connectors[1] is injected connector, which is usually MetaMask. Adjust the index if you want to use a different connector.
+        }
+    }, [connect, connectors]);
+
+    const disconnect = useCallback(() => {
+        mutateAsync(); // Disconnect using the same connector used for connection
+    }, [mutateAsync]);
 
     return useMemo(
         () => ({
             open,
             disconnect,
-            isConnected: connected,
+            isConnected,
             address
         }),
-        [open, connected, disconnect, address]
+        [open, isConnected, disconnect, address]
     );
 };
 

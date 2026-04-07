@@ -1,12 +1,13 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { useCosmosWallet } from "../hooks";
+
 import styles from "./WalletPanel.module.css";
+import { toast } from "react-toastify";
 
 // Copy to clipboard utility
 const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    alert(`${label} copied to clipboard!`);
+    toast.success(`${label} copied to clipboard!`);
 };
 
 interface WalletPanelProps {
@@ -16,6 +17,7 @@ interface WalletPanelProps {
     onCreateWallet: () => void;
     onImportWallet: () => void;
     usdcBalance: string;
+    cosmosWalletAddress: string | null;
 }
 
 /**
@@ -23,11 +25,10 @@ interface WalletPanelProps {
  * Shows wallet address, balances, and action buttons
  * Styled to match TableList component
  */
-const WalletPanel: React.FC<WalletPanelProps> = ({ onDeposit, onWithdraw, onTransfer, onCreateWallet, onImportWallet, usdcBalance }) => {
+const WalletPanel: React.FC<WalletPanelProps> = ({ onDeposit, onWithdraw, onTransfer, onCreateWallet, onImportWallet, usdcBalance, cosmosWalletAddress }) => {
     const navigate = useNavigate();
-    const cosmosWallet = useCosmosWallet();
 
-    if (!cosmosWallet.address) {
+    if (!cosmosWalletAddress) {
         // No wallet - show create/import options
         return (
             <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
@@ -92,12 +93,12 @@ const WalletPanel: React.FC<WalletPanelProps> = ({ onDeposit, onWithdraw, onTran
                     <div className="flex gap-2 items-center mt-1">
                         <input
                             type="text"
-                            value={cosmosWallet.address}
+                            value={cosmosWalletAddress || ""}
                             readOnly
                             className="flex-1 text-white px-3 py-2 rounded-lg border border-gray-600 bg-gray-900 font-mono text-sm truncate"
                         />
                         <button
-                            onClick={() => copyToClipboard(cosmosWallet.address || "", "Address")}
+                            onClick={() => copyToClipboard(cosmosWalletAddress || "", "Address")}
                             className={`text-white px-3 py-2 rounded-lg transition-all hover:opacity-90 text-sm ${styles.primaryButton}`}
                         >
                             Copy

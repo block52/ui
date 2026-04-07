@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
 import { getSigningClient } from "../../utils/cosmos/client";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 
@@ -25,10 +24,10 @@ export const useTableTopUp = (tableId: string, network: NetworkEndpoints) => {
 
     /**
      * Top up player's stack at the table
-     * @param amount - Amount to add in USDC (e.g., "10.00")
+     * @param amountMicrounits - Amount to add in USDC microunits (e.g., "5000000" for $5)
      * @returns Transaction result with hash and amount
      */
-    const topUp = async (amount: string): Promise<TopUpResult> => {
+    const topUp = async (amountMicrounits: string): Promise<TopUpResult> => {
         setLoading(true);
         setError(null);
 
@@ -37,18 +36,14 @@ export const useTableTopUp = (tableId: string, network: NetworkEndpoints) => {
                 throw new Error("Table ID is required for top-up");
             }
 
-            const { signingClient, userAddress } = await getSigningClient(network);
+            const { signingClient } = await getSigningClient(network);
 
+            // Amount is already in microunits from the modal
+            const topUpAmount = BigInt(amountMicrounits);
 
-            // Convert amount from USDC to micro-USDC (b52usdc)
-            // amount is in USDC (e.g., "10.00"), need to convert to micro-units (e.g., 10000000)
-            const amountInUsdc = parseFloat(amount);
-            if (isNaN(amountInUsdc) || amountInUsdc <= 0) {
+            if (topUpAmount <= 0n) {
                 throw new Error("Invalid top-up amount. Must be a positive number.");
             }
-
-            const topUpAmount = BigInt(Math.floor(amountInUsdc * Math.pow(10, COSMOS_CONSTANTS.USDC_DECIMALS)));
-
 
             // Call SigningCosmosClient.topUp()
             const transactionHash = await signingClient.topUp(tableId, topUpAmount);

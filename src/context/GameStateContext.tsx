@@ -4,10 +4,14 @@ import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-
 import { createAuthPayload } from "../utils/cosmos/signing";
 import { validateGameState, extractGameDataFromMessage } from "../utils/gameFormatUtils";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
+import { CosmosApi } from "../apis/Api";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
 const ENABLE_REST_FALLBACK = false;
-
+const AVATAR_SYNC_DEBUG =
+    typeof process !== "undefined" &&
+    process.env.NODE_ENV !== "production" &&
+    ["1", "true"].includes((process.env.VITE_DEBUG_AVATAR_SYNC || "").toLowerCase());
 /**
  * GameStateContext - Centralized WebSocket state management
  *
@@ -39,9 +43,12 @@ interface GameStateContextType {
     error: Error | null;
     validationError: ValidationError | null;
     pendingAction: PendingAction | null;
+    isReplayMode: boolean;
+    replayBlockNumber: number | null;
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
     sendAction: (action: string, amount?: string) => Promise<void>;
+    loadHistoricalState: (tableId: string, blockNumber: number) => Promise<void>;
 }
 
 const GameStateContext = createContext<GameStateContextType | null>(null);
@@ -58,6 +65,8 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const [error, setError] = useState<Error | null>(null);
     const [validationError, setValidationError] = useState<ValidationError | null>(null);
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
+    const [isReplayMode, setIsReplayMode] = useState<boolean>(false);
+    const [replayBlockNumber, setReplayBlockNumber] = useState<number | null>(null);
     const { currentNetwork } = useNetwork();
 
     // Use ref instead of state for currentTableId to prevent re-renders
@@ -119,6 +128,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             wsRef.current = ws;
 
             ws.onopen = async () => {
+                console.log("🔌 WebSocket connected to:", fullWsUrl);
                 // Create authenticated subscription message with signature
                 const authPayload = await createAuthPayload();
 
@@ -130,6 +140,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                     signature: authPayload?.signature
                 };
 
+                console.log("📤 Sending subscription message:", subscriptionMessage);
                 ws.send(JSON.stringify(subscriptionMessage));
                 setIsLoading(false);
 
@@ -149,6 +160,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
 
             ws.onmessage = event => {
                 try {
+                    console.log("📬 Raw WebSocket message received:", event.data);
                     const message = JSON.parse(event.data);
                     hasReceivedMessageRef.current = true;
 
@@ -162,6 +174,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         (cosmosEvents.includes(message.event) && message.gameId === tableId);
 
                     if (isStateUpdate) {
+                        console.log("📨 WebSocket message received:", message.event || message.type, "for gameId:", message.gameId || message.tableAddress);
                         // Extract game state, format, and variant from message
                         const { gameState: gameStateData, format: rawFormat, variant: rawVariant } = extractGameDataFromMessage(message);
 
@@ -173,6 +186,24 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                                 rawData: message
                             });
                             return;
+                        }
+
+                        if (AVATAR_SYNC_DEBUG) {
+                            const playersWithAvatars = gameStateData.players
+                                .filter(player => Boolean(player.avatar))
+                                .map(player => ({
+                                    seat: player.seat,
+                                    address: player.address,
+                                    avatar: player.avatar
+                                }));
+
+                            if (playersWithAvatars.length > 0) {
+                                console.info("[ProfileAvatarDebug] Incoming websocket avatars", {
+                                    gameId: message.gameId,
+                                    event: message.event,
+                                    playersWithAvatars
+                                });
+                            }
                         }
 
                         // Validate the game state data
@@ -198,6 +229,9 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         }
 
                         // Valid data - update state
+                        const playerAddress = localStorage.getItem("user_cosmos_address");
+                        const currentPlayer = (gameStateData as TexasHoldemStateDTO)?.players?.find(p => p.address === playerAddress);
+                        console.log("🎮 Game state updated. Current player status:", currentPlayer?.status, "| Player:", currentPlayer?.address?.slice(0, 10));
                         setGameState(gameStateData as TexasHoldemStateDTO);
                         setGameFormat(rawFormat as GameFormat);
                         setGameVariant(rawVariant as GameVariant);
@@ -241,13 +275,15 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 }
             };
 
-            ws.onclose = () => {
+            ws.onclose = (event) => {
+                console.log("🔌 WebSocket closed. Code:", event.code, "Reason:", event.reason, "Clean:", event.wasClean);
                 if (wsRef.current === ws) {
                     wsRef.current = null;
                 }
             };
 
-            ws.onerror = () => {
+            ws.onerror = (error) => {
+                console.error("❌ WebSocket error:", error);
                 setError(new Error(`WebSocket connection error for table ${tableId}`));
                 setIsLoading(false);
             };
@@ -310,6 +346,52 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         []
     );
 
+    // Load historical game state from chain at a specific block height (replay mode)
+    const loadHistoricalState = useCallback(
+        async (tableId: string, blockNumber: number): Promise<void> => {
+            // Clean up any existing WebSocket connection
+            if (wsRef.current) {
+                wsRef.current.close();
+                wsRef.current = null;
+            }
+
+            setIsLoading(true);
+            setError(null);
+            setValidationError(null);
+            setIsReplayMode(true);
+            setReplayBlockNumber(blockNumber);
+            currentTableIdRef.current = tableId;
+
+            try {
+                const cosmosApi = new CosmosApi({ baseUrl: currentNetwork.rest!, secure: false, timeout: 10000 });
+                const response = await cosmosApi.getGameStateAtBlock(tableId, blockNumber) as { game_state?: string };
+
+                if (!response || !response.game_state) {
+                    throw new Error(`No game state found at block ${blockNumber}`);
+                }
+
+                const parsed = JSON.parse(response.game_state);
+
+                // The chain response may be a GameStateResponseDTO (with gameState nested)
+                // or the TexasHoldemStateDTO directly
+                const gameStateData = parsed.gameState || parsed;
+                const rawFormat = parsed.format;
+                const rawVariant = parsed.variant;
+
+                setGameState(gameStateData as TexasHoldemStateDTO);
+                setGameFormat(rawFormat as GameFormat | undefined);
+                setGameVariant(rawVariant as GameVariant | undefined);
+                setPendingAction(null);
+            } catch (err) {
+                console.error("[GameStateContext] Failed to load historical state:", err);
+                setError(err instanceof Error ? err : new Error("Failed to load historical state"));
+            } finally {
+                setIsLoading(false);
+            }
+        },
+        [currentNetwork]
+    );
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -332,11 +414,14 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             error,
             validationError,
             pendingAction,
+            isReplayMode,
+            replayBlockNumber,
             subscribeToTable,
             unsubscribeFromTable,
-            sendAction
+            sendAction,
+            loadHistoricalState
         }),
-        [gameState, gameFormat, gameVariant, isLoading, error, validationError, pendingAction, subscribeToTable, unsubscribeFromTable, sendAction]
+        [gameState, gameFormat, gameVariant, isLoading, error, validationError, pendingAction, isReplayMode, replayBlockNumber, subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState]
     );
 
     return <GameStateContext.Provider value={contextValue}>{children}</GameStateContext.Provider>;

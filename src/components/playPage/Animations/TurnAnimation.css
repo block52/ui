@@ -19,7 +19,7 @@
     pointer-events: none;
     width: 240px;
     height: 130px;
-    transform: translate(-50%, calc(-50% - 20px));
+    transform: translate(-50%, -50%);
     will-change: transform;
 }
 

@@ -4,6 +4,7 @@ import type { PlayerActionResult } from "../../types";
 
 // TODO: Import from @block52/poker-vm-sdk once exported (see #1844)
 export type SitInMethod = "next-bb" | "post-now";
+// TODO: next-bb deferred until poker-vm#1895 is implemented
 export const SIT_IN_METHOD_NEXT_BB: SitInMethod = "next-bb";
 export const SIT_IN_METHOD_POST_NOW: SitInMethod = "post-now";
 
@@ -18,9 +19,19 @@ export const SIT_IN_METHOD_POST_NOW: SitInMethod = "post-now";
 export async function sitIn(
     tableId: string,
     network: NetworkEndpoints,
-    method: SitInMethod = SIT_IN_METHOD_NEXT_BB
+    method: SitInMethod = SIT_IN_METHOD_POST_NOW
 ): Promise<PlayerActionResult> {
+    console.log("🔧 sitIn() called with:", { tableId, method });
+    console.log("🔑 Getting signing client...");
     const { signingClient, userAddress } = await getSigningClient(network);
+    console.log("✅ Signing client obtained, userAddress:", userAddress);
+
+    console.log("📡 Calling SDK performAction with:", {
+        tableId,
+        action: "sit-in",
+        amount: "0n",
+        data: `method=${method}`
+    });
 
     const transactionHash = await signingClient.performAction(
         tableId,
@@ -29,6 +40,7 @@ export async function sitIn(
         `method=${method}`
     );
 
+    console.log("✅ performAction returned hash:", transactionHash);
 
     return {
         hash: transactionHash,

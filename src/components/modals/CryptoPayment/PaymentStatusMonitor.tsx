@@ -1,9 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import axios from "axios";
-import { PROXY_URL } from "../../../config/constants";
 import spinner from "../../../assets/spinning-circles.svg";
 import type { PaymentStatusMonitorProps } from "../types";
 import styles from "./PaymentStatusMonitor.module.css";
+import { usePaymentApi } from "../../../context/PaymentApiContext";
 
 interface PaymentStatus {
     payment_status: string;
@@ -13,6 +12,25 @@ interface PaymentStatus {
     outcome_amount?: number;
     outcome_currency?: string;
     bridge_tx_hash?: string;
+}
+
+interface PaymentStatusResponse {
+    success: boolean;
+    payment: {
+        payment_id: string;
+        payment_status: string;
+        pay_address: string;
+        pay_amount: number;
+        pay_currency: string;
+        actually_paid?: number;
+        outcome_amount?: number;
+        outcome_currency?: string;
+        bridge_tx_hash?: string;
+        bridge_status?: string;
+        expires_at?: string;
+        created_at?: string;
+        settled_at?: string;
+    };
 }
 
 const STATUS_MESSAGES = {
@@ -59,12 +77,17 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
     const [status, setStatus] = useState<PaymentStatus | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const api = usePaymentApi();
 
     // Use refs for callbacks to prevent effect cascades (infinite re-render loop)
     const onPaymentCompleteRef = useRef(onPaymentComplete);
     const onStatusChangeRef = useRef(onStatusChange);
-    useEffect(() => { onPaymentCompleteRef.current = onPaymentComplete; }, [onPaymentComplete]);
-    useEffect(() => { onStatusChangeRef.current = onStatusChange; }, [onStatusChange]);
+    useEffect(() => {
+        onPaymentCompleteRef.current = onPaymentComplete;
+    }, [onPaymentComplete]);
+    useEffect(() => {
+        onStatusChangeRef.current = onStatusChange;
+    }, [onStatusChange]);
 
     // Guard: only fire completion callback once
     const completionFiredRef = useRef(false);
@@ -74,10 +97,10 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
 
     const fetchStatus = useCallback(async () => {
         try {
-            const response = await axios.get(`${PROXY_URL}/api/nowpayments/payment/${paymentId}`);
+            const response = (await api.getPaymentStatus(paymentId)) as PaymentStatusResponse;
 
-            if (response.data.success) {
-                const paymentData = response.data.payment;
+            if (response.success) {
+                const paymentData = response.payment;
                 setStatus(paymentData);
                 statusRef.current = paymentData.payment_status;
 
@@ -122,11 +145,7 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
     }
 
     if (error) {
-        return (
-            <div className="p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-400 text-sm">
-                {error}
-            </div>
-        );
+        return <div className="p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-400 text-sm">{error}</div>;
     }
 
     if (!status) return null;
@@ -168,9 +187,7 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
                         </svg>
                     )}
                     <div className="flex-1">
-                        <p className={`font-semibold ${STATUS_ICON_CLASSES[statusVariant]}`}>
-                            {statusMessage}
-                        </p>
+                        <p className={`font-semibold ${STATUS_ICON_CLASSES[statusVariant]}`}>{statusMessage}</p>
                         <p className="text-xs text-gray-400 mt-1">Payment ID: {paymentId}</p>
                     </div>
                 </div>
@@ -188,9 +205,7 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
                     {status.outcome_amount && (
                         <div className="flex justify-between text-sm">
                             <span className="text-gray-400">USDC Received</span>
-                            <span className="text-white font-semibold">
-                                ${status.outcome_amount.toFixed(2)} USDC
-                            </span>
+                            <span className="text-white font-semibold">${status.outcome_amount.toFixed(2)} USDC</span>
                         </div>
                     )}
                     {status.bridge_tx_hash && (
@@ -215,8 +230,12 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
                         <div className={`w-2 h-2 rounded-full ${status.payment_status === "waiting" ? "bg-yellow-500 animate-pulse" : "bg-gray-600"}`} />
                         Waiting for blockchain confirmation
                     </div>
-                    <div className={`flex items-center gap-2 ${["confirming", "confirmed", "sending"].includes(status.payment_status) ? "text-white" : "text-gray-500"}`}>
-                        <div className={`w-2 h-2 rounded-full ${["confirming", "confirmed"].includes(status.payment_status) ? "bg-blue-500 animate-pulse" : status.payment_status === "sending" ? "bg-blue-500" : "bg-gray-600"}`} />
+                    <div
+                        className={`flex items-center gap-2 ${["confirming", "confirmed", "sending"].includes(status.payment_status) ? "text-white" : "text-gray-500"}`}
+                    >
+                        <div
+                            className={`w-2 h-2 rounded-full ${["confirming", "confirmed"].includes(status.payment_status) ? "bg-blue-500 animate-pulse" : status.payment_status === "sending" ? "bg-blue-500" : "bg-gray-600"}`}
+                        />
                         Converting to USDC
                     </div>
                     <div className={`flex items-center gap-2 ${status.payment_status === "sending" ? "text-white" : "text-gray-500"}`}>

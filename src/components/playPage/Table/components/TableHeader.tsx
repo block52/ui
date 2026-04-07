@@ -8,12 +8,14 @@
  * Hidden in mobile landscape mode.
  */
 
-import React from "react";
-import { FaCopy } from "react-icons/fa";
-import { RiMoneyDollarCircleLine } from "react-icons/ri";
+import React, { useState } from "react";
+import { FaCopy, FaShare, FaQrcode } from "react-icons/fa";
 import { LuPanelLeftOpen, LuPanelLeftClose } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
+import { QRCodeSVG } from "qrcode.react";
+import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
+import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import styles from "./TableHeader.module.css";
@@ -58,6 +60,7 @@ export interface TableHeaderProps {
     copyToClipboard: (text: string) => void;
     onCloseSideBar: () => void;
     handleLeaveTableClick: () => void;
+    handleShareHand: () => void;
 }
 
 export const TableHeader: React.FC<TableHeaderProps> = ({
@@ -83,7 +86,11 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     copyToClipboard,
     onCloseSideBar,
     handleLeaveTableClick,
+    handleShareHand,
 }) => {
+    const [showQR, setShowQR] = useState(false);
+    const tableUrl = `${window.location.origin}/table/${tableId}`;
+
     // Hidden in mobile landscape
     if (isMobileLandscape) {
         return null;
@@ -121,6 +128,15 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <FaCopy size={12} />
                         <span className="hidden sm:inline">Copy Table Link</span>
                         <span className="sm:hidden">Copy Link</span>
+                    </button>
+                    {/* QR Code Button */}
+                    <button
+                        onClick={() => setShowQR(true)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border ${styles.copyTableButton}`}
+                        title="Show QR code for table link"
+                    >
+                        <FaQrcode size={12} />
+                        <span className="hidden sm:inline">QR Code</span>
                     </button>
                     {/* Game Format & Variant Display - Desktop Only */}
                     {gameOptions && (
@@ -188,12 +204,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             </>
                         )}
                     </div>
-
-                    <div
-                        className={`flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 cursor-pointer rounded-full shadow-md border transition-all duration-300 flex-shrink-0 ${styles.depositButton}`}
-                        onClick={handleDepositClick}
-                    >
-                        <RiMoneyDollarCircleLine className="hover:scale-110 transition-transform duration-200" size={16} />
+                    <div className="ml-2 flex-shrink-0">
+                        <ProfileAvatarButton title="Open avatar picker" />
                     </div>
                 </div>
             </div>
@@ -227,6 +239,25 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                 <span className="sm:ml-2">Next to act: Seat {nextToAct}</span>
                             </span>
+                            <button
+                                onClick={handleShareHand}
+                                className={`flex items-center gap-1 text-[10px] sm:text-[15px] font-semibold transition-colors duration-200 hover:opacity-80 ${styles.secondaryText}`}
+                                title="Share this hand"
+                            >
+                                <FaShare size={10} />
+                                <span className="hidden sm:inline">Share</span>
+                            </button>
+                            <a
+                                href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(`${window.location.origin}/explorer/hand/${tableId}/${handNumber}`)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                title="Share on X"
+                                className={`transition-colors duration-200 hover:opacity-80 ${styles.secondaryText}`}
+                            >
+                                <svg className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
+                                </svg>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -255,6 +286,28 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     )}
                 </div>
             </div>
+
+            {/* QR Code Modal */}
+            <Modal
+                isOpen={showQR}
+                onClose={() => setShowQR(false)}
+                title="Scan to Join Table"
+                titleIcon={<FaQrcode size={16} />}
+                widthClass="w-80"
+                patternId="hexagons-qr"
+            >
+                <div className="flex flex-col items-center gap-4">
+                    <div className="bg-white p-4 rounded-xl">
+                        <QRCodeSVG value={tableUrl} size={240} />
+                    </div>
+                    <button
+                        onClick={() => setShowQR(false)}
+                        className="w-full py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold hover:bg-gray-600 transition-colors"
+                    >
+                        Close
+                    </button>
+                </div>
+            </Modal>
         </div>
     );
 };

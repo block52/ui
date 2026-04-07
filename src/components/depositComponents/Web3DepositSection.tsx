@@ -60,7 +60,7 @@ export const Web3DepositSection: React.FC<Web3DepositSectionProps> = ({
                                 USDC via Web3 Wallet
                             </h2>
                             <p className={`text-xs ${styles.secondaryTextStrong}`}>
-                                Metamask, Coinbase Wallet, etc.
+                                Web3 compatible wallets
                             </p>
                         </div>
                     </div>

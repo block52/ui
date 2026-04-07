@@ -5,11 +5,10 @@ import { CardStats, StatsSummary, RandomnessReport, IndexerStatus } from "./type
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import styles from "./DistributionPage.module.css";
+import { useIndexerApi } from "../../context/IndexerApiContext";
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
-
-const INDEXER_URL = import.meta.env.VITE_INDEXER_URL || "https://indexer.block52.xyz";
 
 export default function DistributionPage() {
     const [cardStats, setCardStats] = useState<CardStats[]>([]);
@@ -19,49 +18,43 @@ export default function DistributionPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
+    const indexerApi = useIndexerApi();
+
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
 
             // Fetch card stats (primary data for chart)
-            const cardsRes = await fetch(`${INDEXER_URL}/api/v1/stats/cards`);
-            if (!cardsRes.ok) {
-                throw new Error(`Failed to fetch card stats: ${cardsRes.status}`);
-            }
-            const cardsData: CardStats[] = await cardsRes.json();
-            setCardStats(cardsData);
+
+            const cardsRes = await indexerApi.getCardStats();
+
+            setCardStats(cardsRes as CardStats[]);
 
             // Fetch indexer sync status (non-critical — fail silently)
             try {
-                const statusRes = await fetch(`${INDEXER_URL}/api/v1/status`);
-                if (statusRes.ok) {
-                    const statusData: IndexerStatus = await statusRes.json();
-                    setIndexerStatus(statusData);
-                }
+                const statusRes = await indexerApi.getSyncStatus();
+                setIndexerStatus(statusRes as IndexerStatus);
             } catch {
+                console.error("Failed to fetch indexer status");
                 // Status endpoint unavailable — not critical
             }
 
             // Fetch summary stats (non-critical — fail silently)
             try {
-                const summaryRes = await fetch(`${INDEXER_URL}/api/v1/stats/summary`);
-                if (summaryRes.ok) {
-                    const summaryData: StatsSummary = await summaryRes.json();
-                    setSummary(summaryData);
-                }
+                const summaryRes = await indexerApi.getSummaryStats();
+                setSummary(summaryRes as StatsSummary);
             } catch {
+                console.error("Failed to fetch summary stats");
                 // Summary endpoint unavailable — not critical
             }
 
             // Fetch randomness analysis (non-critical — fail silently)
             try {
-                const randomnessRes = await fetch(`${INDEXER_URL}/api/v1/analysis/randomness`);
-                if (randomnessRes.ok) {
-                    const randomnessData: RandomnessReport = await randomnessRes.json();
-                    setRandomness(randomnessData);
-                }
+                const randomnessRes = await indexerApi.getRandomnessAnalysis();
+                setRandomness(randomnessRes as RandomnessReport);
             } catch {
+                console.error("Failed to fetch randomness analysis");
                 // Randomness endpoint unavailable — not critical
             }
 
@@ -71,22 +64,33 @@ export default function DistributionPage() {
             setError("Unable to load distribution data from the indexer. Please try again later.");
             setLoading(false);
         }
-    }, []);
+    }, [indexerApi]);
 
     useEffect(() => {
-        fetchData();
+        (async () => {
+            await fetchData();
+        })();
     }, [fetchData]);
 
+    // Sort cards into canonical order: rank (2-A) then suit (h,d,c,s)
+    const RANK_ORDER = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
+    const SUIT_ORDER = ["h", "d", "c", "s"];
+    const sortedCardStats = [...cardStats].sort((a, b) => {
+        const rankDiff = RANK_ORDER.indexOf(a.rank.toUpperCase()) - RANK_ORDER.indexOf(b.rank.toUpperCase());
+        if (rankDiff !== 0) return rankDiff;
+        return SUIT_ORDER.indexOf(a.suit.toLowerCase()) - SUIT_ORDER.indexOf(b.suit.toLowerCase());
+    });
+
     // Derive totals from card stats
-    const totalCardsDealt = cardStats.reduce((sum, c) => sum + c.total_appearances, 0);
+    const totalCardsDealt = sortedCardStats.reduce((sum, c) => sum + c.total_appearances, 0);
 
     // Prepare data for Chart.js
     const chartData = {
-        labels: cardStats.map(c => c.card),
+        labels: sortedCardStats.map(c => c.card),
         datasets: [
             {
                 label: "Card Frequency",
-                data: cardStats.map(c => c.total_appearances),
+                data: sortedCardStats.map(c => c.total_appearances),
                 backgroundColor: "rgba(75, 192, 192, 0.6)",
                 borderColor: "rgba(75, 192, 192, 1)",
                 borderWidth: 1
@@ -103,7 +107,7 @@ export default function DistributionPage() {
             },
             title: {
                 display: true,
-                text: "Card Distribution Across All Games (Proves Randomness)",
+                text: "Card Distribution Across All Hands (Proves Randomness)",
                 color: "#ffffff"
             },
             tooltip: {
@@ -168,10 +172,7 @@ export default function DistributionPage() {
                     <div className="text-center py-12">
                         <div className="bg-red-900/30 rounded-lg p-6 border border-red-700 inline-block">
                             <p className="text-lg text-red-300">{error}</p>
-                            <button
-                                onClick={fetchData}
-                                className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition-colors"
-                            >
+                            <button onClick={fetchData} className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition-colors">
                                 Retry
                             </button>
                         </div>
@@ -196,17 +197,12 @@ export default function DistributionPage() {
                                         }}
                                     />
                                 </div>
-                                <div className="flex items-center justify-between mt-2 text-xs text-gray-400">
+                                <div className="mt-2 text-xs text-gray-400">
                                     <span>{indexerStatus.percent_complete.toFixed(1)}% complete</span>
-                                    <span>
-                                        {indexerStatus.total_blocks - indexerStatus.blocks_indexed > 0
-                                            ? `${(indexerStatus.total_blocks - indexerStatus.blocks_indexed).toLocaleString()} blocks remaining`
-                                            : "Fully synced"}
-                                    </span>
                                 </div>
                                 <div className="flex gap-6 mt-3 text-xs text-gray-500">
                                     <span>Hands: {indexerStatus.total_hands.toLocaleString()}</span>
-                                    <span>Games: {indexerStatus.total_games.toLocaleString()}</span>
+                                    <span>Hands: {indexerStatus.total_games.toLocaleString()}</span>
                                     <span>Last block: #{indexerStatus.last_block_indexed.toLocaleString()}</span>
                                 </div>
                             </div>
@@ -216,10 +212,10 @@ export default function DistributionPage() {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
                             <div className="bg-gray-800 rounded-lg shadow p-6 border border-gray-700">
                                 <h3 className="text-sm font-medium text-gray-400">
-                                    {summary ? "Unique Games" : "Total Cards in Deck"}
+                                    {summary ? "Unique Hands" : "Total Cards in Deck"}
                                 </h3>
                                 <p className="text-3xl font-bold mt-2 text-white">
-                                    {summary ? summary.unique_games.toLocaleString() : "52"}
+                                    {summary ? summary.total_hands.toLocaleString() : "52"}
                                 </p>
                             </div>
                             <div className="bg-gray-800 rounded-lg shadow p-6 border border-gray-700">
@@ -228,9 +224,7 @@ export default function DistributionPage() {
                             </div>
                             <div className="bg-gray-800 rounded-lg shadow p-6 border border-gray-700">
                                 <h3 className="text-sm font-medium text-gray-400">Expected Per Card</h3>
-                                <p className="text-3xl font-bold mt-2 text-white">
-                                    {totalCardsDealt > 0 ? (totalCardsDealt / 52).toFixed(1) : "0"}
-                                </p>
+                                <p className="text-3xl font-bold mt-2 text-white">{totalCardsDealt > 0 ? (totalCardsDealt / 52).toFixed(1) : "0"}</p>
                             </div>
                         </div>
 
@@ -240,7 +234,6 @@ export default function DistributionPage() {
                                 <Bar data={chartData} options={chartOptions} />
                             </div>
                         </div>
-
 
                         {/* Chi-Squared Randomness Result */}
                         {randomness && (
@@ -284,12 +277,12 @@ export default function DistributionPage() {
                                     same number of times (within statistical variance).
                                 </li>
                                 <li>
-                                    <strong className="text-white">Expected Frequency</strong>: {totalCardsDealt > 0 ? (totalCardsDealt / 52).toFixed(1) : "N/A"}{" "}
-                                    times per card (total dealt / 52 cards).
+                                    <strong className="text-white">Expected Frequency</strong>:{" "}
+                                    {totalCardsDealt > 0 ? (totalCardsDealt / 52).toFixed(1) : "N/A"} times per card (total dealt / 52 cards).
                                 </li>
                                 <li>
-                                    <strong className="text-white">Block52 Shuffling</strong>: Decks are shuffled using deterministic block hash,
-                                    ensuring verifiable randomness across all validators.
+                                    <strong className="text-white">Block52 Shuffling</strong>: Decks are shuffled using deterministic block hash, ensuring
+                                    verifiable randomness across all validators.
                                 </li>
                                 <li>
                                     <strong className="text-white">Transparency</strong>: All deck shuffles are on-chain and auditable. No single party can

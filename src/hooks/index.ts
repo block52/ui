@@ -10,6 +10,9 @@ export * from "./playerActions";
 // Wallet hooks (barrel)
 export * from "./wallet";
 
+// Profile hooks (barrel)
+export * from "./profile";
+
 // Animation hooks (barrel)
 export * from "./animations";
 

@@ -1,17 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { useCosmosWallet } from "../hooks";
+
 import { useNetwork } from "../context/NetworkContext";
 import { formatTimestampRelative } from "../utils/formatUtils";
 import { microToUsdc } from "../constants/currency";
 import styles from "./TransactionPanel.module.css";
-import {
-    formatTransactionLabel,
-    formatTransferDirection,
-    getTransferDirectionClass,
-    formatShortHash,
-    formatGameId
-} from "../utils/transactionUtils";
+import { formatTransactionLabel, formatTransferDirection, getTransferDirectionClass, formatShortHash, formatGameId } from "../utils/transactionUtils";
+import { useCosmosApi } from "../context/CosmosApiContext";
 
 interface Transaction {
     txhash: string;
@@ -29,49 +24,56 @@ interface Transaction {
     transferDirection?: "sent" | "received";
 }
 
+interface TransactionPanelProps {
+    cosmosWalletAddress: string | null;
+    usdcBalance: string;
+}
+
+export interface TransactionResponse {
+    pagination: any;
+    total: string;
+    tx_responses: any[];
+    txs?: any[]; // Include txs for message parsing
+}
+
 /**
  * TransactionPanel - Shows recent transactions for the connected wallet
  * Displays the last 6 transactions
  */
-const TransactionPanel: React.FC = () => {
+const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress, usdcBalance }) => {
     const navigate = useNavigate();
-    const cosmosWallet = useCosmosWallet();
     const { currentNetwork } = useNetwork();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const cosmosApi = useCosmosApi();
 
     const fetchTransactions = useCallback(async () => {
-        if (!cosmosWallet.address) return;
+        if (!cosmosWalletAddress) return;
 
         try {
             setLoading(true);
             setError(null);
 
-            const restEndpoint = currentNetwork.rest;
-            const address = cosmosWallet.address;
+            const address = cosmosWalletAddress;
 
             // Query for transactions where this address is the sender OR recipient
             const senderQuery = `message.sender='${address}'`;
             const recipientQuery = `transfer.recipient='${address}'`;
-
             // Fetch both sent and received transactions
             const [sentResponse, receivedResponse] = await Promise.all([
-                fetch(`${restEndpoint}/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(senderQuery)}&order_by=2&limit=10`),
-                fetch(`${restEndpoint}/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(recipientQuery)}&order_by=2&limit=10`)
+                cosmosApi.getSentTransactions(senderQuery) as Promise<TransactionResponse>,
+                cosmosApi.getReceivedTransactions(recipientQuery) as Promise<TransactionResponse>
             ]);
 
-            const sentData = sentResponse.ok ? await sentResponse.json() : { tx_responses: [], txs: [] };
-            const receivedData = receivedResponse.ok ? await receivedResponse.json() : { tx_responses: [], txs: [] };
-
             // Combine tx_responses with their txs for message type extraction
-            const sentTxs = (sentData.tx_responses || []).map((tx: any, i: number) => ({
+            const sentTxs = (sentResponse.tx_responses || []).map((tx: any, i: number) => ({
                 ...tx,
-                tx: sentData.txs?.[i]
+                tx: sentResponse.txs?.[i]
             }));
-            const receivedTxs = (receivedData.tx_responses || []).map((tx: any, i: number) => ({
+            const receivedTxs = (receivedResponse.tx_responses || []).map((tx: any, i: number) => ({
                 ...tx,
-                tx: receivedData.txs?.[i]
+                tx: receivedResponse.txs?.[i]
             }));
 
             // Combine and deduplicate transactions by hash
@@ -165,15 +167,15 @@ const TransactionPanel: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [cosmosWallet.address, currentNetwork.rest]);
+    }, [cosmosWalletAddress, currentNetwork.rest]);
 
     // Fetch transactions on mount and when wallet changes
     useEffect(() => {
         fetchTransactions();
-    }, [fetchTransactions]);
+    }, [fetchTransactions, cosmosWalletAddress, usdcBalance]);
 
     // Don't render if no wallet
-    if (!cosmosWallet.address) {
+    if (!cosmosWalletAddress) {
         return null;
     }
 
@@ -188,12 +190,7 @@ const TransactionPanel: React.FC = () => {
                     className={`p-2 rounded-lg text-white transition-all hover:opacity-90 disabled:opacity-50 ${styles.refreshButton}`}
                     title="Refresh transactions"
                 >
-                    <svg
-                        className={`w-5 h-5 ${loading ? "animate-spin" : ""}`}
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
+                    <svg className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path
                             strokeLinecap="round"
                             strokeLinejoin="round"
@@ -208,12 +205,7 @@ const TransactionPanel: React.FC = () => {
             <div className="p-4">
                 {loading && transactions.length === 0 ? (
                     <div className="flex items-center justify-center py-8">
-                        <svg
-                            className="animate-spin h-6 w-6 text-gray-400"
-                            xmlns="http://www.w3.org/2000/svg"
-                            fill="none"
-                            viewBox="0 0 24 24"
-                        >
+                        <svg className="animate-spin h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                             <path
                                 className="opacity-75"
@@ -225,10 +217,7 @@ const TransactionPanel: React.FC = () => {
                 ) : error ? (
                     <div className="text-center py-6">
                         <p className="text-gray-400 text-sm">{error}</p>
-                        <button
-                            onClick={fetchTransactions}
-                            className={`mt-2 text-sm transition-colors hover:opacity-80 ${styles.primaryText}`}
-                        >
+                        <button onClick={fetchTransactions} className={`mt-2 text-sm transition-colors hover:opacity-80 ${styles.primaryText}`}>
                             Try again
                         </button>
                     </div>
@@ -246,19 +235,15 @@ const TransactionPanel: React.FC = () => {
                     </div>
                 ) : (
                     <div className="space-y-2">
-                        {transactions.map((tx) => (
+                        {transactions.map(tx => (
                             <div
                                 key={tx.txhash}
                                 onClick={() => navigate(`/explorer/tx/${tx.txhash}`)}
                                 className="p-3 rounded-lg bg-gray-900 border border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors"
                             >
                                 <div className="flex items-center justify-between mb-1">
-                                    <span className="text-white text-sm font-medium">
-                                        {formatTransactionLabel(tx.action, tx.messageType)}
-                                    </span>
-                                    <span
-                                        className={`text-xs px-2 py-0.5 rounded-full ${tx.code === 0 ? styles.statusSuccess : styles.statusFailed}`}
-                                    >
+                                    <span className="text-white text-sm font-medium">{formatTransactionLabel(tx.action, tx.messageType)}</span>
+                                    <span className={`text-xs px-2 py-0.5 rounded-full ${tx.code === 0 ? styles.statusSuccess : styles.statusFailed}`}>
                                         {tx.code === 0 ? "Success" : "Failed"}
                                     </span>
                                 </div>
@@ -273,17 +258,11 @@ const TransactionPanel: React.FC = () => {
                                         <span className={`text-sm font-medium ${styles.primaryText}`}>
                                             {microToUsdc(tx.amount || tx.transferAmount || "0")} USDC
                                         </span>
-                                        {tx.gameId && (
-                                            <span className="text-xs text-gray-500">
-                                                Game: {formatGameId(tx.gameId)}
-                                            </span>
-                                        )}
+                                        {tx.gameId && <span className="text-xs text-gray-500">Game: {formatGameId(tx.gameId)}</span>}
                                     </div>
                                 )}
                                 <div className="flex items-center justify-between">
-                                    <span className="text-gray-400 text-xs font-mono">
-                                        {formatShortHash(tx.txhash)}
-                                    </span>
+                                    <span className="text-gray-400 text-xs font-mono">{formatShortHash(tx.txhash)}</span>
                                     <span className="text-gray-500 text-xs">{formatTimestampRelative(tx.timestamp)}</span>
                                 </div>
                             </div>
@@ -292,9 +271,9 @@ const TransactionPanel: React.FC = () => {
                 )}
 
                 {/* View All Link */}
-                {transactions.length > 0 && cosmosWallet.address && (
+                {transactions.length > 0 && cosmosWalletAddress && (
                     <button
-                        onClick={() => navigate(`/explorer/address/${cosmosWallet.address}`)}
+                        onClick={() => navigate(`/explorer/address/${cosmosWalletAddress}`)}
                         className={`w-full mt-4 text-center text-sm transition-all hover:opacity-80 flex items-center justify-center gap-2 ${styles.primaryText}`}
                     >
                         <span>View All Transactions</span>

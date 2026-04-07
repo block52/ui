@@ -1,36 +1,36 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { microToUsdc, usdcToMicroBigInt } from "../../constants/currency";
+import { calculateMinTopUp, calculateMaxTopUp } from "../../utils/topUpUtils";
 import { Modal, LoadingSpinner } from "../common";
 import styles from "./TopUpModal.module.css";
 import type { TopUpModalProps } from "./types";
 
-const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, maxBuyIn, walletBalance, onClose, onTopUp }) => {
+const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyIn, walletBalance, onClose, onTopUp }) => {
     const [topUpError, setTopUpError] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
 
-    // Calculate formatted values
-    const { currentStackFormatted, maxBuyInFormatted, walletBalanceFormatted, maxTopUpFormatted, maxTopUpMicro } = useMemo(() => {
+    const { currentStackFormatted, maxBuyInFormatted, walletBalanceFormatted, minTopUpFormatted, maxTopUpFormatted, minTopUpMicro, maxTopUpMicro } = useMemo(() => {
         const current = microToUsdc(currentStack);
+        const min = microToUsdc(minBuyIn);
         const max = microToUsdc(maxBuyIn);
         const wallet = microToUsdc(walletBalance);
 
-        // Max top-up is the lower of: (maxBuyIn - currentStack) or walletBalance
-        const maxTopUpAmount = Math.min(max - current, wallet);
-        const maxTopUpMicrounits = usdcToMicroBigInt(maxTopUpAmount);
+        const minTopUpAmount = calculateMinTopUp(current, min);
+        const maxTopUpAmount = calculateMaxTopUp(current, max, wallet);
 
         return {
             currentStackFormatted: current.toFixed(2),
             maxBuyInFormatted: max.toFixed(2),
             walletBalanceFormatted: wallet.toFixed(2),
+            minTopUpFormatted: minTopUpAmount.toFixed(2),
             maxTopUpFormatted: maxTopUpAmount.toFixed(2),
-            maxTopUpMicro: maxTopUpMicrounits
+            minTopUpMicro: usdcToMicroBigInt(minTopUpAmount),
+            maxTopUpMicro: usdcToMicroBigInt(maxTopUpAmount)
         };
-    }, [currentStack, maxBuyIn, walletBalance]);
+    }, [currentStack, minBuyIn, maxBuyIn, walletBalance]);
 
-    // Initialize with max top-up amount
     const [topUpAmount, setTopUpAmount] = useState(() => maxTopUpFormatted);
 
-    // Check if top-up is possible
     const canTopUp = useMemo(() => {
         return parseFloat(maxTopUpFormatted) > 0;
     }, [maxTopUpFormatted]);
@@ -40,30 +40,43 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, maxBuyIn, walletB
         setTopUpError("");
     }, []);
 
+    const handleMinClick = useCallback(() => {
+        handleTopUpChange(minTopUpFormatted);
+    }, [minTopUpFormatted, handleTopUpChange]);
+
     const handleMaxClick = useCallback(() => {
         handleTopUpChange(maxTopUpFormatted);
     }, [maxTopUpFormatted, handleTopUpChange]);
+
+    const isAmountInvalid = useMemo(() => {
+        const amount = parseFloat(topUpAmount);
+        if (isNaN(amount) || amount <= 0) return true;
+        const amountMicro = usdcToMicroBigInt(amount);
+        return amountMicro < minTopUpMicro || amountMicro > maxTopUpMicro;
+    }, [topUpAmount, minTopUpMicro, maxTopUpMicro]);
 
     const handleTopUpClick = useCallback(async () => {
         try {
             setTopUpError("");
             setIsProcessing(true);
 
-            // Convert dollar amount to USDC microunits
             const topUpMicrounits = usdcToMicroBigInt(parseFloat(topUpAmount));
 
-            // Validation
             if (topUpMicrounits <= 0n) {
                 setTopUpError("Top-up amount must be positive");
                 return;
             }
 
-            if (topUpMicrounits > maxTopUpMicro) {
-                setTopUpError(`Maximum top-up allowed is $${maxTopUpFormatted}`);
+            if (topUpMicrounits < minTopUpMicro) {
+                setTopUpError(`Minimum top-up is $${minTopUpFormatted}`);
                 return;
             }
 
-            // Execute top-up
+            if (topUpMicrounits > maxTopUpMicro) {
+                setTopUpError(`Maximum top-up is $${maxTopUpFormatted}`);
+                return;
+            }
+
             await onTopUp(topUpMicrounits.toString());
         } catch (error) {
             console.error("Error in top-up:", error);
@@ -71,9 +84,8 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, maxBuyIn, walletB
         } finally {
             setIsProcessing(false);
         }
-    }, [topUpAmount, maxTopUpMicro, maxTopUpFormatted, onTopUp]);
+    }, [topUpAmount, minTopUpMicro, maxTopUpMicro, minTopUpFormatted, maxTopUpFormatted, onTopUp]);
 
-    // Show "cannot top up" modal if at max or no balance
     if (!canTopUp) {
         return (
             <Modal isOpen={true} onClose={onClose} title="Cannot Top Up" patternId="hexagons-topup-error">
@@ -103,22 +115,29 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, maxBuyIn, walletB
             patternId="hexagons-topup"
         >
             {/* Current Stack */}
-            <div className={`mb-4 p-4 rounded-lg ${styles.infoCard}`}>
-                <div className="text-sm text-gray-400 mb-1">Current Stack</div>
-                <div className="text-2xl font-bold text-white">${currentStackFormatted}</div>
-                <div className="text-xs text-gray-500 mt-1">Table Max: ${maxBuyInFormatted}</div>
+            <div className={`mb-2 rounded-lg ${styles.infoCard}`}>
+                <div className="text-xs text-gray-400 mb-0.5">Current Stack</div>
+                <div className="text-lg font-bold text-white">${currentStackFormatted}</div>
+                <div className="text-xs text-gray-500 mt-0.5">Table Max: ${maxBuyInFormatted}</div>
             </div>
 
             {/* Wallet Balance */}
-            <div className={`mb-6 p-4 rounded-lg ${styles.infoCard}`}>
-                <div className="text-sm text-gray-400 mb-1">Wallet Balance</div>
-                <div className="text-xl font-bold text-white">${walletBalanceFormatted}</div>
+            <div className={`mb-3 rounded-lg ${styles.infoCard}`}>
+                <div className="text-xs text-gray-400 mb-0.5">Wallet Balance</div>
+                <div className="text-lg font-bold text-white">${walletBalanceFormatted}</div>
             </div>
 
             {/* Top-Up Amount Selection */}
-            <div className="mb-6">
+            <div className="mb-4">
                 <label className="block text-gray-300 mb-2 font-medium text-sm">Top-Up Amount</label>
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2">
+                    <button
+                        onClick={handleMinClick}
+                        className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
+                    >
+                        <div className="text-xs text-gray-400">MIN</div>
+                        <div className="font-bold">${minTopUpFormatted}</div>
+                    </button>
                     <button
                         onClick={handleMaxClick}
                         className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
@@ -126,32 +145,28 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, maxBuyIn, walletB
                         <div className="text-xs text-gray-400">MAX</div>
                         <div className="font-bold">${maxTopUpFormatted}</div>
                     </button>
-                    <div className="flex-1">
-                        <input
-                            type="number"
-                            value={topUpAmount}
-                            onChange={e => handleTopUpChange(e.target.value)}
-                            className={`w-full p-2 text-white rounded-lg text-center focus:outline-none ${styles.amountInput}`}
-                            placeholder="0.00"
-                            step="0.01"
-                        />
-                    </div>
+                </div>
+                <div className="flex-1">
+                    <input
+                        type="number"
+                        min={minTopUpFormatted}
+                        max={maxTopUpFormatted}
+                        step="0.01"
+                        value={topUpAmount}
+                        onChange={e => handleTopUpChange(e.target.value)}
+                        className={`w-full p-2 text-white rounded-lg text-center ${styles.amountInput}`}
+                        style={isAmountInvalid && topUpAmount ? { borderColor: "red" } : undefined}
+                        placeholder="0.00"
+                    />
                 </div>
             </div>
 
             {/* Action Buttons */}
-            <div className="flex gap-3">
-                <button
-                    onClick={onClose}
-                    disabled={isProcessing}
-                    className={`flex-1 px-5 py-3 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80 ${styles.cancelButton}`}
-                >
-                    Cancel
-                </button>
+            <div className="flex flex-col space-y-3">
                 <button
                     onClick={handleTopUpClick}
-                    disabled={isProcessing || !topUpAmount || parseFloat(topUpAmount) <= 0}
-                    className={`flex-1 px-5 py-3 rounded-lg font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
+                    disabled={isProcessing || isAmountInvalid}
+                    className={`w-full px-5 py-2 rounded-lg font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
                 >
                     {isProcessing ? (
                         <>
@@ -162,9 +177,16 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, maxBuyIn, walletB
                         "BUY"
                     )}
                 </button>
+                <button
+                    onClick={onClose}
+                    disabled={isProcessing}
+                    className={`w-full px-5 py-2 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80 ${styles.cancelButton}`}
+                >
+                    Cancel
+                </button>
             </div>
 
-            <div className={`mt-4 text-xs ${styles.noteText}`}>
+            <div className={`mt-3 text-xs ${styles.noteText}`}>
                 <strong>Note:</strong> You can only top up when not in an active hand.
             </div>
         </Modal>

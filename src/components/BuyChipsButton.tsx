@@ -5,6 +5,7 @@ import styles from "./BuyChipsButton.module.css";
 interface BuyChipsButtonProps {
     tableId: string;
     currentStack: string; // USDC micro-units
+    minBuyIn: string; // USDC micro-units
     maxBuyIn: string; // USDC micro-units
     walletBalance: string; // USDC micro-units
     canTopUp: boolean; // Whether player can currently top up
@@ -22,6 +23,7 @@ interface BuyChipsButtonProps {
 const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
     tableId,
     currentStack,
+    minBuyIn,
     maxBuyIn,
     walletBalance,
     canTopUp,
@@ -56,6 +58,7 @@ const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
                 <TopUpModal
                     tableId={tableId}
                     currentStack={currentStack}
+                    minBuyIn={minBuyIn}
                     maxBuyIn={maxBuyIn}
                     walletBalance={walletBalance}
                     onClose={() => setShowModal(false)}

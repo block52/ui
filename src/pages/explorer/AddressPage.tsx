@@ -8,6 +8,8 @@ import { formatTimestampRelative } from "../../utils/formatUtils";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import styles from "./AddressPage.module.css";
+import { TransactionResponse } from "../../components/TransactionPanel";
+import { useCosmosApi } from "../../context/CosmosApiContext";
 
 export default function AddressPage() {
     const { address: urlAddress } = useParams<{ address: string }>();
@@ -20,6 +22,7 @@ export default function AddressPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [activeTab, setActiveTab] = useState<"balances" | "transactions">("balances");
+    const cosmosApi = useCosmosApi();
 
     const handleSearch = useCallback(
         async (addressToSearch?: string) => {
@@ -54,8 +57,6 @@ export default function AddressPage() {
 
                 // Fetch transactions - try multiple event types to catch all transactions
                 try {
-                    const restEndpoint = currentNetwork.rest;
-
                     // Query for transactions where this address is the sender OR recipient
                     const senderQuery = `message.sender='${searchAddress.trim()}'`;
                     const recipientQuery = `transfer.recipient='${searchAddress.trim()}'`;
@@ -63,15 +64,12 @@ export default function AddressPage() {
                     // Fetch both sent and received transactions
                     // Note: Cosmos SDK uses 'query=' parameter, not 'events='
                     const [sentResponse, receivedResponse] = await Promise.all([
-                        fetch(`${restEndpoint}/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(senderQuery)}&order_by=2&limit=50`),
-                        fetch(`${restEndpoint}/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(recipientQuery)}&order_by=2&limit=50`)
+                        cosmosApi.getSentTransactions(senderQuery) as Promise<TransactionResponse>,
+                        cosmosApi.getReceivedTransactions(recipientQuery) as Promise<TransactionResponse>
                     ]);
 
-                    const sentData = sentResponse.ok ? await sentResponse.json() : { tx_responses: [] };
-                    const receivedData = receivedResponse.ok ? await receivedResponse.json() : { tx_responses: [] };
-
                     // Combine and deduplicate transactions by hash
-                    const allTxs = [...(sentData.tx_responses || []), ...(receivedData.tx_responses || [])];
+                    const allTxs = [...(sentResponse.tx_responses || []), ...(receivedResponse.tx_responses || [])];
                     const uniqueTxs = Array.from(new Map(allTxs.map((tx: any) => [tx.txhash, tx])).values());
 
                     // Sort by height (descending)
@@ -230,10 +228,7 @@ export default function AddressPage() {
                                 ) : (
                                     <div className="space-y-3">
                                         {balances.map((balance, index) => (
-                                            <div
-                                                key={index}
-                                                className={`p-4 rounded-lg ${styles.balanceItemCard}`}
-                                            >
+                                            <div key={index} className={`p-4 rounded-lg ${styles.balanceItemCard}`}>
                                                 <div className="flex justify-between items-center">
                                                     <div>
                                                         <p className="text-white font-bold">{formatDenom(balance.denom)}</p>

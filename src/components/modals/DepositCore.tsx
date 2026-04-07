@@ -1,6 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useCallback } from "react";
 import * as React from "react";
-import axios from "axios";
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import useDepositUSDC from "../../hooks/wallet/useDepositUSDC";
 import useAllowance from "../../hooks/wallet/useAllowance";
@@ -11,7 +10,7 @@ import btcLogo from "../../assets/crypto/btc.svg";
 import usdcLogo from "../../assets/crypto/usdc.svg";
 import useWalletBalance from "../../hooks/wallet/useWalletBalance";
 import { toast } from "react-toastify";
-import { COSMOS_BRIDGE_ADDRESS, PROXY_URL } from "../../config/constants";
+import { COSMOS_BRIDGE_ADDRESS } from "../../config/constants";
 import { maxUint256 } from "viem";
 import { getTokenAddress } from "../../utils/tokenUtils";
 import type { DepositToken } from "../../utils/tokenUtils";
@@ -20,6 +19,7 @@ import { formatUSDCToSimpleDollars, convertAmountToBigInt } from "../../utils/nu
 import CurrencySelector from "./CryptoPayment/CurrencySelector";
 import PaymentDisplay from "./CryptoPayment/PaymentDisplay";
 import PaymentStatusMonitor from "./CryptoPayment/PaymentStatusMonitor";
+import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import styles from "./DepositCore.module.css";
 
 type DepositMethod = "crypto" | "usdc";
@@ -31,21 +31,20 @@ interface PaymentData {
     pay_currency: string;
     price_amount: number;
     expires_at: string;
+    success?: boolean;
 }
 
 import type { DepositCoreProps } from "./types";
+import { usePaymentApi } from "../../context/PaymentApiContext";
 
-const DepositCore: React.FC<DepositCoreProps> = ({
-    onSuccess,
-    showMethodSelector = true
-}) => {
+const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector = true }) => {
     const BRIDGE_ADDRESS = COSMOS_BRIDGE_ADDRESS;
 
     // Token selection for Web3 deposit (USDC or USDT)
     const [selectedToken, setSelectedToken] = useState<DepositToken>("USDC");
     const tokenAddress = getTokenAddress(selectedToken);
 
-    const { open, isConnected, address } = useUserWalletConnect();
+    const { open, disconnect, isConnected, address } = useUserWalletConnect();
     const { deposit, depositToken, isDepositPending, isDepositConfirmed, isPending, depositError } = useDepositUSDC();
     const { isApprovePending, isApproveConfirmed, isLoading, approve, approveError } = useApprove();
     const [amount, setAmount] = useState<string>("0");
@@ -56,6 +55,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
     const { allowance } = useAllowance(tokenAddress);
     const { balance } = useWalletBalance(tokenAddress);
     const cosmosWallet = useCosmosWallet();
+    const { refreshWalletNfts } = useProfileAvatar();
 
     // USDT approval quirk: must reset allowance to 0 before setting new value
     const [isResettingAllowance, setIsResettingAllowance] = useState(false);
@@ -67,11 +67,19 @@ const DepositCore: React.FC<DepositCoreProps> = ({
     const [creatingPayment, setCreatingPayment] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState<string>("waiting");
 
+    const api = usePaymentApi();
+
     useEffect(() => {
         if (allowance) {
             setWalletAllowance(allowance);
         }
     }, [allowance]);
+
+    useEffect(() => {
+        if (isConnected && address) {
+            refreshWalletNfts();
+        }
+    }, [isConnected, address, refreshWalletNfts]);
 
     useEffect(() => {
         if (isDepositConfirmed) {
@@ -81,7 +89,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
             cosmosWallet.refreshBalance();
             if (onSuccess) onSuccess();
         }
-    }, [isDepositConfirmed, tmpDepositAmount, cosmosWallet, onSuccess]);
+    }, [isDepositConfirmed, selectedToken, tmpDepositAmount, cosmosWallet, onSuccess]);
 
     const [approvalToastShown, setApprovalToastShown] = React.useState(false);
 
@@ -100,7 +108,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                 setApprovalToastShown(true);
             }
         }
-    }, [isApproveConfirmed, tmpWalletAllowance, approvalToastShown, isResettingAllowance]);
+    }, [isApproveConfirmed, approvalToastShown, isResettingAllowance, tmpWalletAllowance, selectedToken, approve, tokenAddress, BRIDGE_ADDRESS]);
 
     useEffect(() => {
         if (isLoading || isApprovePending) {
@@ -195,27 +203,21 @@ const DepositCore: React.FC<DepositCoreProps> = ({
 
         try {
             setCreatingPayment(true);
-            const response = await axios.post(`${PROXY_URL}/api/nowpayments/create`, {
+            const response = (await api.createCryptoPayment({
                 amount: +amount,
                 currency: selectedCurrency,
                 cosmosAddress: cosmosWallet.address
-            });
+            })) as PaymentData;
 
-            if (response.data.success) {
+            if (response.success) {
                 setPaymentData({
-                    payment_id: response.data.payment_id,
-                    pay_address: response.data.pay_address,
-                    pay_amount: response.data.pay_amount,
-                    pay_currency: response.data.pay_currency,
-                    price_amount: response.data.price_amount,
-                    expires_at: response.data.expires_at
+                    payment_id: response.payment_id,
+                    pay_address: response.pay_address,
+                    pay_amount: response.pay_amount,
+                    pay_currency: response.pay_currency,
+                    price_amount: response.price_amount,
+                    expires_at: response.expires_at
                 });
-                toast.success("Payment created! Send crypto to the address below.", { autoClose: 5000 });
-            } else {
-                if (!response.data.error) {
-                    throw new Error("API returned success:false with no error message");
-                }
-                toast.error(response.data.error, { autoClose: 5000 });
             }
         } catch (err: unknown) {
             console.error("Error creating payment:", err);
@@ -248,44 +250,30 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                     {/* Deposit Method Selector */}
                     {showMethodSelector && (
                         <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-3">
-                                Select a deposit method
-                            </label>
+                            <label className="block text-sm font-medium text-gray-400 mb-3">Select a deposit method</label>
                             <div className="grid grid-cols-2 gap-3">
                                 <button
                                     onClick={() => setDepositMethod("crypto")}
                                     className={`p-3 rounded-lg border transition-all ${
-                                        depositMethod === "crypto"
-                                            ? `${styles.methodSelected}`
-                                            : "border-gray-600 bg-gray-900 hover:border-gray-500"
+                                        depositMethod === "crypto" ? `${styles.methodSelected}` : "border-gray-600 bg-gray-900 hover:border-gray-500"
                                     }`}
                                 >
                                     <div className="text-center">
                                         <img src={btcLogo} alt="BTC" className="w-8 h-8 rounded-full mx-auto mb-1" />
-                                        <div className="text-sm font-semibold text-white">
-                                            Pay with Crypto
-                                        </div>
-                                        <div className="text-xs text-gray-400 mt-1">
-                                            Many currencies supported (fees apply)
-                                        </div>
+                                        <div className="text-sm font-semibold text-white">Pay with Crypto</div>
+                                        <div className="text-xs text-gray-400 mt-1">Many currencies supported (fees apply)</div>
                                     </div>
                                 </button>
                                 <button
                                     onClick={() => setDepositMethod("usdc")}
                                     className={`p-3 rounded-lg border transition-all ${
-                                        depositMethod === "usdc"
-                                            ? `${styles.methodSelected}`
-                                            : "border-gray-600 bg-gray-900 hover:border-gray-500"
+                                        depositMethod === "usdc" ? `${styles.methodSelected}` : "border-gray-600 bg-gray-900 hover:border-gray-500"
                                     }`}
                                 >
                                     <div className="text-center">
                                         <img src={usdcLogo} alt="USDC" className="w-8 h-8 rounded-full mx-auto mb-1" />
-                                        <div className="text-sm font-semibold text-white">
-                                            Deposit via Web3
-                                        </div>
-                                        <div className="text-xs text-gray-400 mt-1">
-                                            USDC or USDT (ERC20)
-                                        </div>
+                                        <div className="text-sm font-semibold text-white">Deposit via Web3</div>
+                                        <div className="text-xs text-gray-400 mt-1">USDC or USDT (ERC20)</div>
                                     </div>
                                 </button>
                             </div>
@@ -295,10 +283,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                     {depositMethod === "crypto" ? (
                         <>
                             {/* Crypto Payment Flow */}
-                            <CurrencySelector
-                                selectedCurrency={selectedCurrency}
-                                onCurrencySelect={setSelectedCurrency}
-                            />
+                            <CurrencySelector selectedCurrency={selectedCurrency} onCurrencySelect={setSelectedCurrency} />
 
                             {/* Amount Input */}
                             <div className="my-4">
@@ -314,9 +299,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                                     placeholder="0.00"
                                     min="10"
                                 />
-                                <p className="text-xs text-gray-400 mt-2">
-                                    Minimum: $10 USD
-                                </p>
+                                <p className="text-xs text-gray-400 mt-2">Minimum: $10 USD</p>
                                 {+amount >= 10 && (
                                     <div className="mt-3 p-2 rounded bg-gray-800/50 text-xs">
                                         <div className="flex justify-between text-gray-300 font-medium">
@@ -368,18 +351,24 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                             )}
 
                             {address && (
-                                <div className="mb-4 p-3 rounded-lg bg-gray-900 border border-gray-700">
-                                    <p className="text-gray-400 text-sm mb-1">Connected Address</p>
-                                    <p className="text-white font-mono text-sm break-all">{address}</p>
-                                </div>
+                                <>
+                                    <div className="mb-2 p-3 rounded-lg bg-gray-900 border border-gray-700">
+                                        <p className="text-gray-400 text-sm mb-1">Connected Address</p>
+                                        <p className="text-white font-mono text-sm break-all">{address}</p>
+                                    </div>
+                                    <button
+                                        onClick={disconnect}
+                                        className="w-full mb-4 py-2.5 px-3 rounded-lg text-white font-semibold bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 transition duration-300 shadow-md"
+                                    >
+                                        Disconnect Wallet
+                                    </button>
+                                </>
                             )}
 
                             {/* Token Selector */}
                             {isConnected && (
                                 <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-400 mb-2">
-                                        Select Token
-                                    </label>
+                                    <label className="block text-sm font-medium text-gray-400 mb-2">Select Token</label>
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={() => setSelectedToken("USDC")}
@@ -410,7 +399,9 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                             {balance !== undefined && balance !== null && (
                                 <div className="mb-4 p-3 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-between">
                                     <span className="text-gray-400 text-sm">Web3 Wallet Balance</span>
-                                    <span className="text-white font-semibold">${formatUSDCToSimpleDollars(balance)} {selectedToken}</span>
+                                    <span className="text-white font-semibold">
+                                        ${formatUSDCToSimpleDollars(balance)} {selectedToken}
+                                    </span>
                                 </div>
                             )}
 
@@ -449,9 +440,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                             {/* Cosmos Address Display */}
                             <div className="mb-4 p-3 rounded-lg bg-gray-900 border border-gray-700">
                                 <div className="text-sm text-gray-400">
-                                    {cosmosWallet.address
-                                        ? "b52USDC will be minted to your Block52 address:"
-                                        : "⚠️ No Block52 wallet found"}
+                                    {cosmosWallet.address ? "b52USDC will be minted to your Block52 address:" : "⚠️ No Block52 wallet found"}
                                 </div>
                                 <div className="text-xs font-mono text-gray-300 truncate">
                                     {cosmosWallet.address || "Visit /wallet to generate a Block52 wallet first"}
@@ -496,11 +485,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({
                     />
 
                     <div className="my-4">
-                        <PaymentStatusMonitor
-                            paymentId={paymentData.payment_id}
-                            onPaymentComplete={handlePaymentComplete}
-                            onStatusChange={setPaymentStatus}
-                        />
+                        <PaymentStatusMonitor paymentId={paymentData.payment_id} onPaymentComplete={handlePaymentComplete} onStatusChange={setPaymentStatus} />
                     </div>
 
                     {/* New Payment Button - only show when payment is terminal */}

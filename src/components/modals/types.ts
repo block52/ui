@@ -84,6 +84,8 @@ export interface TopUpModalProps extends BaseModalProps {
     tableId: string;
     /** Current chips in USDC micro-units */
     currentStack: string;
+    /** Min buy-in in USDC micro-units */
+    minBuyIn: string;
     /** Max buy-in in USDC micro-units */
     maxBuyIn: string;
     /** Wallet balance in USDC micro-units */

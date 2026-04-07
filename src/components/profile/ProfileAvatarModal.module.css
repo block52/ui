@@ -1,0 +1,273 @@
+.modalSurface {
+  max-height: 88vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--ui-bg-dark);
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.content {
+  padding: 4px;
+  overflow-y: auto;
+  display: grid;
+  gap: 12px;
+}
+
+.surfaceMuted {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background-color: color-mix(in srgb, var(--ui-bg-medium) 30%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 16%, transparent);
+}
+
+.walletAddressRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.walletLabel {
+  color: var(--ui-text-secondary);
+  font-size: 14px;
+}
+
+.walletInputWrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.walletInput {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  color: #ffffff;
+  background-color: color-mix(in srgb, var(--ui-bg-medium) 22%, transparent);
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.walletInput:read-only {
+  cursor: default;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent);
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    color-mix(in srgb, var(--brand-primary) 78%, transparent) 100%
+  );
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.copyButton:hover {
+  opacity: 0.8;
+}
+
+.assetGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  max-height: 46vh;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.card {
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
+  border-radius: 12px;
+  padding: 10px;
+  background-color: color-mix(in srgb, var(--ui-bg-medium) 38%, transparent);
+  cursor: pointer;
+}
+
+.cardSelected {
+  border-color: var(--brand-primary);
+}
+
+.nftImageWrapper {
+  position: relative;
+}
+
+.nftImage {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.nftImageOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background-color: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nftSpinner {
+  width: 32px;
+  height: 32px;
+  border-radius: 9999px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #ffffff;
+  animation: avatarSpin 0.8s linear infinite;
+}
+
+.meta {
+  color: var(--ui-text-secondary);
+  font-size: 12px;
+}
+
+.card .meta {
+  margin-top: 8px;
+}
+
+.emptyText {
+  color: var(--ui-text-secondary);
+  text-align: center;
+  padding: 24px 0;
+}
+
+.searchInput {
+  width: 100%;
+  min-height: 40px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  color: var(--ui-text-primary);
+  background-color: color-mix(in srgb, var(--ui-bg-medium) 22%, transparent);
+}
+
+.searchInput::placeholder {
+  color: var(--ui-text-secondary);
+}
+
+.footerActions {
+  display: flex;
+  flex-direction: column;
+  justify-content: stretch;
+  align-items: stretch;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.footerSecondaryButton,
+.footerPrimaryButton,
+.footerDangerButton,
+.footerSuccessButton {
+  min-height: 40px;
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.footerSecondaryButton {
+  border: 1px solid color-mix(in srgb, var(--ui-text-secondary) 35%, transparent);
+  color: var(--ui-text-secondary);
+  background-color: color-mix(in srgb, var(--ui-bg-medium) 25%, transparent);
+}
+
+.footerSecondaryButton:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.footerPrimaryButton {
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent);
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary) 0%,
+    color-mix(in srgb, var(--brand-primary) 78%, transparent) 100%
+  );
+}
+
+.footerPrimaryButton:disabled {
+  opacity: 0.75;
+  cursor: not-allowed;
+}
+
+.footerDangerButton {
+  border: 1px solid color-mix(in srgb, var(--accent-danger) 25%, transparent);
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    var(--accent-danger) 0%,
+    color-mix(in srgb, var(--accent-danger) 80%, transparent) 100%
+  );
+}
+
+.footerSuccessButton {
+  border: 1px solid color-mix(in srgb, #22c55e 25%, transparent);
+  color: #ffffff;
+  background: linear-gradient(
+    135deg,
+    #22c55e 0%,
+    color-mix(in srgb, #22c55e 80%, transparent) 100%
+  );
+}
+
+.buttonLoadingContent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #ffffff;
+}
+
+.buttonSpinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 9999px;
+  border: 2px solid color-mix(in srgb, var(--ui-text-primary) 45%, transparent);
+  border-top-color: var(--ui-text-primary);
+  animation: avatarSpin 0.8s linear infinite;
+}
+
+@keyframes avatarSpin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (max-width: 640px) {
+  .surfaceMuted {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .assetGrid {
+    grid-template-columns: 1fr;
+    max-height: 42vh;
+  }
+
+  .footerActions {
+    justify-content: stretch;
+  }
+
+  .footerSecondaryButton,
+  .footerPrimaryButton,
+  .footerDangerButton,
+  .footerSuccessButton {
+    width: 100%;
+  }
+}

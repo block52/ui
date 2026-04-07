@@ -98,63 +98,69 @@ export const useDepositSession = (): UseDepositSessionReturn => {
     }, [showQR, currentSession, timeLeft]);
 
     // Poll for session status
-    const checkSessionStatus = useCallback(async (userAddress: string) => {
-        if (!sessionId || !currentSession || isDepositCompleted) return;
+    const checkSessionStatus = useCallback(
+        async (userAddress: string) => {
+            if (!sessionId || !currentSession || isDepositCompleted) return;
 
-        try {
-            const response = await axios.get(`${PROXY_URL}/deposit-sessions/user/${userAddress}`);
-            const session = response.data;
+            try {
+                const response = await axios.get(`${PROXY_URL}/deposit-sessions/user/${userAddress}`);
+                const session = response.data;
 
-            if (session) {
-                setCurrentSession(session);
-                if (session.txStatus && session.txStatus !== transactionStatus) {
-                    setTransactionStatus(session.txStatus);
-                    if (session.txStatus === "COMPLETED") {
-                        setIsDepositCompleted(true);
+                if (session) {
+                    setCurrentSession(session);
+                    if (session.txStatus && session.txStatus !== transactionStatus) {
+                        setTransactionStatus(session.txStatus);
+                        if (session.txStatus === "COMPLETED") {
+                            setIsDepositCompleted(true);
+                        }
                     }
                 }
+            } catch (err) {
+                console.error("Error checking session status:", err);
             }
-        } catch (err) {
-            console.error("Error checking session status:", err);
-        }
-    }, [sessionId, currentSession, isDepositCompleted, transactionStatus]);
+        },
+        [sessionId, currentSession, isDepositCompleted, transactionStatus]
+    );
 
     // Create a new deposit session
-    const createSession = useCallback(async (userAddress: string) => {
-        try {
-            const payload = {
-                userAddress,
-                depositAddress: DEPOSIT_ADDRESS
-            };
+    const createSession = useCallback(
+        async (userAddress: string) => {
+            try {
+                const payload = {
+                    userAddress,
+                    depositAddress: DEPOSIT_ADDRESS
+                };
 
-            const response = await axios.post(`${PROXY_URL}/deposit-sessions`, payload);
+                const response = await axios.post(`${PROXY_URL}/deposit-sessions`, payload);
 
-            setCurrentSession(response.data);
-            setSessionId(response.data._id);
-            setShowQR(true);
-            setTimeLeft(300);
-            setError(null);
-            setTransactionStatus(null);
-            setProgressPercentage(0);
-            setIsDepositCompleted(false);
+                setCurrentSession(response.data);
+                setSessionId(response.data._id);
+                setShowQR(true);
+                setTimeLeft(300);
+                setError(null);
+                setTransactionStatus(null);
+                setProgressPercentage(0);
+                setIsDepositCompleted(false);
 
-            // Start polling for session status
-            const pollInterval = setInterval(() => {
-                checkSessionStatus(userAddress);
-            }, 5000);
+                // Start polling for session status
+                const pollInterval = setInterval(() => {
+                    checkSessionStatus(userAddress);
+                }, 5000);
 
-            // Store interval ID for cleanup
-            return () => clearInterval(pollInterval);
-        } catch (err: unknown) {
-            console.error("Failed to create deposit session:", err);
-            if (err && typeof err === "object" && "response" in err) {
-                const axiosError = err as { response?: { data?: { error?: string } } };
-                setError(axiosError.response?.data?.error || "Failed to create deposit session");
-            } else {
-                setError("Failed to create deposit session");
+                // Store interval ID for cleanup
+                return () => clearInterval(pollInterval);
+            } catch (err: unknown) {
+                console.error("Failed to create deposit session:", err);
+                if (err && typeof err === "object" && "response" in err) {
+                    const axiosError = err as { response?: { data?: { error?: string } } };
+                    setError(axiosError.response?.data?.error || "Failed to create deposit session");
+                } else {
+                    setError("Failed to create deposit session");
+                }
             }
-        }
-    }, [checkSessionStatus]);
+        },
+        [checkSessionStatus]
+    );
 
     // Reset session state
     const resetSession = useCallback(() => {

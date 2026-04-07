@@ -1,24 +1,26 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
 import { ethers } from "ethers";
 import { formatMicroAsUsdc, usdcToMicroBigInt } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
-import { useAccount } from "wagmi";
-import { BRIDGE_WITHDRAWAL_ABI } from "../utils/bridge/abis";
 import { base64ToHex } from "../utils/encodingUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
+import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
+import { useWithdraw } from "../hooks/wallet/useWithdraw";
+import SignatureModal from "../components/modals/SignatureModal";
 
 /**
  * WithdrawalDashboard - Interface for managing USDC withdrawals to Ethereum
  *
- * Features:
- * - Initiate new withdrawals from Block52 to Ethereum
- * - View withdrawal status (pending/signed/completed)
- * - Complete signed withdrawals on Ethereum
- * - 2-step withdrawal flow with automatic validator signing
+ * 2-step withdrawal flow:
+ *   Step 1: User sends withdrawal request to Block52 (signed by cosmos key, eth address in message).
+ *           The validator then signs the withdrawal payload for the deposit contract.
+ *   Step 2: User calls the deposit contract withdraw() on Ethereum via MetaMask.
+ *
+ * This dashboard auto-polls for pending withdrawals so users see status updates in real time.
  */
 
 interface Withdrawal {
@@ -35,8 +37,9 @@ interface Withdrawal {
 
 export default function WithdrawalDashboard() {
     const cosmosWallet = useCosmosWallet();
-    const { address: baseAddress, isConnected } = useAccount();
+    const { address: baseAddress, isConnected } = useUserWalletConnect();
     const { currentNetwork } = useNetwork();
+    const { withdraw, hash, isWithdrawConfirmed, withdrawError } = useWithdraw();
     const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [processingNonce, setProcessingNonce] = useState<string | null>(null);
@@ -47,6 +50,10 @@ export default function WithdrawalDashboard() {
     const [withdrawalAmount, setWithdrawalAmount] = useState("");
     const [withdrawalBaseAddress, setWithdrawalBaseAddress] = useState("");
     const [isInitiating, setIsInitiating] = useState(false);
+
+    // Signature modal state
+    const [showSignatureModal, setShowSignatureModal] = useState(false);
+    const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null);
 
     // Bridge configuration - Ethereum Mainnet
     const bridgeContractAddress = COSMOS_BRIDGE_ADDRESS;
@@ -166,23 +173,15 @@ export default function WithdrawalDashboard() {
         setProcessingNonce(withdrawal.nonce);
 
         try {
-            // Get ethereum provider
-            const provider = new ethers.BrowserProvider((window as any).ethereum);
-            const signer = await provider.getSigner();
-
-            // Create contract instance
-            const contract = new ethers.Contract(bridgeContractAddress, BRIDGE_WITHDRAWAL_ABI, signer);
-
-            // Convert base64 signature to hex format for ethers
+            // Convert base64 signature to hex format
             const hexSignature = withdrawal.signature ? base64ToHex(withdrawal.signature) : "0x";
 
-            // Call withdraw on bridge contract with correct parameter order
-            // Contract: withdraw(uint256 amount, address receiver, bytes32 nonce, bytes signature)
-            const tx = await contract.withdraw(
-                withdrawal.amount,        // uint256 amount
-                withdrawal.baseAddress,   // address receiver (BASE address, not Cosmos!)
-                withdrawal.nonce,         // bytes32 nonce
-                hexSignature             // bytes signature
+            // Use the useWithdraw hook which properly uses wagmi/reown wallet
+            await withdraw(
+                withdrawal.nonce,
+                withdrawal.baseAddress,
+                BigInt(withdrawal.amount),
+                hexSignature
             );
 
             toast.info(
@@ -191,45 +190,82 @@ export default function WithdrawalDashboard() {
                     <div className="text-sm mt-1">Waiting for confirmation...</div>
                 </div>
             );
-
-            // Wait for transaction confirmation
-            const receipt = await tx.wait();
-
-            if (receipt.status === 1) {
-                toast.success(
-                    <div>
-                        <div className="font-semibold">Withdrawal completed!</div>
-                        <div className="text-sm mt-1">USDC transferred to {withdrawal.baseAddress.slice(0, 10)}...</div>
-                    </div>
-                );
-
-                // Update withdrawal status to completed
-                setWithdrawals(prev =>
-                    prev.map(w =>
-                        w.nonce === withdrawal.nonce ? { ...w, status: "completed" as const, txHash: receipt.hash } : w
-                    )
-                );
-
-                // Refresh withdrawals from chain
-                setTimeout(() => {
-                    loadWithdrawals();
-                }, 2000);
-            } else {
-                toast.error("Withdrawal transaction failed");
-            }
         } catch (err: any) {
             console.error("Failed to complete withdrawal:", err);
             const errorMessage = err.message || "Unknown error occurred";
             toast.error(`Failed: ${errorMessage}`);
-        } finally {
             setProcessingNonce(null);
         }
     };
+
+    // Handle withdrawal confirmation via useWithdraw hook
+    useEffect(() => {
+        if (isWithdrawConfirmed && processingNonce) {
+            toast.success(
+                <div>
+                    <div className="font-semibold">Withdrawal completed!</div>
+                    <div className="text-sm mt-1">USDC transferred successfully</div>
+                </div>
+            );
+
+            // Update withdrawal status to completed
+            setWithdrawals(prev =>
+                prev.map(w =>
+                    w.nonce === processingNonce ? { ...w, status: "completed" as const, txHash: hash } : w
+                )
+            );
+
+            setProcessingNonce(null);
+
+            // Refresh withdrawals from chain
+            setTimeout(() => {
+                loadWithdrawals();
+            }, 2000);
+        }
+    }, [isWithdrawConfirmed, processingNonce, hash, loadWithdrawals]);
+
+    // Handle withdrawal errors
+    useEffect(() => {
+        if (withdrawError && processingNonce) {
+            console.error("Withdrawal error:", withdrawError);
+            toast.error(`Withdrawal failed: ${withdrawError.message}`);
+            setProcessingNonce(null);
+        }
+    }, [withdrawError, processingNonce]);
 
     // Load withdrawals on mount and when wallet changes
     useEffect(() => {
         loadWithdrawals();
     }, [loadWithdrawals]);
+
+    // Auto-poll for pending withdrawals every 5 seconds
+    const autoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+    useEffect(() => {
+        const hasPending = withdrawals.some(w => w.status === "pending");
+
+        if (hasPending && cosmosWallet.address) {
+            // Start auto-polling
+            if (!autoPollRef.current) {
+                autoPollRef.current = setInterval(() => {
+                    loadWithdrawals();
+                }, 5000);
+            }
+        } else {
+            // No pending withdrawals - stop polling
+            if (autoPollRef.current) {
+                clearInterval(autoPollRef.current);
+                autoPollRef.current = null;
+            }
+        }
+
+        return () => {
+            if (autoPollRef.current) {
+                clearInterval(autoPollRef.current);
+                autoPollRef.current = null;
+            }
+        };
+    }, [withdrawals, cosmosWallet.address, loadWithdrawals]);
 
     // Filter withdrawals based on selected filter
     const filteredWithdrawals = withdrawals.filter(withdrawal => {
@@ -242,6 +278,22 @@ export default function WithdrawalDashboard() {
     const pendingCount = withdrawals.filter(w => w.status === "pending").length;
     const signedCount = withdrawals.filter(w => w.status === "signed").length;
     const completedCount = withdrawals.filter(w => w.status === "completed").length;
+
+    // Handle opening the signature modal
+    const handleViewSignature = (withdrawal: Withdrawal) => {
+        setSelectedWithdrawal(withdrawal);
+        setShowSignatureModal(true);
+    };
+
+    // Compute hex signature for selected withdrawal
+    const selectedSignatureHex = useMemo(() => {
+        if (!selectedWithdrawal?.signature) return null;
+        try {
+            return base64ToHex(selectedWithdrawal.signature);
+        } catch {
+            return null;
+        }
+    }, [selectedWithdrawal?.signature]);
 
     return (
         <div className="min-h-screen p-8 relative">
@@ -363,12 +415,14 @@ export default function WithdrawalDashboard() {
                                     filteredWithdrawals.map(withdrawal => (
                                         <tr key={withdrawal.nonce} className="hover:bg-gray-700/50 transition-colors">
                                             <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-white font-mono text-sm">#{withdrawal.nonce}</span>
+                                                <span className="text-white font-mono text-sm" title={withdrawal.nonce}>
+                                                    #{withdrawal.nonce.slice(0, 10)}...{withdrawal.nonce.slice(-4)}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4">
                                                 <div className="flex items-center gap-2">
-                                                    <span className="text-white font-mono text-xs" title={withdrawal.baseAddress}>
-                                                        {withdrawal.baseAddress.slice(0, 10)}...{withdrawal.baseAddress.slice(-8)}
+                                                    <span className="text-white font-mono text-sm">
+                                                        {withdrawal.baseAddress}
                                                     </span>
                                                     <button
                                                         onClick={() => {
@@ -393,47 +447,87 @@ export default function WithdrawalDashboard() {
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
                                                 {withdrawal.status === "pending" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-900/50 text-yellow-300 border border-yellow-700">
-                                                        ⏳ Awaiting Signature
-                                                    </span>
+                                                    <span className="text-sm text-yellow-400">Pending</span>
                                                 )}
                                                 {withdrawal.status === "signed" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-blue-900/50 text-blue-300 border border-blue-700">
-                                                        ✍️ Signed (Ready)
-                                                    </span>
+                                                    <span className="text-sm text-blue-400">Signed</span>
                                                 )}
                                                 {withdrawal.status === "completed" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-300 border border-green-700">
-                                                        ✅ Completed
-                                                    </span>
+                                                    <span className="text-sm text-green-400">Completed</span>
                                                 )}
                                                 {withdrawal.status === "error" && (
-                                                    <span
-                                                        className="px-3 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-300 border border-red-700 cursor-help"
-                                                        title={withdrawal.errorMessage}
-                                                    >
-                                                        ❌ Error
+                                                    <span className="text-sm text-red-400 cursor-help" title={withdrawal.errorMessage}>
+                                                        Error
                                                     </span>
                                                 )}
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                {withdrawal.status === "signed" ? (
-                                                    <button
-                                                        onClick={() => handleCompleteWithdrawal(withdrawal)}
-                                                        disabled={
-                                                            processingNonce === withdrawal.nonce || !isConnected || !baseAddress
-                                                        }
-                                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-                                                    >
-                                                        {processingNonce === withdrawal.nonce
-                                                            ? "Completing..."
-                                                            : "Complete on Ethereum"}
-                                                    </button>
-                                                ) : withdrawal.status === "pending" ? (
-                                                    <span className="text-gray-500 text-sm">Waiting for validator...</span>
-                                                ) : (
-                                                    <span className="text-gray-500 text-sm">—</span>
-                                                )}
+                                                <div className="flex items-center justify-center gap-2">
+                                                    {withdrawal.status === "signed" ? (
+                                                        <>
+                                                            <button
+                                                                onClick={() => handleCompleteWithdrawal(withdrawal)}
+                                                                disabled={
+                                                                    processingNonce === withdrawal.nonce || !isConnected || !baseAddress
+                                                                }
+                                                                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                            >
+                                                                {processingNonce === withdrawal.nonce
+                                                                    ? "Completing..."
+                                                                    : "Complete on Ethereum"}
+                                                            </button>
+                                                            <button
+                                                                onClick={() => handleViewSignature(withdrawal)}
+                                                                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-sm font-medium rounded-lg transition-colors"
+                                                                title="View signature details"
+                                                            >
+                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth="2"
+                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                                    />
+                                                                    <path
+                                                                        strokeLinecap="round"
+                                                                        strokeLinejoin="round"
+                                                                        strokeWidth="2"
+                                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                                    />
+                                                                </svg>
+                                                            </button>
+                                                        </>
+                                                    ) : withdrawal.status === "pending" ? (
+                                                        <span className="text-yellow-400 text-sm flex items-center justify-center gap-2">
+                                                            <span className="inline-block w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+                                                            Awaiting validator signature...
+                                                        </span>
+                                                    ) : withdrawal.status === "completed" && withdrawal.signature ? (
+                                                        <button
+                                                            onClick={() => handleViewSignature(withdrawal)}
+                                                            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1"
+                                                            title="View signature details"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth="2"
+                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                                                />
+                                                                <path
+                                                                    strokeLinecap="round"
+                                                                    strokeLinejoin="round"
+                                                                    strokeWidth="2"
+                                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                                                />
+                                                            </svg>
+                                                            View Sig
+                                                        </button>
+                                                    ) : (
+                                                        <span className="text-gray-500 text-sm">—</span>
+                                                    )}
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -445,19 +539,19 @@ export default function WithdrawalDashboard() {
 
                 {/* Info Box */}
                 <div className="mt-6 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                    <h3 className="text-blue-200 font-semibold mb-2">ℹ️ How Withdrawals Work</h3>
+                    <h3 className="text-blue-200 font-semibold mb-2">How Withdrawals Work</h3>
                     <ul className="text-blue-300 text-sm space-y-1 list-disc list-inside">
                         <li>
-                            <strong>Step 1:</strong> Click "New Withdrawal" to burn USDC on Block52 and create a withdrawal request
+                            <strong>Step 1 (Block52):</strong> Send a withdrawal request signed by your cosmos address
+                            with your Ethereum address in the message. The validator then signs the withdrawal payload
+                            for the deposit contract.
                         </li>
                         <li>
-                            <strong>Step 2:</strong> Validators automatically sign your withdrawal (usually within a few blocks)
+                            <strong>Step 2 (Ethereum):</strong> Once the validator has signed, call the deposit
+                            contract withdraw function on Ethereum using MetaMask.
                         </li>
-                        <li>
-                            <strong>Step 3:</strong> Once signed, click "Complete on Ethereum" to receive USDC on Ethereum
-                        </li>
-                        <li>Make sure your Ethereum wallet is connected before completing withdrawals</li>
-                        <li>Each withdrawal requires two transactions: one on Block52, one on Ethereum</li>
+                        <li>Pending withdrawals auto-refresh every 5 seconds until the validator signs.</li>
+                        <li>Make sure your Ethereum wallet is connected before completing withdrawals.</li>
                     </ul>
                 </div>
             </div>
@@ -530,6 +624,18 @@ export default function WithdrawalDashboard() {
                     </div>
                 </div>
             )}
+
+            {/* Signature Modal */}
+            <SignatureModal
+                isOpen={showSignatureModal}
+                onClose={() => {
+                    setShowSignatureModal(false);
+                    setSelectedWithdrawal(null);
+                }}
+                withdrawal={selectedWithdrawal}
+                signatureHex={selectedSignatureHex}
+                bridgeContractAddress={bridgeContractAddress}
+            />
         </div>
     );
 }
