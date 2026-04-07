@@ -55,20 +55,30 @@ export default function TableAdminPage() {
     const [minPlayers] = useState(2);
     const [maxPlayers, setMaxPlayers] = useState(9);
     
-    // Selected blind level (index in BLIND_LEVELS array)
+    // Selected blind level (index in BLIND_LEVELS array) — cash games only
     const [selectedBlindLevel, setSelectedBlindLevel] = useState(DEFAULT_BLIND_LEVEL_INDEX);
-    
-    // Get current blind values from selected level (memoized to prevent unnecessary string conversions)
-    const smallBlind = useMemo(() => BLIND_LEVELS[selectedBlindLevel].smallBlind.toString(), [selectedBlindLevel]);
-    const bigBlind = useMemo(() => BLIND_LEVELS[selectedBlindLevel].bigBlind.toString(), [selectedBlindLevel]);
 
-    // Update blind defaults when game type changes
-    // Note: Users can manually select any blind level from the dropdown regardless of game type
-    // This provides flexibility while maintaining a consistent UX across all game types
+    // SNG/Tournament blind values (in chips, not dollars)
+    const [sngSmallBlind, setSngSmallBlind] = useState(25);
+    const [sngBigBlind, setSngBigBlind] = useState(50);
+
+    // Get effective blind values based on game format
+    const smallBlind = useMemo(() => {
+        if (isTournamentFormat(gameFormat)) {
+            return sngSmallBlind.toString();
+        }
+        return BLIND_LEVELS[selectedBlindLevel].smallBlind.toString();
+    }, [gameFormat, sngSmallBlind, selectedBlindLevel]);
+
+    const bigBlind = useMemo(() => {
+        if (isTournamentFormat(gameFormat)) {
+            return sngBigBlind.toString();
+        }
+        return BLIND_LEVELS[selectedBlindLevel].bigBlind.toString();
+    }, [gameFormat, sngBigBlind, selectedBlindLevel]);
+
     const handleGameFormatChange = (newType: GameFormat) => {
         setGameFormat(newType);
-        // For all game types, keep the current blind level selection
-        // Users can adjust it manually using the dropdown
     };
     // Buy-in in Big Blinds (BB) for Cash games
     const [minBuyInBB, setMinBuyInBB] = useState(20);
@@ -458,6 +468,46 @@ export default function TableAdminPage() {
                                     />
                                 </div>
 
+                                {/* Starting Blinds (chips) */}
+                                <div>
+                                    <label className="text-gray-300 text-xs mb-2 block">Starting Blinds (chips)</label>
+                                    <div className="flex gap-2 flex-wrap mb-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSngSmallBlind(10); setSngBigBlind(20); }}
+                                            className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
+                                                sngSmallBlind === 10 && sngBigBlind === 20
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                            }`}
+                                        >
+                                            10 / 20
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSngSmallBlind(25); setSngBigBlind(50); }}
+                                            className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
+                                                sngSmallBlind === 25 && sngBigBlind === 50
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                            }`}
+                                        >
+                                            25 / 50
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => { setSngSmallBlind(50); setSngBigBlind(100); }}
+                                            className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
+                                                sngSmallBlind === 50 && sngBigBlind === 100
+                                                    ? "bg-blue-600 text-white"
+                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                            }`}
+                                        >
+                                            50 / 100
+                                        </button>
+                                    </div>
+                                </div>
+
                                 {/* Blind Level Duration */}
                                 <div>
                                     <label className="text-gray-300 text-xs mb-2 block">Blind Level Duration</label>
@@ -516,7 +566,7 @@ export default function TableAdminPage() {
                                         {startingStack} chips • Blinds increase every {blindLevelDuration} min
                                     </p>
                                     <p className="text-gray-500 text-xs mt-1">
-                                        Starting blinds: {smallBlind}/{bigBlind} chips
+                                        Starting blinds: {sngSmallBlind} / {sngBigBlind} chips
                                     </p>
                                 </div>
                             </div>
