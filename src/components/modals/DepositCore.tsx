@@ -21,6 +21,7 @@ import PaymentDisplay from "./CryptoPayment/PaymentDisplay";
 import PaymentStatusMonitor from "./CryptoPayment/PaymentStatusMonitor";
 import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import styles from "./DepositCore.module.css";
+import { DepositCountdown } from "../common";
 
 type DepositMethod = "crypto" | "usdc";
 
@@ -55,10 +56,13 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
     const { allowance } = useAllowance(tokenAddress);
     const { balance } = useWalletBalance(tokenAddress);
     const cosmosWallet = useCosmosWallet();
+    const { refreshBalance } = cosmosWallet;
     const { refreshWalletNfts } = useProfileAvatar();
 
     // USDT approval quirk: must reset allowance to 0 before setting new value
     const [isResettingAllowance, setIsResettingAllowance] = useState(false);
+
+    const [isCountingDown, setIsCountingDown] = useState(false);
 
     // Crypto payment state
     const [depositMethod, setDepositMethod] = useState<DepositMethod>("crypto");
@@ -86,10 +90,10 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
             toast.success(`Deposit successful! ${selectedToken} sent to your game wallet.`, { autoClose: 5000 });
             setAmount("0");
             setWalletAllowance(w => w - tmpDepositAmount);
-            cosmosWallet.refreshBalance();
-            if (onSuccess) onSuccess();
+            refreshBalance();
+            setIsCountingDown(true);
         }
-    }, [isDepositConfirmed, selectedToken, tmpDepositAmount, cosmosWallet, onSuccess]);
+    }, [isDepositConfirmed, selectedToken, tmpDepositAmount, refreshBalance]);
 
     const [approvalToastShown, setApprovalToastShown] = React.useState(false);
 
@@ -453,7 +457,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
                                     className={`w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-3 ${styles.successGradientButton} ${
                                         +amount === 0 ? "opacity-50 cursor-not-allowed" : ""
                                     }`}
-                                    disabled={+amount === 0 || isDepositPending || isPending}
+                                    disabled={+amount === 0 || isDepositPending || isPending || isCountingDown}
                                 >
                                     {isDepositPending || isPending ? "Depositing..." : "Deposit"}
                                     {(isDepositPending || isPending) && <img src={spinner} className="w-5 h-5" alt="loading" />}
@@ -469,6 +473,15 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
                                     {isLoading || isApprovePending ? "Approving..." : "Approve Deposit"}
                                     {(isLoading || isApprovePending) && <img src={spinner} className="w-5 h-5" alt="loading" />}
                                 </button>
+                            )}
+
+                            {isCountingDown && (
+                                <DepositCountdown
+                                    onComplete={() => {
+                                        setIsCountingDown(false);
+                                        if (onSuccess) onSuccess();
+                                    }}
+                                />
                             )}
                         </>
                     )}
