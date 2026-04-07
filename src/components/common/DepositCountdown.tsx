@@ -4,11 +4,11 @@ const BRIDGE_BLOCKS = 50; // 50 blocks * 12s/block = ~10 minutes total bridge ti
 const SECONDS_PER_BLOCK = 12;
 const TOTAL_SECONDS = BRIDGE_BLOCKS * SECONDS_PER_BLOCK;
 
-interface BridgeCountdownProps {
+interface DepositCountdownProps {
     onComplete?: () => void;
 }
 
-export const DepositCountdown: React.FC<BridgeCountdownProps> = ({ onComplete }) => {
+export const DepositCountdown: React.FC<DepositCountdownProps> = ({ onComplete }) => {
     const [secondsElapsed, setSecondsElapsed] = useState(0);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     // Keep onComplete stable — always call the latest version without restarting the interval
