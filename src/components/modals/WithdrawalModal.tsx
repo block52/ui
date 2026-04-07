@@ -115,12 +115,13 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                     const withdrawals = await signingClient.listWithdrawalRequests(cosmosAddress!);
 
                     // Find matching withdrawal: same base address & amount, prefer signed
+                    // Order by created_at desc to get the most recent if multiple match (should be rare)
                     const matching = withdrawals
                         .filter((w: any) => w.base_address?.toLowerCase() === targetBaseAddress.toLowerCase() && w.amount === targetAmount)
                         .sort((a: any, b: any) => {
                             if (a.status === "signed" && b.status !== "signed") return -1;
                             if (b.status === "signed" && a.status !== "signed") return 1;
-                            return 0;
+                            return (b.created_at ?? 0) - (a.created_at ?? 0);
                         });
 
                     const found = matching[0];
