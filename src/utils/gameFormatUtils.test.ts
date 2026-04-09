@@ -5,6 +5,7 @@ import {
     isTournamentFormat,
     isCashFormat,
     isSitAndGoFormat,
+    convertAmountForBlockchain,
     convertBlindsForBlockchain,
     getBlindsForDisplay,
     getGameTypeMnemonic
@@ -380,6 +381,22 @@ describe("gameFormatUtils", () => {
                 expect(result.smallBlind).toBe(0n);
                 expect(result.bigBlind).toBe(0n);
             });
+        });
+    });
+
+    describe("convertAmountForBlockchain", () => {
+        it("should convert cash amount to USDC microunits (×10^6)", () => {
+            expect(convertAmountForBlockchain(GameFormat.CASH, 10)).toBe(10000000n);
+            expect(convertAmountForBlockchain("cash", 0.5)).toBe(500000n);
+        });
+
+        it("should use raw chip value for SNG (no conversion)", () => {
+            expect(convertAmountForBlockchain(GameFormat.SIT_AND_GO, 1000)).toBe(1000n);
+            expect(convertAmountForBlockchain("sit-and-go", 1500)).toBe(1500n);
+        });
+
+        it("should use raw chip value for tournament (no conversion)", () => {
+            expect(convertAmountForBlockchain(GameFormat.TOURNAMENT, 2000)).toBe(2000n);
         });
     });
 
