@@ -1,0 +1,118 @@
+.container {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background-color: color-mix(in srgb, var(--ui-bg-dark) 70%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent);
+}
+
+/* Level badge */
+.levelBadge {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    padding: 1px 6px;
+    border-radius: 4px;
+    background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.levelLabel {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: var(--ui-text-secondary);
+    letter-spacing: 0.5px;
+}
+
+.levelNumber {
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--brand-primary);
+}
+
+/* Blinds section */
+.blindsSection {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.currentBlinds {
+    font-size: 12px;
+    font-weight: 600;
+    color: #ffffff;
+}
+
+.nextBlinds {
+    font-size: 10px;
+    color: var(--ui-text-secondary);
+    opacity: 0.7;
+}
+
+.arrow {
+    font-size: 10px;
+}
+
+/* Timer */
+.timer {
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-variant-numeric: tabular-nums;
+}
+
+.timerValue {
+    font-size: 12px;
+    font-weight: 700;
+    font-family: monospace;
+}
+
+.timerNormal {
+    background-color: color-mix(in srgb, var(--brand-primary) 15%, transparent);
+    color: var(--brand-primary);
+}
+
+.timerWarning {
+    background-color: color-mix(in srgb, #f59e0b 20%, transparent);
+    color: #f59e0b;
+}
+
+.timerCritical {
+    background-color: color-mix(in srgb, #ef4444 20%, transparent);
+    color: #ef4444;
+    animation: pulse 1s ease-in-out infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+/* Responsive - smaller on mobile */
+@media (max-width: 640px) {
+    .container {
+        gap: 4px;
+        padding: 1px 6px;
+    }
+
+    .levelLabel {
+        display: none;
+    }
+
+    .levelNumber {
+        font-size: 10px;
+    }
+
+    .currentBlinds {
+        font-size: 10px;
+    }
+
+    .nextBlinds {
+        display: none;
+    }
+
+    .timerValue {
+        font-size: 10px;
+    }
+}

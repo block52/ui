@@ -18,6 +18,8 @@ import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
+import { BlindLevelInfo } from "../../../../hooks/game/useBlindLevel";
+import { BlindLevelDisplay } from "./BlindLevelDisplay";
 import styles from "./TableHeader.module.css";
 
 export interface TableHeaderProps {
@@ -42,6 +44,7 @@ export interface TableHeaderProps {
         bigBlindFormatted: string;
         isTournamentStyle: boolean;
     };
+    blindLevel: BlindLevelInfo;
     handNumber: number;
     actionCount: number;
     nextToAct: number;
@@ -74,6 +77,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     isBalanceLoading,
     balanceFormatted,
     formattedValues,
+    blindLevel,
     handNumber,
     actionCount,
     nextToAct,
@@ -224,11 +228,13 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 <div className="flex items-center z-20">
                     <div className="flex flex-col">
                         <div className="flex items-center space-x-1 sm:space-x-2">
-                            <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
-                                {formattedValues.isTournamentStyle
-                                    ? `${formattedValues.smallBlindFormatted} / ${formattedValues.bigBlindFormatted}`
-                                    : `$${formattedValues.smallBlindFormatted} / $${formattedValues.bigBlindFormatted}`}
-                            </span>
+                            {blindLevel.isActive ? (
+                                <BlindLevelDisplay blindLevel={blindLevel} />
+                            ) : (
+                                <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                    {`$${formattedValues.smallBlindFormatted} / $${formattedValues.bigBlindFormatted}`}
+                                </span>
+                            )}
 
                             <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                 Hand #{handNumber}
