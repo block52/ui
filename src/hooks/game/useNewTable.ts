@@ -2,7 +2,7 @@ import { useState, useCallback } from "react";
 import { GameFormat, GameVariant, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
-import { convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
+import { convertAmountForBlockchain, convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
 import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
 
 // Type for rake configuration options
@@ -60,9 +60,11 @@ export const useNewTable = (): UseNewTableReturn => {
         try {
             const { signingClient, userAddress: _userAddress } = await getSigningClient(currentNetwork);
 
-            // Convert buy-in from dollars to usdc micro-units using SDK constants
-            const minBuyInB52USDC = BigInt(Math.floor(gameOptions.minBuyIn * Math.pow(10, COSMOS_CONSTANTS.USDC_DECIMALS)));
-            const maxBuyInB52USDC = BigInt(Math.floor(gameOptions.maxBuyIn * Math.pow(10, COSMOS_CONSTANTS.USDC_DECIMALS)));
+            // Convert buy-in based on game format:
+            // Cash: dollars → USDC microunits (×10^6)
+            // SNG/Tournament: raw chip values (no conversion)
+            const minBuyInB52USDC = convertAmountForBlockchain(gameOptions.format, gameOptions.minBuyIn);
+            const maxBuyInB52USDC = convertAmountForBlockchain(gameOptions.format, gameOptions.maxBuyIn);
 
             // Convert blind values based on game format using utility function
             // For cash games: converts from dollars to USDC micro-units
