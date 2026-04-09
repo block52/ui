@@ -1304,22 +1304,25 @@ const Table = React.memo(() => {
                                 tableTheme={tableStyle}
                             />
 
-                            {/* Chips */}
+                            {/* Chips — map screen position to rotated seat number */}
                             {!isSitAndGoWaitingForPlayers &&
-                                tableLayout.positions.chips.map((position, index) => {
-                                    const chipAmount = getChipAmount(index + 1);
+                                tableLayout.positions.chips.map((position, positionIndex) => {
+                                    const seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
+                                    const chipAmount = getChipAmount(seatNumber);
                                     if (chipAmount === "0" || chipAmount === "" || !chipAmount) return null;
                                     return (
-                                        <div key={`chip-${index}`} className="chip-position" style={{ left: position.left, bottom: position.bottom }}>
+                                        <div key={`chip-${positionIndex}`} className="chip-position" style={{ left: position.left, bottom: position.bottom }}>
                                             <Chip amount={chipAmount} isTournament={isTournamentFormat(gameFormat)} />
                                         </div>
                                     );
                                 })}
                         </div>
 
-                        {/* Dealer Button — rendered at table level using geometry positions */}
+                        {/* Dealer Button — convert seat number to rotated screen position */}
                         {(() => {
-                            const dIdx = dealerSeat != null && dealerSeat > 0 ? dealerSeat - 1 : -1;
+                            const dIdx = dealerSeat != null && dealerSeat > 0
+                                ? ((dealerSeat - 1 + startIndex) % tableSize)
+                                : -1;
                             const dPos = dIdx >= 0 ? tableLayout.positions.dealers[dIdx] : null;
                             if (!dPos) return null;
                             return (
