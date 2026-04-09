@@ -955,6 +955,7 @@ const Dashboard: React.FC = () => {
                                     onTransfer={() => setShowCosmosTransferModal(true)}
                                     onCreateWallet={handleCreateNewWallet}
                                     onImportWallet={() => setShowCosmosImportModal(true)}
+                                    onRefresh={cosmosWallet.refreshBalance}
                                     usdcBalance={getTransferTokenBalance()}
                                     cosmosWalletAddress={cosmosWallet.address}
                                 />
