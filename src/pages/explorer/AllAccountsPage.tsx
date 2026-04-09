@@ -6,8 +6,11 @@ import { useNetwork } from "../../context/NetworkContext";
 import { microToUsdc } from "../../constants/currency";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
+import { Pagination } from "../../components/common";
 import styles from "./AllAccountsPage.module.css";
 import { useCosmosApi } from "../../context/CosmosApiContext";
+
+const PAGE_SIZE = 20;
 
 interface ValidatorInfo {
     operatorAddress: string;
@@ -60,6 +63,7 @@ export default function AllAccountsPage() {
     const [sortBy, setSortBy] = useState<"balance" | "address">("balance");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [searchFilter, setSearchFilter] = useState("");
+    const [currentPage, setCurrentPage] = useState(1);
     const cosmosApi = useCosmosApi();
 
     // Convert validator operator address (b52valoper...) to account address (b521...)
@@ -142,6 +146,9 @@ export default function AllAccountsPage() {
                     if (account["@type"]) {
                         const typePath = account["@type"];
                         type = typePath.split(".").pop() || "Unknown";
+                        if (type === "BaseAccount") {
+                            type = "B52 Account";
+                        }
                     }
 
                     // Fetch balances for this account
@@ -236,6 +243,16 @@ export default function AllAccountsPage() {
             }
         });
     }, [accounts, searchFilter, sortBy, sortOrder]);
+
+    // Reset to page 1 when filter/sort changes
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [searchFilter, sortBy, sortOrder]);
+
+    const pagedAccounts = useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return filteredAndSortedAccounts.slice(start, start + PAGE_SIZE);
+    }, [filteredAndSortedAccounts, currentPage]);
 
     // Stats
     const stats = useMemo(() => {
@@ -344,7 +361,7 @@ export default function AllAccountsPage() {
                                 <p className="text-gray-400">No accounts found</p>
                             </div>
                         ) : (
-                            <div className="overflow-x-auto">
+                            <div className="overflow-x-auto" id="accounts-table-top">
                                 <table className="w-full">
                                     <thead>
                                         <tr className={styles.tableHeaderRow}>
@@ -366,13 +383,13 @@ export default function AllAccountsPage() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {filteredAndSortedAccounts.map((account, index) => (
+                                        {pagedAccounts.map((account, index) => (
                                             <tr
                                                 key={account.address}
                                                 className={`border-t cursor-pointer hover:bg-white/5 transition-colors ${styles.tableRowBorder}`}
                                                 onClick={() => navigate(`/explorer/address/${account.address}`)}
                                             >
-                                                <td className="px-6 py-4 text-gray-500">{index + 1}</td>
+                                                <td className="px-6 py-4 text-gray-500">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col gap-1">
                                                         <span className={`text-white font-mono text-sm hover:underline break-all ${styles.brandText}`}>
@@ -430,13 +447,25 @@ export default function AllAccountsPage() {
                                 </table>
                             </div>
                         )}
+                        {!loading && filteredAndSortedAccounts.length > 0 && (
+                            <Pagination
+                                currentPage={currentPage}
+                                totalItems={filteredAndSortedAccounts.length}
+                                pageSize={PAGE_SIZE}
+                                onPageChange={page => {
+                                    setCurrentPage(page);
+                                    document.getElementById("accounts-table-top")?.scrollIntoView({ behavior: "smooth" });
+                                }}
+                            />
+                        )}
                     </div>
                 )}
 
-                {/* Results count */}
+                {/* Results count — small screens only (pagination shows it on larger screens) */}
                 {!loading && !error && (
-                    <div className="mt-4 text-center text-gray-400 text-sm">
-                        Showing {filteredAndSortedAccounts.length} of {accounts.length} accounts
+                    <div className="sm:hidden mt-4 text-center text-gray-400 text-sm">
+                        Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAndSortedAccounts.length)}–
+                        {Math.min(currentPage * PAGE_SIZE, filteredAndSortedAccounts.length)} of {filteredAndSortedAccounts.length} accounts
                     </div>
                 )}
             </div>

@@ -63,8 +63,7 @@ export const AnimatedBackground: React.FC = () => {
         () => ({
             backgroundImage: getAnimationGradient(mousePosition.x, mousePosition.y),
             backgroundColor: colors.table.bgBase,
-            filter: "blur(40px)",
-            transition: "all 0.3s ease-out"
+            filter: "blur(40px)"
         }),
         [mousePosition.x, mousePosition.y]
     );
@@ -82,8 +81,7 @@ export const AnimatedBackground: React.FC = () => {
             )
         `,
             backgroundSize: "400% 400%",
-            animation: "gradient 15s ease infinite",
-            transition: "background 0.5s ease"
+            animation: "gradient 15s ease infinite"
         }),
         [mousePosition.x]
     );
