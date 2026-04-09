@@ -146,6 +146,9 @@ export default function AllAccountsPage() {
                     if (account["@type"]) {
                         const typePath = account["@type"];
                         type = typePath.split(".").pop() || "Unknown";
+                        if (type === "BaseAccount") {
+                            type = "B52 Account";
+                        }
                     }
 
                     // Fetch balances for this account
@@ -461,7 +464,8 @@ export default function AllAccountsPage() {
                 {/* Results count — small screens only (pagination shows it on larger screens) */}
                 {!loading && !error && (
                     <div className="sm:hidden mt-4 text-center text-gray-400 text-sm">
-                        Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAndSortedAccounts.length)}–{Math.min(currentPage * PAGE_SIZE, filteredAndSortedAccounts.length)} of {filteredAndSortedAccounts.length} accounts
+                        Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAndSortedAccounts.length)}–
+                        {Math.min(currentPage * PAGE_SIZE, filteredAndSortedAccounts.length)} of {filteredAndSortedAccounts.length} accounts
                     </div>
                 )}
             </div>
