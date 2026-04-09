@@ -39,7 +39,9 @@ export const formatAmount = (amount: string, denom?: string, isTournament?: bool
     }
     const formatted = formatMicroAsUsdc(amount, 2);
     if (denom) {
-        return `${formatted} ${denom.toUpperCase()}`;
+        // Remove "u" prefix for Cosmos micro-denominations (e.g., "uusdc" -> "USDC")
+        const displayDenom = denom.startsWith("u") ? denom.slice(1) : denom;
+        return `${formatted} ${displayDenom.toUpperCase()}`;
     }
     return `$${formatted}`;
 };
