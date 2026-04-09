@@ -229,7 +229,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <div className="flex items-center space-x-1 sm:space-x-2">
                             {blindLevel.isActive ? (
                                 <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
-                                    Level {blindLevel.level + 1} {blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
+                                    {blindLevel.level !== undefined && `Level ${blindLevel.level + 1} `}{blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
                                 </span>
                             ) : (
                                 <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>

@@ -4,8 +4,8 @@ import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtil
 import { formatChipCount } from "../../utils/potDisplayUtils";
 
 export interface BlindLevelInfo {
-    /** Current blind level (0-based) */
-    level: number;
+    /** Current blind level (0-based), undefined if not provided by backend */
+    level: number | undefined;
     /** Current small blind (chip count) */
     smallBlind: number;
     /** Current big blind (chip count) */
@@ -50,11 +50,11 @@ export const useBlindLevel = (startTime?: number): BlindLevelInfo => {
     const currentBB = gameOptions?.bigBlind ? Number(gameOptions.bigBlind) : 0;
 
     // Blind level from backend
-    const level = gameOptions?.blindLevel ?? 0;
+    const level = gameOptions?.blindLevel;
 
     // Next blinds from backend
-    const nextSmallBlind = gameOptions?.nextSmallBlind ? Number(gameOptions.nextSmallBlind) : currentSB * 2;
-    const nextBigBlind = gameOptions?.nextBigBlind ? Number(gameOptions.nextBigBlind) : currentBB * 2;
+    const nextSmallBlind = gameOptions?.nextSmallBlind ? Number(gameOptions.nextSmallBlind) : 0;
+    const nextBigBlind = gameOptions?.nextBigBlind ? Number(gameOptions.nextBigBlind) : 0;
 
     // Blind level duration in seconds
     const blindLevelDuration = gameOptions?.blindLevelDuration;
@@ -64,7 +64,7 @@ export const useBlindLevel = (startTime?: number): BlindLevelInfo => {
     const hasTimer = isActive && levelDurationSeconds > 0 && startTime !== undefined && startTime > 0;
 
     const secondsRemaining = useMemo(() => {
-        if (!hasTimer || !startTime) return -1;
+        if (!hasTimer || !startTime || level === undefined) return -1;
         const elapsedMs = now - startTime;
         const elapsedSeconds = Math.floor(elapsedMs / 1000);
         const currentLevelEndSeconds = (level + 1) * levelDurationSeconds;
