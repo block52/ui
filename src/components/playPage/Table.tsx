@@ -922,18 +922,12 @@ const Table = React.memo(() => {
     useEffect(() => (seat ? setStartIndex(seat) : setStartIndex(0)), [seat]);
 
     // AUTO-ROTATION: Automatically rotate table when user joins
-    // This ensures the current user always appears at the bottom position
-    // DISABLED FOR NOW - uncomment to enable auto-rotation
-    // useEffect(() => {
-    //     if (currentUserSeat > 0) {
-    //         // Calculate rotation needed to put current user at bottom
-    //         // Position 0 is bottom, so we need to rotate by (userSeat - 1)
-    //         const rotationNeeded = currentUserSeat - 1;
-    //
-    //         console.log(`🎯 AUTO-ROTATION: User is at seat ${currentUserSeat}, rotating by ${rotationNeeded} to put them at bottom`);
-    //         setStartIndex(rotationNeeded);
-    //     }
-    // }, [currentUserSeat]);
+    // Auto-rotate table so current player is always at bottom (6 o'clock) (#13)
+    useEffect(() => {
+        if (currentUserSeat > 0) {
+            setStartIndex(currentUserSeat - 1);
+        }
+    }, [currentUserSeat]);
 
     // Winner animations
     const hasWinner = Array.isArray(winnerInfo) && winnerInfo.length > 0;
