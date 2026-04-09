@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
 import { formatPlayerId, formatAmount } from "../utils/accountUtils";
+import { isTournamentFormat } from "../utils/gameFormatUtils";
 import { ActionDTO } from "@block52/poker-vm-sdk";
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
@@ -77,7 +78,7 @@ const formatRoundName = (round: string): string => {
 const ActionsLog: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { previousActions } = useGameProgress(id);
-    const { gameState } = useGameStateContext();
+    const { gameState, gameFormat } = useGameStateContext();
     const indexerApi = useIndexerApi();
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
@@ -133,7 +134,7 @@ const ActionsLog: React.FC = () => {
             .map((action: ActionDTO) => {
                 const player = formatPlayerId(action.playerId);
                 const actionName = formatActionName(action.action);
-                const amount = action.amount ? ` ${formatAmount(action.amount)}` : "";
+                const amount = action.amount ? ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}` : "";
                 const round = formatRoundName(action.round);
                 const seat = action.seat;
                 return `${player} (Seat ${seat}): ${actionName}${amount} - ${round}`;
@@ -281,7 +282,7 @@ const ActionsLog: React.FC = () => {
                             <div className="flex justify-between mt-0.5">
                                 <span className={styles.actionText}>
                                     {formatActionName(action.action)}
-                                    {action.amount && ` ${formatAmount(action.amount)}`}
+                                    {action.amount && ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}`}
                                 </span>
                                 <span 
                                     className={`text-[10px] ${styles.secondaryText}`}

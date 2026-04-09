@@ -32,7 +32,11 @@ export const formatPlayerId = (playerId: string): string => {
  * @param denom Optional denomination (e.g., "usdc"). If provided, appends uppercase denom instead of $ prefix.
  * @returns Formatted string (e.g., "$1.50" or "1.50 USDC")
  */
-export const formatAmount = (amount: string, denom?: string): string => {
+export const formatAmount = (amount: string, denom?: string, isTournament?: boolean): string => {
+    if (isTournament) {
+        // Tournament/SNG: raw chip values, no USDC conversion
+        return `${Number(amount).toLocaleString()} chips`;
+    }
     const formatted = formatMicroAsUsdc(amount, 2);
     if (denom) {
         // Remove "u" prefix for micro-denominations (e.g., "uusdc" -> "USDC")
