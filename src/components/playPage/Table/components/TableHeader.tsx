@@ -19,7 +19,6 @@ import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { BlindLevelInfo } from "../../../../hooks/game/useBlindLevel";
-import { BlindLevelDisplay } from "./BlindLevelDisplay";
 import styles from "./TableHeader.module.css";
 
 export interface TableHeaderProps {
@@ -229,7 +228,9 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     <div className="flex flex-col">
                         <div className="flex items-center space-x-1 sm:space-x-2">
                             {blindLevel.isActive ? (
-                                <BlindLevelDisplay blindLevel={blindLevel} />
+                                <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
+                                    Level {blindLevel.level + 1} {blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
+                                </span>
                             ) : (
                                 <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                     {`$${formattedValues.smallBlindFormatted} / $${formattedValues.bigBlindFormatted}`}

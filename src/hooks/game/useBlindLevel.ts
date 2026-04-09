@@ -108,9 +108,9 @@ export const useBlindLevel = (startTime?: number): BlindLevelInfo => {
     // Formatted strings
     const currentBlindsFormatted = currentSB === 0 && currentBB === 0
         ? ""
-        : `${formatChipCount(currentSB)} / ${formatChipCount(currentBB)}`;
+        : `${formatChipCount(currentSB)}/${formatChipCount(currentBB)}`;
 
-    const nextBlindsFormatted = `${formatChipCount(nextSmallBlind)} / ${formatChipCount(nextBigBlind)}`;
+    const nextBlindsFormatted = `${formatChipCount(nextSmallBlind)}/${formatChipCount(nextBigBlind)}`;
 
     return {
         level,
