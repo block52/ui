@@ -964,17 +964,24 @@ const Dashboard: React.FC = () => {
                             {/* Right column: Table List (takes remaining space) */}
                             <div className="flex-1 min-w-0">
                                 <TableList />
+                                {/* Powered by Block52 — shown below table on small/mid screens */}
+                                <div className="flex lg:hidden items-center justify-center opacity-30 py-4">
+                                    <div className="flex flex-col items-center gap-1">
+                                        <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
+                                        <img src="/block52.png" alt="Block52 Logo" className="h-5 w-auto object-contain" />
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
 
                     {/* Reset blockchain button was here, now commented out by user */}
 
-                    {/* Powered by Block52 */}
-                    <div className="fixed bottom-4 left-4 flex items-center z-10 opacity-30">
+                    {/* Powered by Block52 — fixed on large screens only */}
+                    <div className="hidden lg:flex fixed bottom-4 left-4 items-center z-10 opacity-30">
                         <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
                             <div className="text-left mb-1">
-                                <span className="text-xs text-white font-medium tracking-wide  ">POWERED BY</span>
+                                <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
                             </div>
                             <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
                         </div>

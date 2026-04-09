@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { useFindGames, GameWithFormat } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
@@ -6,7 +6,10 @@ import { formatMicroAsUsdc } from "../constants/currency";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
 import DeleteTableModal from "./modals/DeleteTableModal";
+import { Pagination } from "./common";
 import styles from "./TableList.module.css";
+
+const PAGE_SIZE = 20;
 
 /**
  * Format buy-in display based on game format
@@ -39,11 +42,17 @@ const TableList: React.FC = () => {
     const { deleteGame, isDeleting } = useDeleteGame();
     const { address: cosmosAddress } = useCosmosWallet();
     const [deleteModalGameId, setDeleteModalGameId] = useState<string | null>(null);
+    const [currentPage, setCurrentPage] = useState(1);
 
     // Sort games by available seats (least empty seats first, full tables last)
     const games = React.useMemo(() => {
         return sortTablesByAvailableSeats(rawGames);
     }, [rawGames]);
+
+    const pagedGames = React.useMemo(() => {
+        const start = (currentPage - 1) * PAGE_SIZE;
+        return games.slice(start, start + PAGE_SIZE);
+    }, [games, currentPage]);
 
     // Check if there are any cash games to determine if we should show Stakes column
     const hasCashGames = React.useMemo(() => {
@@ -174,7 +183,7 @@ const TableList: React.FC = () => {
                                 </td>
                             </tr>
                         ) : (
-                            games.map((game: GameWithFormat) => {
+                            pagedGames.map((game: GameWithFormat) => {
                                 const isTournament = isTournamentFormat(game.gameFormat);
                                 return (
                                     <tr key={game.gameId} className="hover:bg-gray-700/50 transition-colors">
@@ -268,6 +277,8 @@ const TableList: React.FC = () => {
                     </tbody>
                 </table>
             </div>
+
+            <Pagination currentPage={currentPage} totalItems={games.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />
 
             {/* Delete Table Modal */}
             <DeleteTableModal
