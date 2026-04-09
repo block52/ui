@@ -923,11 +923,14 @@ const Table = React.memo(() => {
 
     // AUTO-ROTATION: Automatically rotate table when user joins
     // Auto-rotate table so current player is always at bottom (6 o'clock) (#13)
+    // Formula in PlayerSeating: seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1
+    // For position 0 (bottom) to show seat S: S = ((0 - startIndex + tableSize) % tableSize) + 1
+    // Solving: startIndex = (tableSize - (S - 1)) % tableSize
     useEffect(() => {
-        if (currentUserSeat > 0) {
-            setStartIndex(currentUserSeat - 1);
+        if (currentUserSeat > 0 && tableSize > 0) {
+            setStartIndex((tableSize - (currentUserSeat - 1)) % tableSize);
         }
-    }, [currentUserSeat]);
+    }, [currentUserSeat, tableSize]);
 
     // Winner animations
     const hasWinner = Array.isArray(winnerInfo) && winnerInfo.length > 0;
