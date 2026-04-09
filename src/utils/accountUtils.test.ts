@@ -9,8 +9,8 @@ describe("formatAmount", () => {
         });
 
         it("should format with denomination", () => {
-            expect(formatAmount("1000000", "uusdc")).toBe("1.00 USDC");
-            expect(formatAmount("500000", "uusdc")).toBe("0.50 USDC");
+            expect(formatAmount("1000000", "usdc")).toBe("1.00 USDC");
+            expect(formatAmount("500000", "usdc")).toBe("0.50 USDC");
         });
     });
 
