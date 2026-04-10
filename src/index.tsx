@@ -8,6 +8,7 @@ import App from "./App";
 import { Profiler } from "react";
 import { NetworkProvider } from "./context/NetworkContext";
 
+
 const projectId = import.meta.env.VITE_PROJECT_ID;
 if (!projectId) {
     throw new Error("Project ID is not defined in .env file");

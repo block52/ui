@@ -5,6 +5,8 @@
  * where the /cards/ folder may not be properly served.
  */
 
+import { CHIP_DENOMINATIONS, DEFAULT_CHIP_FILE } from "../constants/chips";
+
 const GITHUB_CDN_BASE = "https://raw.githubusercontent.com/block52/cards/main";
 
 // Default card back image
@@ -16,11 +18,25 @@ const DEFAULT_CARD_BACK = "b52CardBack.svg";
 export type CardBackStyle = "default" | "block52" | "custom" | string;
 
 /**
- * Get the URL for the chip image
+ * Get the URL for the chip image based on dollar amount.
+ * Returns the highest-denomination chip that does not exceed the amount.
+ * Amounts less than $1 use the $1 (white) chip.
+ * @param dollarAmount - Optional dollar amount (not micro-units). Defaults to $1 chip.
  * @returns The URL to the chip SVG image
  */
-export function getChipImageUrl(): string {
-    return `${GITHUB_CDN_BASE}/chip.svg`;
+export function getChipImageUrl(dollarAmount?: number): string {
+    if (dollarAmount === undefined || dollarAmount <= 0) {
+        return `/cards/${DEFAULT_CHIP_FILE}`;
+    }
+
+    for (const chip of CHIP_DENOMINATIONS) {
+        if (dollarAmount >= chip.value) {
+            return `/cards/${chip.file}`;
+        }
+    }
+
+    // Less than $1 — use the $1 chip
+    return `/cards/${DEFAULT_CHIP_FILE}`;
 }
 
 /**

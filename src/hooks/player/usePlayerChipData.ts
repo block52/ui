@@ -1,17 +1,31 @@
 import { useMemo } from "react";
-import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { PlayerChipDataReturn } from "../../types/index";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { MAX_ACTION_GROUPS } from "../../constants/chips";
+
+/** Action types that place chips on the table */
+const CHIP_ACTIONS: string[] = [
+    PlayerActionType.SMALL_BLIND,
+    PlayerActionType.BIG_BLIND,
+    PlayerActionType.BET,
+    PlayerActionType.CALL,
+    PlayerActionType.RAISE,
+    PlayerActionType.ALL_IN,
+];
 
 /**
- * Custom hook to fetch and provide player chip data for each seat
- * FIXED: Only shows chips for players in active gameplay (not SEATED, SITTING_OUT, etc.)
- * Shows current round betting only, not accumulated totals
+ * Custom hook to fetch and provide player chip data for each seat.
+ *
+ * Returns two accessors:
+ *  - getChipAmount(seat)  → single total string (backwards-compatible)
+ *  - getChipActions(seat) → string[] of per-action USDC micro-unit amounts,
+ *    one entry per betting action the player made in the current round.
+ *    Oldest actions are merged when count exceeds MAX_ACTION_GROUPS.
  */
 export const usePlayerChipData = (): PlayerChipDataReturn => {
     const { gameState, isLoading, error } = useGameStateContext();
 
-    // Calculate current round betting amounts
     const playerChipAmounts = useMemo(() => {
         const amounts: Record<number, string> = {};
 
@@ -19,15 +33,11 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
             return amounts;
         }
 
-        // Get current round from game state
         const currentRound = gameState.round;
 
         gameState.players.forEach(player => {
             if (!player.seat || !player.address) return;
 
-            // ONLY show chips for players who are actively playing
-            // Don't show chips for SEATED (just joined, game not started),
-            // SITTING_OUT, BUSTED, WAITING, SITTING_IN, or SHOWING players
             const shouldShowChips = (
                 player.status === PlayerStatus.ACTIVE ||
                 player.status === PlayerStatus.ALL_IN ||
@@ -39,14 +49,11 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
                 return;
             }
 
-            // FIXED: Only show chips based on current round logic
             let chipAmount = "0";
 
             if (currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP) {
-                // During ante/preflop, show accumulated bets (includes blinds)
                 chipAmount = player.sumOfBets || "0";
             } else {
-                // After preflop, calculate current round betting only
                 chipAmount = calculateCurrentRoundBetting(player, currentRound, gameState.previousActions || []);
             }
 
@@ -56,12 +63,89 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
         return amounts;
     }, [gameState]);
 
+    // Per-action chip amounts (one entry per betting action in the current display window)
+    const playerChipActions = useMemo(() => {
+        const actions: Record<number, string[]> = {};
+
+        if (!gameState || !gameState.players || !Array.isArray(gameState.players)) {
+            return actions;
+        }
+
+        const currentRound = gameState.round;
+        const previousActions: ActionDTO[] = gameState.previousActions || [];
+
+        gameState.players.forEach(player => {
+            if (!player.seat || !player.address) return;
+
+            const shouldShowChips = (
+                player.status === PlayerStatus.ACTIVE ||
+                player.status === PlayerStatus.ALL_IN ||
+                player.status === PlayerStatus.FOLDED
+            );
+
+            if (!shouldShowChips) {
+                actions[player.seat] = [];
+                return;
+            }
+
+            // Determine which actions to show as chip groups
+            let relevantActions: ActionDTO[];
+
+            if (currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP) {
+                // During preflop, include blinds + any preflop actions
+                relevantActions = previousActions.filter(a =>
+                    a.playerId === player.address &&
+                    (a.round === TexasHoldemRound.ANTE || a.round === TexasHoldemRound.PREFLOP) &&
+                    CHIP_ACTIONS.includes(a.action) &&
+                    a.amount && a.amount !== "0"
+                );
+            } else {
+                // Post-flop: only current round actions
+                relevantActions = previousActions.filter(a =>
+                    a.playerId === player.address &&
+                    a.round === currentRound &&
+                    CHIP_ACTIONS.includes(a.action) &&
+                    a.amount && a.amount !== "0"
+                );
+            }
+
+            // Sort by index (chronological order)
+            relevantActions.sort((a, b) => a.index - b.index);
+
+            // Extract amounts
+            const amounts = relevantActions.map(a => a.amount);
+
+            // Cap to MAX_ACTION_GROUPS by merging oldest actions into one group
+            if (amounts.length > MAX_ACTION_GROUPS) {
+                const mergeCount = amounts.length - MAX_ACTION_GROUPS + 1;
+                const mergedTotal = amounts.slice(0, mergeCount).reduce(
+                    (sum, val) => sum + BigInt(val), BigInt(0)
+                );
+                actions[player.seat] = [mergedTotal.toString(), ...amounts.slice(mergeCount)];
+            } else if (amounts.length > 0) {
+                actions[player.seat] = amounts;
+            } else {
+                // Fallback: if no previousActions matched but sumOfBets exists,
+                // show as a single group (covers edge cases)
+                const total = playerChipAmounts[player.seat];
+                actions[player.seat] = total && total !== "0" ? [total] : [];
+            }
+        });
+
+        return actions;
+    }, [gameState, playerChipAmounts]);
+
     const getChipAmount = (_seatIndex: number): string => {
         return playerChipAmounts[_seatIndex] || "0";
     };
 
+    const getChipActions = (_seatIndex: number): string[] => {
+        return playerChipActions[_seatIndex] || [];
+    };
+
     const defaultState: PlayerChipDataReturn = {
         getChipAmount: (_seatIndex: number): string => "0",
+        getChipActions: (_seatIndex: number): string[] => [],
         isLoading,
         error
     };
@@ -72,6 +156,7 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
 
     return {
         getChipAmount,
+        getChipActions,
         isLoading: false,
         error: null
     };
@@ -85,7 +170,6 @@ function calculateCurrentRoundBetting(
     currentRound: string,
     previousActions: Array<{ playerId: string; round: string; amount?: string }>
 ): string {
-    // Find all actions by this player in the current round
     const currentRoundActions = previousActions.filter(action =>
         action.playerId === player.address &&
         action.round === currentRound &&
@@ -94,7 +178,6 @@ function calculateCurrentRoundBetting(
         action.amount !== ""
     );
 
-    // Sum up all betting actions in current round
     const totalCurrentRoundBetting = currentRoundActions.reduce((sum, action) => {
         const amount = BigInt(action.amount || "0");
         return sum + amount;
