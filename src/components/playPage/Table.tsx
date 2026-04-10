@@ -1041,39 +1041,16 @@ const Table = React.memo(() => {
             return;
         }
         try {
-            // Look up block height for current hand from indexer
-            const handData = (await indexerApi.getHand(id, String(handNumber))) as { block_height?: number } | null;
-            if (handData?.block_height) {
-                const shareUrl = `${window.location.origin}/table/${id}?blocknumber=${handData.block_height}&actionindex=${actionCount}`;
-                await navigator.clipboard.writeText(shareUrl);
-                toast.success("Hand replay URL copied to clipboard!", {
-                    position: "top-right",
-                    autoClose: 2000
-                });
-            } else {
-                // Fallback to explorer URL if block height not available
-                const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
-                await navigator.clipboard.writeText(shareUrl);
-                toast.success("Hand replay URL copied to clipboard!", {
-                    position: "top-right",
-                    autoClose: 2000
-                });
-            }
-        } catch (error) {
-            console.error("Failed to copy share URL:", error);
-            // Fallback to explorer URL on error
-            try {
-                const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
-                await navigator.clipboard.writeText(shareUrl);
-                toast.success("Hand replay URL copied to clipboard!", {
-                    position: "top-right",
-                    autoClose: 2000
-                });
-            } catch {
-                toast.error("Failed to copy share URL.");
-            }
+            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
+            await navigator.clipboard.writeText(shareUrl);
+            toast.success("Hand link copied to clipboard!", {
+                position: "top-right",
+                autoClose: 2000
+            });
+        } catch {
+            toast.error("Failed to copy share URL.");
         }
-    }, [id, handNumber, actionCount, indexerApi]);
+    }, [id, handNumber]);
 
     // Memoize event handlers to prevent re-renders
     const handleLobbyClick = useCallback(() => {
