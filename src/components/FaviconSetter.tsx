@@ -6,6 +6,9 @@ import { useEffect } from "react";
  */
 const FaviconSetter: React.FC = () => {
     useEffect(() => {
+        const appTitle = import.meta.env.VITE_APP_TITLE || "Block 52";
+        document.title = appTitle;
+
         const faviconUrl = import.meta.env.VITE_FAVICON_URL || "/b52favicon.svg";
         
         // Update all favicon links
