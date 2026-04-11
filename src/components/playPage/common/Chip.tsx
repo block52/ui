@@ -1,5 +1,5 @@
 import React from "react";
-import { formatUSDCToSimpleDollars } from "../../../utils/numberUtils";
+import { formatUSDCToSimpleDollars, formatForSitAndGo } from "../../../utils/numberUtils";
 import { decomposeAmount } from "../../../utils/chipBreakdown";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
@@ -10,8 +10,8 @@ const CHIP_SIZE = 28;
 const CHIP_SIZE_MOBILE = 32;
 
 type ChipProps = {
-    amounts: string[];
-    totalAmount: string;
+    amount: string | bigint;
+    isTournament?: boolean;
 };
 
 /**
@@ -77,19 +77,23 @@ function getClusterBounds(count: number, chipSize: number, maxVisibleCount: numb
     };
 }
 
-const Chip: React.FC<ChipProps> = React.memo(({ amounts, totalAmount }) => {
-    const formattedAmount = formatUSDCToSimpleDollars(totalAmount);
+const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament }) => {
+    const amountStr = amount ? amount.toString() : "0";
+
+    // Format based on game type: raw chips for tournaments, USDC conversion for cash
+    const formattedAmount = isTournament
+        ? formatForSitAndGo(Number(amountStr))
+        : formatUSDCToSimpleDollars(amountStr);
+
+    // For chip decomposition, always use dollar value
+    const dollarAmount = isTournament
+        ? Number(amountStr)
+        : parseFloat(formatUSDCToSimpleDollars(amountStr));
+
+    const allStacks = decomposeAmount(dollarAmount);
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
     const chipSize = isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE;
-
-    // 1–4 actions: decompose each action separately (distinct per-action piles)
-    // 5+ actions: decompose the TOTAL as one combined pile so denominations
-    //             consolidate upward (e.g. 51×$1 → 2×$25 + $1, not 10×$5)
-    const MERGE_THRESHOLD = 3;
-    const allStacks = amounts.length >= MERGE_THRESHOLD
-        ? decomposeAmount(parseFloat(formatUSDCToSimpleDollars(totalAmount)))
-        : amounts.flatMap(amt => decomposeAmount(parseFloat(formatUSDCToSimpleDollars(amt))));
 
     const maxVisibleCount = Math.max(1, ...allStacks.map(s => s.visibleCount));
     const bounds = getClusterBounds(allStacks.length, chipSize, maxVisibleCount);
@@ -143,7 +147,7 @@ const Chip: React.FC<ChipProps> = React.memo(({ amounts, totalAmount }) => {
             <span className={`text-[#dbd3d3] font-bold whitespace-nowrap ${
                 isMobile ? "text-4xl" : "text-2xl"
             }`}>
-                {`$${formattedAmount}`}
+                {isTournament ? formattedAmount : `$${formattedAmount}`}
             </span>
         </div>
     );

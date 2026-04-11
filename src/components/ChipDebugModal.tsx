@@ -119,7 +119,7 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                     <div className="bg-[#0d1a2d] rounded-xl p-8 flex flex-col items-center gap-6">
                         <span className="text-gray-400 text-sm">Live Preview (actual Chip component)</span>
                         <div className="flex items-center justify-center min-h-[60px]">
-                            <Chip amounts={usdcAmounts} totalAmount={totalUsdc} />
+                            <Chip amount={totalUsdc} />
                         </div>
                         <div className="text-gray-500 text-xs">
                             Total: ${totalDollars.toFixed(2)} | Actions: {liveAmounts.length} | USDC: {totalUsdc}

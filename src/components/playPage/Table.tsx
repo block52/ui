@@ -871,7 +871,7 @@ const Table = React.memo(() => {
     // Chip positions now come from tableLayout.positions.chips (stageGeometry)
 
     // Add the usePlayerChipData hook
-    const { getChipAmount, getChipActions } = usePlayerChipData();
+    const { getChipAmount } = usePlayerChipData();
 
     // Memoize user wallet address using Cosmos utility function
     const userWalletAddress = useMemo(() => {
@@ -1286,17 +1286,18 @@ const Table = React.memo(() => {
                                 tableTheme={tableStyle}
                             />
 
-                            {/* Chips */}
-                            {!isSitAndGoWaitingForPlayers && tableLayout.positions.chips.map((position, index) => {
-                                const chipAmount = getChipAmount(index + 1);
-                                if (chipAmount === "0" || chipAmount === "" || !chipAmount) return null;
-                                const chipActions = getChipActions(index + 1);
-                                return (
-                                    <div key={`chip-${index}`} className="chip-position" style={{ left: position.left, bottom: position.bottom }}>
-                                        <Chip amounts={chipActions.length > 0 ? chipActions : [chipAmount]} totalAmount={chipAmount} />
-                                    </div>
-                                );
-                            })}
+                            {/* Chips — map screen position to rotated seat number */}
+                            {!isSitAndGoWaitingForPlayers &&
+                                tableLayout.positions.chips.map((position, positionIndex) => {
+                                    const seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
+                                    const chipAmount = getChipAmount(seatNumber);
+                                    if (chipAmount === "0" || chipAmount === "" || !chipAmount) return null;
+                                    return (
+                                        <div key={`chip-${positionIndex}`} className="chip-position" style={{ left: position.left, bottom: position.bottom }}>
+                                            <Chip amount={chipAmount} isTournament={isTournamentFormat(gameFormat)} />
+                                        </div>
+                                    );
+                                })}
                         </div>
 
                         {/* Dealer Button — convert seat number to rotated screen position */}
