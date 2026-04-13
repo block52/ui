@@ -43,11 +43,32 @@ const TableList: React.FC = () => {
     const { address: cosmosAddress } = useCosmosWallet();
     const [deleteModalGameId, setDeleteModalGameId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [playersSortDir, setPlayersSortDir] = useState<"asc" | "desc" | null>(null);
+    const [gameIdSearch, setGameIdSearch] = useState("");
 
-    // Sort games by available seats (least empty seats first, full tables last)
+    const handlePlayersSortClick = useCallback(() => {
+        setPlayersSortDir(prev => {
+            if (prev === null) return "desc";
+            if (prev === "desc") return "asc";
+            return null;
+        });
+        setCurrentPage(1);
+    }, []);
+
+    const handleGameIdSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setGameIdSearch(e.target.value);
+        setCurrentPage(1);
+    }, []);
+
+    // Filter by game ID search, then sort
     const games = React.useMemo(() => {
-        return sortTablesByAvailableSeats(rawGames);
-    }, [rawGames]);
+        const filtered = gameIdSearch.trim() ? rawGames.filter(g => g.gameId.toLowerCase().includes(gameIdSearch.trim().toLowerCase())) : rawGames;
+
+        if (playersSortDir === null) {
+            return sortTablesByAvailableSeats(filtered);
+        }
+        return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
+    }, [rawGames, gameIdSearch, playersSortDir]);
 
     const pagedGames = React.useMemo(() => {
         const start = (currentPage - 1) * PAGE_SIZE;
@@ -144,8 +165,25 @@ const TableList: React.FC = () => {
     return (
         <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700">
-                <h2 className="text-xl font-bold text-white">Available Tables</h2>
+            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex items-center justify-between gap-4">
+                <h2 className="text-xl font-bold text-white shrink-0">Available Tables</h2>
+                <div className="relative max-w-xs w-full">
+                    <svg
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        value={gameIdSearch}
+                        onChange={handleGameIdSearch}
+                        placeholder="Search by game ID..."
+                        className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    />
+                </div>
             </div>
 
             {/* Table */}
@@ -158,7 +196,16 @@ const TableList: React.FC = () => {
                             {hasCashGames && <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Stakes</th>}
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Format</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Players</th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                                <button
+                                    onClick={handlePlayersSortClick}
+                                    className="inline-flex items-center gap-1 hover:text-white transition-colors"
+                                    title="Sort by current players"
+                                >
+                                    Players
+                                    <span className="text-xs">{playersSortDir === "desc" ? "▼" : playersSortDir === "asc" ? "▲" : "⇅"}</span>
+                                </button>
+                            </th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Buy-In</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400"></th>
