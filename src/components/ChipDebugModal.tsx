@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import Chip from "./playPage/common/Chip";
-import { decomposeAmount, ChipStackEntry } from "../utils/chipBreakdown";
+import { decomposeAmount, ChipStackEntry, parseCustomAmounts, chipColorClass } from "../utils/chipBreakdown";
 
 /**
  * Convert a dollar amount to USDC micro-unit string (6 decimals).
@@ -15,6 +15,9 @@ interface Preset {
     amounts: number[];
     description: string;
 }
+
+/** Default dollar amount shown in the debug panel when first opened */
+const DEFAULT_AMOUNT = 50;
 
 const PRESETS: Preset[] = [
     // --- Single chip ---
@@ -57,15 +60,12 @@ const PRESETS: Preset[] = [
 ];
 
 const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
-    const [customAmounts, setCustomAmounts] = useState<string>("50");
+    const [customAmounts, setCustomAmounts] = useState<string>(String(DEFAULT_AMOUNT));
     const [activePresetIndex, setActivePresetIndex] = useState<number | null>(null);
-    const [liveAmounts, setLiveAmounts] = useState<number[]>([50]);
+    const [liveAmounts, setLiveAmounts] = useState<number[]>([DEFAULT_AMOUNT]);
 
     const parseCustom = useCallback((text: string): number[] => {
-        return text
-            .split(",")
-            .map(s => parseFloat(s.trim()))
-            .filter(n => !isNaN(n) && n >= 0);
+        return parseCustomAmounts(text);
     }, []);
 
     const handleCustomChange = useCallback((text: string) => {
@@ -207,22 +207,5 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
         </div>
     );
 };
-
-/** Map chip color names to TailwindCSS classes for the breakdown dots */
-function chipColorClass(color: string): string {
-    switch (color) {
-        case "white": return "bg-white";
-        case "red": return "bg-red-500";
-        case "green": return "bg-green-500";
-        case "black": return "bg-gray-900";
-        case "purple": return "bg-purple-500";
-        case "yellow": return "bg-yellow-400";
-        case "orange": return "bg-orange-500";
-        case "blue": return "bg-blue-500";
-        case "pink": return "bg-pink-400";
-        case "striped blue/orange": return "bg-gradient-to-r from-blue-500 to-orange-500";
-        default: return "bg-gray-500";
-    }
-}
 
 export default ChipDebugModal;

@@ -174,3 +174,44 @@ export function decomposeAmount(dollarAmount: number): ChipStackEntry[] {
 
     return stacks;
 }
+
+/**
+ * Parse a comma-separated string of dollar amounts into an array of numbers.
+ * Used by ChipDebugModal to convert user input into numeric amounts.
+ *
+ * @param text Comma-separated dollar values (e.g. "25, 130, 500")
+ * @returns Array of non-negative numbers, empty values and NaN are filtered out.
+ *
+ * @example
+ *   parseCustomAmounts("25, 130, 500")  → [25, 130, 500]
+ *   parseCustomAmounts("abc, 10, -5")   → [10]
+ *   parseCustomAmounts("")              → []
+ */
+export function parseCustomAmounts(text: string): number[] {
+    return text
+        .split(",")
+        .map(s => parseFloat(s.trim()))
+        .filter(n => !isNaN(n) && n >= 0);
+}
+
+/**
+ * Map chip color names to TailwindCSS classes for UI display.
+ *
+ * @param color The chip color name (e.g. "red", "black", "green")
+ * @returns TailwindCSS background class string
+ */
+export function chipColorClass(color: string): string {
+    switch (color) {
+        case "white": return "bg-white";
+        case "red": return "bg-red-500";
+        case "green": return "bg-green-500";
+        case "black": return "bg-gray-900";
+        case "purple": return "bg-purple-500";
+        case "yellow": return "bg-yellow-400";
+        case "orange": return "bg-orange-500";
+        case "blue": return "bg-blue-500";
+        case "pink": return "bg-pink-400";
+        case "striped blue/orange": return "bg-gradient-to-r from-blue-500 to-orange-500";
+        default: return "bg-gray-500";
+    }
+}

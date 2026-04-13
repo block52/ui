@@ -1,5 +1,5 @@
 import React from "react";
-import { formatUSDCToSimpleDollars, formatForSitAndGo } from "../../../utils/numberUtils";
+import { formatUSDCToSimpleDollars, formatForSitAndGo, convertUSDCToNumber } from "../../../utils/numberUtils";
 import { decomposeAmount } from "../../../utils/chipBreakdown";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
@@ -88,7 +88,7 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament }) => {
     // For chip decomposition, always use dollar value
     const dollarAmount = isTournament
         ? Number(amountStr)
-        : parseFloat(formatUSDCToSimpleDollars(amountStr));
+        : convertUSDCToNumber(amountStr);
 
     const allStacks = decomposeAmount(dollarAmount);
 

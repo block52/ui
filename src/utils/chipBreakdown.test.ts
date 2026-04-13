@@ -1,4 +1,4 @@
-import { decomposeAmount, ChipStackEntry } from "./chipBreakdown";
+import { decomposeAmount, ChipStackEntry, parseCustomAmounts, chipColorClass } from "./chipBreakdown";
 
 /**
  * Helper: extract just the relevant fields for assertions.
@@ -716,5 +716,96 @@ describe("decomposeAmount", () => {
             expect(stacks[0].color).toBe("green");
             expect(stacks[0].count).toBe(2);
         });
+    });
+});
+
+// =====================================================================
+// parseCustomAmounts — comma-separated string → number[]
+// =====================================================================
+describe("parseCustomAmounts", () => {
+    it("parses a single value", () => {
+        expect(parseCustomAmounts("50")).toEqual([50]);
+    });
+
+    it("parses multiple comma-separated values", () => {
+        expect(parseCustomAmounts("25, 130, 500")).toEqual([25, 130, 500]);
+    });
+
+    it("handles extra whitespace", () => {
+        expect(parseCustomAmounts("  10 ,  20 , 30  ")).toEqual([10, 20, 30]);
+    });
+
+    it("filters out NaN values", () => {
+        expect(parseCustomAmounts("abc, 10, xyz")).toEqual([10]);
+    });
+
+    it("filters out negative values", () => {
+        expect(parseCustomAmounts("10, -5, 20")).toEqual([10, 20]);
+    });
+
+    it("returns empty array for empty string", () => {
+        expect(parseCustomAmounts("")).toEqual([]);
+    });
+
+    it("returns empty array for all-invalid input", () => {
+        expect(parseCustomAmounts("abc, def")).toEqual([]);
+    });
+
+    it("handles decimal values", () => {
+        expect(parseCustomAmounts("0.02, 0.04, 1.5")).toEqual([0.02, 0.04, 1.5]);
+    });
+
+    it("allows zero", () => {
+        expect(parseCustomAmounts("0, 10")).toEqual([0, 10]);
+    });
+});
+
+// =====================================================================
+// chipColorClass — color name → TailwindCSS class
+// =====================================================================
+describe("chipColorClass", () => {
+    it("returns bg-white for white", () => {
+        expect(chipColorClass("white")).toBe("bg-white");
+    });
+
+    it("returns bg-red-500 for red", () => {
+        expect(chipColorClass("red")).toBe("bg-red-500");
+    });
+
+    it("returns bg-green-500 for green", () => {
+        expect(chipColorClass("green")).toBe("bg-green-500");
+    });
+
+    it("returns bg-gray-900 for black", () => {
+        expect(chipColorClass("black")).toBe("bg-gray-900");
+    });
+
+    it("returns bg-purple-500 for purple", () => {
+        expect(chipColorClass("purple")).toBe("bg-purple-500");
+    });
+
+    it("returns bg-yellow-400 for yellow", () => {
+        expect(chipColorClass("yellow")).toBe("bg-yellow-400");
+    });
+
+    it("returns bg-orange-500 for orange", () => {
+        expect(chipColorClass("orange")).toBe("bg-orange-500");
+    });
+
+    it("returns bg-blue-500 for blue", () => {
+        expect(chipColorClass("blue")).toBe("bg-blue-500");
+    });
+
+    it("returns bg-pink-400 for pink", () => {
+        expect(chipColorClass("pink")).toBe("bg-pink-400");
+    });
+
+    it("returns gradient for striped blue/orange", () => {
+        expect(chipColorClass("striped blue/orange")).toBe("bg-gradient-to-r from-blue-500 to-orange-500");
+    });
+
+    it("returns bg-gray-500 for unknown colors", () => {
+        expect(chipColorClass("magenta")).toBe("bg-gray-500");
+        expect(chipColorClass("")).toBe("bg-gray-500");
     });
 });
