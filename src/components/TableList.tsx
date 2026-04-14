@@ -8,6 +8,7 @@ import { isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay }
 import DeleteTableModal from "./modals/DeleteTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
+import { isNullish } from "../utils/guards";
 
 const PAGE_SIZE = 20;
 
@@ -96,16 +97,16 @@ const TableList: React.FC = () => {
         if (gameIdSearch.trim()) {
             filtered = filtered.filter(g => g.gameId.toLowerCase().includes(gameIdSearch.trim().toLowerCase()));
         }
-        if (playersSortDir !== null) {
+        if (!isNullish(playersSortDir)) {
             return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
         }
-        if (formatSortDir !== null) {
+        if (!isNullish(formatSortDir)) {
             return [...filtered].sort((a, b) => {
                 const cmp = String(a.gameFormat).localeCompare(String(b.gameFormat));
                 return formatSortDir === "asc" ? cmp : -cmp;
             });
         }
-        if (buyInSortDir !== null) {
+        if (!isNullish(buyInSortDir)) {
             return [...filtered].sort((a, b) => {
                 const diff = Number(a.minBuyIn) - Number(b.minBuyIn);
                 return buyInSortDir === "asc" ? diff : -diff;
