@@ -128,7 +128,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     </div>
                 )}
                 <div className="flex justify-center gap-1">
-                    {holeCards && holeCards.length === 2 ? (
+                    {holeCards && holeCards.length === 2 && !isFolded? (
                         isShowingCards && showingCards ? (
                             // Show the actual cards if player is showing
                             <>
