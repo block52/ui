@@ -8,39 +8,39 @@ import {
 } from "./cardImages";
 
 describe("cardImages", () => {
-    const GITHUB_CDN_BASE = "https://raw.githubusercontent.com/block52/cards/main";
+    const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@main";
 
     describe("getChipImageUrl", () => {
         it("should return correct chip image URL", () => {
-            expect(getChipImageUrl()).toBe(`${GITHUB_CDN_BASE}/chip.svg`);
+            expect(getChipImageUrl()).toBe(`${CDN_BASE}/chip.svg`);
         });
     });
 
     describe("getDealerImageUrl", () => {
         it("should return correct dealer image URL", () => {
-            expect(getDealerImageUrl()).toBe(`${GITHUB_CDN_BASE}/dealer.svg`);
+            expect(getDealerImageUrl()).toBe(`${CDN_BASE}/dealer.svg`);
         });
     });
 
     describe("getCardBackUrl", () => {
         it("should return default card back when no style specified", () => {
-            expect(getCardBackUrl()).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardBackUrl()).toBe(`${CDN_BASE}/b52CardBack.svg`);
         });
 
         it("should return default card back when style is 'default'", () => {
-            expect(getCardBackUrl("default")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardBackUrl("default")).toBe(`${CDN_BASE}/b52CardBack.svg`);
         });
 
         it("should return Block52 branded card back when style is 'block52'", () => {
-            expect(getCardBackUrl("block52")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardBackUrl("block52")).toBe(`${CDN_BASE}/b52CardBack.svg`);
         });
 
         it("should return legacy card back when style is 'legacy'", () => {
-            expect(getCardBackUrl("legacy")).toBe(`${GITHUB_CDN_BASE}/Back.svg`);
+            expect(getCardBackUrl("legacy")).toBe(`${CDN_BASE}/Back.svg`);
         });
 
         it("should return custom card back when style is 'custom'", () => {
-            expect(getCardBackUrl("custom")).toBe(`${GITHUB_CDN_BASE}/BackCustom.svg`);
+            expect(getCardBackUrl("custom")).toBe(`${CDN_BASE}/BackCustom.svg`);
         });
 
         it("should return custom URL when provided", () => {
@@ -56,48 +56,48 @@ describe("cardImages", () => {
 
     describe("getCardImageUrl", () => {
         it("should return correct URL for Ace of Spades", () => {
-            expect(getCardImageUrl("AS")).toBe(`${GITHUB_CDN_BASE}/AS.svg`);
+            expect(getCardImageUrl("AS")).toBe(`${CDN_BASE}/AS.svg`);
         });
 
         it("should return correct URL for Ten of Clubs", () => {
-            expect(getCardImageUrl("TC")).toBe(`${GITHUB_CDN_BASE}/TC.svg`);
+            expect(getCardImageUrl("TC")).toBe(`${CDN_BASE}/TC.svg`);
         });
 
         it("should return correct URL for King of Hearts", () => {
-            expect(getCardImageUrl("KH")).toBe(`${GITHUB_CDN_BASE}/KH.svg`);
+            expect(getCardImageUrl("KH")).toBe(`${CDN_BASE}/KH.svg`);
         });
 
         it("should return correct URL for 2 of Diamonds", () => {
-            expect(getCardImageUrl("2D")).toBe(`${GITHUB_CDN_BASE}/2D.svg`);
+            expect(getCardImageUrl("2D")).toBe(`${CDN_BASE}/2D.svg`);
         });
 
         it("should return card back for empty string", () => {
-            expect(getCardImageUrl("")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl("")).toBe(`${CDN_BASE}/b52CardBack.svg`);
         });
 
         it("should return card back for question marks", () => {
-            expect(getCardImageUrl("??")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl("??")).toBe(`${CDN_BASE}/b52CardBack.svg`);
         });
 
         it("should return card back for undefined", () => {
-            expect(getCardImageUrl(undefined as any)).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl(undefined as any)).toBe(`${CDN_BASE}/b52CardBack.svg`);
         });
 
         it("should return card back for null", () => {
-            expect(getCardImageUrl(null as any)).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl(null as any)).toBe(`${CDN_BASE}/b52CardBack.svg`);
         });
 
         it("should handle all suits", () => {
-            expect(getCardImageUrl("AC")).toBe(`${GITHUB_CDN_BASE}/AC.svg`);
-            expect(getCardImageUrl("AD")).toBe(`${GITHUB_CDN_BASE}/AD.svg`);
-            expect(getCardImageUrl("AH")).toBe(`${GITHUB_CDN_BASE}/AH.svg`);
-            expect(getCardImageUrl("AS")).toBe(`${GITHUB_CDN_BASE}/AS.svg`);
+            expect(getCardImageUrl("AC")).toBe(`${CDN_BASE}/AC.svg`);
+            expect(getCardImageUrl("AD")).toBe(`${CDN_BASE}/AD.svg`);
+            expect(getCardImageUrl("AH")).toBe(`${CDN_BASE}/AH.svg`);
+            expect(getCardImageUrl("AS")).toBe(`${CDN_BASE}/AS.svg`);
         });
 
         it("should handle all ranks", () => {
             const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
             ranks.forEach(rank => {
-                expect(getCardImageUrl(`${rank}S`)).toBe(`${GITHUB_CDN_BASE}/${rank}S.svg`);
+                expect(getCardImageUrl(`${rank}S`)).toBe(`${CDN_BASE}/${rank}S.svg`);
             });
         });
     });

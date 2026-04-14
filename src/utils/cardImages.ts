@@ -1,11 +1,11 @@
 /**
  * Card image URL utility
  *
- * Provides card image URLs from GitHub CDN as a fallback for production deployments
- * where the /cards/ folder may not be properly served.
+ * Provides card image URLs from jsDelivr CDN for production deployments.
+ * jsDelivr mirrors GitHub repositories and provides fast, cached global delivery.
  */
 
-const GITHUB_CDN_BASE = "https://raw.githubusercontent.com/block52/cards/main";
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@main";
 
 // Default card back image
 const DEFAULT_CARD_BACK = "b52CardBack.svg";
@@ -20,7 +20,7 @@ export type CardBackStyle = "default" | "block52" | "custom" | string;
  * @returns The URL to the chip SVG image
  */
 export function getChipImageUrl(): string {
-    return `${GITHUB_CDN_BASE}/chip.svg`;
+    return `${CDN_BASE}/chip.svg`;
 }
 
 /**
@@ -28,7 +28,7 @@ export function getChipImageUrl(): string {
  * @returns The URL to the dealer SVG image
  */
 export function getDealerImageUrl(): string {
-    return `${GITHUB_CDN_BASE}/dealer.svg`;
+    return `${CDN_BASE}/dealer.svg`;
 }
 
 /**
@@ -39,9 +39,9 @@ export function getDealerImageUrl(): string {
  */
 export function getCardImageUrl(cardCode: string): string {
     if (!cardCode || cardCode === "??" || cardCode === "") {
-        return `${GITHUB_CDN_BASE}/${DEFAULT_CARD_BACK}`;
+        return `${CDN_BASE}/${DEFAULT_CARD_BACK}`;
     }
-    return `${GITHUB_CDN_BASE}/${cardCode}.svg`;
+    return `${CDN_BASE}/${cardCode}.svg`;
 }
 
 /**
@@ -58,17 +58,17 @@ export function getCardImageUrl(cardCode: string): string {
 export function getCardBackUrl(style?: CardBackStyle): string {
     // If no style specified, use default (b52CardBack)
     if (!style || style === "default" || style === "block52") {
-        return `${GITHUB_CDN_BASE}/${DEFAULT_CARD_BACK}`;
+        return `${CDN_BASE}/${DEFAULT_CARD_BACK}`;
     }
 
     // Custom/TexasHODL card back
     if (style === "custom") {
-        return `${GITHUB_CDN_BASE}/BackCustom.svg`;
+        return `${CDN_BASE}/BackCustom.svg`;
     }
 
     // Legacy Back.svg option
     if (style === "legacy") {
-        return `${GITHUB_CDN_BASE}/Back.svg`;
+        return `${CDN_BASE}/Back.svg`;
     }
 
     // Support custom URLs (e.g., for club-specific branding)
