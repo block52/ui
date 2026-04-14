@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { useFindGames, GameWithFormat } from "../hooks/game/useFindGames";
+import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { formatMicroAsUsdc } from "../constants/currency";
@@ -45,6 +45,7 @@ const TableList: React.FC = () => {
     const [currentPage, setCurrentPage] = useState(1);
     const [playersSortDir, setPlayersSortDir] = useState<"asc" | "desc" | null>(null);
     const [gameIdSearch, setGameIdSearch] = useState("");
+    const [showTreasuryOnly, setShowTreasuryOnly] = useState(!!treasuryAddress);
 
     const handlePlayersSortClick = useCallback(() => {
         setPlayersSortDir(prev => {
@@ -60,15 +61,20 @@ const TableList: React.FC = () => {
         setCurrentPage(1);
     }, []);
 
-    // Filter by game ID search, then sort
+    // Filter by treasury toggle, game ID search, then sort
     const games = React.useMemo(() => {
-        const filtered = gameIdSearch.trim() ? rawGames.filter(g => g.gameId.toLowerCase().includes(gameIdSearch.trim().toLowerCase())) : rawGames;
-
+        let filtered = rawGames;
+        if (showTreasuryOnly && treasuryAddress) {
+            filtered = filtered.filter(g => g.creator === treasuryAddress);
+        }
+        if (gameIdSearch.trim()) {
+            filtered = filtered.filter(g => g.gameId.toLowerCase().includes(gameIdSearch.trim().toLowerCase()));
+        }
         if (playersSortDir === null) {
             return sortTablesByAvailableSeats(filtered);
         }
         return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
-    }, [rawGames, gameIdSearch, playersSortDir]);
+    }, [rawGames, showTreasuryOnly, gameIdSearch, playersSortDir]);
 
     const pagedGames = React.useMemo(() => {
         const start = (currentPage - 1) * PAGE_SIZE;
@@ -165,8 +171,25 @@ const TableList: React.FC = () => {
     return (
         <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex items-center justify-between gap-4">
+            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex items-center gap-4">
                 <h2 className="text-xl font-bold text-white shrink-0">Available Tables</h2>
+                <div className="flex items-center gap-3 ml-auto">
+                    {treasuryAddress && (
+                        <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                            <span className="text-sm text-gray-400 select-none">Treasury</span>
+                            <button
+                                role="switch"
+                                aria-checked={showTreasuryOnly}
+                                onClick={() => setShowTreasuryOnly(v => !v)}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${showTreasuryOnly ? "bg-blue-600" : "bg-gray-600"}`}
+                            >
+                                <span
+                                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${showTreasuryOnly ? "translate-x-4" : "translate-x-1"}`}
+                                />
+                            </button>
+                        </label>
+                    )}
+                </div>
                 <div className="relative max-w-xs w-full">
                     <svg
                         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
