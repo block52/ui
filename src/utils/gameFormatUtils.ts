@@ -208,6 +208,29 @@ export const convertBlindsForBlockchain = (
 };
 
 /**
+ * Converts a dollar/chip amount to blockchain units based on game format.
+ * - Cash: multiplies by 10^6 (USDC microunits)
+ * - SNG/Tournament: uses raw chip value (no conversion)
+ *
+ * @example
+ * convertAmountForBlockchain("cash", 10)        // Returns 10000000n
+ * convertAmountForBlockchain("sit-and-go", 1000) // Returns 1000n
+ */
+export const convertAmountForBlockchain = (
+    format: GameFormat | string,
+    amount: number
+): bigint => {
+    const isTournament = isTournamentFormatFn(format);
+
+    if (isTournament) {
+        return BigInt(Math.floor(amount));
+    } else {
+        const multiplier = Math.pow(10, COSMOS_CONSTANTS.USDC_DECIMALS);
+        return BigInt(Math.floor(amount * multiplier));
+    }
+};
+
+/**
  * Result of getting blinds for display
  */
 export interface DisplayBlinds {

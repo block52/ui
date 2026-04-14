@@ -10,7 +10,11 @@ import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import styles from "./SitAndGoWaitingModal.module.css";
 
-const SitAndGoWaitingModal: React.FC = () => {
+interface SitAndGoWaitingModalProps {
+    onLeaveClick?: () => void;
+}
+
+const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveClick }) => {
     const { gameOptions } = useGameOptions();
     const { emptySeatIndexes } = useVacantSeatData();
 
@@ -103,6 +107,19 @@ const SitAndGoWaitingModal: React.FC = () => {
                             </span>
                         </div>
                     </div>
+
+                    
+                    {/* Leave Game Button */}
+                    {onLeaveClick && (
+                        <div className="mb-4">
+                            <button
+                                onClick={onLeaveClick}
+                                className="w-full py-2 px-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 hover:border-red-500/60 transition-colors duration-200"
+                            >
+                                Leave Game
+                            </button>
+                        </div>
+                    )}
 
                     <div className="text-center">
                         <p className="text-xs text-gray-400">Tournament starts automatically when all players are seated</p>

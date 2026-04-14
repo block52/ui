@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import { FaCopy, FaCheck } from "react-icons/fa";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import { getCardImageUrl } from "../../utils/cardImages";
@@ -81,6 +82,20 @@ export default function HandReplayPage() {
         return hand.deck.replace(/[[\]]/g, "").split("-");
     }, [hand?.deck]);
 
+    // Compute SHA-256 hash of the deck string
+    const [deckHash, setDeckHash] = useState<string | null>(null);
+    useEffect(() => {
+        if (!hand?.deck) {
+            setDeckHash(null);
+            return;
+        }
+        crypto.subtle.digest("SHA-256", new TextEncoder().encode(hand.deck))
+            .then(buf => {
+                const hex = Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+                setDeckHash(hex);
+            });
+    }, [hand?.deck]);
+
     // Sorted hand list for navigation
     const sortedHands = useMemo(() => {
         return [...hands].sort((a, b) => a.hand_number - b.hand_number);
@@ -88,9 +103,17 @@ export default function HandReplayPage() {
 
     const currentHandNum = Number(handNumber);
 
+    const [copiedField, setCopiedField] = useState<string | null>(null);
+
+    const copyToClipboard = useCallback((text: string, field: string) => {
+        navigator.clipboard.writeText(text);
+        setCopiedField(field);
+        setTimeout(() => setCopiedField(null), 2000);
+    }, []);
+
     const truncateId = (id: string) => {
-        if (id.length <= 14) return id;
-        return `${id.slice(0, 8)}...${id.slice(-4)}`;
+        if (id.length <= 24) return id;
+        return `${id.slice(0, 16)}...${id.slice(-8)}`;
     };
 
     return (
@@ -162,12 +185,6 @@ export default function HandReplayPage() {
                                     <p className="text-white">{new Date(hand.created_at).toLocaleString()}</p>
                                 </div>
                             </div>
-                            {hand.deck_seed && (
-                                <div className="mt-4">
-                                    <p className="text-sm text-gray-400">Deck Seed (Verifiable)</p>
-                                    <p className="text-white font-mono text-xs break-all">{hand.deck_seed}</p>
-                                </div>
-                            )}
                         </div>
 
                         {/* Community Cards */}
@@ -222,11 +239,62 @@ export default function HandReplayPage() {
                                 <p className="text-sm text-gray-400 mb-4">
                                     The complete shuffled deck derived from the on-chain seed. Verify this against the block hash.
                                 </p>
-                                <div className="flex flex-wrap gap-1.5">
+                                <div className="flex flex-wrap gap-1.5 mb-4">
                                     {deckCards.map((card, idx) => (
                                         <img key={idx} src={getCardImageUrl(card)} alt={card} className="w-[45px] h-[67px] rounded shadow" />
                                     ))}
                                 </div>
+
+                                {/* Deck String */}
+                                {hand.deck && (
+                                    <div className="mt-4">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm text-gray-400">Deck String</p>
+                                            <button
+                                                onClick={() => copyToClipboard(hand.deck, "deck")}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                                title="Copy deck string"
+                                            >
+                                                {copiedField === "deck" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-white font-mono text-xs break-all bg-gray-900 rounded p-3 border border-gray-700">{hand.deck}</p>
+                                    </div>
+                                )}
+
+                                {/* Deck Seed */}
+                                {hand.deck_seed && (
+                                    <div className="mt-3">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm text-gray-400">Deck Seed</p>
+                                            <button
+                                                onClick={() => copyToClipboard(hand.deck_seed, "seed")}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                                title="Copy deck seed"
+                                            >
+                                                {copiedField === "seed" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-white font-mono text-xs break-all bg-gray-900 rounded p-3 border border-gray-700">{hand.deck_seed}</p>
+                                    </div>
+                                )}
+
+                                {/* Deck Hash */}
+                                {deckHash && (
+                                    <div className="mt-3">
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <p className="text-sm text-gray-400">Deck Hash (SHA-256)</p>
+                                            <button
+                                                onClick={() => copyToClipboard(deckHash, "hash")}
+                                                className="text-gray-400 hover:text-white transition-colors"
+                                                title="Copy deck hash"
+                                            >
+                                                {copiedField === "hash" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                            </button>
+                                        </div>
+                                        <p className="text-white font-mono text-xs break-all bg-gray-900 rounded p-3 border border-gray-700">{deckHash}</p>
+                                    </div>
+                                )}
                             </div>
                         )}
 

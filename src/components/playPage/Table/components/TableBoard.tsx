@@ -14,6 +14,9 @@ import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
 import OppositePlayerCards from "../../Card/OppositePlayerCards";
 import { TotalPotDisplay } from "./TotalPotDisplay";
 import { MainPotDisplay } from "./MainPotDisplay";
+import { NounsGlasses } from "./NounsGlasses";
+
+export type TableTheme = "modern" | "classic" | "nouns";
 
 export interface TableBoardProps {
     // Display data
@@ -26,6 +29,7 @@ export interface TableBoardProps {
 
     // Styling
     cardBackStyle: CardBackStyle;
+    tableTheme?: TableTheme;
 }
 
 export const TableBoard: React.FC<TableBoardProps> = ({
@@ -33,7 +37,8 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     potDisplayValues,
     communityCards,
     isSitAndGoWaitingForPlayers,
-    cardBackStyle
+    cardBackStyle,
+    tableTheme = "modern"
 }) => {
     // Memoize community cards rendering
     const communityCardsElements = useMemo(() => {
@@ -54,8 +59,12 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     return (
         <>
             {/* Club Logo */}
-            <div className="table-logo">
-                <img src={clubLogo} alt="Club Logo" />
+            <div className={`table-logo ${tableTheme === "nouns" ? "table-logo-nouns" : ""}`}>
+                {tableTheme === "nouns" ? (
+                    <NounsGlasses width={300} className="nouns-glasses-logo" />
+                ) : (
+                    <img src={clubLogo} alt="Club Logo" />
+                )}
             </div>
 
             {/* Central Display Area */}

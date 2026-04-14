@@ -148,7 +148,7 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
 
                 {/* Modal Container */}
                 <div
-                    className={`relative p-6 rounded-xl shadow-2xl overflow-hidden ${widthClass} max-w-[95vw] ${className} ${styles.modalContainer}`}
+                    className={`relative p-6 rounded-xl shadow-2xl overflow-x-hidden overflow-y-auto max-h-[90vh] ${widthClass} max-w-[95vw] ${className} ${styles.modalContainer}`}
                 >
                     {/* Hexagon pattern background */}
                     {showHexagonPattern && <HexagonPattern patternId={patternId} />}

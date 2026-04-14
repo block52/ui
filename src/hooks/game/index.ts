@@ -35,6 +35,11 @@ export { useTableTurnIndex } from "./useTableTurnIndex";
 // Tournament-Specific Hooks
 export { useSitAndGoPlayerResults } from "./useSitAndGoPlayerResults";
 export { useSitAndGoPlayerJoinRandomSeat } from "./useSitAndGoPlayerJoinRandomSeat";
+export { useBlindLevel } from "./useBlindLevel";
+export type { BlindLevelInfo } from "./useBlindLevel";
+
+// Replay Mode
+export { useReplayMode } from "./useReplayMode";
 
 // Winner Display
 export { useWinnerInfo } from "./useWinnerInfo";

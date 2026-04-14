@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { microToUsdc, usdcToMicroBigInt } from "../../constants/currency";
+import { calculateMinTopUp, calculateMaxTopUp } from "../../utils/topUpUtils";
 import { Modal, LoadingSpinner } from "../common";
 import styles from "./TopUpModal.module.css";
 import type { TopUpModalProps } from "./types";
@@ -14,10 +15,8 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
         const max = microToUsdc(maxBuyIn);
         const wallet = microToUsdc(walletBalance);
 
-        // Min top-up ensures player reaches at least minBuyIn
-        const minTopUpAmount = current < min ? min - current : 0.01;
-        // Max top-up capped by table max and wallet balance
-        const maxTopUpAmount = Math.min(max - current, wallet);
+        const minTopUpAmount = calculateMinTopUp(current, min);
+        const maxTopUpAmount = calculateMaxTopUp(current, max, wallet);
 
         return {
             currentStackFormatted: current.toFixed(2),
@@ -116,22 +115,22 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
             patternId="hexagons-topup"
         >
             {/* Current Stack */}
-            <div className={`mb-4 p-4 rounded-lg ${styles.infoCard}`}>
-                <div className="text-sm text-gray-400 mb-1">Current Stack</div>
-                <div className="text-2xl font-bold text-white">${currentStackFormatted}</div>
-                <div className="text-xs text-gray-500 mt-1">Table Max: ${maxBuyInFormatted}</div>
+            <div className={`mb-2 rounded-lg ${styles.infoCard}`}>
+                <div className="text-xs text-gray-400 mb-0.5">Current Stack</div>
+                <div className="text-lg font-bold text-white">${currentStackFormatted}</div>
+                <div className="text-xs text-gray-500 mt-0.5">Table Max: ${maxBuyInFormatted}</div>
             </div>
 
             {/* Wallet Balance */}
-            <div className={`mb-6 p-4 rounded-lg ${styles.infoCard}`}>
-                <div className="text-sm text-gray-400 mb-1">Wallet Balance</div>
-                <div className="text-xl font-bold text-white">${walletBalanceFormatted}</div>
+            <div className={`mb-3 rounded-lg ${styles.infoCard}`}>
+                <div className="text-xs text-gray-400 mb-0.5">Wallet Balance</div>
+                <div className="text-lg font-bold text-white">${walletBalanceFormatted}</div>
             </div>
 
             {/* Top-Up Amount Selection */}
-            <div className="mb-6">
+            <div className="mb-4">
                 <label className="block text-gray-300 mb-2 font-medium text-sm">Top-Up Amount</label>
-                <div className="flex gap-2 mb-3">
+                <div className="flex gap-2 mb-2">
                     <button
                         onClick={handleMinClick}
                         className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
@@ -150,12 +149,14 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 <div className="flex-1">
                     <input
                         type="number"
+                        min={minTopUpFormatted}
+                        max={maxTopUpFormatted}
+                        step="0.01"
                         value={topUpAmount}
                         onChange={e => handleTopUpChange(e.target.value)}
-                        className={`w-full p-2 text-white rounded-lg text-center focus:outline-none ${styles.amountInput}`}
+                        className={`w-full p-2 text-white rounded-lg text-center ${styles.amountInput}`}
                         style={isAmountInvalid && topUpAmount ? { borderColor: "red" } : undefined}
                         placeholder="0.00"
-                        step="0.01"
                     />
                 </div>
             </div>
@@ -165,7 +166,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 <button
                     onClick={handleTopUpClick}
                     disabled={isProcessing || isAmountInvalid}
-                    className={`w-full px-5 py-3 rounded-lg font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
+                    className={`w-full px-5 py-2 rounded-lg font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
                 >
                     {isProcessing ? (
                         <>
@@ -179,13 +180,13 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 <button
                     onClick={onClose}
                     disabled={isProcessing}
-                    className={`w-full px-5 py-3 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80 ${styles.cancelButton}`}
+                    className={`w-full px-5 py-2 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80 ${styles.cancelButton}`}
                 >
                     Cancel
                 </button>
             </div>
 
-            <div className={`mt-4 text-xs ${styles.noteText}`}>
+            <div className={`mt-3 text-xs ${styles.noteText}`}>
                 <strong>Note:</strong> You can only top up when not in an active hand.
             </div>
         </Modal>

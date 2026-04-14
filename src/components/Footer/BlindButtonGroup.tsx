@@ -13,6 +13,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
     playerStatus,
     loading,
     isMobileLandscape,
+    isTournament,
     onPostSmallBlind,
     onPostBigBlind,
     onFold
@@ -34,7 +35,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                         <>
                             <span className="mr-1">Post Small Blind</span>
                             <span className="btn-small-blind-amount backdrop-blur-sm px-1 lg:px-2 py-1 rounded text-xs border">
-                                ${smallBlindAmount}
+                                {smallBlindAmount}
                             </span>
                         </>
                     )}
@@ -56,7 +57,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                         <>
                             <span className="mr-1">Post Big Blind</span>
                             <span className="btn-big-blind-amount backdrop-blur-sm px-1 lg:px-2 py-1 rounded text-xs border">
-                                ${bigBlindAmount}
+                                {bigBlindAmount}
                             </span>
                         </>
                     )}

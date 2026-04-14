@@ -328,8 +328,8 @@ const GLOBAL_OFFSETS: Partial<Record<TableSize,
     Partial<Record<ElementType, Record<number, Offset>>>>> = {
     2: {
         dealers: {
-            0: { dx: 95, dy: 113 },
-            1: { dx: 95, dy: -69 }
+            0: { dx: 95, dy: 63 },
+            1: { dx: 95, dy: -20 }
         },
         chips: {
             0: { dx: -38, dy: 40 },
@@ -339,14 +339,14 @@ const GLOBAL_OFFSETS: Partial<Record<TableSize,
 
     4: {
         dealers: {
-            0: { dx: 95, dy: 113 },    // seat 1
-            1: { dx: -57, dy: 24 },  // seat 2
-            2: { dx: 95, dy: -69 }, // seat 3
+            0: { dx: 95, dy: 63 },    // seat 1
+            1: { dx: -57, dy: -2 },  // seat 2
+            2: { dx: 95, dy: -20 }, // seat 3
             3: { dx: 60, dy: 24 },   // seat 4
             },
         chips: {
             0: { dx: -38, dy: 40 },    // seat 1
-            1: { dx: -90, dy: 75 },  // seat 2
+            1: { dx: -90, dy: 90 },  // seat 2
             2: { dx: -38, dy: -5 },  // seat 3
             3: { dx: 15, dy: 75 },   // seat 4
         }
@@ -354,17 +354,17 @@ const GLOBAL_OFFSETS: Partial<Record<TableSize,
 
     6: {
         dealers: {
-            0: { dx: 95, dy: 113 },    // seat 1
-            1: { dx: -60, dy: 73 },  // seat 2
-            2: { dx: -60, dy: -23 }, // seat 3
-            3: { dx: 95, dy: -70 },   // seat 4
+            0: { dx: 95, dy: 63 },    // seat 1
+            1: { dx: -60, dy: 23 },  // seat 2
+            2: { dx: -60, dy: -73 }, // seat 3
+            3: { dx: 95, dy: -20 },   // seat 4
             4: { dx: 60, dy: -23 },  // seat 5
             5: { dx: 60, dy: 73 }    // seat 6
         },
         chips: {
             0: { dx: -38, dy: 40 },    // seat 1
             1: { dx: -92, dy: 20 },  // seat 2
-            2: { dx: -92, dy: 15 },  // seat 3
+            2: { dx: -92, dy: 28 },  // seat 3
             3: { dx: -40, dy: -7 },   // seat 4
             4: { dx: 18, dy: 15 },   // seat 5
             5: { dx: 18, dy: 20 }    // seat 6
@@ -373,25 +373,25 @@ const GLOBAL_OFFSETS: Partial<Record<TableSize,
 
     9: {
         dealers: {
-            0: { dx: 95, dy: 115 },   // seat 1
-            1: { dx: 25, dy: 165 },   // seat 2
-            2: { dx: -68, dy: 55},   // seat 3
-            3: { dx: -39, dy: -50 },  // seat 4
-            4: { dx: 58, dy: -69 },  // seat 5
-            5: { dx: 132, dy: -69 }, // seat 6
-            6: { dx: 39, dy: -50 },   // seat 7
-            7: { dx: 68, dy: 55 },    // seat 8
-            8: { dx: 165, dy: 165 }   // seat 9
+            0: { dx: 95, dy: 65 },   // seat 1
+            1: { dx: 25, dy: 115 },   // seat 2
+            2: { dx: -68, dy: 7},   // seat 3
+            3: { dx: -38, dy: 0 },  // seat 4
+            4: { dx: 58, dy: -19 },  // seat 5
+            5: { dx: 132, dy: -19 }, // seat 6
+            6: { dx: 39, dy: -48 },   // seat 7
+            7: { dx: 68, dy: 57 },    // seat 8
+            8: { dx: 165, dy: 115 }   // seat 9
         },
         chips: {
             0: { dx: -35, dy: 40 },         // seat 1
             1: { dx: -125, dy: 40 },       // seat 2
             2: { dx: -103, dy: 2 },   // seat 3
-            3: { dx: -69, dy: -16 },      // seat 4
+            3: { dx: -204, dy: 20 },      // seat 4
             4: { dx: -85, dy: -8 },      // seat 5
             5: { dx: 7, dy: -8 },       // seat 6
-            6: { dx: -10, dy: -16 },     // seat 7
-            7: { dx: 27, dy: 2 },    // seat 8
+            6: { dx: 130, dy: 20 },     // seat 7
+            7: { dx: 35, dy: 2 },    // seat 8
             8: { dx: 50, dy: 40 }         // seat 9
         }
     }

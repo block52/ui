@@ -43,11 +43,12 @@ jest.useFakeTimers();
 
 describe("useTurnNotification", () => {
     let originalTitle: string;
-    let mockAudioContext: any;
+    let mockAudio: any;
     let mockFavicon: HTMLLinkElement;
     let mockCanvas: any;
     let mockContext: any;
     let originalCreateElement: typeof document.createElement;
+    let OriginalAudio: typeof Audio;
 
     beforeEach(() => {
         originalTitle = document.title;
@@ -90,31 +91,14 @@ describe("useTurnNotification", () => {
             return originalCreateElement(tag);
         }) as any;
 
-        // Mock AudioContext
-        mockAudioContext = {
-            createOscillator: jest.fn(() => ({
-                connect: jest.fn(),
-                type: "sine",
-                frequency: {
-                    setValueAtTime: jest.fn()
-                },
-                start: jest.fn(),
-                stop: jest.fn()
-            })),
-            createGain: jest.fn(() => ({
-                connect: jest.fn(),
-                gain: {
-                    setValueAtTime: jest.fn(),
-                    linearRampToValueAtTime: jest.fn(),
-                    exponentialRampToValueAtTime: jest.fn()
-                }
-            })),
-            destination: {},
-            currentTime: 0,
-            close: jest.fn()
+        // Mock Audio
+        mockAudio = {
+            volume: 0,
+            play: jest.fn().mockResolvedValue(undefined)
         };
 
-        (global as any).AudioContext = jest.fn(() => mockAudioContext);
+        OriginalAudio = global.Audio;
+        (global as any).Audio = jest.fn(() => mockAudio);
     });
 
     afterEach(() => {
@@ -122,6 +106,8 @@ describe("useTurnNotification", () => {
         mockFavicon.remove();
         // Restore original createElement
         document.createElement = originalCreateElement;
+        // Restore original Audio
+        (global as any).Audio = OriginalAudio;
         jest.clearAllTimers();
         jest.clearAllMocks();
     });
@@ -192,10 +178,9 @@ describe("useTurnNotification", () => {
 
         renderHook(() => useTurnNotification(true, { enableSound: true }));
         
-        // AudioContext should be created
-        expect((global as any).AudioContext).toHaveBeenCalled();
-        expect(mockAudioContext.createOscillator).toHaveBeenCalled();
-        expect(mockAudioContext.createGain).toHaveBeenCalled();
+        // Audio should be created and played
+        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect(mockAudio.play).toHaveBeenCalled();
     });
 
     it("should not play notification sound when disabled", () => {
@@ -206,8 +191,8 @@ describe("useTurnNotification", () => {
 
         renderHook(() => useTurnNotification(true, { enableSound: false }));
         
-        // AudioContext should not be created
-        expect((global as any).AudioContext).not.toHaveBeenCalled();
+        // Audio should not be created
+        expect((global as any).Audio).not.toHaveBeenCalled();
     });
 
     it("should use custom flash interval", () => {
@@ -264,14 +249,17 @@ describe("useTurnNotification", () => {
             get: () => true
         });
 
-        // Test with volume > 1
+        // Test with volume > 1 (should be clamped to 1.0)
         renderHook(() => useTurnNotification(true, { soundVolume: 2.0 }));
-        expect((global as any).AudioContext).toHaveBeenCalled();
+        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect(mockAudio.volume).toBe(1.0);
 
-        // Test with volume < 0
+        // Test with volume < 0 (should be clamped to 0.0)
         jest.clearAllMocks();
+        mockAudio.volume = 0;
         renderHook(() => useTurnNotification(true, { soundVolume: -0.5 }));
-        expect((global as any).AudioContext).toHaveBeenCalled();
+        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect(mockAudio.volume).toBe(0.0);
     });
 
     it("should constrain flashInterval to minimum value", () => {

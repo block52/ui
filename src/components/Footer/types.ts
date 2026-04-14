@@ -106,6 +106,7 @@ export interface BlindButtonGroupProps {
     playerStatus: PlayerStatus;
     loading: string | null;
     isMobileLandscape: boolean;
+    isTournament: boolean;
     onPostSmallBlind: () => void;
     onPostBigBlind: () => void;
     onFold: () => void;
@@ -130,6 +131,7 @@ export interface MainActionButtonsProps {
     previousActions: ActionDTO[];
     userAddress: string;
     isAllIn: boolean;
+    isTournament: boolean;
     onFold: () => void;
     onCheck: () => void;
     onCall: () => void;

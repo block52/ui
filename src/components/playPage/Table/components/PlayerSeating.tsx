@@ -127,24 +127,10 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
             return isCurrentUser ? (
                 <Player {...playerProps} uiPosition={positionIndex} />
             ) : (
-                <OppositePlayer
-                    {...playerProps}
-                    uiPosition={positionIndex}
-                    cardBackStyle={cardBackStyle}
-                />
+                <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [
-            tableActivePlayers,
-            userWalletAddress,
-            currentIndex,
-            tableDataPlayers,
-            tableSize,
-            startIndex,
-            updateBalanceOnPlayerJoin,
-            tableLayout,
-            cardBackStyle
-        ]
+        [tableActivePlayers, userWalletAddress, currentIndex, tableDataPlayers, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle]
     );
 
     // Render all player positions
@@ -187,6 +173,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                             <MemoizedTurnAnimation
                                 index={seatNum - 1}
                                 position={tableLayout.positions.turnAnimations[positionIndex]}
+                                tableActivePlayers={tableActivePlayers}
                             />
                         )}
 

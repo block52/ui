@@ -57,7 +57,7 @@ export const usePlayerData = (seatIndex?: number): PlayerDataReturn => {
       const converted = convertUSDCToNumber(playerData.stack);
       return converted;
     }
-  }, [playerData?.stack, isTournament]);
+  }, [playerData, isTournament]);
   
   // Calculate derived properties
   const isFolded = React.useMemo((): boolean => {

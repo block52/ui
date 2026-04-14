@@ -3,6 +3,7 @@ import { LoadingSpinner } from "../common";
 import { TexasHoldemRound, ActionDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import { FoldButton } from "./FoldButton";
 import { getRaiseToAmount } from "../../utils/raiseUtils";
+import { formatDisplayAmount } from "../../utils/numberUtils";
 import type { MainActionButtonsProps } from "./types";
 import styles from "./MainActionButtons.module.css";
 
@@ -22,6 +23,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
     previousActions,
     userAddress,
     isAllIn,
+    isTournament,
     onFold,
     onCheck,
     onCall,
@@ -84,7 +86,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                         </>
                     ) : (
                         <>
-                            CALL <span className={styles.amountAccent}>${callAmount}</span>
+                            CALL <span className={styles.amountAccent}>{callAmount}</span>
                         </>
                     )}
                 </button>
@@ -106,7 +108,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                     ) : (
                         <>
                             {canRaise ? "RAISE TO" : "BET"}{" "}
-                            <span className={styles.amountAccent}>${raiseToAmount.toFixed(2)}</span>
+                            <span className={styles.amountAccent}>{formatDisplayAmount(raiseToAmount, isTournament)}</span>
                         </>
                     )}
                 </button>

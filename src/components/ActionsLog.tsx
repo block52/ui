@@ -2,10 +2,12 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
 import { formatPlayerId, formatAmount } from "../utils/accountUtils";
+import { isTournamentFormat } from "../utils/gameFormatUtils";
 import { ActionDTO } from "@block52/poker-vm-sdk";
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
+import { useIndexerApi } from "../context/IndexerApiContext";
 import styles from "./ActionsLog.module.css";
 
 // Function to format action names with proper capitalization and spacing
@@ -76,7 +78,8 @@ const formatRoundName = (round: string): string => {
 const ActionsLog: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { previousActions } = useGameProgress(id);
-    const { gameState } = useGameStateContext();
+    const { gameState, gameFormat } = useGameStateContext();
+    const indexerApi = useIndexerApi();
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
     const [copiedShare, setCopiedShare] = useState(false);
@@ -131,7 +134,7 @@ const ActionsLog: React.FC = () => {
             .map((action: ActionDTO) => {
                 const player = formatPlayerId(action.playerId);
                 const actionName = formatActionName(action.action);
-                const amount = action.amount ? ` ${formatAmount(action.amount)}` : "";
+                const amount = action.amount ? ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}` : "";
                 const round = formatRoundName(action.round);
                 const seat = action.seat;
                 return `${player} (Seat ${seat}): ${actionName}${amount} - ${round}`;
@@ -175,21 +178,53 @@ const ActionsLog: React.FC = () => {
         }
     };
 
-    const handleShareHand = () => {
+    const handleShareHand = async () => {
         if (!id || !gameState?.handNumber) {
             toast.info("No hand data available to share");
             return;
         }
-        const shareUrl = `${window.location.origin}/explorer/hand/${id}/${gameState.handNumber}`;
-        copyTextToClipboard(
-            shareUrl,
-            () => {
-                setCopiedShare(true);
-                toast.success("Hand replay URL copied to clipboard!");
-                setTimeout(() => setCopiedShare(false), 2000);
-            },
-            "Failed to copy share URL"
-        );
+        try {
+            // Look up block height for current hand from indexer
+            const handData = await indexerApi.getHand(id, String(gameState.handNumber)) as { block_height?: number } | null;
+            const actionIndex = gameState.previousActions?.length || 0;
+
+            if (handData?.block_height) {
+                const shareUrl = `${window.location.origin}/table/${id}?blocknumber=${handData.block_height}&actionindex=${actionIndex}`;
+                copyTextToClipboard(
+                    shareUrl,
+                    () => {
+                        setCopiedShare(true);
+                        toast.success("Table replay URL copied to clipboard!");
+                        setTimeout(() => setCopiedShare(false), 2000);
+                    },
+                    "Failed to copy share URL"
+                );
+            } else {
+                // Fallback to explorer URL if block height not available
+                const shareUrl = `${window.location.origin}/explorer/hand/${id}/${gameState.handNumber}`;
+                copyTextToClipboard(
+                    shareUrl,
+                    () => {
+                        setCopiedShare(true);
+                        toast.success("Hand replay URL copied to clipboard!");
+                        setTimeout(() => setCopiedShare(false), 2000);
+                    },
+                    "Failed to copy share URL"
+                );
+            }
+        } catch {
+            // Fallback to explorer URL on error
+            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${gameState.handNumber}`;
+            copyTextToClipboard(
+                shareUrl,
+                () => {
+                    setCopiedShare(true);
+                    toast.success("Hand replay URL copied to clipboard!");
+                    setTimeout(() => setCopiedShare(false), 2000);
+                },
+                "Failed to copy share URL"
+            );
+        }
     };
 
     return (
@@ -247,7 +282,7 @@ const ActionsLog: React.FC = () => {
                             <div className="flex justify-between mt-0.5">
                                 <span className={styles.actionText}>
                                     {formatActionName(action.action)}
-                                    {action.amount && ` ${formatAmount(action.amount)}`}
+                                    {action.amount && ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}`}
                                 </span>
                                 <span 
                                     className={`text-[10px] ${styles.secondaryText}`}

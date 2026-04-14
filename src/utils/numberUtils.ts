@@ -169,6 +169,18 @@ export const formatForCashGame = (value: number): string => {
 };
 
 /**
+ * Format an amount for display based on game format.
+ * Tournament: whole chips with comma separators (e.g., "1,500")
+ * Cash: dollar amount with 2 decimals (e.g., "$25.00")
+ * @param value The display value (already converted from micro-units for cash)
+ * @param isTournament Whether this is a tournament/SNG game
+ * @returns Formatted string
+ */
+export const formatDisplayAmount = (value: number, isTournament: boolean): string => {
+    return isTournament ? formatForSitAndGo(value) : formatForCashGame(value);
+};
+
+/**
  * @deprecated This function has incorrect conversion logic. USDC values should be in
  * micro-USDC format (6 decimals), not Wei format (18 decimals).
  * Use formatMicroAsUsdc() from constants/currency.ts instead.

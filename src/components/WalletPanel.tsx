@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import styles from "./WalletPanel.module.css";
@@ -16,6 +16,7 @@ interface WalletPanelProps {
     onTransfer: () => void;
     onCreateWallet: () => void;
     onImportWallet: () => void;
+    onRefresh?: () => Promise<void>;
     usdcBalance: string;
     cosmosWalletAddress: string | null;
 }
@@ -25,8 +26,28 @@ interface WalletPanelProps {
  * Shows wallet address, balances, and action buttons
  * Styled to match TableList component
  */
-const WalletPanel: React.FC<WalletPanelProps> = ({ onDeposit, onWithdraw, onTransfer, onCreateWallet, onImportWallet, usdcBalance, cosmosWalletAddress }) => {
+const WalletPanel: React.FC<WalletPanelProps> = ({
+    onDeposit,
+    onWithdraw,
+    onTransfer,
+    onCreateWallet,
+    onImportWallet,
+    onRefresh,
+    usdcBalance,
+    cosmosWalletAddress
+}) => {
     const navigate = useNavigate();
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    const handleRefresh = useCallback(async () => {
+        if (!onRefresh || isRefreshing) return;
+        setIsRefreshing(true);
+        try {
+            await onRefresh();
+        } finally {
+            setIsRefreshing(false);
+        }
+    }, [onRefresh, isRefreshing]);
 
     if (!cosmosWalletAddress) {
         // No wallet - show create/import options
@@ -66,6 +87,29 @@ const WalletPanel: React.FC<WalletPanelProps> = ({ onDeposit, onWithdraw, onTran
             <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex items-center justify-between">
                 <h2 className="text-xl font-bold text-white">Game Wallet</h2>
                 <div className="flex items-center gap-2">
+                    {/* Refresh Balance Button */}
+                    {onRefresh && (
+                        <button
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className="p-2 rounded-lg transition-all hover:bg-gray-700 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title="Refresh Balance"
+                        >
+                            <svg
+                                className={`w-5 h-5 text-gray-400 hover:text-white transition-colors ${isRefreshing ? "animate-spin" : ""}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                            >
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth="2"
+                                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                                />
+                            </svg>
+                        </button>
+                    )}
                     {/* Settings Button */}
                     <button
                         onClick={() => navigate("/wallet")}

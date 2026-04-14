@@ -1,19 +1,20 @@
 import React from "react";
-import { formatUSDCToSimpleDollars } from "../../../utils/numberUtils";
+import { formatUSDCToSimpleDollars, formatForSitAndGo } from "../../../utils/numberUtils";
 import { getChipImageUrl } from "../../../utils/cardImages";
 
 type ChipProps = {
     amount: string | bigint;
+    isTournament?: boolean;
 };
 
-const Chip: React.FC<ChipProps> = React.memo(({ amount }) => {
+const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament }) => {
     // Convert amount to string - handle edge cases
     const amountStr = amount ? amount.toString() : "0";
 
-    // Always display chip, even with zero amount
-    // Format the chip amount properly from USDC microunits to readable dollar amounts
-    // Since sumOfBets is in USDC microunits (6 decimals), we use the USDC conversion
-    const formattedAmount = formatUSDCToSimpleDollars(amountStr);
+    // Format based on game type: raw chips for tournaments, USDC conversion for cash
+    const formattedAmount = isTournament
+        ? formatForSitAndGo(Number(amountStr))
+        : formatUSDCToSimpleDollars(amountStr);
     
     // Check if we're on mobile (portrait or landscape)
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
@@ -38,7 +39,7 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount }) => {
                     ? "text-4xl"  // 3x larger text for mobile
                     : "text-2xl"  // 2x larger text for desktop
             }`}>
-                ${formattedAmount}
+                {isTournament ? formattedAmount : `$${formattedAmount}`}
             </span>
         </div>
     );
