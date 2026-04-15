@@ -50,6 +50,11 @@ interface ProfileAvatarContextType extends ProfileAvatarState {
 const ProfileAvatarContext = createContext<ProfileAvatarContextType | null>(null);
 
 const AVATAR_CACHE_KEY = "b52_nft_avatar";
+const AVATAR_CLEARED_KEY = "b52_nft_avatar_cleared";
+
+function isAvatarExplicitlyCleared(cosmosAddr: string): boolean {
+    return localStorage.getItem(AVATAR_CLEARED_KEY) === cosmosAddr.toLowerCase();
+}
 
 function loadCachedAvatar(cosmosAddr: string): AvatarSelection | null {
     try {
@@ -112,6 +117,9 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
             setSelectedAvatar(null);
             return;
         }
+
+        // Skip if user explicitly cleared their avatar
+        if (isAvatarExplicitlyCleared(cosmosAddress)) return;
 
         const fetchOwnAvatar = async () => {
             try {
@@ -201,6 +209,7 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
                 };
 
                 setSelectedAvatar(nextSelection);
+                localStorage.removeItem(AVATAR_CLEARED_KEY);
                 setChainAvatarCache(prev => {
                     const next = new Map(prev);
                     next.set(cosmosAddress.toLowerCase(), asset.imageUrl);
@@ -229,6 +238,8 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
                 next.delete(cosmosAddress.toLowerCase());
                 return next;
             });
+            // Mark as explicitly cleared so on-chain queries don't restore it
+            localStorage.setItem(AVATAR_CLEARED_KEY, cosmosAddress.toLowerCase());
         }
         // TODO: Send a cosmos tx to clear the on-chain avatar when SDK supports it
     }, [cosmosAddress]);
@@ -246,6 +257,8 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
     const hasQueriedSelf = useRef(false);
     useEffect(() => {
         if (!cosmosAddress || hasQueriedSelf.current || selectedAvatar) return;
+        // Don't restore from chain if user explicitly cleared
+        if (isAvatarExplicitlyCleared(cosmosAddress)) return;
         hasQueriedSelf.current = true;
 
         const { restEndpoint } = getCosmosUrls(currentNetwork);
