@@ -89,9 +89,13 @@ export interface DealButtonGroupProps {
 export interface ShowdownButtonsProps {
     canMuck: boolean;
     canShow: boolean;
+    canSlowRoll: boolean;
     loading: string | null;
+    isSlowRolling: boolean;
+    slowRollCountdown: number;
     onMuck: () => void;
     onShow: () => void;
+    onSlowRoll: () => void;
 }
 
 /**

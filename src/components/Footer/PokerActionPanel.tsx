@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -14,6 +14,7 @@ import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
 import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
+import { useSlowRollEligibility } from "../../hooks/player/useSlowRollEligibility";
 
 // Import action handlers
 import {
@@ -52,6 +53,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
 }) => {
     // Loading state for actions
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+    // Slow roll state
+    const [isSlowRolling, setIsSlowRolling] = useState(false);
+    const [slowRollCountdown, setSlowRollCountdown] = useState(10);
+    const slowRollTimerRef = useRef<NodeJS.Timeout | null>(null);
 
     // Detect mobile landscape orientation
     const [isMobileLandscape, setIsMobileLandscape] = useState(
@@ -107,6 +113,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
     const hasShowAction = hasAction(legalActions, PlayerActionType.SHOW);
     const hasDealAction = hasAction(legalActions, NonPlayerActionType.DEAL);
     const hasNewHandAction = hasAction(legalActions, NonPlayerActionType.NEW_HAND);
+
+    // Check if player is eligible for slow roll (winner who called at showdown)
+    const canSlowRoll = useSlowRollEligibility();
 
     // Blind amounts - single source of truth from gameState.gameOptions (per Commandment 7)
     // Defined early so they can be used in useAutoPostBlinds hook
@@ -336,6 +345,53 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
         });
     };
 
+    // Slow roll handler - starts countdown then executes show action
+    const handleSlowRoll = useCallback(() => {
+        if (!tableId || isSlowRolling) return;
+
+        setIsSlowRolling(true);
+        setSlowRollCountdown(10);
+
+        slowRollTimerRef.current = setInterval(() => {
+            setSlowRollCountdown((prev) => {
+                if (prev <= 1) {
+                    // Clear the interval
+                    if (slowRollTimerRef.current) {
+                        clearInterval(slowRollTimerRef.current);
+                        slowRollTimerRef.current = null;
+                    }
+                    // Execute the show action
+                    setIsSlowRolling(false);
+                    handleActionWithTransaction("show", () => handleShow(tableId, network));
+                    return 0;
+                }
+                return prev - 1;
+            });
+        }, 1000);
+    }, [tableId, isSlowRolling, handleActionWithTransaction, network]);
+
+    // Cleanup slow roll timer on unmount or when showdown ends
+    useEffect(() => {
+        return () => {
+            if (slowRollTimerRef.current) {
+                clearInterval(slowRollTimerRef.current);
+                slowRollTimerRef.current = null;
+            }
+        };
+    }, []);
+
+    // Reset slow roll state when showdown ends
+    useEffect(() => {
+        if (!hasShowAction && isSlowRolling) {
+            setIsSlowRolling(false);
+            setSlowRollCountdown(10);
+            if (slowRollTimerRef.current) {
+                clearInterval(slowRollTimerRef.current);
+                slowRollTimerRef.current = null;
+            }
+        }
+    }, [hasShowAction, isSlowRolling]);
+
     // Calculate button visibility flags
     const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {
         const showButtons = isUserInTable;
@@ -423,13 +479,17 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
                 {!hideOtherButtons && (
                     <>
                         {/* Showdown Buttons */}
-                        {(hasMuckAction || hasShowAction) && (
+                        {(hasMuckAction || hasShowAction || isSlowRolling) && (
                             <ShowdownButtons
                                 canMuck={hasMuckAction}
                                 canShow={hasShowAction}
+                                canSlowRoll={canSlowRoll}
                                 loading={loadingAction}
+                                isSlowRolling={isSlowRolling}
+                                slowRollCountdown={slowRollCountdown}
                                 onMuck={() => handleActionWithTransaction("muck", () => handleMuck(tableId, network))}
                                 onShow={() => handleActionWithTransaction("show", () => handleShow(tableId, network))}
+                                onSlowRoll={handleSlowRoll}
                             />
                         )}
 

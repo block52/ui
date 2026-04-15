@@ -18,3 +18,6 @@ export { useShowingCardsByAddress } from "./useShowingCardsByAddress";
 // Hand Strength & Equity
 export { useCardsForHandStrength } from "./useCardsForHandStrength";
 export { useAllInEquity } from "./useAllInEquity";
+
+// Showdown
+export { useSlowRollEligibility } from "./useSlowRollEligibility";
