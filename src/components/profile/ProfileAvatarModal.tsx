@@ -205,11 +205,11 @@ export const ProfileAvatarModal: React.FC = () => {
                                 )}
                             </button>
                             <button
-                                className={styles.footerSecondaryButton}
-                                onClick={clearAvatar}
+                                className={selectedAvatar ? styles.footerDangerButton : styles.footerSecondaryButton}
+                                onClick={() => { clearAvatar(); toast.success("Avatar cleared"); }}
                                 disabled={!selectedAvatar}
                             >
-                                Clear
+                                Clear Avatar
                             </button>
                             <button
                                 className={styles.footerSecondaryButton}
