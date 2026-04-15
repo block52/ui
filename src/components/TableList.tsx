@@ -6,8 +6,9 @@ import { formatMicroAsUsdc } from "../constants/currency";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
 import DeleteTableModal from "./modals/DeleteTableModal";
-import { Pagination } from "./common";
+import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
+import { isNullish } from "../utils/guards";
 
 const PAGE_SIZE = 20;
 
@@ -43,16 +44,42 @@ const TableList: React.FC = () => {
     const { address: cosmosAddress } = useCosmosWallet();
     const [deleteModalGameId, setDeleteModalGameId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
-    const [playersSortDir, setPlayersSortDir] = useState<"asc" | "desc" | null>(null);
+    const [playersSortDir, setPlayersSortDir] = useState<SortDirection>(null);
+    const [formatSortDir, setFormatSortDir] = useState<SortDirection>(null);
+    const [buyInSortDir, setBuyInSortDir] = useState<SortDirection>(null);
     const [gameIdSearch, setGameIdSearch] = useState("");
     const [showTreasuryOnly, setShowTreasuryOnly] = useState(!!treasuryAddress);
 
     const handlePlayersSortClick = useCallback(() => {
         setPlayersSortDir(prev => {
-            if (prev === null) return "desc";
+            if (isNullish(prev)) return "desc";
             if (prev === "desc") return "asc";
             return null;
         });
+        setFormatSortDir(null);
+        setBuyInSortDir(null);
+        setCurrentPage(1);
+    }, []);
+
+    const handleFormatSortClick = useCallback(() => {
+        setFormatSortDir(prev => {
+            if (isNullish(prev)) return "asc";
+            if (prev === "asc") return "desc";
+            return null;
+        });
+        setPlayersSortDir(null);
+        setBuyInSortDir(null);
+        setCurrentPage(1);
+    }, []);
+
+    const handleBuyInSortClick = useCallback(() => {
+        setBuyInSortDir(prev => {
+            if (isNullish(prev)) return "asc";
+            if (prev === "asc") return "desc";
+            return null;
+        });
+        setPlayersSortDir(null);
+        setFormatSortDir(null);
         setCurrentPage(1);
     }, []);
 
@@ -70,11 +97,23 @@ const TableList: React.FC = () => {
         if (gameIdSearch.trim()) {
             filtered = filtered.filter(g => g.gameId.toLowerCase().includes(gameIdSearch.trim().toLowerCase()));
         }
-        if (playersSortDir === null) {
-            return sortTablesByAvailableSeats(filtered);
+        if (!isNullish(playersSortDir)) {
+            return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
         }
-        return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
-    }, [rawGames, showTreasuryOnly, gameIdSearch, playersSortDir]);
+        if (!isNullish(formatSortDir)) {
+            return [...filtered].sort((a, b) => {
+                const cmp = String(a.gameFormat).localeCompare(String(b.gameFormat));
+                return formatSortDir === "asc" ? cmp : -cmp;
+            });
+        }
+        if (!isNullish(buyInSortDir)) {
+            return [...filtered].sort((a, b) => {
+                const diff = Number(a.minBuyIn) - Number(b.minBuyIn);
+                return buyInSortDir === "asc" ? diff : -diff;
+            });
+        }
+        return sortTablesByAvailableSeats(filtered);
+    }, [rawGames, showTreasuryOnly, gameIdSearch, playersSortDir, formatSortDir, buyInSortDir]);
 
     const pagedGames = React.useMemo(() => {
         const start = (currentPage - 1) * PAGE_SIZE;
@@ -217,19 +256,16 @@ const TableList: React.FC = () => {
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Club</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Table ID</th>
                             {hasCashGames && <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Stakes</th>}
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Format</th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                                <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
+                            </th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
-                                <button
-                                    onClick={handlePlayersSortClick}
-                                    className="inline-flex items-center gap-1 hover:text-white transition-colors"
-                                    title="Sort by current players"
-                                >
-                                    Players
-                                    <span className="text-xs">{playersSortDir === "desc" ? "▼" : playersSortDir === "asc" ? "▲" : "⇅"}</span>
-                                </button>
+                                <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
                             </th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Buy-In</th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                                <SortButton label="Buy-In" direction={buyInSortDir} onClick={handleBuyInSortClick} />
+                            </th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400"></th>
                         </tr>
