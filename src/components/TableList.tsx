@@ -52,7 +52,7 @@ const TableList: React.FC = () => {
 
     const handlePlayersSortClick = useCallback(() => {
         setPlayersSortDir(prev => {
-            if (prev === null) return "desc";
+            if (isNullish(prev)) return "desc";
             if (prev === "desc") return "asc";
             return null;
         });
@@ -63,7 +63,7 @@ const TableList: React.FC = () => {
 
     const handleFormatSortClick = useCallback(() => {
         setFormatSortDir(prev => {
-            if (prev === null) return "asc";
+            if (isNullish(prev)) return "asc";
             if (prev === "asc") return "desc";
             return null;
         });
@@ -74,7 +74,7 @@ const TableList: React.FC = () => {
 
     const handleBuyInSortClick = useCallback(() => {
         setBuyInSortDir(prev => {
-            if (prev === null) return "asc";
+            if (isNullish(prev)) return "asc";
             if (prev === "asc") return "desc";
             return null;
         });
