@@ -28,7 +28,7 @@ import NodesPage from "./pages/NodesPage";
 import { TestSdk } from "./test-sdk";
 import { GameStateProvider } from "./context/GameStateContext";
 import { generateCSSVariables } from "./utils/colorConfig";
-import { useEffect } from "react";
+import { useEffect, useState, lazy, Suspense } from "react";
 import FaviconSetter from "./components/FaviconSetter";
 import { GlobalHeader } from "./components/GlobalHeader";
 import { ProfileAvatarProvider } from "./context/profile/ProfileAvatarContext";
@@ -38,6 +38,9 @@ import { CosmosApiProvider } from "./context/CosmosApiContext";
 import { IndexerApiProvider } from "./context/IndexerApiContext";
 
 const queryClient = new QueryClient();
+
+// Lazy-load debug modal (dev only)
+const ChipDebugModal = lazy(() => import("./components/ChipDebugModal"));
 
 // Create modal
 createAppKit({
@@ -57,6 +60,8 @@ createAppKit({
 
 // Main App content to be wrapped with providers
 function AppContent() {
+    const [showChipDebug, setShowChipDebug] = useState(false);
+
     // Inject CSS variables on mount
     useEffect(() => {
         const style = document.createElement("style");
@@ -66,6 +71,18 @@ function AppContent() {
         return () => {
             document.head.removeChild(style);
         };
+    }, []);
+
+    // Ctrl+Shift+D to toggle chip debug modal
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            if (e.ctrlKey && e.shiftKey && e.key === "D") {
+                e.preventDefault();
+                setShowChipDebug(prev => !prev);
+            }
+        };
+        window.addEventListener("keydown", handler);
+        return () => window.removeEventListener("keydown", handler);
     }, []);
 
     return (
@@ -119,6 +136,11 @@ function AppContent() {
                 closeButton={true}
                 theme={"dark"}
             />
+            {showChipDebug && (
+                <Suspense fallback={null}>
+                    <ChipDebugModal onClose={() => setShowChipDebug(false)} />
+                </Suspense>
+            )}
         </div>
     );
 }
