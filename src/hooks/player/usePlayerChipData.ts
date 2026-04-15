@@ -1,19 +1,8 @@
 import { useMemo } from "react";
-import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { PlayerChipDataReturn } from "../../types/index";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { MAX_ACTION_GROUPS } from "../../constants/chips";
-import { shouldShowChips } from "../../utils/chipUtils";
-
-/** Action types that place chips on the table */
-const CHIP_ACTIONS: string[] = [
-    PlayerActionType.SMALL_BLIND,
-    PlayerActionType.BIG_BLIND,
-    PlayerActionType.BET,
-    PlayerActionType.CALL,
-    PlayerActionType.RAISE,
-    PlayerActionType.ALL_IN,
-];
+import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting } from "../../utils/chipUtils";
 
 /**
  * Custom hook to fetch and provide player chip data for each seat.
@@ -49,7 +38,7 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
             if (currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP) {
                 chipAmount = player.sumOfBets || "0";
             } else {
-                chipAmount = calculateCurrentRoundBetting(player, currentRound, gameState.previousActions || []);
+                chipAmount = calculateCurrentRoundBetting(player.address, currentRound, gameState.previousActions || []);
             }
 
             amounts[player.seat] = chipAmount;
@@ -77,41 +66,9 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
                 return;
             }
 
-            // Determine which actions to show as chip groups
-            let relevantActions: ActionDTO[];
+            const amounts = getRelevantChipAmounts(player.address, currentRound, previousActions);
 
-            if (currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP) {
-                // During preflop, include blinds + any preflop actions
-                relevantActions = previousActions.filter(a =>
-                    a.playerId === player.address &&
-                    (a.round === TexasHoldemRound.ANTE || a.round === TexasHoldemRound.PREFLOP) &&
-                    CHIP_ACTIONS.includes(a.action) &&
-                    a.amount && a.amount !== "0"
-                );
-            } else {
-                // Post-flop: only current round actions
-                relevantActions = previousActions.filter(a =>
-                    a.playerId === player.address &&
-                    a.round === currentRound &&
-                    CHIP_ACTIONS.includes(a.action) &&
-                    a.amount && a.amount !== "0"
-                );
-            }
-
-            // Sort by index (chronological order)
-            relevantActions.sort((a, b) => a.index - b.index);
-
-            // Extract amounts
-            const amounts = relevantActions.map(a => a.amount);
-
-            // Cap to MAX_ACTION_GROUPS by merging oldest actions into one group
-            if (amounts.length > MAX_ACTION_GROUPS) {
-                const mergeCount = amounts.length - MAX_ACTION_GROUPS + 1;
-                const mergedTotal = amounts.slice(0, mergeCount).reduce(
-                    (sum, val) => sum + BigInt(val), BigInt(0)
-                );
-                actions[player.seat] = [mergedTotal.toString(), ...amounts.slice(mergeCount)];
-            } else if (amounts.length > 0) {
+            if (amounts.length > 0) {
                 actions[player.seat] = amounts;
             } else {
                 // Fallback: if no previousActions matched but sumOfBets exists,
@@ -150,27 +107,3 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
         error: null
     };
 };
-
-/**
- * Calculate how much a player has bet in the current round only
- */
-function calculateCurrentRoundBetting(
-    player: { address: string },
-    currentRound: string,
-    previousActions: Array<{ playerId: string; round: string; amount?: string }>
-): string {
-    const currentRoundActions = previousActions.filter(action =>
-        action.playerId === player.address &&
-        action.round === currentRound &&
-        action.amount &&
-        action.amount !== "0" &&
-        action.amount !== ""
-    );
-
-    const totalCurrentRoundBetting = currentRoundActions.reduce((sum, action) => {
-        const amount = BigInt(action.amount || "0");
-        return sum + amount;
-    }, BigInt(0));
-
-    return totalCurrentRoundBetting.toString();
-}
