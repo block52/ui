@@ -3,14 +3,9 @@ import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, 
 import { MAX_ACTION_GROUPS } from "../constants/chips";
 
 // Helper to build an ActionDTO for tests
-const makeAction = (overrides: Partial<ActionDTO> & { playerId: string; round: string; action: string; amount: string; index: number }): ActionDTO => ({
-    playerId: overrides.playerId,
-    round: overrides.round,
-    action: overrides.action,
-    amount: overrides.amount,
-    index: overrides.index,
-    ...(overrides as ActionDTO),
-});
+const makeAction = (fields: { playerId: string; round: string; action: string; amount: string; index: number }): ActionDTO => ({
+    ...fields,
+} as ActionDTO);
 
 describe("shouldShowChips", () => {
     it("returns true for ACTIVE players", () => {
@@ -29,12 +24,12 @@ describe("shouldShowChips", () => {
         expect(shouldShowChips(PlayerStatus.SITTING_OUT)).toBe(false);
     });
 
-    it("returns false for ELIMINATED players", () => {
-        expect(shouldShowChips(PlayerStatus.ELIMINATED)).toBe(false);
+    it("returns false for SEATED players", () => {
+        expect(shouldShowChips(PlayerStatus.SEATED)).toBe(false);
     });
 
-    it("returns false for NOT_ACTING players", () => {
-        expect(shouldShowChips(PlayerStatus.NOT_ACTING)).toBe(false);
+    it("returns false for BUSTED players", () => {
+        expect(shouldShowChips(PlayerStatus.BUSTED)).toBe(false);
     });
 });
 
