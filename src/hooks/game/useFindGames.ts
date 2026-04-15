@@ -6,6 +6,8 @@ import { GameWithFormat, convertGameList } from "../../utils/convertUtils";
 
 export type { GameWithFormat };
 
+export const treasuryAddress = import.meta.env.VITE_TREASURY_WALLET_ADDRESS || "";
+
 export interface FindGamesReturn {
     games: GameWithFormat[];
     isLoading: boolean;
@@ -38,7 +40,6 @@ export const useFindGames = (): FindGamesReturn => {
 
             // Convert SDK types to UI types, filtering out invalid entries
             const availableGames: GameWithFormat[] = convertGameList(cosmosGames);
-
             setGames(availableGames);
         } catch (err: unknown) {
             const errorMessage = err instanceof Error ? err.message : "Failed to fetch games from Cosmos";

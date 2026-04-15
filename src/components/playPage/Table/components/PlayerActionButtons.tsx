@@ -155,23 +155,24 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <>
                     {buyChipsElement}
                     <div className={`fixed z-30 ${positionClass}`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                            <label className="flex items-center cursor-pointer" onClick={handleSitInClick}>
-                                <input
-                                    type="radio"
-                                    name="sit-in-method"
-                                    onChange={handleSitInClick}
-                                    checked={optimisticSitIn}
-                                    onClick={() => {
-                                        console.log("🎯 Radio onClick fired! TableId:", tableId, "Network:", currentNetwork);
-                                    }}
-                                    className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
-                                />
-                                <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>
-                                    {optimisticSitIn ? "Sitting in..." : "Sit in on Next Available Hand and Post Required Blinds"}
-                                </span>
-                            </label>
-                        </div>
+                        <button
+                            onClick={handleSitInClick}
+                            disabled={optimisticSitIn}
+                            className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                                optimisticSitIn
+                                    ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
+                                    : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95 animate-pulse"
+                            } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
+                        >
+                            {optimisticSitIn ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                                    Sitting in...
+                                </>
+                            ) : (
+                                "Sit In Next Hand"
+                            )}
+                        </button>
                     </div>
                 </>
             );

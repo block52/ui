@@ -1,13 +1,14 @@
 import React, { useCallback, useState } from "react";
-import { useFindGames, GameWithFormat } from "../hooks/game/useFindGames";
+import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { formatMicroAsUsdc } from "../constants/currency";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
 import DeleteTableModal from "./modals/DeleteTableModal";
-import { Pagination } from "./common";
+import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
+import { isNullish } from "../utils/guards";
 
 const PAGE_SIZE = 20;
 
@@ -43,11 +44,76 @@ const TableList: React.FC = () => {
     const { address: cosmosAddress } = useCosmosWallet();
     const [deleteModalGameId, setDeleteModalGameId] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [playersSortDir, setPlayersSortDir] = useState<SortDirection>(null);
+    const [formatSortDir, setFormatSortDir] = useState<SortDirection>(null);
+    const [buyInSortDir, setBuyInSortDir] = useState<SortDirection>(null);
+    const [gameIdSearch, setGameIdSearch] = useState("");
+    const [showTreasuryOnly, setShowTreasuryOnly] = useState(!!treasuryAddress);
 
-    // Sort games by available seats (least empty seats first, full tables last)
+    const handlePlayersSortClick = useCallback(() => {
+        setPlayersSortDir(prev => {
+            if (isNullish(prev)) return "desc";
+            if (prev === "desc") return "asc";
+            return null;
+        });
+        setFormatSortDir(null);
+        setBuyInSortDir(null);
+        setCurrentPage(1);
+    }, []);
+
+    const handleFormatSortClick = useCallback(() => {
+        setFormatSortDir(prev => {
+            if (isNullish(prev)) return "asc";
+            if (prev === "asc") return "desc";
+            return null;
+        });
+        setPlayersSortDir(null);
+        setBuyInSortDir(null);
+        setCurrentPage(1);
+    }, []);
+
+    const handleBuyInSortClick = useCallback(() => {
+        setBuyInSortDir(prev => {
+            if (isNullish(prev)) return "asc";
+            if (prev === "asc") return "desc";
+            return null;
+        });
+        setPlayersSortDir(null);
+        setFormatSortDir(null);
+        setCurrentPage(1);
+    }, []);
+
+    const handleGameIdSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+        setGameIdSearch(e.target.value);
+        setCurrentPage(1);
+    }, []);
+
+    // Filter by treasury toggle, game ID search, then sort
     const games = React.useMemo(() => {
-        return sortTablesByAvailableSeats(rawGames);
-    }, [rawGames]);
+        let filtered = rawGames;
+        if (showTreasuryOnly && treasuryAddress) {
+            filtered = filtered.filter(g => g.creator === treasuryAddress);
+        }
+        if (gameIdSearch.trim()) {
+            filtered = filtered.filter(g => g.gameId.toLowerCase().includes(gameIdSearch.trim().toLowerCase()));
+        }
+        if (!isNullish(playersSortDir)) {
+            return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
+        }
+        if (!isNullish(formatSortDir)) {
+            return [...filtered].sort((a, b) => {
+                const cmp = String(a.gameFormat).localeCompare(String(b.gameFormat));
+                return formatSortDir === "asc" ? cmp : -cmp;
+            });
+        }
+        if (!isNullish(buyInSortDir)) {
+            return [...filtered].sort((a, b) => {
+                const diff = Number(a.minBuyIn) - Number(b.minBuyIn);
+                return buyInSortDir === "asc" ? diff : -diff;
+            });
+        }
+        return sortTablesByAvailableSeats(filtered);
+    }, [rawGames, showTreasuryOnly, gameIdSearch, playersSortDir, formatSortDir, buyInSortDir]);
 
     const pagedGames = React.useMemo(() => {
         const start = (currentPage - 1) * PAGE_SIZE;
@@ -144,8 +210,42 @@ const TableList: React.FC = () => {
     return (
         <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
             {/* Header */}
-            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700">
-                <h2 className="text-xl font-bold text-white">Available Tables</h2>
+            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex items-center gap-4">
+                <h2 className="text-xl font-bold text-white shrink-0">Available Tables</h2>
+                <div className="flex items-center gap-3 ml-auto">
+                    {treasuryAddress && (
+                        <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                            <span className="text-sm text-gray-400 select-none">Treasury</span>
+                            <button
+                                role="switch"
+                                aria-checked={showTreasuryOnly}
+                                onClick={() => setShowTreasuryOnly(v => !v)}
+                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${showTreasuryOnly ? "bg-blue-600" : "bg-gray-600"}`}
+                            >
+                                <span
+                                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${showTreasuryOnly ? "translate-x-4" : "translate-x-1"}`}
+                                />
+                            </button>
+                        </label>
+                    )}
+                </div>
+                <div className="relative max-w-xs w-full">
+                    <svg
+                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                    >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
+                    </svg>
+                    <input
+                        type="text"
+                        value={gameIdSearch}
+                        onChange={handleGameIdSearch}
+                        placeholder="Search by game ID..."
+                        className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    />
+                </div>
             </div>
 
             {/* Table */}
@@ -156,10 +256,16 @@ const TableList: React.FC = () => {
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Club</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Table ID</th>
                             {hasCashGames && <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Stakes</th>}
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Format</th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                                <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
+                            </th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Players</th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Buy-In</th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                                <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
+                            </th>
+                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                                <SortButton label="Buy-In" direction={buyInSortDir} onClick={handleBuyInSortClick} />
+                            </th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400"></th>
                         </tr>

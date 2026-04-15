@@ -28,13 +28,14 @@ type BadgeProps = {
     isSeated?: boolean;
     isSittingOut?: boolean;
     playerEquity?: number | null;
+    onSitIn?: () => void;
 };
 
 const Badge: React.FC<BadgeProps> = React.memo(({
     count, value, color, canExtend, onExtend,
     tournamentPlace, tournamentPayout,
     isWinner, winnerAmount, isTurnTimerActive,
-    round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity
+    round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn
 }) => {
     // Track previous banner mode so we can detect timer→action transitions
     const prevBannerModeRef = React.useRef<string>("hidden");
@@ -188,9 +189,18 @@ const Badge: React.FC<BadgeProps> = React.memo(({
                             </span>
                         )}
                         {isSittingOut && (
-                            <span className="seat-banner-text font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center">
-                                SITTING OUT
-                            </span>
+                            onSitIn ? (
+                                <button
+                                    className="sit-in-badge-button"
+                                    onClick={(e) => { e.stopPropagation(); onSitIn(); }}
+                                >
+                                    I'm Back
+                                </button>
+                            ) : (
+                                <span className="seat-banner-text font-bold animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center">
+                                    SITTING OUT
+                                </span>
+                            )
                         )}
                         {isFolded && (
                             <span className="seat-banner-text animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 justify-center">
