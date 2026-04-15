@@ -1,8 +1,9 @@
 import { useMemo } from "react";
-import { ActionDTO, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { PlayerChipDataReturn } from "../../types/index";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { MAX_ACTION_GROUPS } from "../../constants/chips";
+import { shouldShowChips } from "../../utils/chipUtils";
 
 /** Action types that place chips on the table */
 const CHIP_ACTIONS: string[] = [
@@ -38,13 +39,7 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
         gameState.players.forEach(player => {
             if (!player.seat || !player.address) return;
 
-            const shouldShowChips = (
-                player.status === PlayerStatus.ACTIVE ||
-                player.status === PlayerStatus.ALL_IN ||
-                player.status === PlayerStatus.FOLDED
-            );
-
-            if (!shouldShowChips) {
+            if (!shouldShowChips(player.status)) {
                 amounts[player.seat] = "0";
                 return;
             }
@@ -77,13 +72,7 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
         gameState.players.forEach(player => {
             if (!player.seat || !player.address) return;
 
-            const shouldShowChips = (
-                player.status === PlayerStatus.ACTIVE ||
-                player.status === PlayerStatus.ALL_IN ||
-                player.status === PlayerStatus.FOLDED
-            );
-
-            if (!shouldShowChips) {
+            if (!shouldShowChips(player.status)) {
                 actions[player.seat] = [];
                 return;
             }
