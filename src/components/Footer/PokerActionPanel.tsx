@@ -14,6 +14,7 @@ import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
 import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
+import { useAutoShowCards } from "../../hooks/playerActions/useAutoShowCards";
 
 // Import action handlers
 import {
@@ -45,18 +46,12 @@ import { RaiseBetControls } from "./RaiseBetControls";
 // Import types
 import type { PokerActionPanelProps } from "./types";
 
-export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
-    tableId,
-    network,
-    onTransactionSubmitted
-}) => {
+export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
     // Loading state for actions
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
     // Detect mobile landscape orientation
-    const [isMobileLandscape, setIsMobileLandscape] = useState(
-        window.innerWidth <= 926 && window.innerWidth > window.innerHeight
-    );
+    const [isMobileLandscape, setIsMobileLandscape] = useState(window.innerWidth <= 926 && window.innerWidth > window.innerHeight);
 
     useEffect(() => {
         const checkOrientation = () => {
@@ -84,10 +79,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
     const userAddress = useMemo(() => localStorage.getItem("user_cosmos_address")?.toLowerCase(), []);
 
     // Determine if user is in the table
-    const isUserInTable = useMemo(
-        () => !!players?.some((player: PlayerDTO) => player.address?.toLowerCase() === userAddress),
-        [players, userAddress]
-    );
+    const isUserInTable = useMemo(() => !!players?.some((player: PlayerDTO) => player.address?.toLowerCase() === userAddress), [players, userAddress]);
 
     // Get user player
     const userPlayer = players?.find((player: PlayerDTO) => player.address?.toLowerCase() === userAddress);
@@ -110,15 +102,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
 
     // Blind amounts - single source of truth from gameState.gameOptions (per Commandment 7)
     // Defined early so they can be used in useAutoPostBlinds hook
-    const smallBlindMicro = useMemo(
-        () => parseMicroToBigInt(gameState?.gameOptions?.smallBlind),
-        [gameState?.gameOptions?.smallBlind]
-    );
+    const smallBlindMicro = useMemo(() => parseMicroToBigInt(gameState?.gameOptions?.smallBlind), [gameState?.gameOptions?.smallBlind]);
 
-    const bigBlindMicro = useMemo(
-        () => parseMicroToBigInt(gameState?.gameOptions?.bigBlind),
-        [gameState?.gameOptions?.bigBlind]
-    );
+    const bigBlindMicro = useMemo(() => parseMicroToBigInt(gameState?.gameOptions?.bigBlind), [gameState?.gameOptions?.bigBlind]);
 
     // Auto-deal hook - automatically triggers deal when conditions are met
     // Can be disabled via URL query param: ?autodeal=false
@@ -128,7 +114,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
         hasDealAction,
         isUsersTurn,
         () => setLoadingAction("deal"), // onDealStarted
-        (txHash) => {
+        txHash => {
             setLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
@@ -147,7 +133,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
         smallBlindMicro,
         bigBlindMicro,
         isUsersTurn,
-        (blindType) => setLoadingAction(blindType === "small" ? "small-blind" : "big-blind"), // onBlindStarted
+        blindType => setLoadingAction(blindType === "small" ? "small-blind" : "big-blind"), // onBlindStarted
         (blindType, txHash) => {
             setLoadingAction(null);
             if (onTransactionSubmitted) {
@@ -169,7 +155,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
         hasCheckAction,
         isUsersTurn,
         timeRemaining,
-        (action) => setLoadingAction(action), // onAutoActionStarted
+        action => setLoadingAction(action), // onAutoActionStarted
         (action, txHash) => {
             setLoadingAction(null);
             if (onTransactionSubmitted) {
@@ -177,6 +163,23 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
             }
         }, // onAutoActionComplete
         () => setLoadingAction(null) // onAutoActionError
+    );
+
+    // Auto-show-cards hook - automatically shows cards when the action timer expires
+    useAutoShowCards(
+        tableId,
+        network,
+        hasShowAction,
+        isUsersTurn,
+        timeRemaining,
+        () => setLoadingAction("show"), // onAutoShowStarted
+        txHash => {
+            setLoadingAction(null);
+            if (onTransactionSubmitted) {
+                onTransactionSubmitted(txHash);
+            }
+        }, // onAutoShowComplete
+        () => setLoadingAction(null) // onAutoShowError
     );
 
     // Auto-new-hand hook - automatically triggers new hand when conditions are met
@@ -187,7 +190,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
         hasNewHandAction,
         isUsersTurn,
         () => setLoadingAction("new-hand"), // onNewHandStarted
-        (txHash) => {
+        txHash => {
             setLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
@@ -221,9 +224,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
     const callAmountMicro = useMemo(() => parseMicroToBigInt(callAction?.min), [callAction]);
 
     // Convert to display values — USDC conversion for cash, raw chips for tournaments
-    const toDisplay = useCallback((micro: bigint) => isTournament ? Number(micro) : microBigIntToUsdc(micro), [isTournament]);
+    const toDisplay = useCallback((micro: bigint) => (isTournament ? Number(micro) : microBigIntToUsdc(micro)), [isTournament]);
     // Convert display values back to chain units — raw bigint for tournaments, ×10^6 for cash
-    const fromDisplay = useCallback((display: number) => isTournament ? BigInt(Math.floor(display)) : usdcToMicroBigInt(display), [isTournament]);
+    const fromDisplay = useCallback((display: number) => (isTournament ? BigInt(Math.floor(display)) : usdcToMicroBigInt(display)), [isTournament]);
     const minBet = useMemo(() => toDisplay(minBetMicro), [toDisplay, minBetMicro]);
     const maxBet = useMemo(() => toDisplay(maxBetMicro), [toDisplay, maxBetMicro]);
     const minRaise = useMemo(() => toDisplay(minRaiseMicro), [toDisplay, minRaiseMicro]);
@@ -232,7 +235,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
 
     // Get total pot for percentage calculations
     const totalPot = Number(formattedTotalPot) || 0;
-    const totalPotMicro = useMemo(() => isTournament ? BigInt(Math.floor(totalPot)) : usdcToMicroBigInt(totalPot), [isTournament, totalPot]);
+    const totalPotMicro = useMemo(() => (isTournament ? BigInt(Math.floor(totalPot)) : usdcToMicroBigInt(totalPot)), [isTournament, totalPot]);
 
     // Formatted amounts for display (blind amounts defined earlier for use in hooks)
     const formattedSmallBlindAmount = useMemo(() => formatDisplayAmount(toDisplay(smallBlindMicro), isTournament), [toDisplay, smallBlindMicro, isTournament]);
@@ -252,8 +255,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
     const isRaiseAmountInvalid = hasRaiseAction
         ? raiseAmount < minRaise || raiseAmount > maxRaise
         : hasBetAction
-        ? raiseAmount < minBet || raiseAmount > maxBet
-        : false;
+          ? raiseAmount < minBet || raiseAmount > maxBet
+          : false;
 
     // Update raise amount when actions become available
     useEffect(() => {
@@ -352,19 +355,19 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
 
     // Increment/decrement handlers - always step by big blind amount
     const getStep = (): number => {
-        return bigBlindUsdc > 0 ? bigBlindUsdc : (hasBetAction ? minBet : hasRaiseAction ? minRaise : 0);
+        return bigBlindUsdc > 0 ? bigBlindUsdc : hasBetAction ? minBet : hasRaiseAction ? minRaise : 0;
     };
 
     const handleRaiseIncrement = () => {
         const step = getStep();
         const maxAmount = hasBetAction ? maxBet : maxRaise;
-        setRaiseAmount((prev) => Math.min(prev + step, maxAmount));
+        setRaiseAmount(prev => Math.min(prev + step, maxAmount));
     };
 
     const handleRaiseDecrement = () => {
         const step = getStep();
         const minAmount = hasBetAction ? minBet : minRaise;
-        setRaiseAmount((prev) => Math.max(prev - step, minAmount));
+        setRaiseAmount(prev => Math.max(prev - step, minAmount));
     };
 
     const handleAllInAction = async () => {
@@ -373,11 +376,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
         const amountMicro = fromDisplay(maxAmount);
 
         setRaiseAmount(maxAmount);
-        await handleActionWithTransaction(
-            hasRaiseAction ? "raise" : "bet",
-            async () => hasRaiseAction
-                ? await handleRaise(tableId, amountMicro, network)
-                : await handleBet(amountMicro, tableId, network)
+        await handleActionWithTransaction(hasRaiseAction ? "raise" : "bet", async () =>
+            hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)
         );
     };
 
@@ -410,9 +410,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
                             action="new-hand"
                             label="START NEW HAND"
                             loading={loadingAction === "new-hand"}
-                            onClick={() =>
-                                handleActionWithTransaction("new-hand", () => handleStartNewHand(tableId, network))
-                            }
+                            onClick={() => handleActionWithTransaction("new-hand", () => handleStartNewHand(tableId, network))}
                             variant="primary"
                             className="px-6 lg:px-8 py-2 lg:py-3 text-sm lg:text-base font-bold"
                         />
@@ -473,9 +471,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
                                     isTournament={isTournament}
                                     onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network))}
                                     onCheck={() => handleActionWithTransaction("check", () => handleCheck(tableId, network))}
-                                    onCall={() =>
-                                        handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network))
-                                    }
+                                    onCall={() => handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network))}
                                     onBetOrRaise={hasRaiseAction ? handleRaiseAction : handleBetAction}
                                 />
 
@@ -489,7 +485,12 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({
                                         step={getStep()}
                                         displayOffset={
                                             hasRaiseAction
-                                                ? getRaiseToAmount(raiseAmount, gameState?.previousActions || [], gameState?.round || TexasHoldemRound.ANTE, userAddress || "") - raiseAmount
+                                                ? getRaiseToAmount(
+                                                      raiseAmount,
+                                                      gameState?.previousActions || [],
+                                                      gameState?.round || TexasHoldemRound.ANTE,
+                                                      userAddress || ""
+                                                  ) - raiseAmount
                                                 : 0
                                         }
                                         totalPotMicro={totalPotMicro}
