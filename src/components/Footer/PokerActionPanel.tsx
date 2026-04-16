@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
+import { getUserPlayer, userInTable } from "../../utils/pockerActionUtils";
 import { formatDisplayAmount } from "../../utils/numberUtils";
 
 // Import hooks
@@ -79,10 +80,10 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const userAddress = useMemo(() => localStorage.getItem("user_cosmos_address")?.toLowerCase(), []);
 
     // Determine if user is in the table
-    const isUserInTable = useMemo(() => !!players?.some((player: PlayerDTO) => player.address?.toLowerCase() === userAddress), [players, userAddress]);
+    const isUserInTable = useMemo(() => userInTable(players, userAddress), [players, userAddress]);
 
     // Get user player
-    const userPlayer = players?.find((player: PlayerDTO) => player.address?.toLowerCase() === userAddress);
+    const userPlayer = useMemo(() => getUserPlayer(players, userAddress), [players, userAddress]);
 
     // Determine if it's user's turn
     const isUsersTurn = isCurrentUserTurn || isPlayerTurn;
