@@ -33,6 +33,7 @@ import { isTournamentFormat } from "../utils/gameFormatUtils";
 // Password protection utils
 import {
     checkAuthCookie,
+    isPasswordProtectionEnabled,
     handlePasswordSubmit as utilHandlePasswordSubmit,
     handlePasswordKeyPress as utilHandlePasswordKeyPress
 } from "../utils/passwordProtectionUtils";
@@ -48,8 +49,9 @@ const Dashboard: React.FC = () => {
     // Removed: Game selection state variables - now handled in Create Game modal
     // Removed: Ethereum wallet state - now using Cosmos wallet only
 
-    // Password protection states
-    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+    // Password protection states - skip if no password configured in env
+    const passwordEnabled = isPasswordProtectionEnabled();
+    const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!passwordEnabled);
     const [passwordInput, setPasswordInput] = useState<string>("");
     const [passwordError, setPasswordError] = useState<string>("");
     const [showPassword, setShowPassword] = useState<boolean>(false);
@@ -131,10 +133,10 @@ const Dashboard: React.FC = () => {
 
     // Check for existing auth cookie on component mount
     useEffect(() => {
-        if (checkAuthCookie()) {
+        if (passwordEnabled && checkAuthCookie()) {
             setIsAuthenticated(true);
         }
-    }, []);
+    }, [passwordEnabled]);
 
     const DEFAULT_GAME_CONTRACT = "0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7"; // Example address
 
