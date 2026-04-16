@@ -29,9 +29,17 @@ export const checkAuthCookie = (): boolean => {
     return false;
 };
 
+// Check if password protection is enabled via env variable
+export const isPasswordProtectionEnabled = (): boolean => {
+    const envPassword = import.meta.env.VITE_SITE_PASSWORD;
+    return typeof envPassword === "string" && envPassword.length > 0;
+};
+
 // Password validation function
 export const validatePassword = (password: string): boolean => {
-    return password === "123";
+    const envPassword = import.meta.env.VITE_SITE_PASSWORD;
+    if (!envPassword) return false;
+    return password === envPassword;
 };
 
 // Handle password submission
