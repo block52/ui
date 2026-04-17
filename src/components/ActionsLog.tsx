@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
+import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
 import { formatPlayerId, formatAmount } from "../utils/accountUtils";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
 import { ActionDTO } from "@block52/poker-vm-sdk";
@@ -79,7 +80,9 @@ const ActionsLog: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { previousActions } = useGameProgress(id);
     const { gameState, gameFormat } = useGameStateContext();
+    const { winnerInfo } = useWinnerInfo();
     const indexerApi = useIndexerApi();
+    const showWinnerSummary = gameState?.round === "end" && Array.isArray(winnerInfo) && winnerInfo.length > 0;
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
     const [copiedShare, setCopiedShare] = useState(false);
@@ -130,16 +133,25 @@ const ActionsLog: React.FC = () => {
         }
 
         // Format actions for clipboard
-        const logText = previousActions
-            .map((action: ActionDTO) => {
-                const player = formatPlayerId(action.playerId);
-                const actionName = formatActionName(action.action);
-                const amount = action.amount ? ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}` : "";
-                const round = formatRoundName(action.round);
-                const seat = action.seat;
-                return `${player} (Seat ${seat}): ${actionName}${amount} - ${round}`;
+        const actionLines = previousActions.map((action: ActionDTO) => {
+            const player = formatPlayerId(action.playerId);
+            const actionName = formatActionName(action.action);
+            const amount = action.amount ? ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}` : "";
+            const round = formatRoundName(action.round);
+            const seat = action.seat;
+            return `${player} (Seat ${seat}): ${actionName}${amount} - ${round}`;
+        });
+
+        // Append winner summary rows when the hand has ended
+        const winnerLines = showWinnerSummary && winnerInfo
+            ? winnerInfo.map(w => {
+                const player = formatPlayerId(w.address);
+                const hand = w.description ? `${w.description} — ` : "";
+                return `${player} (Seat ${w.seat}): WINS ${hand}${w.formattedAmount}`;
             })
-            .join("\n");
+            : [];
+
+        const logText = [...actionLines, ...winnerLines].join("\n");
 
         copyTextToClipboard(
             logText,
@@ -263,17 +275,17 @@ const ActionsLog: React.FC = () => {
             {previousActions && previousActions.length > 0 ? (
                 <div className="space-y-0.5 p-2">
                     {previousActions.map((action: ActionDTO, index: number) => (
-                        <div 
-                            key={index} 
+                        <div
+                            key={index}
                             className={`text-xs py-1 border-b ${styles.actionRow}`}
                         >
                             <div className="flex justify-between">
-                                <span 
+                                <span
                                     className={`font-mono ${styles.playerId}`}
                                 >
                                     {formatPlayerId(action.playerId)}
                                 </span>
-                                <span 
+                                <span
                                     className={`text-[10px] ${styles.secondaryText}`}
                                 >
                                     Seat {action.seat}
@@ -284,10 +296,34 @@ const ActionsLog: React.FC = () => {
                                     {formatActionName(action.action)}
                                     {action.amount && ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}`}
                                 </span>
-                                <span 
+                                <span
                                     className={`text-[10px] ${styles.secondaryText}`}
                                 >
                                     {formatRoundName(action.round)}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                    {showWinnerSummary && winnerInfo?.map((w, i) => (
+                        <div
+                            key={`winner-${i}`}
+                            className={`text-xs py-1 border-b ${styles.actionRow} ${styles.winnerRow}`}
+                        >
+                            <div className="flex justify-between">
+                                <span className={`font-mono ${styles.playerId}`}>
+                                    {formatPlayerId(w.address)}
+                                </span>
+                                <span className={`text-[10px] ${styles.secondaryText}`}>
+                                    Seat {w.seat}
+                                </span>
+                            </div>
+                            <div className="flex justify-between mt-0.5">
+                                <span className={styles.winnerText}>
+                                    WINS {w.formattedAmount}
+                                    {w.description && ` — ${w.description}`}
+                                </span>
+                                <span className={`text-[10px] ${styles.secondaryText}`}>
+                                    Showdown
                                 </span>
                             </div>
                         </div>
