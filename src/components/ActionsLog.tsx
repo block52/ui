@@ -4,76 +4,13 @@ import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
 import { formatPlayerId, formatAmount } from "../utils/accountUtils";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
-import { ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO } from "@block52/poker-vm-sdk";
+import { formatActionName, formatRoundName, getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
 import { useIndexerApi } from "../context/IndexerApiContext";
 import styles from "./ActionsLog.module.css";
-
-// Function to format action names with proper capitalization and spacing
-const formatActionName = (action: string): string => {
-    switch (action.toLowerCase()) {
-        case "join":
-            return "Join";
-        case "post-small-blind":
-            return "Post Small Blind";
-        case "post-big-blind":
-            return "Post Big Blind";
-        case "deal":
-            return "Deal";
-        case "call":
-            return "Call";
-        case "check":
-            return "Check";
-        case "bet":
-            return "Bet";
-        case "raise":
-            return "Raise";
-        case "fold":
-            return "Fold";
-        case "show":
-            return "Show";
-        case "muck":
-            return "Muck";
-        case "all-in":
-            return "All In";
-        case "leave":
-            return "Leave";
-        case "sit-out":
-            return "Sit Out";
-        case "sit-in":
-            return "Sit In";
-        case "new-hand":
-            return "New Hand";
-        default:
-            // Fallback: capitalize first letter and replace hyphens with spaces
-            return action.charAt(0).toUpperCase() + action.slice(1).replace(/-/g, " ");
-    }
-};
-
-// Function to format round names with proper poker terminology
-const formatRoundName = (round: string): string => {
-    switch (round.toLowerCase()) {
-        case "ante":
-            return "Ante";
-        case "preflop":
-            return "Pre-flop";
-        case "flop":
-            return "Flop";
-        case "turn":
-            return "Turn";
-        case "river":
-            return "River";
-        case "showdown":
-            return "Showdown";
-        case "end":
-            return "End";
-        default:
-            // Fallback: capitalize first letter
-            return round.charAt(0).toUpperCase() + round.slice(1);
-    }
-};
 
 // Simple component to display only the action log
 const ActionsLog: React.FC = () => {
@@ -82,7 +19,7 @@ const ActionsLog: React.FC = () => {
     const { gameState, gameFormat } = useGameStateContext();
     const { winnerInfo } = useWinnerInfo();
     const indexerApi = useIndexerApi();
-    const showWinnerSummary = gameState?.round === TexasHoldemRound.END && Array.isArray(winnerInfo) && winnerInfo.length > 0;
+    const showWinnerSummary = shouldShowWinnerSummary(gameState, winnerInfo);
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
     const [copiedShare, setCopiedShare] = useState(false);
@@ -133,22 +70,12 @@ const ActionsLog: React.FC = () => {
         }
 
         // Format actions for clipboard
-        const actionLines = previousActions.map((action: ActionDTO) => {
-            const player = formatPlayerId(action.playerId);
-            const actionName = formatActionName(action.action);
-            const amount = action.amount ? ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}` : "";
-            const round = formatRoundName(action.round);
-            const seat = action.seat;
-            return `${player} (Seat ${seat}): ${actionName}${amount} - ${round}`;
-        });
+        const isTournament = isTournamentFormat(gameFormat);
+        const actionLines = previousActions.map((action: ActionDTO) => getActionLine(action, isTournament));
 
         // Append winner summary rows when the hand has ended
         const winnerLines = showWinnerSummary && winnerInfo
-            ? winnerInfo.map(w => {
-                const player = formatPlayerId(w.address);
-                const hand = w.description ? `${w.description} — ` : "";
-                return `${player} (Seat ${w.seat}): WINS ${hand}${w.formattedAmount}`;
-            })
+            ? winnerInfo.map(getWinnerLine)
             : [];
 
         const logText = [...actionLines, ...winnerLines].join("\n");
