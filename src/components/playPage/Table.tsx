@@ -56,6 +56,7 @@ import {
     TableHeader,
     TableBoard,
     TableSidebar,
+    TableSettingsSidebar,
     TableModals,
     PlayerSeating,
     TableStatusMessages,
@@ -108,6 +109,7 @@ import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalA
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
@@ -748,8 +750,9 @@ const Table = React.memo(() => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
+    const { turnNotificationSound } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
-        enableSound: true,
+        enableSound: turnNotificationSound,
         soundVolume: 0.3,
         flashInterval: 1000
     });
@@ -1000,6 +1003,12 @@ const Table = React.memo(() => {
         setOpenSidebar(!openSidebar);
     }, [openSidebar]);
 
+    const [openSettings, setOpenSettings] = useState(false);
+
+    const onToggleSettings = useCallback(() => {
+        setOpenSettings(prev => !prev);
+    }, []);
+
     // Memoize formatted balance - Cosmos returns microunits (6 decimals)
     const balanceFormatted = useMemo(() => (accountBalance ? formatUSDCToSimpleDollars(accountBalance) : "0.00"), [accountBalance]);
 
@@ -1185,12 +1194,14 @@ const Table = React.memo(() => {
                 nextToAct={nextToAct}
                 currentPlayerData={currentPlayerData || null}
                 openSidebar={openSidebar}
+                openSettings={openSettings}
                 handleLobbyClick={handleLobbyClick}
                 handleCopyTableLink={handleCopyTableLink}
                 handleDepositClick={handleDepositClick}
                 fetchAccountBalance={fetchAccountBalance}
                 copyToClipboard={copyToClipboard}
                 onCloseSideBar={onCloseSideBar}
+                onToggleSettings={onToggleSettings}
                 handleLeaveTableClick={handleLeaveTableClick}
                 handleShareHand={handleShareHand}
             />
@@ -1363,6 +1374,9 @@ const Table = React.memo(() => {
 
             {/*//! ACTION LOG OVERLAY */}
             <TableSidebar isOpen={openSidebar} />
+
+            {/*//! SETTINGS OVERLAY */}
+            <TableSettingsSidebar isOpen={openSettings} />
 
             {/* Status Messages */}
             <TableStatusMessages

@@ -12,6 +12,9 @@ import { getAutoFoldEnabled } from "../../utils/urlParams";
  * - ?autofold=false -> disables auto-fold
  * - ?autofold=true or no param -> enables auto-fold (default)
  *
+ * The `enabled` parameter, when provided, overrides the URL query param.
+ * It is reactive — toggling it mid-session takes effect immediately.
+ *
  * When enabled, this hook will automatically trigger when:
  * 1. The timer has expired (timeRemaining === 0)
  * 2. The user has FOLD or CHECK in their legal actions
@@ -29,6 +32,7 @@ import { getAutoFoldEnabled } from "../../utils/urlParams";
  * @param onAutoActionStarted - Optional callback when auto-action starts
  * @param onAutoActionComplete - Optional callback when auto-action completes
  * @param onAutoActionError - Optional callback when auto-action fails
+ * @param enabled - Optional override for the URL param setting (reactive)
  */
 export function useAutoFold(
     tableId: string,
@@ -39,14 +43,22 @@ export function useAutoFold(
     timeRemaining: number,
     onAutoActionStarted?: (action: PlayerActionType.FOLD | PlayerActionType.CHECK) => void,
     onAutoActionComplete?: (action: PlayerActionType.FOLD | PlayerActionType.CHECK, txHash: string) => void,
-    onAutoActionError?: (error: Error) => void
+    onAutoActionError?: (error: Error) => void,
+    enabled?: boolean
 ): void {
     // Track if we've already triggered for this opportunity
     const hasTriggeredRef = useRef<boolean>(false);
     // Track if action is currently in progress to prevent duplicate calls
     const isProcessingRef = useRef<boolean>(false);
-    // Check if auto-fold is enabled (cached on first render)
-    const autoFoldEnabledRef = useRef<boolean>(getAutoFoldEnabled());
+    // Check if auto-fold is enabled — prefer the reactive `enabled` prop, fall back to URL param
+    const autoFoldEnabledRef = useRef<boolean>(enabled ?? getAutoFoldEnabled());
+
+    // Keep the ref up-to-date when the reactive `enabled` prop changes
+    useEffect(() => {
+        if (enabled !== undefined) {
+            autoFoldEnabledRef.current = enabled;
+        }
+    }, [enabled]);
 
     const triggerAutoAction = useCallback(async () => {
         if (!tableId || isProcessingRef.current) {

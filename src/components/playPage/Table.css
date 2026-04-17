@@ -233,9 +233,15 @@
     opacity: 1;
 }
 
+.settings-panel-width {
+    width: 300px;
+}
+
 .action-log-closed {
     width: 0;
     opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .powered-by-block52 {
