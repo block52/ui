@@ -45,16 +45,10 @@ export interface TableSettingsSidebarProps {
 
 export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOpen }) => {
     const {
-        autoDeal,
-        autoPostBlinds,
-        autoNewHand,
-        autoFold,
         turnNotificationSound,
-        toggleAutoDeal,
-        toggleAutoPostBlinds,
-        toggleAutoNewHand,
-        toggleAutoFold,
-        toggleTurnNotificationSound
+        playerActionSounds,
+        toggleTurnNotificationSound,
+        togglePlayerActionSounds
     } = useGameSettings();
 
     return (
@@ -68,34 +62,16 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                 {/* Toggle list */}
                 <div className="flex-1 overflow-y-auto px-4 py-1">
                     <ToggleRow
-                        label="Auto Deal"
-                        description="Automatically deal cards at the start of each hand when it is your turn."
-                        checked={autoDeal}
-                        onToggle={toggleAutoDeal}
-                    />
-                    <ToggleRow
-                        label="Auto Post Blinds"
-                        description="Automatically post small and big blinds without manual confirmation."
-                        checked={autoPostBlinds}
-                        onToggle={toggleAutoPostBlinds}
-                    />
-                    <ToggleRow
-                        label="Auto New Hand"
-                        description="Automatically start a new hand after the current hand ends."
-                        checked={autoNewHand}
-                        onToggle={toggleAutoNewHand}
-                    />
-                    <ToggleRow
-                        label="Auto Fold on Timeout"
-                        description="Automatically fold (or check if available) when your action timer runs out."
-                        checked={autoFold}
-                        onToggle={toggleAutoFold}
-                    />
-                    <ToggleRow
                         label="Turn Notification Sound"
                         description="Play a sound and flash the browser tab when it is your turn to act."
                         checked={turnNotificationSound}
                         onToggle={toggleTurnNotificationSound}
+                    />
+                    <ToggleRow
+                        label="Player Action Sounds"
+                        description="Play sounds when players perform actions such as bet, raise, call, fold, and check."
+                        checked={playerActionSounds}
+                        onToggle={togglePlayerActionSounds}
                     />
                 </div>
             </div>

@@ -80,7 +80,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { formattedTotalPot } = useTableState();
 
     // Read reactive game settings from context
-    const { autoDeal: autoDealEnabled, autoPostBlinds: autoPostBlindsEnabled, autoNewHand: autoNewHandEnabled, autoFold: autoFoldEnabled } = useGameSettings();
+    const { autoDeal: autoDealEnabled, autoPostBlinds: autoPostBlindsEnabled, autoNewHand: autoNewHandEnabled, autoFold: autoFoldEnabled, playerActionSounds } = useGameSettings();
 
     // Get user address
     const userAddress = useMemo(() => localStorage.getItem("user_cosmos_address")?.toLowerCase(), []);
@@ -275,7 +275,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         async (actionName: string, actionFn: () => Promise<string | null>, skipActionSound = false) => {
             try {
                 setLoadingAction(actionName);
-                if (!skipActionSound) {
+                if (!skipActionSound && playerActionSounds) {
                     playActionSound(actionName);
                 }
                 const txHash = await actionFn();
@@ -289,7 +289,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 setLoadingAction(null);
             }
         },
-        [onTransactionSubmitted, playActionSound]
+        [onTransactionSubmitted, playActionSound, playerActionSounds]
     );
 
     // Handler for dealing cards with entropy
@@ -382,7 +382,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         const amountMicro = fromDisplay(maxAmount);
 
         setRaiseAmount(maxAmount);
-        playActionSound("all-in");
+        if (playerActionSounds) {
+            playActionSound("all-in");
+        }
         await handleActionWithTransaction(
             hasRaiseAction ? "raise" : "bet",
             async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),

@@ -16,6 +16,7 @@ const LS_KEY_AUTO_POST_BLINDS = "setting_autoblinds";
 const LS_KEY_AUTO_NEW_HAND = "setting_autonewhand";
 const LS_KEY_AUTO_FOLD = "setting_autofold";
 const LS_KEY_TURN_SOUND = "setting_turnsound";
+const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -29,6 +30,7 @@ export interface GameSettings {
     autoNewHand: boolean;
     autoFold: boolean;
     turnNotificationSound: boolean;
+    playerActionSounds: boolean;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -37,6 +39,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleAutoNewHand: () => void;
     toggleAutoFold: () => void;
     toggleTurnNotificationSound: () => void;
+    togglePlayerActionSounds: () => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue>(null as any);
@@ -56,6 +59,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [turnNotificationSound, setTurnNotificationSound] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_TURN_SOUND, true)
+    );
+    const [playerActionSounds, setPlayerActionSounds] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_PLAYER_ACTION_SOUNDS, true)
     );
 
     const toggleAutoDeal = useCallback(() => {
@@ -98,6 +104,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const togglePlayerActionSounds = useCallback(() => {
+        setPlayerActionSounds(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_PLAYER_ACTION_SOUNDS, String(next));
+            return next;
+        });
+    }, []);
+
     return (
         <GameSettingsContext.Provider
             value={{
@@ -106,11 +120,13 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 autoNewHand,
                 autoFold,
                 turnNotificationSound,
+                playerActionSounds,
                 toggleAutoDeal,
                 toggleAutoPostBlinds,
                 toggleAutoNewHand,
                 toggleAutoFold,
-                toggleTurnNotificationSound
+                toggleTurnNotificationSound,
+                togglePlayerActionSounds
             }}
         >
             {children}
