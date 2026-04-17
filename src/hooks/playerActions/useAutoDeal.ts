@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { dealCardsWithEntropy } from "./dealCards";
 import { getAutoDealEnabled } from "../../utils/urlParams";
+import { isNullish } from "../../utils/guards";
 
 /**
  * Hook to automatically trigger deal action when conditions are met.
@@ -46,7 +47,7 @@ export function useAutoDeal(
 
     // Keep the ref up-to-date when the reactive `enabled` prop changes
     useEffect(() => {
-        if (enabled !== undefined) {
+        if (!isNullish(enabled)) {
             autoDealEnabledRef.current = enabled;
         }
     }, [enabled]);

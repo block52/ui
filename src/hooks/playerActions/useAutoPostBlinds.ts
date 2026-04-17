@@ -3,6 +3,7 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { postSmallBlind } from "./postSmallBlind";
 import { postBigBlind } from "./postBigBlind";
 import { getAutoPostBlindsEnabled } from "../../utils/urlParams";
+import { isNullish } from "../../utils/guards";
 
 /**
  * Hook to automatically post blinds when conditions are met.
@@ -54,7 +55,7 @@ export function useAutoPostBlinds(
 
     // Keep the ref up-to-date when the reactive `enabled` prop changes
     useEffect(() => {
-        if (enabled !== undefined) {
+        if (!isNullish(enabled)) {
             autoPostBlindsEnabledRef.current = enabled;
         }
     }, [enabled]);

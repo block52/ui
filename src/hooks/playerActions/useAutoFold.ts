@@ -4,6 +4,7 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { foldHand } from "./foldHand";
 import { checkHand } from "./checkHand";
 import { getAutoFoldEnabled } from "../../utils/urlParams";
+import { isNullish } from "../../utils/guards";
 
 /**
  * Hook to automatically fold (or check if available) when the player's action timer expires.
@@ -55,7 +56,7 @@ export function useAutoFold(
 
     // Keep the ref up-to-date when the reactive `enabled` prop changes
     useEffect(() => {
-        if (enabled !== undefined) {
+        if (!isNullish(enabled)) {
             autoFoldEnabledRef.current = enabled;
         }
     }, [enabled]);

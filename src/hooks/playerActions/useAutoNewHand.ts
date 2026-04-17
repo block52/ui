@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { startNewHand } from "./startNewHand";
 import { getAutoNewHandEnabled } from "../../utils/urlParams";
+import { isNullish } from "../../utils/guards";
 
 /**
  * Hook to automatically trigger new hand when the current hand ends.
@@ -46,7 +47,7 @@ export function useAutoNewHand(
 
     // Keep the ref up-to-date when the reactive `enabled` prop changes
     useEffect(() => {
-        if (enabled !== undefined) {
+        if (!isNullish(enabled)) {
             autoNewHandEnabledRef.current = enabled;
         }
     }, [enabled]);
