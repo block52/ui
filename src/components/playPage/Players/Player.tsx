@@ -102,7 +102,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         // 4b) memoize winner hand description (e.g. "Full House")
         const winnerHandDescription = useMemo(() => {
             if (!isWinner || !winnerInfo) return null;
-            const winner = winnerInfo.find((w: any) => w.seat === index);
+            const winner = winnerInfo.find(w => w.seat === index);
             return winner?.description ?? null;
         }, [isWinner, winnerInfo, index]);
 

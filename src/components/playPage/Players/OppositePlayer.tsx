@@ -85,7 +85,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     // Get winner hand description (e.g. "Full House") if this player is a winner
     const winnerHandDescription = React.useMemo(() => {
         if (!isWinner || !winnerInfo) return null;
-        const winner = winnerInfo.find((w: any) => w.seat === index);
+        const winner = winnerInfo.find(w => w.seat === index);
         return winner?.description ?? null;
     }, [isWinner, winnerInfo, index]);
 

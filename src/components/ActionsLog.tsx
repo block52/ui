@@ -4,7 +4,7 @@ import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
 import { formatPlayerId, formatAmount } from "../utils/accountUtils";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
-import { ActionDTO } from "@block52/poker-vm-sdk";
+import { ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
@@ -82,7 +82,7 @@ const ActionsLog: React.FC = () => {
     const { gameState, gameFormat } = useGameStateContext();
     const { winnerInfo } = useWinnerInfo();
     const indexerApi = useIndexerApi();
-    const showWinnerSummary = gameState?.round === "end" && Array.isArray(winnerInfo) && winnerInfo.length > 0;
+    const showWinnerSummary = gameState?.round === TexasHoldemRound.END && Array.isArray(winnerInfo) && winnerInfo.length > 0;
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
     const [copiedShare, setCopiedShare] = useState(false);
