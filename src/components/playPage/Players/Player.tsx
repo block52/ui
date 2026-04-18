@@ -5,7 +5,7 @@ import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import { useParams } from "react-router-dom";
-import type { PlayerProps } from "../../../types/index";
+import type { PlayerProps, WinnerInfo } from "../../../types/index";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import CustomDealer from "../../../assets/CustomDealer.svg";
@@ -87,7 +87,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const hasWinner = useMemo(() => Array.isArray(winnerInfo) && winnerInfo.length > 0, [winnerInfo]);
 
         // 2) memoize winner check
-        const isWinner = useMemo(() => !!winnerInfo?.some((w: any) => w.seat === index), [winnerInfo, index]);
+        const isWinner = useMemo(() => !!winnerInfo?.some((w: WinnerInfo) => w.seat === index), [winnerInfo, index]);
 
         // 3) dim non-winners when someone has won, also dim busted players like sitting out
         const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
@@ -95,7 +95,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         // 4) memoize winner amount
         const winnerAmount = useMemo(() => {
             if (!isWinner || !winnerInfo) return null;
-            const winner = winnerInfo.find((w: any) => w.seat === index);
+            const winner = winnerInfo.find((w: WinnerInfo) => w.seat === index);
             return winner?.formattedAmount ?? null;
         }, [isWinner, winnerInfo, index]);
 
