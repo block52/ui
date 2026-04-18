@@ -41,37 +41,12 @@ jest.mock("../../utils/colorConfig", () => ({
 // Mock timers
 jest.useFakeTimers();
 
-// Mock types for testing
-interface MockAudio {
-    volume: number;
-    play: jest.Mock;
-}
-
-interface MockCanvasContext {
-    beginPath: jest.Mock;
-    arc: jest.Mock;
-    fill: jest.Mock;
-    stroke: jest.Mock;
-    fillRect: jest.Mock;
-    strokeRect: jest.Mock;
-    fillStyle: string;
-    strokeStyle: string;
-    lineWidth: number;
-}
-
-interface MockCanvas {
-    width: number;
-    height: number;
-    getContext: jest.Mock;
-    toDataURL: jest.Mock;
-}
-
 describe("useTurnNotification", () => {
     let originalTitle: string;
-    let mockAudio: MockAudio;
+    let mockAudio: any;
     let mockFavicon: HTMLLinkElement;
-    let mockCanvas: MockCanvas;
-    let mockContext: MockCanvasContext;
+    let mockCanvas: any;
+    let mockContext: any;
     let originalCreateElement: typeof document.createElement;
     let OriginalAudio: typeof Audio;
 
@@ -111,10 +86,10 @@ describe("useTurnNotification", () => {
         // Mock createElement to return mock canvas
         document.createElement = jest.fn((tag: string) => {
             if (tag === "canvas") {
-                return mockCanvas as unknown as HTMLCanvasElement;
+                return mockCanvas as any;
             }
             return originalCreateElement(tag);
-        }) as typeof document.createElement;
+        }) as any;
 
         // Mock Audio
         mockAudio = {
@@ -123,7 +98,7 @@ describe("useTurnNotification", () => {
         };
 
         OriginalAudio = global.Audio;
-        (global as { Audio: typeof Audio }).Audio = jest.fn(() => mockAudio) as unknown as typeof Audio;
+        (global as any).Audio = jest.fn(() => mockAudio);
     });
 
     afterEach(() => {
@@ -132,7 +107,7 @@ describe("useTurnNotification", () => {
         // Restore original createElement
         document.createElement = originalCreateElement;
         // Restore original Audio
-        (global as { Audio: typeof Audio }).Audio = OriginalAudio;
+        (global as any).Audio = OriginalAudio;
         jest.clearAllTimers();
         jest.clearAllMocks();
     });
@@ -204,7 +179,7 @@ describe("useTurnNotification", () => {
         renderHook(() => useTurnNotification(true, { enableSound: true }));
         
         // Audio should be created and played
-        expect((global as unknown as { Audio: jest.Mock }).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
         expect(mockAudio.play).toHaveBeenCalled();
     });
 
@@ -217,7 +192,7 @@ describe("useTurnNotification", () => {
         renderHook(() => useTurnNotification(true, { enableSound: false }));
         
         // Audio should not be created
-        expect((global as unknown as { Audio: jest.Mock }).Audio).not.toHaveBeenCalled();
+        expect((global as any).Audio).not.toHaveBeenCalled();
     });
 
     it("should use custom flash interval", () => {
@@ -276,14 +251,14 @@ describe("useTurnNotification", () => {
 
         // Test with volume > 1 (should be clamped to 1.0)
         renderHook(() => useTurnNotification(true, { soundVolume: 2.0 }));
-        expect((global as unknown as { Audio: jest.Mock }).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
         expect(mockAudio.volume).toBe(1.0);
 
         // Test with volume < 0 (should be clamped to 0.0)
         jest.clearAllMocks();
         mockAudio.volume = 0;
         renderHook(() => useTurnNotification(true, { soundVolume: -0.5 }));
-        expect((global as unknown as { Audio: jest.Mock }).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
         expect(mockAudio.volume).toBe(0.0);
     });
 
@@ -309,8 +284,8 @@ describe("useTurnNotification", () => {
 
 describe("createFaviconNotification", () => {
     let mockFavicon: HTMLLinkElement;
-    let mockCanvas: MockCanvas;
-    let mockContext: Omit<MockCanvasContext, "fillRect" | "strokeRect">;
+    let mockCanvas: any;
+    let mockContext: any;
     let originalCreateElement: typeof document.createElement;
 
     beforeEach(() => {
@@ -343,10 +318,10 @@ describe("createFaviconNotification", () => {
         
         document.createElement = jest.fn((tag: string) => {
             if (tag === "canvas") {
-                return mockCanvas as unknown as HTMLCanvasElement;
+                return mockCanvas as any;
             }
             return originalCreateElement(tag);
-        }) as typeof document.createElement;
+        }) as any;
     });
 
     afterEach(() => {

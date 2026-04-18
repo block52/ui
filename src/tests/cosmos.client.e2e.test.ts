@@ -84,76 +84,33 @@ describe("Cosmos client E2E Tests", () => {
     });
 });
 
-interface CosmosAccount {
-    "@type": string;
-    address: string;
-    pub_key?: { "@type": string; key: string } | null;
-    account_number: string;
-    sequence: string;
-}
-
-interface CosmosValidator {
-    operator_address: string;
-    consensus_pubkey?: { "@type": string; key: string };
-    jailed: boolean;
-    status: string;
-    tokens: string;
-    delegator_shares: string;
-    description: {
-        moniker: string;
-        identity?: string;
-        website?: string;
-        security_contact?: string;
-        details?: string;
-    };
-    commission: {
-        commission_rates: {
-            rate: string;
-            max_rate: string;
-            max_change_rate: string;
-        };
-    };
-}
-
-interface CosmosPagination {
-    next_key: string | null;
-    total: string;
-}
-
-interface CosmosTransactionResponse {
-    height: string;
-    txhash: string;
-    codespace?: string;
-    code: number;
-    data?: string;
-    raw_log?: string;
-    logs?: unknown[];
-    info?: string;
-    gas_wanted: string;
-    gas_used: string;
-    tx?: unknown;
-    timestamp: string;
-    events?: unknown[];
-}
-
 interface AccountsResponse {
-    pagination: CosmosPagination;
-    accounts: CosmosAccount[];
+    pagination: {
+        next_key: string | null;
+        total: string;
+    };
+    accounts: any[];
 }
 
 interface ValidatorsResponse {
-    pagination: CosmosPagination;
-    validators: CosmosValidator[];
+    pagination: {
+        next_key: string | null;
+        total: string;
+    };
+    validators: any[];
 }
 
 interface AccountBalanceResponse {
-    pagination: CosmosPagination;
+    pagination: {
+        next_key: string | null;
+        total: string;
+    };
     balances: { denom: string; amount: string }[];
 }
 
 interface TransactionResponse {
-    pagination: CosmosPagination;
+    pagination: any;
     total: string;
-    tx_responses: CosmosTransactionResponse[];
-    txs?: unknown[]; // Include txs for message parsing
+    tx_responses: any[];
+    txs?: any[]; // Include txs for message parsing
 }

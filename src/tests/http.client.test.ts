@@ -1,24 +1,12 @@
-import axios, { AxiosInstance } from "axios";
+import axios from "axios";
 import HTTPClient from "../apis/HTTPClient";
 
 jest.mock("axios");
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
-// Mock axios instance type for testing
-interface MockAxiosInstance {
-    get: jest.Mock;
-    post: jest.Mock;
-    put: jest.Mock;
-    delete: jest.Mock;
-    interceptors: {
-        request: { use: jest.Mock };
-        response: { use: jest.Mock };
-    };
-}
-
 describe("httpClient", () => {
-    let httpClient: HTTPClient;
-    let mockAxiosInstance: MockAxiosInstance;
+    let httpClient: any;
+    let mockAxiosInstance: any;
 
     beforeEach(() => {
         jest.clearAllMocks();
@@ -32,7 +20,7 @@ describe("httpClient", () => {
                 response: { use: jest.fn() }
             }
         };
-        mockedAxios.create.mockReturnValue(mockAxiosInstance as unknown as AxiosInstance);
+        mockedAxios.create.mockReturnValue(mockAxiosInstance as any);
         httpClient = new HTTPClient({ baseUrl: "https://api.example.com", secure: false });
     });
 
@@ -186,7 +174,7 @@ describe("httpClient", () => {
                     response: { use: jest.fn() }
                 }
             };
-            mockedAxios.create.mockReturnValue(secureInstance as unknown as AxiosInstance);
+            mockedAxios.create.mockReturnValue(secureInstance as any);
 
             new HTTPClient({ baseUrl: "https://api.example.com", secure: true });
 
@@ -210,7 +198,7 @@ describe("httpClient", () => {
 
     describe("Timeout", () => {
         it("should pass timeout to axios instance config", () => {
-            mockedAxios.create.mockReturnValue(mockAxiosInstance as unknown as AxiosInstance);
+            mockedAxios.create.mockReturnValue(mockAxiosInstance as any);
 
             new HTTPClient({ baseUrl: "https://api.example.com", secure: false, timeout: 5000 });
 
@@ -218,7 +206,7 @@ describe("httpClient", () => {
         });
 
         it("should not set timeout when not provided", () => {
-            mockedAxios.create.mockReturnValue(mockAxiosInstance as unknown as AxiosInstance);
+            mockedAxios.create.mockReturnValue(mockAxiosInstance as any);
 
             new HTTPClient({ baseUrl: "https://api.example.com", secure: false });
 
