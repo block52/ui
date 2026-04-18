@@ -18,8 +18,8 @@ interface ToggleRowProps {
 const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, checked, onToggle }) => (
     <div className="flex items-start justify-between py-3 border-b border-white/10 last:border-0">
         <div className="flex-1 mr-3">
-            <p className="text-white text-sm font-semibold leading-tight">{label}</p>
-            <p className="text-gray-400 text-xs mt-0.5 leading-snug">{description}</p>
+            <p className="text-white text-xs font-semibold leading-tight">{label}</p>
+            <p className="text-gray-400 text-[10px] mt-0.5 leading-snug">{description}</p>
         </div>
         <button
             role="switch"
@@ -56,7 +56,7 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
             <div className="h-full bg-[#1a2234] border-l border-white/10 flex flex-col overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center px-4 py-3 border-b border-white/10 flex-shrink-0">
-                    <span className="text-white font-bold text-base">Settings</span>
+                    <span className="text-white font-semibold text-sm">Settings</span>
                 </div>
 
                 {/* Toggle list */}
