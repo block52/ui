@@ -67,7 +67,8 @@ export const hasPrivateKey = (): boolean => {
  * @throws Error if private key is missing
  * @deprecated Use CosmosClient from WithdrawalDashboard instead
  */
-export const getClient = (): never => {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export const getClient = (): any => {
     // This function is deprecated and always throws
     throw new Error("NodeRpcClient deprecated - use CosmosClient from WithdrawalDashboard instead");
 };
