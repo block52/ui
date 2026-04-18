@@ -82,6 +82,13 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         return winner ? winner.formattedAmount : null;
     }, [isWinner, winnerInfo, index]);
 
+    // Get winner hand description (e.g. "Full House") if this player is a winner
+    const winnerHandDescription = React.useMemo(() => {
+        if (!isWinner || !winnerInfo) return null;
+        const winner = winnerInfo.find(w => w.seat === index);
+        return winner?.description ?? null;
+    }, [isWinner, winnerInfo, index]);
+
     // Check if this player is showing cards
     const isShowingCards = React.useMemo(() => {
         if (!showingPlayers || !playerData) return false;
@@ -173,6 +180,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                             tournamentPayout={tournamentResult?.payout}
                             isWinner={isWinner}
                             winnerAmount={winnerAmount}
+                            winnerHandDescription={winnerHandDescription}
                             isTurnTimerActive={isTurnTimerActive}
                             round={round}
                             isFolded={isFolded}

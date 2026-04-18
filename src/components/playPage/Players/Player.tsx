@@ -99,6 +99,13 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
             return winner?.formattedAmount ?? null;
         }, [isWinner, winnerInfo, index]);
 
+        // 4b) memoize winner hand description (e.g. "Full House")
+        const winnerHandDescription = useMemo(() => {
+            if (!isWinner || !winnerInfo) return null;
+            const winner = winnerInfo.find(w => w.seat === index);
+            return winner?.description ?? null;
+        }, [isWinner, winnerInfo, index]);
+
         // 5) render hole cards
         const renderCards = useCallback(() => {
             if (!holeCards || holeCards.length !== 2) {
@@ -193,6 +200,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                             tournamentPayout={tournamentResult?.payout}
                             isWinner={isWinner}
                             winnerAmount={winnerAmount}
+                            winnerHandDescription={winnerHandDescription}
                             isTurnTimerActive={isTurnTimerActive}
                             round={round}
                             isFolded={isFolded}

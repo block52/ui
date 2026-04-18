@@ -21,6 +21,7 @@ type BadgeProps = {
     // Seat banner state — passed from parent player component
     isWinner?: boolean;
     winnerAmount?: string | null;
+    winnerHandDescription?: string | null;
     isTurnTimerActive?: boolean;
     round?: string | null;
     isFolded?: boolean;
@@ -34,7 +35,7 @@ type BadgeProps = {
 const Badge: React.FC<BadgeProps> = React.memo(({
     count, value, color, canExtend, onExtend,
     tournamentPlace, tournamentPayout,
-    isWinner, winnerAmount, isTurnTimerActive,
+    isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
     round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn
 }) => {
     // Track previous banner mode so we can detect timer→action transitions
@@ -150,9 +151,16 @@ const Badge: React.FC<BadgeProps> = React.memo(({
         switch (bannerMode) {
             case "winner":
                 return (
-                    <span className="seat-banner-text font-bold flex items-center justify-center w-full h-8 mt-[22px] gap-1 text-base">
-                        WINS: {winnerAmount}
-                    </span>
+                    <div className="seat-banner-text flex flex-col items-center justify-center w-full mt-[14px] gap-0.5">
+                        <span className="font-bold text-base leading-tight">
+                            WINS: {winnerAmount}
+                        </span>
+                        {winnerHandDescription && (
+                            <span className="font-semibold text-[0.65rem] uppercase tracking-wider leading-tight opacity-95">
+                                {winnerHandDescription}
+                            </span>
+                        )}
+                    </div>
                 );
 
             case "action":
