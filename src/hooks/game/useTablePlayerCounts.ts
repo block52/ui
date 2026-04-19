@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { getCosmosUrls } from "../../utils/cosmos/urls";
 import { useNetwork } from "../../context/NetworkContext";
+import { PlayerDTO } from "@block52/poker-vm-sdk";
 
 interface TablePlayerCount {
     tableId: string;
@@ -54,7 +55,7 @@ export const useTablePlayerCounts = (tableAddresses: string[]) => {
                             const gameState = JSON.parse(data.game_state);
 
                             // Count non-null active players
-                            const activePlayers = gameState.players?.filter((p: any) => p !== null).length || 0;
+                            const activePlayers = gameState.players?.filter((p: PlayerDTO | null) => p !== null).length || 0;
                             const maxPlayers = gameState.gameOptions?.maxPlayers;
 
                             return {

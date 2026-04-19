@@ -4,7 +4,7 @@ import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { colors } from "../../utils/colorConfig";
 import { renderJSONWithClickableAddresses } from "../../components/explorer/ClickableAddress";
-import { CosmosTransaction } from "./types";
+import { CosmosTransaction, CosmosEvent, CosmosEventAttribute, CosmosMessage } from "./types";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import styles from "./TransactionPage.module.css";
 
@@ -56,9 +56,11 @@ export default function TransactionPage() {
                           tx: tx.tx || { body: { messages: [] } }
                       };
 
-                setTransaction(formattedTx as any);
-            } catch (err: any) {
-                setError(err.response?.data?.message || err.message || "Transaction not found");
+                setTransaction(formattedTx as CosmosTransaction);
+            } catch (err: unknown) {
+                const errorMessage = err instanceof Error ? err.message : "Transaction not found";
+                const axiosError = err as { response?: { data?: { message?: string } } };
+                setError(axiosError.response?.data?.message || errorMessage);
                 setTransaction(null);
                 console.error("Error fetching transaction:", err);
             } finally {
@@ -201,7 +203,7 @@ export default function TransactionPage() {
                                 <div>
                                     <h3 className="text-xl font-bold text-white mb-3">Messages ({transaction.tx.body.messages.length})</h3>
                                     <div className="space-y-3">
-                                        {transaction.tx.body.messages.map((msg: any, index: number) => (
+                                        {transaction.tx.body.messages.map((msg: CosmosMessage, index: number) => (
                                             <div
                                                 key={index}
                                                 className={`p-4 rounded-lg ${styles.messageCard}`}
@@ -209,7 +211,7 @@ export default function TransactionPage() {
                                                 <div className="mb-3">
                                                     <label className="block text-gray-400 text-xs font-semibold mb-1">Type</label>
                                                     <code className={`text-sm font-mono ${styles.brandText}`}>
-                                                        {msg["@type"] || msg.typeUrl}
+                                                        {msg["@type"] || (msg as { typeUrl?: string }).typeUrl}
                                                     </code>
                                                 </div>
                                                 <div>
@@ -230,12 +232,12 @@ export default function TransactionPage() {
                             {transaction.tx_response.events &&
                                 (() => {
                                     // Check for game_created event
-                                    const gameCreatedEvent = transaction.tx_response.events.find((e: any) => e.type === "game_created");
+                                    const gameCreatedEvent = transaction.tx_response.events.find((e: CosmosEvent) => e.type === "game_created");
                                     if (gameCreatedEvent) {
-                                        const gameIdAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "game_id");
-                                        const gameTypeAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "game_type");
-                                        const minPlayersAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "min_players");
-                                        const maxPlayersAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "max_players");
+                                        const gameIdAttr = gameCreatedEvent.attributes?.find((a: CosmosEventAttribute) => a.key === "game_id");
+                                        const gameTypeAttr = gameCreatedEvent.attributes?.find((a: CosmosEventAttribute) => a.key === "game_type");
+                                        const minPlayersAttr = gameCreatedEvent.attributes?.find((a: CosmosEventAttribute) => a.key === "min_players");
+                                        const maxPlayersAttr = gameCreatedEvent.attributes?.find((a: CosmosEventAttribute) => a.key === "max_players");
 
                                         if (gameIdAttr) {
                                             return (
@@ -293,11 +295,11 @@ export default function TransactionPage() {
                                     }
 
                                     // Check for player_joined_game event
-                                    const playerJoinedEvent = transaction.tx_response.events.find((e: any) => e.type === "player_joined_game");
+                                    const playerJoinedEvent = transaction.tx_response.events.find((e: CosmosEvent) => e.type === "player_joined_game");
                                     if (playerJoinedEvent) {
-                                        const gameIdAttr = playerJoinedEvent.attributes?.find((a: any) => a.key === "game_id");
-                                        const playerAttr = playerJoinedEvent.attributes?.find((a: any) => a.key === "player");
-                                        const buyInAttr = playerJoinedEvent.attributes?.find((a: any) => a.key === "buy_in");
+                                        const gameIdAttr = playerJoinedEvent.attributes?.find((a: CosmosEventAttribute) => a.key === "game_id");
+                                        const playerAttr = playerJoinedEvent.attributes?.find((a: CosmosEventAttribute) => a.key === "player");
+                                        const buyInAttr = playerJoinedEvent.attributes?.find((a: CosmosEventAttribute) => a.key === "buy_in");
 
                                         if (gameIdAttr) {
                                             return (
@@ -360,14 +362,14 @@ export default function TransactionPage() {
                                 transaction.tx_response.events.length > 0 &&
                                 (() => {
                                     // Helper function to explain each event type
-                                    const explainEvent = (event: any, index: number) => {
+                                    const explainEvent = (event: CosmosEvent, index: number) => {
                                         const type = event.type;
-                                        const attrs = event.attributes || [];
+                                        const attrs: CosmosEventAttribute[] = event.attributes || [];
 
                                         switch (type) {
                                             case "coin_spent": {
-                                                const spender = attrs.find((a: any) => a.key === "spender")?.value;
-                                                const spentAmount = attrs.find((a: any) => a.key === "amount")?.value;
+                                                const spender = attrs.find((a) => a.key === "spender")?.value;
+                                                const spentAmount = attrs.find((a) => a.key === "amount")?.value;
                                                 const isFee = index < 3; // First coin_spent is usually fee
                                                 return {
                                                     icon: "💸",
@@ -381,8 +383,8 @@ export default function TransactionPage() {
                                                 };
                                             }
                                             case "coin_received": {
-                                                const receiver = attrs.find((a: any) => a.key === "receiver")?.value;
-                                                const receivedAmount = attrs.find((a: any) => a.key === "amount")?.value;
+                                                const receiver = attrs.find((a) => a.key === "receiver")?.value;
+                                                const receivedAmount = attrs.find((a) => a.key === "amount")?.value;
                                                 const isFeeCollector = index < 3;
                                                 return {
                                                     icon: "💰",
@@ -396,9 +398,9 @@ export default function TransactionPage() {
                                                 };
                                             }
                                             case "transfer": {
-                                                const recipient = attrs.find((a: any) => a.key === "recipient")?.value;
-                                                const sender = attrs.find((a: any) => a.key === "sender")?.value;
-                                                const amount = attrs.find((a: any) => a.key === "amount")?.value;
+                                                const recipient = attrs.find((a) => a.key === "recipient")?.value;
+                                                const sender = attrs.find((a) => a.key === "sender")?.value;
+                                                const amount = attrs.find((a) => a.key === "amount")?.value;
                                                 return {
                                                     icon: "↔️",
                                                     title: "Transfer Recorded",
@@ -409,8 +411,8 @@ export default function TransactionPage() {
                                                 };
                                             }
                                             case "message": {
-                                                const action = attrs.find((a: any) => a.key === "action")?.value;
-                                                const module = attrs.find((a: any) => a.key === "module")?.value;
+                                                const action = attrs.find((a) => a.key === "action")?.value;
+                                                const module = attrs.find((a) => a.key === "module")?.value;
                                                 if (action) {
                                                     return {
                                                         icon: "📨",
@@ -427,9 +429,9 @@ export default function TransactionPage() {
                                                 };
                                             }
                                             case "tx": {
-                                                const fee = attrs.find((a: any) => a.key === "fee")?.value;
-                                                const signature = attrs.find((a: any) => a.key === "signature")?.value;
-                                                const accSeq = attrs.find((a: any) => a.key === "acc_seq")?.value;
+                                                const fee = attrs.find((a) => a.key === "fee")?.value;
+                                                const signature = attrs.find((a) => a.key === "signature")?.value;
+                                                const accSeq = attrs.find((a) => a.key === "acc_seq")?.value;
 
                                                 if (fee) {
                                                     return {
@@ -456,8 +458,8 @@ export default function TransactionPage() {
                                                 break;
                                             }
                                             case "game_created": {
-                                                const gameId = attrs.find((a: any) => a.key === "game_id")?.value;
-                                                const gameType = attrs.find((a: any) => a.key === "game_type")?.value;
+                                                const gameId = attrs.find((a) => a.key === "game_id")?.value;
+                                                const gameType = attrs.find((a) => a.key === "game_type")?.value;
                                                 return {
                                                     icon: "🎮",
                                                     title: "Poker Game Created",
@@ -468,8 +470,8 @@ export default function TransactionPage() {
                                                 };
                                             }
                                             case "player_joined_game": {
-                                                const joinedGameId = attrs.find((a: any) => a.key === "game_id")?.value;
-                                                const player = attrs.find((a: any) => a.key === "player")?.value;
+                                                const joinedGameId = attrs.find((a) => a.key === "game_id")?.value;
+                                                const player = attrs.find((a) => a.key === "player")?.value;
                                                 return {
                                                     icon: "🪑",
                                                     title: "Player Joined Game",
@@ -538,7 +540,7 @@ export default function TransactionPage() {
                                                     {/* Event-by-Event Breakdown */}
                                                     <h4 className="text-lg font-bold text-white mb-3">🔍 Event Breakdown</h4>
                                                     <div className="space-y-3">
-                                                        {transaction.tx_response.events.map((event: any, index: number) => {
+                                                        {transaction.tx_response.events.map((event: CosmosEvent, index: number) => {
                                                             const explanation = explainEvent(event, index);
                                                             return (
                                                                 <div

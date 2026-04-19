@@ -5,8 +5,8 @@
 // NodeRpcClient removed from SDK - using CosmosClient instead
 // import { NodeRpcClient } from "@block52/poker-vm-sdk";
 
-// Singleton instance for NodeRpcClient
-let clientInstance: any | null = null;
+// Singleton instance for NodeRpcClient (deprecated - kept for potential future use)
+let clientInstance: unknown = null;
 
 /**
  * Get the user's private key from browser storage
@@ -65,25 +65,12 @@ export const hasPrivateKey = (): boolean => {
  * Get singleton NodeRpcClient instance
  * @returns NodeRpcClient instance
  * @throws Error if private key is missing
+ * @deprecated Use CosmosClient from WithdrawalDashboard instead
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export const getClient = (): any => {
-    const privateKey = getPrivateKey();
-    if (!privateKey) {
-        throw new Error("No private key found. Please connect your wallet first.");
-    }
-
-    // Return existing instance if private key hasn't changed
-    if (clientInstance) {
-        return clientInstance;
-    }
-
-    // Create new client instance
-    const nodeUrl = import.meta.env.VITE_NODE_RPC_URL || "https://node1.block52.xyz/";
-    // Old Ethereum client for bridge only - disabled until migration to CosmosClient
-    // clientInstance = new NodeRpcClient(nodeUrl, privateKey);
+    // This function is deprecated and always throws
     throw new Error("NodeRpcClient deprecated - use CosmosClient from WithdrawalDashboard instead");
-
-    return clientInstance;
 };
 
 /**

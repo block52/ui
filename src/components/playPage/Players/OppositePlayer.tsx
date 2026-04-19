@@ -15,6 +15,7 @@ import * as React from "react";
 import { useParams } from "react-router-dom";
 import Badge from "../common/Badge";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
+import { WinnerInfo } from "../../../types";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { useShowingCardsByAddress } from "../../../hooks/player/useShowingCardsByAddress";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
@@ -69,7 +70,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     // Check if this player is a winner
     const isWinner = React.useMemo(() => {
         if (!winnerInfo) return false;
-        return winnerInfo.some((winner: any) => winner.seat === index);
+        return winnerInfo.some((winner: WinnerInfo) => winner.seat === index);
     }, [winnerInfo, index]);
 
     // 2) dim non-winners when someone has won, also dim busted players like sitting out
@@ -78,7 +79,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     // Get winner amount if this player is a winner
     const winnerAmount = React.useMemo(() => {
         if (!isWinner || !winnerInfo) return null;
-        const winner = winnerInfo.find((w: any) => w.seat === index);
+        const winner = winnerInfo.find((w: WinnerInfo) => w.seat === index);
         return winner ? winner.formattedAmount : null;
     }, [isWinner, winnerInfo, index]);
 
