@@ -35,7 +35,7 @@ type BadgeProps = {
 const Badge: React.FC<BadgeProps> = React.memo(({
     count, value, color, canExtend, onExtend,
     tournamentPlace, tournamentPayout,
-    isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
+    isWinner, winnerHandDescription, isTurnTimerActive,
     round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn
 }) => {
     // Track previous banner mode so we can detect timer→action transitions
@@ -153,7 +153,7 @@ const Badge: React.FC<BadgeProps> = React.memo(({
                 return (
                     <div className="seat-banner-text flex flex-col items-center justify-center w-full mt-[14px] gap-0.5">
                         <span className="font-bold text-base leading-tight">
-                            WINS: {winnerAmount}
+                            WINS
                         </span>
                         {winnerHandDescription && (
                             <span className="font-semibold text-[0.65rem] uppercase tracking-wider leading-tight opacity-95">
