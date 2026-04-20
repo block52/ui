@@ -30,6 +30,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
     // Get game options
     const { gameOptions } = useGameOptions();
+    console.log(gameOptions);
     const { emptySeatIndexes, isUserAlreadyPlaying } = useVacantSeatData();
 
     // Use the Sit & Go specific join hook with random seat selection
@@ -74,17 +75,11 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
         // For SNG, blinds are stored as chip counts (not microunits)
         // Format them with commas for display
-        const smallBlind = gameOptions.smallBlind
-            ? formatForSitAndGo(Number(gameOptions.smallBlind))
-            : "0";
-        const bigBlind = gameOptions.bigBlind
-            ? formatForSitAndGo(Number(gameOptions.bigBlind))
-            : "0";
+        const smallBlind = gameOptions.smallBlind ? formatForSitAndGo(Number(gameOptions.smallBlind)) : "0";
+        const bigBlind = gameOptions.bigBlind ? formatForSitAndGo(Number(gameOptions.bigBlind)) : "0";
 
         // Starting stack is in chips - format as whole number with commas
-        const startingStack = gameOptions.startingStack
-            ? formatForSitAndGo(Number(gameOptions.startingStack))
-            : "0";
+        const startingStack = gameOptions.startingStack ? formatForSitAndGo(Number(gameOptions.startingStack)) : "0";
 
         return {
             maxBuyInFormatted: maxFormatted,
@@ -146,12 +141,10 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 return;
             }
 
-
             // STEP 1: Convert USDC microunits from gameOptions to dollar amount (number)
             // gameOptions.maxBuyIn is in USDC microunits (e.g., "1000000" for $1)
             const buyInAmountInMicrounits = gameOptions.maxBuyIn;
             const buyInAmountInDollars = microToUsdc(buyInAmountInMicrounits);
-
 
             // STEP 2: Pass the dollar amount (number) to the hook
             // The hook will handle the conversion back to USDC microunits internally
@@ -160,7 +153,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 amount: buyInAmountInDollars // Pass as number (dollars), not string (microunits)
                 // No need to specify seat - SDK will pick randomly
             });
-
 
             // Mark as joined and notify parent
             setHasJoined(true);
@@ -215,7 +207,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
     return (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}>
+            <div
+                className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}
+            >
                 {/* Web3 styled background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl"></div>
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse"></div>
@@ -260,7 +254,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             </div>
                             <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
                                 <div className="text-gray-400 text-[10px]">Blinds</div>
-                                <div className="text-white text-xs font-semibold">{smallBlindFormatted}/{bigBlindFormatted}</div>
+                                <div className="text-white text-xs font-semibold">
+                                    {smallBlindFormatted}/{bigBlindFormatted}
+                                </div>
                             </div>
                             <div className="bg-gray-700/80 rounded p-1.5 border border-green-500/30">
                                 <div className="text-gray-400 text-[10px]">Stack</div>
@@ -268,7 +264,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             </div>
                             <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
                                 <div className="text-gray-400 text-[10px]">Balance</div>
-                                <div className={`text-xs font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}>
+                                <div
+                                    className={`text-xs font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}
+                                >
                                     ${balanceFormatted.toFixed(2)}
                                 </div>
                             </div>
@@ -316,7 +314,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                                 <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-400 text-sm">Your Balance:</span>
-                                        <span className={`font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}>
+                                        <span
+                                            className={`font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}
+                                        >
                                             ${balanceFormatted.toFixed(2)}
                                         </span>
                                     </div>

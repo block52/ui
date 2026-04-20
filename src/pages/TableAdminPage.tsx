@@ -54,7 +54,7 @@ export default function TableAdminPage() {
     const [gameFormat, setGameFormat] = useState<GameFormat>(GameFormat.CASH);
     const [minPlayers] = useState(2);
     const [maxPlayers, setMaxPlayers] = useState(9);
-    
+
     // Selected blind level (index in BLIND_LEVELS array) — cash games only
     const [selectedBlindLevel, setSelectedBlindLevel] = useState(DEFAULT_BLIND_LEVEL_INDEX);
 
@@ -125,7 +125,7 @@ export default function TableAdminPage() {
 
     // Transform fetched games to TableData format - memoized to prevent infinite loops
     const tables: TableData[] = useMemo(() => {
-        const mappedTables = fetchedGames.map((game) => ({
+        const mappedTables = fetchedGames.map(game => ({
             gameId: game.gameId,
             gameFormat: getGameFormat(game.gameFormat),
             minPlayers: game.minPlayers,
@@ -147,19 +147,20 @@ export default function TableAdminPage() {
 
     // Create a new table using the useNewTable hook
     const handleCreateTable = async () => {
-
         if (!cosmosWallet.address) {
             toast.error("No Block52 wallet found. Please create or import a wallet first.");
             return;
         }
 
         // Build rake config if enabled
-        const rakeConfig = enableRake ? {
-            rakeFreeThreshold: parseFloat(rakeFreeThreshold),
-            rakePercentage: parseFloat(rakePercentage),
-            rakeCap: parseFloat(rakeCap),
-            owner: rakeOwner || cosmosWallet.address || ""
-        } : undefined;
+        const rakeConfig = enableRake
+            ? {
+                  rakeFreeThreshold: parseFloat(rakeFreeThreshold),
+                  rakePercentage: parseFloat(rakePercentage),
+                  rakeCap: parseFloat(rakeCap),
+                  owner: rakeOwner || cosmosWallet.address || ""
+              }
+            : undefined;
 
         // For tournaments, use fixed buy-in; for cash games, use BB-calculated values
         const isTournament = isTournamentFormat(gameFormat);
@@ -167,14 +168,27 @@ export default function TableAdminPage() {
         const finalMaxBuyIn = isTournament ? parseFloat(tournamentBuyIn) : calculatedMaxBuyIn;
 
         // Build SNG config if this is a tournament/SNG
-        const sngConfig = isTournament ? {
-            startingStack,
-            blindLevelDuration
-        } : undefined;
+        const sngConfig = isTournament
+            ? {
+                  startingStack,
+                  blindLevelDuration
+              }
+            : undefined;
 
+        console.log({
+            format: gameFormat,
+            minBuyIn: finalMinBuyIn,
+            maxBuyIn: finalMaxBuyIn,
+            minPlayers,
+            maxPlayers,
+            smallBlind: parseFloat(smallBlind),
+            bigBlind: parseFloat(bigBlind),
+            ...(rakeConfig && { rake: rakeConfig }),
+            ...(sngConfig && { sng: sngConfig })
+        });
         // Store the table count before creating to verify a new table was added
         setTableCountBeforeCreation(tables.length);
-        
+
         try {
             const result = await createTable({
                 format: gameFormat,
@@ -188,21 +202,20 @@ export default function TableAdminPage() {
                 ...(sngConfig && { sng: sngConfig })
             });
 
+            // if (result) {
+            //     // Show success modal with transaction link
+            //     setSuccessTxHash(result.txHash);
+            //     // Set the game address immediately if we got it from the transaction
+            //     setCreatedGameAddress(result.gameId);
+            //     setShowSuccessModal(true);
 
-            if (result) {
-                // Show success modal with transaction link
-                setSuccessTxHash(result.txHash);
-                // Set the game address immediately if we got it from the transaction
-                setCreatedGameAddress(result.gameId);
-                setShowSuccessModal(true);
-
-                // Wait a moment then reload tables
-                setTimeout(() => {
-                    refetch();
-                }, 2000);
-            } else {
-                toast.error("Table creation failed - no transaction hash returned");
-            }
+            //     // Wait a moment then reload tables
+            //     setTimeout(() => {
+            //         refetch();
+            //     }, 2000);
+            // } else {
+            //     toast.error("Table creation failed - no transaction hash returned");
+            // }
         } catch (err: any) {
             console.error("❌ Failed to create table:", err);
             console.error("Error details:", {
@@ -240,9 +253,7 @@ export default function TableAdminPage() {
                         const gameState = JSON.parse(gameStateResponse.game_state);
                         // Count players with valid addresses (seated players)
                         // Filter out empty seats using the utility function
-                        const seatedPlayers = gameState.players?.filter((p: any) =>
-                            isValidPlayerAddress(p.address) && p.status !== "empty"
-                        ).length || 0;
+                        const seatedPlayers = gameState.players?.filter((p: any) => isValidPlayerAddress(p.address) && p.status !== "empty").length || 0;
                         counts[table.gameId] = seatedPlayers;
                     }
                 } catch (err) {
@@ -309,9 +320,7 @@ export default function TableAdminPage() {
                         {cosmosWallet.address && (
                             <div className="text-right">
                                 <p className="text-gray-400 text-xs">Your USDC Balance</p>
-                                <p className={`text-lg font-bold ${hasEnoughUsdc ? "text-green-400" : "text-red-400"}`}>
-                                    ${usdcBalanceFormatted} USDC
-                                </p>
+                                <p className={`text-lg font-bold ${hasEnoughUsdc ? "text-green-400" : "text-red-400"}`}>${usdcBalanceFormatted} USDC</p>
                             </div>
                         )}
                     </div>
@@ -329,13 +338,18 @@ export default function TableAdminPage() {
                         <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 mb-4">
                             <div className="flex items-start gap-3">
                                 <svg className="w-6 h-6 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                                    />
                                 </svg>
                                 <div>
                                     <p className="text-red-300 font-semibold mb-1">Insufficient USDC Balance</p>
                                     <p className="text-red-400/80 text-sm mb-3">
-                                        You need at least {GAME_CREATION_FEE_USDC.toFixed(6)} USDC to create a table.
-                                        Your current balance is ${usdcBalanceFormatted} USDC.
+                                        You need at least {GAME_CREATION_FEE_USDC.toFixed(6)} USDC to create a table. Your current balance is $
+                                        {usdcBalanceFormatted} USDC.
                                     </p>
                                     <Link
                                         to="/"
@@ -385,9 +399,7 @@ export default function TableAdminPage() {
                     {/* Blinds Dropdown - Cash games only */}
                     {gameFormat === GameFormat.CASH && (
                         <div className="mb-3">
-                            <label className="text-gray-300 text-xs mb-1 block">
-                                Game Size (Small Blind / Big Blind)
-                            </label>
+                            <label className="text-gray-300 text-xs mb-1 block">Game Size (Small Blind / Big Blind)</label>
                             <select
                                 value={selectedBlindLevel}
                                 onChange={e => setSelectedBlindLevel(Number(e.target.value))}
@@ -428,9 +440,7 @@ export default function TableAdminPage() {
                                             type="button"
                                             onClick={() => setStartingStack(1000)}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                                startingStack === 1000
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                                startingStack === 1000 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                             }`}
                                         >
                                             Turbo (1000)
@@ -439,9 +449,7 @@ export default function TableAdminPage() {
                                             type="button"
                                             onClick={() => setStartingStack(1500)}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                                startingStack === 1500
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                                startingStack === 1500 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                             }`}
                                         >
                                             Standard (1500)
@@ -450,9 +458,7 @@ export default function TableAdminPage() {
                                             type="button"
                                             onClick={() => setStartingStack(3000)}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                                startingStack === 3000
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                                startingStack === 3000 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                             }`}
                                         >
                                             Deep Stack (3000)
@@ -474,7 +480,10 @@ export default function TableAdminPage() {
                                     <div className="flex gap-2 flex-wrap mb-2">
                                         <button
                                             type="button"
-                                            onClick={() => { setSngSmallBlind(10); setSngBigBlind(20); }}
+                                            onClick={() => {
+                                                setSngSmallBlind(10);
+                                                setSngBigBlind(20);
+                                            }}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
                                                 sngSmallBlind === 10 && sngBigBlind === 20
                                                     ? "bg-blue-600 text-white"
@@ -485,7 +494,10 @@ export default function TableAdminPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => { setSngSmallBlind(25); setSngBigBlind(50); }}
+                                            onClick={() => {
+                                                setSngSmallBlind(25);
+                                                setSngBigBlind(50);
+                                            }}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
                                                 sngSmallBlind === 25 && sngBigBlind === 50
                                                     ? "bg-blue-600 text-white"
@@ -496,7 +508,10 @@ export default function TableAdminPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => { setSngSmallBlind(50); setSngBigBlind(100); }}
+                                            onClick={() => {
+                                                setSngSmallBlind(50);
+                                                setSngBigBlind(100);
+                                            }}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
                                                 sngSmallBlind === 50 && sngBigBlind === 100
                                                     ? "bg-blue-600 text-white"
@@ -516,9 +531,7 @@ export default function TableAdminPage() {
                                             type="button"
                                             onClick={() => setBlindLevelDuration(3)}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                                blindLevelDuration === 3
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                                blindLevelDuration === 3 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                             }`}
                                         >
                                             Hyper (3 min)
@@ -527,9 +540,7 @@ export default function TableAdminPage() {
                                             type="button"
                                             onClick={() => setBlindLevelDuration(5)}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                                blindLevelDuration === 5
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                                blindLevelDuration === 5 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                             }`}
                                         >
                                             Turbo (5 min)
@@ -538,9 +549,7 @@ export default function TableAdminPage() {
                                             type="button"
                                             onClick={() => setBlindLevelDuration(10)}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                                blindLevelDuration === 10
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                                blindLevelDuration === 10 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                             }`}
                                         >
                                             Standard (10 min)
@@ -549,9 +558,7 @@ export default function TableAdminPage() {
                                             type="button"
                                             onClick={() => setBlindLevelDuration(15)}
                                             className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                                blindLevelDuration === 15
-                                                    ? "bg-blue-600 text-white"
-                                                    : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                                blindLevelDuration === 15 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                             }`}
                                         >
                                             Deep (15 min)
@@ -577,33 +584,36 @@ export default function TableAdminPage() {
                                 <div className="flex gap-2 flex-wrap mb-3">
                                     <button
                                         type="button"
-                                        onClick={() => { setMinBuyInBB(BUY_IN_PRESETS.STANDARD.minBuyInBB); setMaxBuyInBB(BUY_IN_PRESETS.STANDARD.maxBuyInBB); }}
+                                        onClick={() => {
+                                            setMinBuyInBB(BUY_IN_PRESETS.STANDARD.minBuyInBB);
+                                            setMaxBuyInBB(BUY_IN_PRESETS.STANDARD.maxBuyInBB);
+                                        }}
                                         className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                            minBuyInBB === 20 && maxBuyInBB === 100
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                            minBuyInBB === 20 && maxBuyInBB === 100 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                         }`}
                                     >
                                         Standard (20-100 BB)
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => { setMinBuyInBB(BUY_IN_PRESETS.DEEP.minBuyInBB); setMaxBuyInBB(BUY_IN_PRESETS.DEEP.maxBuyInBB); }}
+                                        onClick={() => {
+                                            setMinBuyInBB(BUY_IN_PRESETS.DEEP.minBuyInBB);
+                                            setMaxBuyInBB(BUY_IN_PRESETS.DEEP.maxBuyInBB);
+                                        }}
                                         className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                            minBuyInBB === 40 && maxBuyInBB === 200
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                            minBuyInBB === 40 && maxBuyInBB === 200 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                         }`}
                                     >
                                         Deep (40-200 BB)
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => { setMinBuyInBB(BUY_IN_PRESETS.DEEP_STACK.minBuyInBB); setMaxBuyInBB(BUY_IN_PRESETS.DEEP_STACK.maxBuyInBB); }}
+                                        onClick={() => {
+                                            setMinBuyInBB(BUY_IN_PRESETS.DEEP_STACK.minBuyInBB);
+                                            setMaxBuyInBB(BUY_IN_PRESETS.DEEP_STACK.maxBuyInBB);
+                                        }}
                                         className={`px-3 py-1.5 text-xs rounded transition-all duration-200 ${
-                                            minBuyInBB === 100 && maxBuyInBB === 300
-                                                ? "bg-blue-600 text-white"
-                                                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                            minBuyInBB === 100 && maxBuyInBB === 300 ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
                                         }`}
                                     >
                                         Deep Stack (100-300 BB)
@@ -643,9 +653,7 @@ export default function TableAdminPage() {
                                         <p className="text-green-400 text-sm font-medium">
                                             ${calculatedMinBuyIn.toFixed(2)} - ${calculatedMaxBuyIn.toFixed(2)}
                                         </p>
-                                        <p className="text-gray-500 text-xs mt-1">
-                                            Based on ${parseFloat(bigBlind).toFixed(2)} BB
-                                        </p>
+                                        <p className="text-gray-500 text-xs mt-1">Based on ${parseFloat(bigBlind).toFixed(2)} BB</p>
                                     </div>
                                 )}
                             </>
@@ -696,9 +704,7 @@ export default function TableAdminPage() {
                                             })}
                                         </tbody>
                                     </table>
-                                    <p className="text-gray-500 text-xs mt-3">
-                                        * Blinds double each level. Level 1 is highlighted.
-                                    </p>
+                                    <p className="text-gray-500 text-xs mt-3">* Blinds double each level. Level 1 is highlighted.</p>
                                 </div>
                             )}
                         </div>
@@ -807,11 +813,7 @@ export default function TableAdminPage() {
                     </div>
 
                     {!cosmosWallet.address && <p className="mt-2 text-yellow-400 text-xs">Connect your Block52 wallet to create tables</p>}
-                    {cosmosWallet.address && hasEnoughUsdc && (
-                        <p className="mt-2 text-green-400 text-xs">
-                            ✓ You have enough USDC to create a table
-                        </p>
-                    )}
+                    {cosmosWallet.address && hasEnoughUsdc && <p className="mt-2 text-green-400 text-xs">✓ You have enough USDC to create a table</p>}
                 </div>
 
                 {/* Tables List */}

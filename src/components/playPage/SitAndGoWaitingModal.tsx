@@ -9,14 +9,16 @@ import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import styles from "./SitAndGoWaitingModal.module.css";
+import LeaveSngTableModal from "../modals/LeaveSngTableModal";
 
 interface SitAndGoWaitingModalProps {
-    onLeaveClick?: () => void;
+    onLeaveClick?: () => Promise<void>;
 }
 
 const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveClick }) => {
     const { gameOptions } = useGameOptions();
     const { emptySeatIndexes } = useVacantSeatData();
+    const [showModal, setShowModal] = React.useState(false);
 
     // Calculate players joined
     const playersJoined = useMemo(() => {
@@ -62,9 +64,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveClic
                     </div>
 
                     <h2 className="text-2xl font-bold text-white text-center mb-2 text-shadow">Waiting for Players</h2>
-                    <p className="text-gray-300 text-center mb-6 text-sm">
-                        {playerCountLabel} tournament is filling up...
-                    </p>
+                    <p className="text-gray-300 text-center mb-6 text-sm">{playerCountLabel} tournament is filling up...</p>
 
                     {/* Players Progress Display */}
                     <div className="mb-6">
@@ -108,12 +108,13 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveClic
                         </div>
                     </div>
 
-                    
                     {/* Leave Game Button */}
                     {onLeaveClick && (
                         <div className="mb-4">
                             <button
-                                onClick={onLeaveClick}
+                                onClick={() => {
+                                    setShowModal(true);
+                                }}
                                 className="w-full py-2 px-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 hover:border-red-500/60 transition-colors duration-200"
                             >
                                 Leave Game
@@ -130,6 +131,17 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveClic
                     </div>
                 </div>
             </div>
+
+            <LeaveSngTableModal
+                isOpen={showModal}
+                onClose={() => setShowModal(false)}
+                onConfirm={async () => {
+                    if (onLeaveClick) {
+                        await onLeaveClick();
+                    }
+                }}
+                playerStack={gameOptions?.startingStack}
+            />
         </div>
     );
 };

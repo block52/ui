@@ -15,19 +15,13 @@ import type { LeaveTableResult } from "../../types";
 export async function leaveTable(tableId: string, value: string, network: NetworkEndpoints, _nonce?: number): Promise<LeaveTableResult> {
     const { signingClient, userAddress } = await getSigningClient(network);
 
-
     // Call SigningCosmosClient.performAction() with "leave" action
-    const transactionHash = await signingClient.performAction(
-        tableId,
-        "leave",
-        BigInt(value)
-    );
-
+    const transactionHash = await signingClient.performAction(tableId, "leave", BigInt(value));
 
     return {
         hash: transactionHash,
         gameId: tableId,
         action: "leave",
         value
-    };
+    }; 
 }

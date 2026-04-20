@@ -58,7 +58,6 @@ export const TableModals: React.FC<TableModalsProps> = ({
     tableId,
     onAutoJoinSuccess,
     isSitAndGoWaitingForPlayers,
-    handleLeaveTableClick,
     recentTxHash,
     handleCloseTransactionPopup,
     isLeaveModalOpen,
@@ -80,7 +79,7 @@ export const TableModals: React.FC<TableModalsProps> = ({
             )}
 
             {/* Sit & Go Waiting Modal - Shows for Sit & Go games when user is playing but waiting for more players */}
-            {isSitAndGoWaitingForPlayers && <SitAndGoWaitingModal onLeaveClick={handleLeaveTableClick} />}
+            {isSitAndGoWaitingForPlayers && <SitAndGoWaitingModal onLeaveClick={handleLeaveTableConfirm} />}
 
             {/* Transaction Popup - Bottom Right */}
             <TransactionPopup txHash={recentTxHash} onClose={handleCloseTransactionPopup} />

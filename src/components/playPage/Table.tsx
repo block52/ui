@@ -116,7 +116,6 @@ import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import TableErrorPage from "./TableErrorPage";
 import { useGameStartCountdown } from "../../hooks/game/useGameStartCountdown";
 import { useReplayMode } from "../../hooks/game/useReplayMode";
-import { useIndexerApi } from "../../context/IndexerApiContext";
 
 // Table Layout Configuration
 import { useTableLayout } from "../../hooks/game/useTableLayout";
@@ -628,7 +627,6 @@ const Table = React.memo(() => {
 
     // Replay mode — read blocknumber/actionindex query params
     const { isReplayMode: hasReplayParams, blockNumber: replayBlockParam, actionIndex: replayActionIndex, clearReplayParams } = useReplayMode();
-    const indexerApi = useIndexerApi();
 
     useEffect(() => {
         if (id) {
@@ -1116,6 +1114,7 @@ const Table = React.memo(() => {
         return <TableErrorPage error={validationError} tableId={id} onRetry={handleRetry} />;
     }
 
+    console.log(currentPlayerData);
     return (
         <div className="table-container">
             {/* Replay mode banner */}
@@ -1302,9 +1301,7 @@ const Table = React.memo(() => {
 
                         {/* Dealer Button — convert seat number to rotated screen position */}
                         {(() => {
-                            const dIdx = dealerSeat != null && dealerSeat > 0
-                                ? ((dealerSeat - 1 + startIndex) % tableSize)
-                                : -1;
+                            const dIdx = dealerSeat != null && dealerSeat > 0 ? (dealerSeat - 1 + startIndex) % tableSize : -1;
                             const dPos = dIdx >= 0 ? tableLayout.positions.dealers[dIdx] : null;
                             if (!dPos) return null;
                             return (
