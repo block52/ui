@@ -39,6 +39,12 @@ export const CHIP_DENOMINATIONS: ChipDenomination[] = [
     { value: 25,     file: "25chip.svg",      color: "green" },
     { value: 5,      file: "5chip.svg",       color: "red" },
     { value: 1,      file: "1chip.svg",       color: "white" },
+    // Cent denominations (values in dollars)
+    { value: 0.5,    file: "50cent.svg",      color: "purple" },
+    { value: 0.25,   file: "25cent.svg",      color: "green" },
+    { value: 0.1,    file: "10cent.svg",      color: "yellow" },
+    { value: 0.05,   file: "5cent.svg",       color: "blue" },
+    { value: 0.01,   file: "1cent.svg",       color: "red" },
 ];
 
 /** Fallback chip used for amounts < $1 */
