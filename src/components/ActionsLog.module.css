@@ -30,3 +30,12 @@
 .actionText {
   color: #e5e7eb;
 }
+
+.winnerRow {
+  background-color: color-mix(in srgb, var(--accent-success) 12%, transparent);
+}
+
+.winnerText {
+  color: var(--accent-success);
+  font-weight: 700;
+}

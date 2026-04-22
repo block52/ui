@@ -16,11 +16,21 @@ const DEFAULT_CARD_BACK = "b52CardBack.svg";
 export type CardBackStyle = "default" | "block52" | "custom" | string;
 
 /**
- * Get the URL for the chip image
- * @returns The URL to the chip SVG image
+ * Get the URL for a chip image by filename (e.g. "25chip.svg", "1cent.svg")
+ * @param file - The chip SVG filename
+ * @returns The CDN URL to the chip SVG image
  */
-export function getChipImageUrl(): string {
-    return `${GITHUB_CDN_BASE}/chip.svg`;
+export function getChipImageUrl(file: string): string {
+    return `${GITHUB_CDN_BASE}/chips/${file}`;
+}
+
+/**
+ * Get the URL for a sound file by filename (e.g. "chip-notification.mp3")
+ * @param file - The sound filename
+ * @returns The CDN URL to the sound file
+ */
+export function getSoundUrl(file: string): string {
+    return `${GITHUB_CDN_BASE}/sounds/${file}`;
 }
 
 /**

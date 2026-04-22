@@ -1,7 +1,7 @@
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
-import { WinnerInfoReturn } from "../../types/index";
+import { WinnerInfo, WinnerInfoReturn } from "../../types/index";
 
 /**
  * Extract winner information from game state
@@ -22,7 +22,10 @@ function getWinnerInfo(gameData: TexasHoldemStateDTO) {
                 address: winner.address,
                 amount: winner.amount.toString(),
                 formattedAmount: formatUSDCToSimpleDollars(winner.amount.toString()),
-                winType: "showdown"
+                winType: "showdown",
+                description: winner.description,
+                handName: winner.name,
+                cards: winner.cards
             };
         });
     }
@@ -42,15 +45,7 @@ export const useWinnerInfo = (): WinnerInfoReturn => {
 
     // Default values in case of error or loading
     const defaultState: WinnerInfoReturn = {
-        winnerInfo: null as
-            | {
-                  seat: number;
-                  address: string;
-                  amount: string | number;
-                  formattedAmount: string;
-                  winType?: string;
-              }[]
-            | null,
+        winnerInfo: null as WinnerInfo[] | null,
         error
     };
 

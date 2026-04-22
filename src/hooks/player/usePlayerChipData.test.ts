@@ -98,7 +98,36 @@ describe("usePlayerChipData", () => {
             expect(result.current.getChipAmount(3)).toBe("0");
         });
 
-        it("should show chips for ACTIVE player with sumOfBets during ante", () => {
+        it("should show 0 chips for ACTIVE player with sumOfBets but NO betting actions (buy-in only)", () => {
+            mockUseGameStateContext.mockReturnValue({
+                gameState: {
+                    round: TexasHoldemRound.ANTE,
+                    players: [
+                        {
+                            seat: 1,
+                            address: "cosmos1active",
+                            status: PlayerStatus.ACTIVE,
+                            sumOfBets: "5000000", // Buy-in amount, not actual bet
+                            stack: "5000000"
+                        }
+                    ],
+                    previousActions: [] // No betting actions
+                },
+                isLoading: false,
+                error: null,
+                gameFormat: "cash",
+                validationError: null,
+                subscribeToTable: jest.fn(),
+                unsubscribeFromTable: jest.fn()
+            } as any);
+
+            const { result } = renderHook(() => usePlayerChipData());
+
+            // Should show 0 because no actual betting actions exist
+            expect(result.current.getChipAmount(1)).toBe("0");
+        });
+
+        it("should show chips for ACTIVE player with sumOfBets during ante when betting action exists", () => {
             mockUseGameStateContext.mockReturnValue({
                 gameState: {
                     round: TexasHoldemRound.ANTE,
@@ -111,7 +140,15 @@ describe("usePlayerChipData", () => {
                             stack: "10000000"
                         }
                     ],
-                    previousActions: []
+                    previousActions: [
+                        {
+                            playerId: "cosmos1active",
+                            round: TexasHoldemRound.ANTE,
+                            action: "post-small-blind",
+                            amount: "500000",
+                            index: 0
+                        }
+                    ]
                 },
                 isLoading: false,
                 error: null,
@@ -126,7 +163,7 @@ describe("usePlayerChipData", () => {
             expect(result.current.getChipAmount(1)).toBe("500000");
         });
 
-        it("should show chips for ACTIVE player with sumOfBets during preflop", () => {
+        it("should show chips for ACTIVE player with sumOfBets during preflop when betting action exists", () => {
             mockUseGameStateContext.mockReturnValue({
                 gameState: {
                     round: TexasHoldemRound.PREFLOP,
@@ -139,7 +176,15 @@ describe("usePlayerChipData", () => {
                             stack: "10000000"
                         }
                     ],
-                    previousActions: []
+                    previousActions: [
+                        {
+                            playerId: "cosmos1bigblind",
+                            round: TexasHoldemRound.ANTE,
+                            action: "post-big-blind",
+                            amount: "2000000",
+                            index: 0
+                        }
+                    ]
                 },
                 isLoading: false,
                 error: null,
@@ -224,7 +269,7 @@ describe("usePlayerChipData", () => {
     });
 
     describe("Round-based Chip Display", () => {
-        it("should use sumOfBets during ANTE round for active players", () => {
+        it("should use sumOfBets during ANTE round when player has betting actions", () => {
             mockUseGameStateContext.mockReturnValue({
                 gameState: {
                     round: TexasHoldemRound.ANTE,
@@ -237,7 +282,15 @@ describe("usePlayerChipData", () => {
                             stack: "10000000"
                         }
                     ],
-                    previousActions: []
+                    previousActions: [
+                        {
+                            playerId: "cosmos1player",
+                            round: TexasHoldemRound.ANTE,
+                            action: "post-small-blind",
+                            amount: "100000",
+                            index: 0
+                        }
+                    ]
                 },
                 isLoading: false,
                 error: null,
@@ -252,7 +305,7 @@ describe("usePlayerChipData", () => {
             expect(result.current.getChipAmount(1)).toBe("100000");
         });
 
-        it("should use sumOfBets during PREFLOP round for active players", () => {
+        it("should use sumOfBets during PREFLOP round when player has betting actions", () => {
             mockUseGameStateContext.mockReturnValue({
                 gameState: {
                     round: TexasHoldemRound.PREFLOP,
@@ -265,7 +318,15 @@ describe("usePlayerChipData", () => {
                             stack: "8000000"
                         }
                     ],
-                    previousActions: []
+                    previousActions: [
+                        {
+                            playerId: "cosmos1player",
+                            round: TexasHoldemRound.ANTE,
+                            action: "post-big-blind",
+                            amount: "2000000",
+                            index: 0
+                        }
+                    ]
                 },
                 isLoading: false,
                 error: null,
@@ -442,7 +503,7 @@ describe("usePlayerChipData", () => {
     });
 
     describe("Multiple Players", () => {
-        it("should correctly filter SEATED vs ACTIVE players", () => {
+        it("should correctly filter SEATED vs ACTIVE players with betting actions", () => {
             mockUseGameStateContext.mockReturnValue({
                 gameState: {
                     round: TexasHoldemRound.PREFLOP,
@@ -451,7 +512,7 @@ describe("usePlayerChipData", () => {
                             seat: 1,
                             address: "cosmos1seated",
                             status: PlayerStatus.SEATED,
-                            sumOfBets: "5000000", // Buy-in (should NOT show)
+                            sumOfBets: "5000000", // Buy-in (should NOT show - SEATED status)
                             stack: "5000000"
                         },
                         {
@@ -469,7 +530,22 @@ describe("usePlayerChipData", () => {
                             stack: "8000000"
                         }
                     ],
-                    previousActions: []
+                    previousActions: [
+                        {
+                            playerId: "cosmos1active",
+                            round: TexasHoldemRound.ANTE,
+                            action: "post-small-blind",
+                            amount: "1000000",
+                            index: 0
+                        },
+                        {
+                            playerId: "cosmos1active2",
+                            round: TexasHoldemRound.ANTE,
+                            action: "post-big-blind",
+                            amount: "2000000",
+                            index: 1
+                        }
+                    ]
                 },
                 isLoading: false,
                 error: null,
@@ -484,6 +560,51 @@ describe("usePlayerChipData", () => {
             expect(result.current.getChipAmount(1)).toBe("0"); // SEATED - no chips shown
             expect(result.current.getChipAmount(2)).toBe("1000000"); // ACTIVE - small blind
             expect(result.current.getChipAmount(3)).toBe("2000000"); // ACTIVE - big blind
+        });
+
+        it("should show 0 chips for ACTIVE player with buy-in but no betting actions", () => {
+            mockUseGameStateContext.mockReturnValue({
+                gameState: {
+                    round: TexasHoldemRound.PREFLOP,
+                    players: [
+                        {
+                            seat: 1,
+                            address: "cosmos1newjoin",
+                            status: PlayerStatus.ACTIVE,
+                            sumOfBets: "5000000", // Buy-in only (no betting actions)
+                            stack: "5000000"
+                        },
+                        {
+                            seat: 2,
+                            address: "cosmos1smallblind",
+                            status: PlayerStatus.ACTIVE,
+                            sumOfBets: "1000000", // Small blind
+                            stack: "9000000"
+                        }
+                    ],
+                    previousActions: [
+                        {
+                            playerId: "cosmos1smallblind",
+                            round: TexasHoldemRound.ANTE,
+                            action: "post-small-blind",
+                            amount: "1000000",
+                            index: 0
+                        }
+                        // Note: cosmos1newjoin has NO betting actions
+                    ]
+                },
+                isLoading: false,
+                error: null,
+                gameFormat: "cash",
+                validationError: null,
+                subscribeToTable: jest.fn(),
+                unsubscribeFromTable: jest.fn()
+            } as any);
+
+            const { result } = renderHook(() => usePlayerChipData());
+
+            expect(result.current.getChipAmount(1)).toBe("0"); // ACTIVE but no betting actions - buy-in should NOT show
+            expect(result.current.getChipAmount(2)).toBe("1000000"); // ACTIVE with small blind action - should show
         });
     });
 });

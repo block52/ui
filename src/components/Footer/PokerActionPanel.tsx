@@ -7,8 +7,10 @@ import { formatDisplayAmount } from "../../utils/numberUtils";
 
 // Import hooks
 import { useTableState, useNextToActInfo } from "../../hooks";
+import { useActionSounds } from "../../hooks/notifications/useActionSounds";
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useGameSettings } from "../../context/GameSettingsContext";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
 import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
 import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
@@ -33,7 +35,6 @@ import {
 
 // Import utils
 import { getActionByType, hasAction } from "../../utils/actionUtils";
-import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled } from "../../utils/urlParams";
 import { getRaiseToAmount } from "../../utils/raiseUtils";
 
 // Import sub-components
@@ -50,6 +51,9 @@ import type { PokerActionPanelProps } from "./types";
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
     // Loading state for actions
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+    // Action sounds
+    const { playActionSound } = useActionSounds();
 
     // Detect mobile landscape orientation
     const [isMobileLandscape, setIsMobileLandscape] = useState(window.innerWidth <= 926 && window.innerWidth > window.innerHeight);
@@ -75,6 +79,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { legalActions, isPlayerTurn, playerStatus } = usePlayerLegalActions();
     const { isCurrentUserTurn } = useNextToActInfo(tableId);
     const { formattedTotalPot } = useTableState();
+
+    // Read reactive game settings from context
+    const { autoDeal: autoDealEnabled, autoPostBlinds: autoPostBlindsEnabled, autoNewHand: autoNewHandEnabled, autoFold: autoFoldEnabled, playerActionSounds } = useGameSettings();
 
     // Get user address
     const userAddress = useMemo(() => localStorage.getItem("user_cosmos_address")?.toLowerCase(), []);
@@ -108,7 +115,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const bigBlindMicro = useMemo(() => parseMicroToBigInt(gameState?.gameOptions?.bigBlind), [gameState?.gameOptions?.bigBlind]);
 
     // Auto-deal hook - automatically triggers deal when conditions are met
-    // Can be disabled via URL query param: ?autodeal=false
+    // Can be disabled via URL query param: ?autodeal=false or via settings panel
     useAutoDeal(
         tableId,
         network,
@@ -121,11 +128,12 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 onTransactionSubmitted(txHash);
             }
         }, // onDealComplete
-        () => setLoadingAction(null) // onDealError
+        () => setLoadingAction(null), // onDealError
+        autoDealEnabled
     );
 
     // Auto-post blinds hook - automatically posts small/big blind when conditions are met
-    // Can be disabled via URL query param: ?autoblinds=false
+    // Can be disabled via URL query param: ?autoblinds=false or via settings panel
     useAutoPostBlinds(
         tableId,
         network,
@@ -141,14 +149,15 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 onTransactionSubmitted(txHash);
             }
         }, // onBlindComplete
-        () => setLoadingAction(null) // onBlindError
+        () => setLoadingAction(null), // onBlindError
+        autoPostBlindsEnabled
     );
 
     // Get timer data for the current user's seat (used by auto-fold)
     const { timeRemaining } = usePlayerTimer(tableId, userPlayer?.seat);
 
     // Auto-fold hook - automatically folds (or checks) when the action timer expires
-    // Can be disabled via URL query param: ?autofold=false
+    // Can be disabled via URL query param: ?autofold=false or via settings panel
     useAutoFold(
         tableId,
         network,
@@ -163,7 +172,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 onTransactionSubmitted(txHash);
             }
         }, // onAutoActionComplete
-        () => setLoadingAction(null) // onAutoActionError
+        () => setLoadingAction(null), // onAutoActionError
+        autoFoldEnabled
     );
 
     // Auto-show-cards hook - automatically shows cards when the action timer expires
@@ -184,7 +194,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     );
 
     // Auto-new-hand hook - automatically triggers new hand when conditions are met
-    // Can be disabled via URL query param: ?autonewhand=false
+    // Can be disabled via URL query param: ?autonewhand=false or via settings panel
     useAutoNewHand(
         tableId,
         network,
@@ -197,16 +207,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 onTransactionSubmitted(txHash);
             }
         }, // onNewHandComplete
-        () => setLoadingAction(null) // onNewHandError
+        () => setLoadingAction(null), // onNewHandError
+        autoNewHandEnabled
     );
-
-    // Check if auto-deal is enabled (cached on mount) - used for DealButtonGroup
-    const autoDealEnabled = useMemo(() => getAutoDealEnabled(), []);
-    // Check if auto-post blinds is enabled (cached on mount) - for conditional UI if needed
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const autoPostBlindsEnabled = useMemo(() => getAutoPostBlindsEnabled(), []);
-    // Check if auto-new-hand is enabled (cached on mount) - hide manual button when enabled
-    const autoNewHandEnabled = useMemo(() => getAutoNewHandEnabled(), []);
 
     // Show deal button if player has the deal action
     const shouldShowDealButton = hasDealAction && isUsersTurn;
@@ -270,9 +273,12 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     // Helper function to wrap action handlers with loading state
     const handleActionWithTransaction = useCallback(
-        async (actionName: string, actionFn: () => Promise<string | null>) => {
+        async (actionName: string, actionFn: () => Promise<string | null>, skipActionSound = false) => {
             try {
                 setLoadingAction(actionName);
+                if (!skipActionSound && playerActionSounds) {
+                    playActionSound(actionName);
+                }
                 const txHash = await actionFn();
                 if (txHash && onTransactionSubmitted) {
                     onTransactionSubmitted(txHash);
@@ -284,7 +290,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 setLoadingAction(null);
             }
         },
-        [onTransactionSubmitted]
+        [onTransactionSubmitted, playActionSound, playerActionSounds]
     );
 
     // Handler for dealing cards with entropy
@@ -377,8 +383,13 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         const amountMicro = fromDisplay(maxAmount);
 
         setRaiseAmount(maxAmount);
-        await handleActionWithTransaction(hasRaiseAction ? "raise" : "bet", async () =>
-            hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)
+        if (playerActionSounds) {
+            playActionSound("all-in");
+        }
+        await handleActionWithTransaction(
+            hasRaiseAction ? "raise" : "bet",
+            async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),
+            true // skipActionSound — all-in sound already played above
         );
     };
 

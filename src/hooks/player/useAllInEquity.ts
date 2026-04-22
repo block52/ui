@@ -1,22 +1,13 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { useNetwork } from "../../context/NetworkContext";
 import { useShowingCardsByAddress } from "./useShowingCardsByAddress";
-import { PlayerStatus, PlayerDTO } from "@block52/poker-vm-sdk";
-
-/**
- * Equity result for a single hand
- */
-interface EquityResult {
-    hand_index: number;
-    hand: string[];
-    wins: number;
-    ties: number;
-    losses: number;
-    equity: string;
-    tie_equity: string;
-    total: string;
-}
+import {
+    PlayerStatus,
+    PlayerDTO,
+    TexasHoldemRound,
+    PokerSolver,
+    Deck
+} from "@block52/poker-vm-sdk";
 
 /**
  * Return type for useAllInEquity hook
@@ -33,17 +24,16 @@ interface AllInEquityResult {
 }
 
 /**
- * Hook to calculate and display equity when all remaining players are all-in
+ * Hook to calculate and display equity.
  *
- * Conditions for showing equity:
- * 1. 2+ players remain (not folded)
- * 2. ALL remaining players are all-in
- * 3. Cards are visible (showdown or players showing)
- * 4. Round is not yet over (no winner declared)
+ * Calculated client-side via SDK PokerSolver (Monte Carlo) — no HTTP call.
+ *
+ * Fires in two scenarios:
+ *   A) All-in (issue #32): every active player is ALL_IN and all have visible cards.
+ *   B) Showdown reveal (issue #313): round is SHOWDOWN/END and 2+ players have visible cards.
  */
 export function useAllInEquity(): AllInEquityResult {
     const { gameState } = useGameStateContext();
-    const { currentNetwork } = useNetwork();
     const { showingPlayers } = useShowingCardsByAddress();
 
     const [equities, setEquities] = useState<Map<number, number>>(new Map());
@@ -64,12 +54,16 @@ export function useAllInEquity(): AllInEquityResult {
     }, [gameState?.players]);
 
     /**
-     * Check if all active players are all-in
+     * Check if all active players are effectively all-in.
+     * An all-in player whose cards have been revealed transitions to SHOWING, so
+     * we treat SHOWING as equivalent for gating purposes.
      */
     const allPlayersAllIn = useMemo(() => {
         if (activePlayers.length < 2) return false;
         return activePlayers.every(
-            (p: PlayerDTO) => p.status === PlayerStatus.ALL_IN
+            (p: PlayerDTO) =>
+                p.status === PlayerStatus.ALL_IN ||
+                p.status === PlayerStatus.SHOWING
         );
     }, [activePlayers]);
 
@@ -105,22 +99,29 @@ export function useAllInEquity(): AllInEquityResult {
     }, [activePlayers, showingPlayers, gameState?.players]);
 
     /**
-     * Determine if we should show equity
-     * - All active players are all-in
-     * - All active players have visible cards
-     * - We have 2+ players
+     * Round is at showdown / end.
      */
+    const isShowdown = useMemo(() => {
+        return gameState?.round === TexasHoldemRound.SHOWDOWN ||
+               gameState?.round === TexasHoldemRound.END;
+    }, [gameState?.round]);
+
     const shouldShow = useMemo(() => {
-        if (!allPlayersAllIn) return false;
-        if (activePlayers.length < 2) return false;
+        if (playersWithVisibleCards.length < 2) return false;
 
-        // Check if all active players have visible cards
-        const allHaveVisibleCards = activePlayers.every(
-            (p: PlayerDTO) => playersWithVisibleCards.some(v => v.seat === p.seat)
-        );
+        // Scenario A: all active players all-in with all hole cards visible.
+        if (allPlayersAllIn && activePlayers.length >= 2) {
+            const allHaveVisibleCards = activePlayers.every(
+                (p: PlayerDTO) => playersWithVisibleCards.some(v => v.seat === p.seat)
+            );
+            if (allHaveVisibleCards) return true;
+        }
 
-        return allHaveVisibleCards;
-    }, [allPlayersAllIn, activePlayers, playersWithVisibleCards]);
+        // Scenario B: showdown with 2+ revealed hands.
+        if (isShowdown) return true;
+
+        return false;
+    }, [allPlayersAllIn, activePlayers, playersWithVisibleCards, isShowdown]);
 
     /**
      * Get community cards from game state
@@ -133,57 +134,43 @@ export function useAllInEquity(): AllInEquityResult {
     }, [gameState?.communityCards]);
 
     /**
-     * Calculate equity via API call
+     * Calculate equity client-side via SDK Monte Carlo.
      */
-    const calculateEquity = useCallback(async () => {
+    const calculateEquity = useCallback(() => {
         if (!shouldShow || playersWithVisibleCards.length < 2) {
             setEquities(new Map());
             return;
         }
 
-        // Create a cache key to avoid duplicate calculations
         const cacheKey = JSON.stringify({
             hands: playersWithVisibleCards.map(p => p.cards),
             board: communityCards
         });
 
         if (cacheKey === lastCalculationRef.current) {
-            return; // Already calculated this exact state
+            return;
         }
 
         setIsLoading(true);
         setError(null);
 
         try {
-            const response = await fetch(
-                `${currentNetwork.rest}/block52/pokerchain/poker/v1/equity`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        hands: playersWithVisibleCards.map(p => ({ cards: p.cards })),
-                        board: communityCards,
-                        dead: [],
-                        simulations: 10000
-                    })
-                }
+            const handsAsCards = playersWithVisibleCards.map(p =>
+                p.cards.map(c => Deck.fromString(c))
+            );
+            const boardAsCards = communityCards.map(c => Deck.fromString(c));
+
+            const { winPercentages } = PokerSolver.calculateMultiPlayerEquity(
+                handsAsCards,
+                boardAsCards,
+                5000
             );
 
-            if (!response.ok) {
-                throw new Error(`Equity calculation failed: ${response.statusText}`);
-            }
-
-            const data = await response.json();
-            const results: EquityResult[] = data.results || [];
-
-            // Map results back to seat indices
             const newEquities = new Map<number, number>();
-            results.forEach((result, idx) => {
-                if (idx < playersWithVisibleCards.length) {
-                    const seat = playersWithVisibleCards[idx].seat;
-                    // Convert total equity (e.g., "0.7257") to percentage (72.57)
-                    const equityPercent = parseFloat(result.total) * 100;
-                    newEquities.set(seat, equityPercent);
+            winPercentages.forEach((pct, idx) => {
+                const seat = playersWithVisibleCards[idx]?.seat;
+                if (seat !== undefined) {
+                    newEquities.set(seat, pct);
                 }
             });
 
@@ -196,7 +183,7 @@ export function useAllInEquity(): AllInEquityResult {
         } finally {
             setIsLoading(false);
         }
-    }, [shouldShow, playersWithVisibleCards, communityCards, currentNetwork.rest]);
+    }, [shouldShow, playersWithVisibleCards, communityCards]);
 
     /**
      * Recalculate equity when conditions change

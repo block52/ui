@@ -27,6 +27,7 @@ import NodeStatusPage from "./pages/NodeStatusPage";
 import NodesPage from "./pages/NodesPage";
 import { TestSdk } from "./test-sdk";
 import { GameStateProvider } from "./context/GameStateContext";
+import { GameSettingsProvider } from "./context/GameSettingsContext";
 import { generateCSSVariables } from "./utils/colorConfig";
 import { useEffect, useState, lazy, Suspense } from "react";
 import FaviconSetter from "./components/FaviconSetter";
@@ -152,6 +153,7 @@ function App() {
             <QueryClientProvider client={queryClient}>
                 <WagmiProvider config={wagmiAdapter.wagmiConfig}>
                     <GameStateProvider>
+                        <GameSettingsProvider>
                         <ProfileAvatarProvider>
                             <PaymentApiProvider>
                                 <CosmosApiProvider>
@@ -161,6 +163,7 @@ function App() {
                                 </CosmosApiProvider>
                             </PaymentApiProvider>
                         </ProfileAvatarProvider>
+                        </GameSettingsProvider>
                     </GameStateProvider>
                 </WagmiProvider>
             </QueryClientProvider>

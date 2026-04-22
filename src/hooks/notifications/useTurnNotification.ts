@@ -6,10 +6,11 @@ import { colors } from "../../utils/colorConfig";
  */
 const DEFAULT_FAVICON_PATH = "/b52favicon.svg";
 
+import { getSoundUrl } from "../../utils/cardImages";
 /**
- * Chip notification sound file path
+ * Chip notification sound file path (from CDN)
  */
-const CHIP_NOTIFICATION_SOUND_PATH = "/chip-notification.mp3";
+const CHIP_NOTIFICATION_SOUND_PATH = getSoundUrl("chip-notification.mp3");
 
 /**
  * Validation constraints for notification options

@@ -23,36 +23,65 @@ describe("decomposeAmount", () => {
     // EDGE CASES: Sub-dollar and zero amounts
     // =====================================================================
     describe("sub-dollar and zero amounts", () => {
-        it("$0 → 1 white chip (fallback)", () => {
+        it("$0 → 1 red 1¢ chip (fallback)", () => {
             const result = decomposeAmount(0);
             expect(result).toHaveLength(1);
-            expect(result[0].value).toBe(1);
-            expect(result[0].color).toBe("white");
+            expect(result[0].value).toBe(0.01);
+            expect(result[0].color).toBe("red");
             expect(result[0].visibleCount).toBe(1);
         });
 
-        it("$0.50 → 1 white chip (floors to 0, fallback)", () => {
-            const result = decomposeAmount(0.5);
-            expect(result).toHaveLength(1);
-            expect(result[0].color).toBe("white");
-        });
-
-        it("$0.99 → 1 white chip (floors to 0)", () => {
-            const result = decomposeAmount(0.99);
-            expect(result).toHaveLength(1);
-            expect(result[0].color).toBe("white");
-        });
-
-        it("$0.01 → 1 white chip", () => {
+        it("$0.01 → 1 red 1¢ chip", () => {
             const result = decomposeAmount(0.01);
             expect(result).toHaveLength(1);
-            expect(result[0].color).toBe("white");
+            expect(result[0].value).toBe(0.01);
+            expect(result[0].color).toBe("red");
         });
 
-        it("negative amount → 1 white chip", () => {
+        it("$0.05 → 1 blue 5¢ chip", () => {
+            const result = decomposeAmount(0.05);
+            expect(result).toHaveLength(1);
+            expect(result[0].value).toBe(0.05);
+            expect(result[0].color).toBe("blue");
+        });
+
+        it("$0.10 → 1 yellow 10¢ chip", () => {
+            const result = decomposeAmount(0.10);
+            expect(result).toHaveLength(1);
+            expect(result[0].value).toBe(0.1);
+            expect(result[0].color).toBe("yellow");
+        });
+
+        it("$0.25 → 1 green 25¢ chip", () => {
+            const result = decomposeAmount(0.25);
+            expect(result).toHaveLength(1);
+            expect(result[0].value).toBe(0.25);
+            expect(result[0].color).toBe("green");
+        });
+
+        it("$0.50 → 1 purple 50¢ chip", () => {
+            const result = decomposeAmount(0.5);
+            expect(result).toHaveLength(1);
+            expect(result[0].value).toBe(0.5);
+            expect(result[0].color).toBe("purple");
+        });
+
+        it("$0.99 → 1×50¢ + 1×25¢ + 2×10¢ + 4×1¢", () => {
+            const result = decomposeAmount(0.99);
+            expect(result).toHaveLength(4);
+            expect(result[0].value).toBe(0.5);
+            expect(result[1].value).toBe(0.25);
+            expect(result[2].value).toBe(0.1);
+            expect(result[2].count).toBe(2);
+            expect(result[3].value).toBe(0.01);
+            expect(result[3].count).toBe(4);
+        });
+
+        it("negative amount → 1 red 1¢ chip", () => {
             const result = decomposeAmount(-5);
             expect(result).toHaveLength(1);
-            expect(result[0].color).toBe("white");
+            expect(result[0].value).toBe(0.01);
+            expect(result[0].color).toBe("red");
         });
     });
 
@@ -364,17 +393,22 @@ describe("decomposeAmount", () => {
     // REAL GAME SCENARIOS: Common poker table amounts
     // =====================================================================
     describe("real game scenarios", () => {
-        it("micro-stakes BB ($0.04) → 1 white chip", () => {
+        it("micro-stakes BB ($0.04) → 4×1¢ red chips", () => {
             const result = decomposeAmount(0.04);
             expect(result).toHaveLength(1);
-            expect(result[0].color).toBe("white");
-            expect(result[0].visibleCount).toBe(1);
+            expect(result[0].color).toBe("red");
+            expect(result[0].count).toBe(4);
+            expect(result[0].value).toBe(0.01);
         });
 
-        it("micro-stakes raise ($0.12) → 1 white chip (floors to 0)", () => {
+        it("micro-stakes raise ($0.12) → 1×10¢ yellow + 2×1¢ red", () => {
             const result = decomposeAmount(0.12);
-            expect(result).toHaveLength(1);
-            expect(result[0].color).toBe("white");
+            expect(result).toHaveLength(2);
+            expect(result[0].value).toBe(0.1);
+            expect(result[0].color).toBe("yellow");
+            expect(result[1].value).toBe(0.01);
+            expect(result[1].color).toBe("red");
+            expect(result[1].count).toBe(2);
         });
 
         it("$1/$2 BB ($2) → 2 white chips stacked", () => {
@@ -511,10 +545,11 @@ describe("decomposeAmount", () => {
                 "500chip.svg", "1000chip.svg", "5000chip.svg",
                 "25000chip.svg", "100000chip.svg", "250000chip.svg",
                 "1000000chip.svg", "5000000chip.svg",
+                "1cent.svg", "5cent.svg", "10cent.svg", "25cent.svg", "50cent.svg",
             ];
 
             // Test a range of amounts
-            const amounts = [0, 0.5, 1, 5, 6, 25, 31, 100, 131, 500, 1000, 5555, 250000, 1000000, 5000000];
+            const amounts = [0, 0.01, 0.05, 0.1, 0.25, 0.5, 1, 5, 6, 25, 31, 100, 131, 500, 1000, 5555, 250000, 1000000, 5000000];
             for (const amt of amounts) {
                 const result = decomposeAmount(amt);
                 result.forEach(stack => {

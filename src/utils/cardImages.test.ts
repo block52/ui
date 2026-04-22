@@ -2,6 +2,7 @@ import {
     getCardImageUrl,
     getCardBackUrl,
     getChipImageUrl,
+    getSoundUrl,
     getDealerImageUrl,
     preloadCardImages,
     preloadAllCards
@@ -12,7 +13,13 @@ describe("cardImages", () => {
 
     describe("getChipImageUrl", () => {
         it("should return correct chip image URL", () => {
-            expect(getChipImageUrl()).toBe(`${GITHUB_CDN_BASE}/chip.svg`);
+            expect(getChipImageUrl("chip.svg")).toBe(`${GITHUB_CDN_BASE}/chips/chip.svg`);
+        });
+    });
+
+    describe("getSoundUrl", () => {
+        it("should return correct sound URL", () => {
+            expect(getSoundUrl("bet.mp3")).toBe(`${GITHUB_CDN_BASE}/sounds/bet.mp3`);
         });
     });
 

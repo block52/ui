@@ -10,6 +10,7 @@
 
 import React, { useState } from "react";
 import { FaCopy, FaShare, FaQrcode } from "react-icons/fa";
+import { IoSettingsOutline } from "react-icons/io5";
 import { LuPanelLeftOpen, LuPanelLeftClose } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
@@ -54,6 +55,9 @@ export interface TableHeaderProps {
     // Sidebar state
     openSidebar: boolean;
 
+    // Settings sidebar state
+    openSettings: boolean;
+
     // Handlers
     handleLobbyClick: () => void;
     handleCopyTableLink: () => void;
@@ -61,6 +65,7 @@ export interface TableHeaderProps {
     fetchAccountBalance: () => void;
     copyToClipboard: (text: string) => void;
     onCloseSideBar: () => void;
+    onToggleSettings: () => void;
     handleLeaveTableClick: () => void;
     handleShareHand: () => void;
 }
@@ -82,12 +87,14 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     nextToAct,
     currentPlayerData,
     openSidebar,
+    openSettings,
     handleLobbyClick,
     handleCopyTableLink,
     handleDepositClick,
     fetchAccountBalance,
     copyToClipboard,
     onCloseSideBar,
+    onToggleSettings,
     handleLeaveTableClick,
     handleShareHand,
 }) => {
@@ -271,6 +278,14 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
 
                 {/* Right Section */}
                 <div className="flex items-center z-10 mr-1 sm:mr-3">
+                    {/* Settings gear icon */}
+                    <span
+                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 mr-1 sm:mr-2 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
+                        onClick={onToggleSettings}
+                        title="Toggle Settings"
+                    >
+                        <IoSettingsOutline size={14} />
+                    </span>
                     <span
                         className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
                         onClick={onCloseSideBar}

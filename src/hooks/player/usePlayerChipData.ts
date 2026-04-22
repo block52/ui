@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { PlayerChipDataReturn } from "../../types/index";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting } from "../../utils/chipUtils";
+import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound } from "../../utils/chipUtils";
 
 /**
  * Custom hook to fetch and provide player chip data for each seat.
@@ -34,11 +34,15 @@ export const usePlayerChipData = (): PlayerChipDataReturn => {
             }
 
             let chipAmount = "0";
+            const previousActions = gameState.previousActions || [];
 
             if (currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP) {
-                chipAmount = player.sumOfBets || "0";
+                // Only show chips if player has made actual betting actions (not just buy-in)
+                if (hasPlayerBetInRound(player.address, previousActions)) {
+                    chipAmount = player.sumOfBets || "0";
+                }
             } else {
-                chipAmount = calculateCurrentRoundBetting(player.address, currentRound, gameState.previousActions || []);
+                chipAmount = calculateCurrentRoundBetting(player.address, currentRound, previousActions);
             }
 
             amounts[player.seat] = chipAmount;

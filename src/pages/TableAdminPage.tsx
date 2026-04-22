@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { GameFormat, CosmosClient, getDefaultCosmosConfig } from "@block52/poker-vm-sdk";
+import { GameFormat, CosmosClient, getDefaultCosmosConfig, PlayerDTO } from "@block52/poker-vm-sdk";
 import { Link, useNavigate } from "react-router-dom";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { isValidPlayerAddress } from "../utils/addressUtils";
@@ -203,15 +203,15 @@ export default function TableAdminPage() {
             } else {
                 toast.error("Table creation failed - no transaction hash returned");
             }
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("❌ Failed to create table:", err);
+            const error = err instanceof Error ? err : new Error("Unknown error");
             console.error("Error details:", {
-                message: err.message,
-                stack: err.stack,
-                name: err.name
+                message: error.message,
+                stack: error.stack,
+                name: error.name
             });
-            const errorMessage = err.message || "Unknown error occurred";
-            toast.error(`Failed to create table: ${errorMessage}`);
+            toast.error(`Failed to create table: ${error.message}`);
         }
     };
 
@@ -240,8 +240,8 @@ export default function TableAdminPage() {
                         const gameState = JSON.parse(gameStateResponse.game_state);
                         // Count players with valid addresses (seated players)
                         // Filter out empty seats using the utility function
-                        const seatedPlayers = gameState.players?.filter((p: any) =>
-                            isValidPlayerAddress(p.address) && p.status !== "empty"
+                        const seatedPlayers = gameState.players?.filter((p: PlayerDTO | null) =>
+                            p !== null && isValidPlayerAddress(p.address)
                         ).length || 0;
                         counts[table.gameId] = seatedPlayers;
                     }

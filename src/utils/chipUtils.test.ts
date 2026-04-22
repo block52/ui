@@ -1,5 +1,5 @@
 import { ActionDTO, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, CHIP_ACTIONS } from "./chipUtils";
+import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound, CHIP_ACTIONS } from "./chipUtils";
 import { MAX_ACTION_GROUPS } from "../constants/chips";
 
 // Helper to build an ActionDTO for tests
@@ -30,6 +30,63 @@ describe("shouldShowChips", () => {
 
     it("returns false for BUSTED players", () => {
         expect(shouldShowChips(PlayerStatus.BUSTED)).toBe(false);
+    });
+});
+
+describe("hasPlayerBetInRound", () => {
+    const player = "0xPlayer1";
+
+    it("returns false when no actions exist", () => {
+        expect(hasPlayerBetInRound(player, [])).toBe(false);
+    });
+
+    it("returns false when player has no betting actions (only JOIN)", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: "join" as any, amount: "5000000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
+    });
+
+    it("returns true when player has SMALL_BLIND action in ANTE round", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "100000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(true);
+    });
+
+    it("returns true when player has BIG_BLIND action in ANTE round", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(true);
+    });
+
+    it("returns true when player has CALL action in PREFLOP round", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "200000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(true);
+    });
+
+    it("returns false when player has zero-amount action", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "0", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
+    });
+
+    it("returns false for actions by different player", () => {
+        const actions = [
+            makeAction({ playerId: "0xOtherPlayer", round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "100000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
+    });
+
+    it("returns false for actions in FLOP round (only checks ANTE/PREFLOP)", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500000", index: 0 }),
+        ];
+        expect(hasPlayerBetInRound(player, actions)).toBe(false);
     });
 });
 

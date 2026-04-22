@@ -251,6 +251,17 @@ const TableList: React.FC = () => {
             {/* Table */}
             <div className="overflow-x-auto">
                 <table className="w-full">
+                    <colgroup>
+                        <col className="w-[150px]" />
+                        <col className="w-[140px]" />
+                        {hasCashGames && <col className="w-[150px]" />}
+                        <col className="w-[120px]" />
+                        <col className="w-[120px]" />
+                        <col className="w-[100px]" />
+                        <col className="w-[190px]" />
+                        <col className="w-[80px]" />
+                        <col className="w-[90px]" />
+                    </colgroup>
                     <thead className="bg-gray-900">
                         <tr>
                             <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Club</th>
@@ -372,7 +383,6 @@ const TableList: React.FC = () => {
                                                             d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
                                                         />
                                                     </svg>
-                                                    Delete
                                                 </button>
                                             )}
                                         </td>

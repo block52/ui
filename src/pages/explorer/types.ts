@@ -22,6 +22,25 @@ export interface Coin {
     amount: string;
 }
 
+// Cosmos event attribute (key-value pairs in events)
+export interface CosmosEventAttribute {
+    key: string;
+    value: string;
+    index?: boolean;
+}
+
+// Cosmos event (emitted by transactions)
+export interface CosmosEvent {
+    type: string;
+    attributes: CosmosEventAttribute[];
+}
+
+// Cosmos message (transaction message body)
+export interface CosmosMessage {
+    "@type": string;
+    [key: string]: unknown;
+}
+
 export interface Transaction {
     txhash: string;
     height: string;
@@ -29,17 +48,17 @@ export interface Transaction {
     timestamp: string;
     tx: {
         body: {
-            messages: any[];
+            messages: CosmosMessage[];
         };
     };
-    events?: any[];
+    events?: CosmosEvent[];
 }
 
 // Types for Cosmos transaction
 export interface CosmosTransaction {
     tx: {
         body: {
-            messages: any[];
+            messages: CosmosMessage[];
         };
     };
     tx_response: {
@@ -49,7 +68,7 @@ export interface CosmosTransaction {
         gas_used: string;
         gas_wanted: string;
         timestamp: string;
-        events: any[];
+        events: CosmosEvent[];
     };
 }
 

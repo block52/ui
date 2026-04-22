@@ -73,6 +73,22 @@ export const getRelevantChipAmounts = (
 };
 
 /**
+ * Check if a player has made any betting actions in ANTE/PREFLOP rounds.
+ * Used to distinguish between actual bets and buy-in amounts in sumOfBets.
+ */
+export const hasPlayerBetInRound = (
+    playerAddress: string,
+    previousActions: ActionDTO[]
+): boolean => {
+    return previousActions.some(action =>
+        action.playerId === playerAddress &&
+        (action.round === TexasHoldemRound.ANTE || action.round === TexasHoldemRound.PREFLOP) &&
+        CHIP_ACTIONS.includes(action.action) &&
+        action.amount && action.amount !== "0"
+    );
+};
+
+/**
  * Calculate how much a player has bet in the current round only.
  */
 export const calculateCurrentRoundBetting = (

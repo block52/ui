@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import styles from "./ClickableAddress.module.css";
+import { isNullish } from "../../utils/guards";
 
 interface ClickableAddressProps {
     address: string;
@@ -44,8 +45,8 @@ export const ClickableAddress: React.FC<ClickableAddressProps> = ({ address, cla
  * Recursively renders JSON with clickable addresses
  * Detects any string that looks like a Cosmos address and makes it clickable
  */
-export const renderJSONWithClickableAddresses = (obj: any, depth = 0): React.ReactElement => {
-    if (obj === null || obj === undefined) {
+export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React.ReactElement => {
+    if (isNullish(obj)) {
         return <span className="text-gray-500">null</span>;
     }
 
@@ -69,7 +70,7 @@ export const renderJSONWithClickableAddresses = (obj: any, depth = 0): React.Rea
             <span>
                 [
                 <div style={{ paddingLeft: `${depth + 1}rem` }}>
-                    {obj.map((item, index) => (
+                    {obj.map((item: unknown, index: number) => (
                         <div key={index}>
                             {renderJSONWithClickableAddresses(item, depth + 1)}
                             {index < obj.length - 1 && <span>,</span>}
@@ -82,7 +83,7 @@ export const renderJSONWithClickableAddresses = (obj: any, depth = 0): React.Rea
     }
 
     if (typeof obj === "object") {
-        const entries = Object.entries(obj);
+        const entries = Object.entries(obj as Record<string, unknown>);
         if (entries.length === 0) {
             return <span>{"{}"}</span>;
         }
