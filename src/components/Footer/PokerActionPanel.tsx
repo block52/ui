@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { getUserPlayer, userInTable } from "../../utils/pockerActionUtils";
@@ -78,7 +78,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const players = gameState?.players || null;
     const { legalActions, isPlayerTurn, playerStatus } = usePlayerLegalActions();
     const { isCurrentUserTurn } = useNextToActInfo(tableId);
-    const { formattedTotalPot } = useTableState();
+    const { totalPot: rawTotalPot } = useTableState();
 
     // Read reactive game settings from context
     const { autoDeal: autoDealEnabled, autoPostBlinds: autoPostBlindsEnabled, autoNewHand: autoNewHandEnabled, autoFold: autoFoldEnabled, playerActionSounds } = useGameSettings();
@@ -237,9 +237,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const maxRaise = useMemo(() => toDisplay(maxRaiseMicro), [toDisplay, maxRaiseMicro]);
     const callAmount = useMemo(() => toDisplay(callAmountMicro), [toDisplay, callAmountMicro]);
 
-    // Get total pot for percentage calculations
-    const totalPot = Number(formattedTotalPot) || 0;
-    const totalPotMicro = useMemo(() => (isTournament ? BigInt(Math.floor(totalPot)) : usdcToMicroBigInt(totalPot)), [isTournament, totalPot]);
+    const totalPotMicro = useMemo(() => parseMicroToBigInt(rawTotalPot), [rawTotalPot]);
 
     // Formatted amounts for display (blind amounts defined earlier for use in hooks)
     const formattedSmallBlindAmount = useMemo(() => formatDisplayAmount(toDisplay(smallBlindMicro), isTournament), [toDisplay, smallBlindMicro, isTournament]);
