@@ -23,5 +23,5 @@ export async function leaveTable(tableId: string, value: string, network: Networ
         gameId: tableId,
         action: "leave",
         value
-    }; 
+    };
 }

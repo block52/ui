@@ -30,7 +30,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
     // Get game options
     const { gameOptions } = useGameOptions();
-    console.log(gameOptions);
     const { emptySeatIndexes, isUserAlreadyPlaying } = useVacantSeatData();
 
     // Use the Sit & Go specific join hook with random seat selection
@@ -143,9 +142,10 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
             // STEP 1: Convert USDC microunits from gameOptions to dollar amount (number)
             // gameOptions.maxBuyIn is in USDC microunits (e.g., "1000000" for $1)
-            const buyInAmountInMicrounits = gameOptions.maxBuyIn;
+            const buyInAmountInMicrounits = gameOptions.minBuyIn || gameOptions.maxBuyIn; // Use minBuyIn if available, otherwise maxBuyIn
             const buyInAmountInDollars = microToUsdc(buyInAmountInMicrounits);
 
+            console.log("Joining Sit & Go with options:", buyInAmountInMicrounits);
             // STEP 2: Pass the dollar amount (number) to the hook
             // The hook will handle the conversion back to USDC microunits internally
             await joinSitAndGo({

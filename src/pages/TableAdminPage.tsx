@@ -175,17 +175,6 @@ export default function TableAdminPage() {
               }
             : undefined;
 
-        console.log({
-            format: gameFormat,
-            minBuyIn: finalMinBuyIn,
-            maxBuyIn: finalMaxBuyIn,
-            minPlayers,
-            maxPlayers,
-            smallBlind: parseFloat(smallBlind),
-            bigBlind: parseFloat(bigBlind),
-            ...(rakeConfig && { rake: rakeConfig }),
-            ...(sngConfig && { sng: sngConfig })
-        });
         // Store the table count before creating to verify a new table was added
         setTableCountBeforeCreation(tables.length);
 
@@ -194,7 +183,7 @@ export default function TableAdminPage() {
                 format: gameFormat,
                 minBuyIn: finalMinBuyIn,
                 maxBuyIn: finalMaxBuyIn,
-                minPlayers,
+                minPlayers: gameFormat === GameFormat.SIT_AND_GO ? maxPlayers : minPlayers,
                 maxPlayers,
                 smallBlind: parseFloat(smallBlind),
                 bigBlind: parseFloat(bigBlind),
@@ -202,20 +191,20 @@ export default function TableAdminPage() {
                 ...(sngConfig && { sng: sngConfig })
             });
 
-            // if (result) {
-            //     // Show success modal with transaction link
-            //     setSuccessTxHash(result.txHash);
-            //     // Set the game address immediately if we got it from the transaction
-            //     setCreatedGameAddress(result.gameId);
-            //     setShowSuccessModal(true);
+            if (result) {
+                // Show success modal with transaction link
+                setSuccessTxHash(result.txHash);
+                // Set the game address immediately if we got it from the transaction
+                setCreatedGameAddress(result.gameId);
+                setShowSuccessModal(true);
 
-            //     // Wait a moment then reload tables
-            //     setTimeout(() => {
-            //         refetch();
-            //     }, 2000);
-            // } else {
-            //     toast.error("Table creation failed - no transaction hash returned");
-            // }
+                // Wait a moment then reload tables
+                setTimeout(() => {
+                    refetch();
+                }, 2000);
+            } else {
+                toast.error("Table creation failed - no transaction hash returned");
+            }
         } catch (err: any) {
             console.error("❌ Failed to create table:", err);
             console.error("Error details:", {

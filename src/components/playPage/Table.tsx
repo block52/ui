@@ -1080,7 +1080,7 @@ const Table = React.memo(() => {
             throw new Error("Cannot leave: missing table ID or player data");
         }
 
-        await leaveTable(id, currentPlayerData.stack || "0", currentNetwork);
+        await leaveTable(id, currentPlayerData.stack, currentNetwork);
 
         // Refresh balance after leaving
         fetchAccountBalance();
@@ -1114,7 +1114,6 @@ const Table = React.memo(() => {
         return <TableErrorPage error={validationError} tableId={id} onRetry={handleRetry} />;
     }
 
-    console.log(currentPlayerData);
     return (
         <div className="table-container">
             {/* Replay mode banner */}

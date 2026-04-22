@@ -2,8 +2,9 @@ import { useState, useCallback } from "react";
 import { GameFormat, GameVariant, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
-import { convertAmountForBlockchain, convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
+import { convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
 import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
+import { usdcToMicro, usdcToMicroBigInt } from "../../constants/currency";
 
 // Type for rake configuration options
 export interface RakeOptions {
@@ -62,8 +63,8 @@ export const useNewTable = (): UseNewTableReturn => {
                 // Convert buy-in based on game format:
                 // Cash: dollars → USDC microunits (×10^6)
                 // SNG/Tournament: raw chip values (no conversion)
-                const minBuyInB52USDC = convertAmountForBlockchain(gameOptions.format, gameOptions.minBuyIn);
-                const maxBuyInB52USDC = convertAmountForBlockchain(gameOptions.format, gameOptions.maxBuyIn);
+                const minBuyInB52USDC = usdcToMicroBigInt(gameOptions.minBuyIn);
+                const maxBuyInB52USDC = usdcToMicroBigInt(gameOptions.maxBuyIn);
 
                 // Convert blind values based on game format using utility function
                 // For cash games: converts from dollars to USDC micro-units
@@ -105,7 +106,8 @@ export const useNewTable = (): UseNewTableReturn => {
                 // Timeout in seconds from centralised timer config
                 const timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
 
-                console.log(
+                // Call SigningCosmosClient.createGame()
+                const txHash = await signingClient.createGame(
                     gameFormat,
                     gameVariant,
                     gameOptions.minPlayers,
@@ -119,57 +121,42 @@ export const useNewTable = (): UseNewTableReturn => {
                     sngConfig
                 );
 
-                // Call SigningCosmosClient.createGame()
-                // const txHash = await signingClient.createGame(
-                //     gameFormat,
-                //     gameVariant,
-                //     gameOptions.minPlayers,
-                //     gameOptions.maxPlayers,
-                //     minBuyInB52USDC,
-                //     maxBuyInB52USDC,
-                //     smallBlindB52USDC,
-                //     bigBlindB52USDC,
-                //     timeoutSeconds,
-                //     rakeConfig,
-                //     sngConfig
-                // );
+                if (txHash) {
+                    setNewGameId(txHash);
 
-                // if (txHash) {
-                //     setNewGameId(txHash);
+                    // Fetch the transaction to extract the game_id from events
+                    try {
+                        const cosmosClient = getCosmosClient(currentNetwork);
 
-                //     // Fetch the transaction to extract the game_id from events
-                //     try {
-                //         const cosmosClient = getCosmosClient(currentNetwork);
+                        if (!cosmosClient) {
+                            return null;
+                        }
 
-                //         if (!cosmosClient) {
-                //             return null;
-                //         }
+                        // Wait a moment for the transaction to be indexed
+                        await new Promise(resolve => setTimeout(resolve, 2000));
 
-                //         // Wait a moment for the transaction to be indexed
-                //         await new Promise(resolve => setTimeout(resolve, 2000));
+                        const tx = await cosmosClient.getTx(txHash);
 
-                //         const tx = await cosmosClient.getTx(txHash);
+                        // Extract game_id from game_created event
+                        let gameId: string | null = null;
+                        if (tx?.tx_response?.events) {
+                            const gameCreatedEvent = tx.tx_response.events.find((e: any) => e.type === "game_created");
+                            if (gameCreatedEvent) {
+                                const gameIdAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "game_id");
+                                if (gameIdAttr) {
+                                    gameId = gameIdAttr.value;
+                                }
+                            }
+                        }
 
-                //         // Extract game_id from game_created event
-                //         let gameId: string | null = null;
-                //         if (tx?.tx_response?.events) {
-                //             const gameCreatedEvent = tx.tx_response.events.find((e: any) => e.type === "game_created");
-                //             if (gameCreatedEvent) {
-                //                 const gameIdAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "game_id");
-                //                 if (gameIdAttr) {
-                //                     gameId = gameIdAttr.value;
-                //                 }
-                //             }
-                //         }
-
-                //         return { txHash, gameId };
-                //     } catch (_txError) {
-                //         // Return txHash even if we couldn't get game_id
-                //         return { txHash, gameId: null };
-                //     }
-                // } else {
-                //     return null;
-                // }
+                        return { txHash, gameId };
+                    } catch (_txError) {
+                        // Return txHash even if we couldn't get game_id
+                        return { txHash, gameId: null };
+                    }
+                } else {
+                    return null;
+                }
             } catch (err: any) {
                 const errorMessage = err.message || "Failed to create game on blockchain";
                 setError(new Error(errorMessage));
