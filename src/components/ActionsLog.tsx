@@ -9,7 +9,6 @@ import { formatActionName, formatRoundName, getActionLine, getWinnerLine, should
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
-import { useIndexerApi } from "../context/IndexerApiContext";
 import styles from "./ActionsLog.module.css";
 
 // Simple component to display only the action log
@@ -18,7 +17,6 @@ const ActionsLog: React.FC = () => {
     const { previousActions } = useGameProgress(id);
     const { gameState, gameFormat } = useGameStateContext();
     const { winnerInfo } = useWinnerInfo();
-    const indexerApi = useIndexerApi();
     const showWinnerSummary = shouldShowWinnerSummary(gameState, winnerInfo);
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
@@ -117,53 +115,29 @@ const ActionsLog: React.FC = () => {
         }
     };
 
-    const handleShareHand = async () => {
+    const handleShareHand = () => {
         if (!id || !gameState?.handNumber) {
             toast.info("No hand data available to share");
             return;
         }
-        try {
-            // Look up block height for current hand from indexer
-            const handData = await indexerApi.getHand(id, String(gameState.handNumber)) as { block_height?: number } | null;
-            const actionIndex = gameState.previousActions?.length || 0;
 
-            if (handData?.block_height) {
-                const shareUrl = `${window.location.origin}/table/${id}?blocknumber=${handData.block_height}&actionindex=${actionIndex}`;
-                copyTextToClipboard(
-                    shareUrl,
-                    () => {
-                        setCopiedShare(true);
-                        toast.success("Table replay URL copied to clipboard!");
-                        setTimeout(() => setCopiedShare(false), 2000);
-                    },
-                    "Failed to copy share URL"
-                );
-            } else {
-                // Fallback to explorer URL if block height not available
-                const shareUrl = `${window.location.origin}/explorer/hand/${id}/${gameState.handNumber}`;
-                copyTextToClipboard(
-                    shareUrl,
-                    () => {
-                        setCopiedShare(true);
-                        toast.success("Hand replay URL copied to clipboard!");
-                        setTimeout(() => setCopiedShare(false), 2000);
-                    },
-                    "Failed to copy share URL"
-                );
-            }
-        } catch {
-            // Fallback to explorer URL on error
-            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${gameState.handNumber}`;
-            copyTextToClipboard(
-                shareUrl,
-                () => {
-                    setCopiedShare(true);
-                    toast.success("Hand replay URL copied to clipboard!");
-                    setTimeout(() => setCopiedShare(false), 2000);
-                },
-                "Failed to copy share URL"
-            );
-        }
+        // Build a readonly share link targeting the chain's GameStateAt RPC
+        // (pokerchain#160). We encode the global action index of the latest
+        // action in the current hand — NOT the array length — since the chain
+        // matches on ActionDTO.Index.
+        const actions = gameState.previousActions ?? [];
+        const latestActionIndex = actions.length > 0 ? actions[actions.length - 1].index : 0;
+        const shareUrl = `${window.location.origin}/table/${id}?hand=${gameState.handNumber}&index=${latestActionIndex}`;
+
+        copyTextToClipboard(
+            shareUrl,
+            () => {
+                setCopiedShare(true);
+                toast.success("Table replay URL copied to clipboard!");
+                setTimeout(() => setCopiedShare(false), 2000);
+            },
+            "Failed to copy share URL"
+        );
     };
 
     return (
