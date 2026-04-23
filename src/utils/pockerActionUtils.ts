@@ -1,4 +1,4 @@
-import { PlayerDTO } from "@block52/poker-vm-sdk";
+import { hasAction, LegalActionDTO, PlayerActionType, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
 import { formatDisplayAmount } from "./numberUtils";
 
@@ -39,4 +39,33 @@ export const userInTable = (players: PlayerDTO[] | null, userAddress: string | n
 export const getUserPlayer = (players: PlayerDTO[] | null, userAddress: string | null | undefined): PlayerDTO | null => {
     if (!players || !userAddress) return null;
     return players.find((player: PlayerDTO) => player.address?.toLowerCase() === userAddress.toLowerCase()) || null;
+};
+
+// Utility function to check if a specific action type is present in the legal actions array
+export const getActionFlags = (legalActions: LegalActionDTO[]): ActionFlags => ({
+    hasSmallBlindAction: hasAction(legalActions, PlayerActionType.SMALL_BLIND),
+    hasBigBlindAction: hasAction(legalActions, PlayerActionType.BIG_BLIND),
+    hasFoldAction: hasAction(legalActions, PlayerActionType.FOLD),
+    hasCheckAction: hasAction(legalActions, PlayerActionType.CHECK),
+    hasCallAction: hasAction(legalActions, PlayerActionType.CALL),
+    hasBetAction: hasAction(legalActions, PlayerActionType.BET),
+    hasRaiseAction: hasAction(legalActions, PlayerActionType.RAISE),
+    hasMuckAction: hasAction(legalActions, PlayerActionType.MUCK),
+    hasShowAction: hasAction(legalActions, PlayerActionType.SHOW),
+    hasDealAction: hasAction(legalActions, NonPlayerActionType.DEAL),
+    hasNewHandAction: hasAction(legalActions, NonPlayerActionType.NEW_HAND)
+});
+
+export type ActionFlags = {
+    hasSmallBlindAction: boolean;
+    hasBigBlindAction: boolean;
+    hasFoldAction: boolean;
+    hasCheckAction: boolean;
+    hasCallAction: boolean;
+    hasBetAction: boolean;
+    hasRaiseAction: boolean;
+    hasMuckAction: boolean;
+    hasShowAction: boolean;
+    hasDealAction: boolean;
+    hasNewHandAction: boolean;
 };

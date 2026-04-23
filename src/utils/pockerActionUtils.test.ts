@@ -1,5 +1,5 @@
-import { LegalActionDTO, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -159,6 +159,55 @@ describe("pockerActionUtils", () => {
 
         it("should return 0n for zero string", () => {
             expect(getTotalPotMicro("0")).toBe(0n);
+        });
+    });
+
+    describe("getActionFlags", () => {
+        const allActions: LegalActionDTO[] = [
+            { action: PlayerActionType.SMALL_BLIND, min: "500", max: "500", index: 0 },
+            { action: PlayerActionType.BIG_BLIND, min: "1000", max: "1000", index: 1 },
+            { action: PlayerActionType.FOLD, min: undefined, max: undefined, index: 2 },
+            { action: PlayerActionType.CHECK, min: undefined, max: undefined, index: 3 },
+            { action: PlayerActionType.CALL, min: "1000", max: "1000", index: 4 },
+            { action: PlayerActionType.BET, min: "1000", max: "5000000", index: 5 },
+            { action: PlayerActionType.RAISE, min: "2000", max: "5000000", index: 6 },
+            { action: PlayerActionType.MUCK, min: undefined, max: undefined, index: 7 },
+            { action: PlayerActionType.SHOW, min: undefined, max: undefined, index: 8 },
+            { action: NonPlayerActionType.DEAL, min: undefined, max: undefined, index: 9 },
+            { action: NonPlayerActionType.NEW_HAND, min: undefined, max: undefined, index: 10 }
+        ];
+
+        it("should return true for all flags when all actions are present", () => {
+            const flags = getActionFlags(allActions);
+            expect(flags.hasSmallBlindAction).toBe(true);
+            expect(flags.hasBigBlindAction).toBe(true);
+            expect(flags.hasFoldAction).toBe(true);
+            expect(flags.hasCheckAction).toBe(true);
+            expect(flags.hasCallAction).toBe(true);
+            expect(flags.hasBetAction).toBe(true);
+            expect(flags.hasRaiseAction).toBe(true);
+            expect(flags.hasMuckAction).toBe(true);
+            expect(flags.hasShowAction).toBe(true);
+            expect(flags.hasDealAction).toBe(true);
+            expect(flags.hasNewHandAction).toBe(true);
+        });
+
+        it("should return false for all flags when no actions are present", () => {
+            const flags = getActionFlags([]);
+            Object.values(flags).forEach(flag => expect(flag).toBe(false));
+        });
+
+        it("should return only the flags for actions present", () => {
+            const foldCallActions: LegalActionDTO[] = [
+                { action: PlayerActionType.FOLD, min: undefined, max: undefined, index: 0 },
+                { action: PlayerActionType.CALL, min: "1000", max: "1000", index: 1 }
+            ];
+            const flags = getActionFlags(foldCallActions);
+            expect(flags.hasFoldAction).toBe(true);
+            expect(flags.hasCallAction).toBe(true);
+            expect(flags.hasBetAction).toBe(false);
+            expect(flags.hasRaiseAction).toBe(false);
+            expect(flags.hasCheckAction).toBe(false);
         });
     });
 });

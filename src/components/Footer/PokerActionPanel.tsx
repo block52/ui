@@ -2,7 +2,14 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, validRaiseAmount } from "../../utils/pockerActionUtils";
+import {
+    getActionFlags,
+    getFormattedMaxBetAmount,
+    getInitialRaiseAmount,
+    getTotalPotMicro,
+    getUserPlayer,
+    validRaiseAmount
+} from "../../utils/pockerActionUtils";
 import { formatDisplayAmount } from "../../utils/numberUtils";
 
 // Import hooks
@@ -99,17 +106,19 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const isUsersTurn = isPlayerTurn;
 
     // Check available actions
-    const hasSmallBlindAction = hasAction(legalActions, PlayerActionType.SMALL_BLIND);
-    const hasBigBlindAction = hasAction(legalActions, PlayerActionType.BIG_BLIND);
-    const hasFoldAction = hasAction(legalActions, PlayerActionType.FOLD);
-    const hasCheckAction = hasAction(legalActions, PlayerActionType.CHECK);
-    const hasCallAction = hasAction(legalActions, PlayerActionType.CALL);
-    const hasBetAction = hasAction(legalActions, PlayerActionType.BET);
-    const hasRaiseAction = hasAction(legalActions, PlayerActionType.RAISE);
-    const hasMuckAction = hasAction(legalActions, PlayerActionType.MUCK);
-    const hasShowAction = hasAction(legalActions, PlayerActionType.SHOW);
-    const hasDealAction = hasAction(legalActions, NonPlayerActionType.DEAL);
-    const hasNewHandAction = hasAction(legalActions, NonPlayerActionType.NEW_HAND);
+    const {
+        hasSmallBlindAction,
+        hasBigBlindAction,
+        hasFoldAction,
+        hasCheckAction,
+        hasCallAction,
+        hasBetAction,
+        hasRaiseAction,
+        hasMuckAction,
+        hasShowAction,
+        hasDealAction,
+        hasNewHandAction
+    } = getActionFlags(legalActions);
 
     // Blind amounts - single source of truth from gameState.gameOptions (per Commandment 7)
     // Defined early so they can be used in useAutoPostBlinds hook
