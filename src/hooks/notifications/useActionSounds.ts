@@ -10,8 +10,7 @@ const ACTION_SOUND_PATHS: Record<string, string | null> = {
     raise: getSoundUrl("bet-raise.mp3"),
     call: getSoundUrl("call.mp3"),
     check: getSoundUrl("check.mp3"),
-    // TODO: add fold.mp3 to block52/cards CDN repo, then replace null with getSoundUrl("fold.mp3")
-    fold: null,
+    fold: getSoundUrl("fold.mp3"),
     muck: null,
     show: getSoundUrl("show.mp3")
 };
