@@ -1,5 +1,6 @@
 import { FC } from "react";
 import bitcoinLogo from "../assets/bitcoin.png";
+import bitcoinBackground from "../assets/bitcoin-background.png";
 
 const Landing: FC = () => {
     return (
@@ -7,7 +8,7 @@ const Landing: FC = () => {
             style={{
                 minHeight: "100vh",
                 width: "100%",
-                background: "#F7931A",
+                background: `#F7931A url(${bitcoinBackground}) center / cover no-repeat`,
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",

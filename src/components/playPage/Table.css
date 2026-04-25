@@ -502,6 +502,74 @@
     border: 2px solid rgba(214, 60, 94, 0.3);
 }
 
+/* === Bitcoin theme — Full Degen, F The Man === */
+.bitcoin-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background:
+        radial-gradient(circle at 50% 50%, rgba(247, 147, 26, 0.35) 0%, transparent 65%),
+        url("../../assets/bitcoin-background.png") center / cover no-repeat,
+        #0a0a0a;
+}
+
+.bitcoin-background::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background:
+        radial-gradient(circle at 20% 80%, rgba(247, 147, 26, 0.18) 0%, transparent 40%),
+        radial-gradient(circle at 80% 20%, rgba(247, 147, 26, 0.18) 0%, transparent 40%);
+    mix-blend-mode: screen;
+    pointer-events: none;
+}
+
+.bitcoin-background::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(247, 147, 26, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(247, 147, 26, 0.04) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+    opacity: 0.5;
+}
+
+/* Bitcoin felt — black with orange spray-paint glow */
+.bitcoin-table-felt {
+    background:
+        radial-gradient(ellipse at center, rgba(247, 147, 26, 0.10) 0%, rgba(0, 0, 0, 0.85) 60%, rgba(0, 0, 0, 0.95) 100%),
+        repeating-linear-gradient(
+            45deg,
+            rgba(247, 147, 26, 0.02) 0px,
+            rgba(247, 147, 26, 0.02) 2px,
+            transparent 2px,
+            transparent 6px
+        ),
+        #000 !important;
+    box-shadow:
+        inset 0 0 80px rgba(247, 147, 26, 0.25),
+        inset 0 0 200px rgba(0, 0, 0, 0.6),
+        0 0 60px rgba(247, 147, 26, 0.18);
+}
+
+.bitcoin-table-felt .pot-display,
+.bitcoin-table-felt .pot-display-secondary {
+    font-family: "Big Shoulders Stencil Display", "Stardos Stencil", monospace;
+    color: #F7931A !important;
+    text-shadow: 0 0 8px rgba(247, 147, 26, 0.6), 1px 1px 0 #000;
+    background-color: rgba(0, 0, 0, 0.75);
+    border: 2px solid #F7931A;
+    letter-spacing: 0.05em;
+}
+
+.bitcoin-table-felt .pot-display {
+    background: linear-gradient(135deg, rgba(247, 147, 26, 0.15), rgba(0, 0, 0, 0.8));
+    border: 2px solid #F7931A;
+    box-shadow: 0 0 20px rgba(247, 147, 26, 0.4);
+}
+
 /* Performance mode - disable expensive animations */
 @media (prefers-reduced-motion: reduce) {
     .background-animated-static {

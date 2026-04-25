@@ -903,8 +903,9 @@ const Table = React.memo(() => {
         window.innerWidth <= 1024 && window.innerWidth > window.innerHeight && window.innerHeight <= 600
     );
     const envTableStyle = import.meta.env.VITE_TABLE_STYLE;
-    const defaultTableStyle: "modern" | "classic" | "nouns" = envTableStyle === "classic" || envTableStyle === "nouns" ? envTableStyle : "modern";
-    const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">(defaultTableStyle);
+    const defaultTableStyle: "modern" | "classic" | "nouns" | "bitcoin" =
+        envTableStyle === "classic" || envTableStyle === "nouns" || envTableStyle === "bitcoin" ? envTableStyle : "modern";
+    const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns" | "bitcoin">(defaultTableStyle);
 
     // Update viewport mode on window resize
     useEffect(() => {
@@ -1150,24 +1151,34 @@ const Table = React.memo(() => {
             <LayoutDebugOverlay />
             {/* Table style toggle */}
             <button
-                onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : s === "nouns" ? "bitcoin" : "modern"))}
                 style={{
                     position: "fixed",
                     bottom: 12,
                     left: 12,
                     zIndex: 999999,
                     padding: "6px 12px",
-                    borderRadius: tableStyle === "nouns" ? 0 : 6,
-                    border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
-                    backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
-                    color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
+                    borderRadius: tableStyle === "nouns" || tableStyle === "bitcoin" ? 0 : 6,
+                    border:
+                        tableStyle === "bitcoin"
+                            ? "2px solid #F7931A"
+                            : tableStyle === "nouns"
+                              ? "2px solid #d63c5e"
+                              : "2px solid #555",
+                    backgroundColor: tableStyle === "bitcoin" ? "#000" : tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
+                    color: tableStyle === "bitcoin" ? "#F7931A" : tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
                     fontSize: 12,
-                    fontFamily: tableStyle === "nouns" ? "'Silkscreen', monospace" : "monospace",
+                    fontFamily:
+                        tableStyle === "bitcoin"
+                            ? "'Big Shoulders Stencil Display', monospace"
+                            : tableStyle === "nouns"
+                              ? "'Silkscreen', monospace"
+                              : "monospace",
                     fontWeight: "bold",
                     cursor: "pointer"
                 }}
             >
-                Table: {tableStyle === "modern" ? "Modern" : tableStyle === "classic" ? "Classic" : "Nouns"}
+                Table: {tableStyle === "modern" ? "Modern" : tableStyle === "classic" ? "Classic" : tableStyle === "nouns" ? "Nouns" : "Bitcoin"}
             </button>
             <GeometryFixedOverlay
                 containerWidth={tableLayout.containerWidth}
@@ -1240,8 +1251,10 @@ const Table = React.memo(() => {
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
-                {tableStyle !== "nouns" && <HexagonPattern patternId="hexagons-table" />}
-                {tableStyle === "nouns" ? (
+                {tableStyle !== "nouns" && tableStyle !== "bitcoin" && <HexagonPattern patternId="hexagons-table" />}
+                {tableStyle === "bitcoin" ? (
+                    <div className="bitcoin-background" />
+                ) : tableStyle === "nouns" ? (
                     <div className="nouns-background" />
                 ) : (
                     <>
@@ -1255,8 +1268,8 @@ const Table = React.memo(() => {
                 <div className={`${isMobile ? "zoom-wrapper-mobile" : "zoom-wrapper-desktop"}`} style={{ transform: tableLayout.tableTransform }}>
                     {/*//! 1000x500 table coordinate space — positioned at TABLE_ORIGIN (300,285) in the 1600x850 stage */}
                     <div ref={tableDivRef} className="w-[1000px] h-[500px] absolute" style={{ left: "300px", top: "285px" }}>
-                        {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
-                        {(tableStyle === "modern" || tableStyle === "nouns") && (
+                        {/* Outer rail — Ignition-style 3D depth (modern, nouns, bitcoin) */}
+                        {(tableStyle === "modern" || tableStyle === "nouns" || tableStyle === "bitcoin") && (
                             <div
                                 className="absolute z-10 rounded-[290px]"
                                 style={{
@@ -1264,28 +1277,37 @@ const Table = React.memo(() => {
                                     height: "560px",
                                     left: "-30px",
                                     top: "-30px",
-                                    border: tableStyle === "nouns" ? "10px solid rgba(26, 26, 46, 0.8)" : "10px solid rgba(100, 75, 40, 0.6)",
+                                    border:
+                                        tableStyle === "bitcoin"
+                                            ? "10px solid #000"
+                                            : tableStyle === "nouns"
+                                              ? "10px solid rgba(26, 26, 46, 0.8)"
+                                              : "10px solid rgba(100, 75, 40, 0.6)",
                                     boxShadow:
-                                        tableStyle === "nouns"
-                                            ? "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)"
+                                        tableStyle === "bitcoin"
+                                            ? "0 0 0 2px #F7931A, 0 12px 48px rgba(0,0,0,0.9), 0 0 80px rgba(247,147,26,0.35), inset 0 3px 12px rgba(0,0,0,0.7)"
                                             : "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
                                     background:
-                                        tableStyle === "nouns"
-                                            ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
-                                            : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
+                                        tableStyle === "bitcoin"
+                                            ? "linear-gradient(180deg, #1a1206 0%, #000 100%)"
+                                            : tableStyle === "nouns"
+                                              ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
+                                              : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
                                 }}
                             />
                         )}
                         {/* Table felt surface */}
                         <div
-                            className={`table-surface-shadow z-20 relative flex flex-col w-[1000px] h-[500px] text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
+                            className={`table-surface-shadow z-20 relative flex flex-col w-[1000px] h-[500px] text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "bitcoin" ? "bitcoin-table-felt border-[3px]" : tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
                             style={{
                                 borderColor:
-                                    tableStyle === "nouns"
-                                        ? "rgba(214, 60, 94, 0.4)"
-                                        : tableStyle === "classic"
-                                          ? "rgba(255, 255, 255, 0.3)"
-                                          : "rgba(255, 255, 255, 0.08)"
+                                    tableStyle === "bitcoin"
+                                        ? "#F7931A"
+                                        : tableStyle === "nouns"
+                                          ? "rgba(214, 60, 94, 0.4)"
+                                          : tableStyle === "classic"
+                                            ? "rgba(255, 255, 255, 0.3)"
+                                            : "rgba(255, 255, 255, 0.08)"
                             }}
                         >
                             <TableBoard
