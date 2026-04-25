@@ -7,6 +7,7 @@ import { projectId, metadata, networks, wagmiAdapter } from "./config";
 import { base } from "@reown/appkit/networks";
 import { ToastContainer } from "react-toastify";
 import Dashboard from "./pages/Dashboard";
+import Landing from "./pages/Landing";
 import CosmosWalletPage from "./components/CosmosWalletPage";
 import BlocksPage from "./pages/explorer/BlocksPage";
 import BlockDetailPage from "./pages/explorer/BlockDetailPage";
@@ -122,6 +123,7 @@ function AppContent() {
                 <Route path="/explorer/hand/:gameId" element={<HandPage />} />
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
+                <Route path="/landing" element={<Landing />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
             <ToastContainer
