@@ -20,7 +20,7 @@ const Landing: FC = () => {
             }}
         >
             <link
-                href="https://fonts.googleapis.com/css2?family=Rubik+Spray+Paint&family=Rubik+Distressed&family=Rubik+Glitch&family=Rubik+Wet+Paint&family=Rubik+Beastly&family=Rubik+Burned&family=Rubik+Maze&family=Rubik+Marker+Hatched&family=Stardos+Stencil:wght@700&family=Black+Ops+One&family=Special+Elite&display=swap"
+                href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Stencil+Display:wght@900&family=Saira+Stencil+One&family=Allerta+Stencil&family=Sansita+Swashed:wght@900&family=Stardos+Stencil:wght@700&family=Black+Ops+One&family=Special+Elite&family=Rubik+Spray+Paint&family=Rubik+Wet+Paint&display=swap"
                 rel="stylesheet"
             />
 
@@ -78,27 +78,26 @@ const Landing: FC = () => {
                 p2p.poker
             </h1> */}
             {/*
-                Swap fontFamily to try other spray/grunge fonts:
-                - 'Rubik Spray Paint'   (clean stencil spray)
-                - 'Rubik Wet Paint'     (drippy spray)
-                - 'Rubik Distressed'    (distressed/worn)
-                - 'Rubik Burned'        (burned edges)
-                - 'Rubik Glitch'        (glitch overlay)
-                - 'Rubik Maze'          (maze grunge)
-                - 'Rubik Beastly'       (heavy grunge)
-                - 'Rubik Marker Hatched'(hatched marker)
+                Prison / stencil fonts (closest free Google Fonts to MyFonts "prison" tag):
+                - 'Big Shoulders Stencil Display' (tall, narrow, prison-ID stencil)
+                - 'Saira Stencil One'             (clean tall stencil)
+                - 'Allerta Stencil'               (uniform stencil)
+                - 'Stardos Stencil'               (military stencil)
+                - 'Black Ops One'                 (chunky stencil)
+                Spray-style (kept for comparison): 'Rubik Spray Paint', 'Rubik Wet Paint'
             */}
             <h1
                 style={{
-                    fontFamily: "'Rubik Wet Paint', cursive",
-                    fontSize: "clamp(4rem, 14vw, 10rem)",
-                    fontWeight: 400,
+                    fontFamily: "'Big Shoulders Stencil Display', 'Stardos Stencil', sans-serif",
+                    fontSize: "clamp(4rem, 16vw, 12rem)",
+                    fontWeight: 900,
                     color: "#000",
-                    textTransform: "lowercase",
-                    letterSpacing: "0.02em",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.04em",
                     margin: 0,
                     lineHeight: 1,
-                    textAlign: "center"
+                    textAlign: "center",
+                    filter: "url(#spray-edges)"
                 }}
             >
                 p2p.poker
