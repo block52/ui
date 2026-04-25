@@ -1,4 +1,5 @@
 import { FC } from "react";
+import bitcoinLogo from "../assets/bitcoin.png";
 
 const Landing: FC = () => {
     return (
@@ -50,30 +51,16 @@ const Landing: FC = () => {
                 </defs>
             </svg>
 
-            <svg
-                viewBox="0 0 200 200"
-                width="280"
-                height="280"
-                style={{ filter: "url(#spray-edges)" }}
-            >
-                <circle cx="100" cy="100" r="92" fill="#000" filter="url(#spray-paint)" />
-                <text
-                    x="100"
-                    y="142"
-                    textAnchor="middle"
-                    fontSize="150"
-                    fontWeight="900"
-                    fill="#F7931A"
-                    fontFamily="'Black Ops One', sans-serif"
-                    style={{ filter: "url(#spray-paint)" }}
-                >
-                    ₿
-                </text>
-                <circle cx="40" cy="50" r="3" fill="#000" filter="url(#spray-splatter)" opacity="0.6" />
-                <circle cx="170" cy="60" r="2.5" fill="#000" filter="url(#spray-splatter)" opacity="0.5" />
-                <circle cx="30" cy="160" r="2" fill="#000" filter="url(#spray-splatter)" opacity="0.7" />
-                <circle cx="180" cy="170" r="2.8" fill="#000" filter="url(#spray-splatter)" opacity="0.55" />
-            </svg>
+            <img
+                src={bitcoinLogo}
+                alt="Bitcoin"
+                style={{
+                    width: "560px",
+                    height: "560px",
+                    objectFit: "contain",
+                    filter: "url(#spray-edges)"
+                }}
+            />
 
             {/* <h1
                 style={{
