@@ -1056,7 +1056,9 @@ const Table = React.memo(() => {
             return;
         }
         try {
-            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
+             const actions = gameState?.previousActions ?? [];
+            const latestActionIndex = actions.length > 0 ? actions[actions.length - 1].index : 0;
+            const shareUrl = `${window.location.origin}/table/${id}?hand=${handNumber}&index=${latestActionIndex}`;
             await navigator.clipboard.writeText(shareUrl);
             toast.success("Hand link copied to clipboard!", {
                 position: "top-right",
@@ -1065,7 +1067,7 @@ const Table = React.memo(() => {
         } catch {
             toast.error("Failed to copy share URL.");
         }
-    }, [id, handNumber]);
+    }, [id, handNumber, gameState?.previousActions]);
 
     // Memoize event handlers to prevent re-renders
     const handleLobbyClick = useCallback(() => {
