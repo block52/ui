@@ -624,18 +624,8 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const {
-        subscribeToTable,
-        unsubscribeFromTable,
-        gameState,
-        gameFormat,
-        validationError,
-        error,
-        loadHistoricalState,
-        isReplayMode,
-        replayHandNumber,
-        replayActionIndex
-    } = useGameStateContext();
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, replayActionIndex } =
+        useGameStateContext();
     const { currentNetwork } = useNetwork();
 
     // Replay mode — read hand/index query params from the readonly share link.
@@ -1066,9 +1056,7 @@ const Table = React.memo(() => {
             return;
         }
         try {
-            const actions = gameState?.previousActions ?? [];
-            const latestActionIndex = actions.length > 0 ? actions[actions.length - 1].index : 0;
-            const shareUrl = `${window.location.origin}/table/${id}?hand=${handNumber}&index=${latestActionIndex}`;
+            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
             await navigator.clipboard.writeText(shareUrl);
             toast.success("Hand link copied to clipboard!", {
                 position: "top-right",
@@ -1077,7 +1065,7 @@ const Table = React.memo(() => {
         } catch {
             toast.error("Failed to copy share URL.");
         }
-    }, [id, handNumber, gameState?.previousActions]);
+    }, [id, handNumber]);
 
     // Memoize event handlers to prevent re-renders
     const handleLobbyClick = useCallback(() => {
@@ -1331,7 +1319,9 @@ const Table = React.memo(() => {
 
                         {/* Dealer Button — convert seat number to rotated screen position */}
                         {(() => {
-                            const dIdx = dealerSeat != null && dealerSeat > 0 ? (dealerSeat - 1 + startIndex) % tableSize : -1;
+                            const dIdx = dealerSeat != null && dealerSeat > 0
+                                ? ((dealerSeat - 1 + startIndex) % tableSize)
+                                : -1;
                             const dPos = dIdx >= 0 ? tableLayout.positions.dealers[dIdx] : null;
                             if (!dPos) return null;
                             return (
