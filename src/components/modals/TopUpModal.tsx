@@ -113,6 +113,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
             error={topUpError}
             isProcessing={isProcessing}
             patternId="hexagons-topup"
+            scrollable={false}
         >
             {/* Current Stack */}
             <div className={`mb-2 rounded-lg ${styles.infoCard}`}>

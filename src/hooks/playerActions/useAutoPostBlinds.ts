@@ -3,6 +3,7 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { postSmallBlind } from "./postSmallBlind";
 import { postBigBlind } from "./postBigBlind";
 import { getAutoPostBlindsEnabled } from "../../utils/urlParams";
+import { isNullish } from "../../utils/guards";
 
 /**
  * Hook to automatically post blinds when conditions are met.
@@ -10,6 +11,9 @@ import { getAutoPostBlindsEnabled } from "../../utils/urlParams";
  * Auto-post blinds is enabled by default and can be disabled via URL query param:
  * - ?autoblinds=false -> disables auto-post blinds
  * - ?autoblinds=true or no param -> enables auto-post blinds (default)
+ *
+ * The `enabled` parameter, when provided, overrides the URL query param.
+ * It is reactive — toggling it mid-session takes effect immediately.
  *
  * When enabled, this hook will automatically post the small or big blind when:
  * 1. The user has the SMALL_BLIND or BIG_BLIND action in their legal actions
@@ -26,6 +30,7 @@ import { getAutoPostBlindsEnabled } from "../../utils/urlParams";
  * @param onBlindStarted - Optional callback when auto-post blind starts
  * @param onBlindComplete - Optional callback when auto-post blind completes
  * @param onBlindError - Optional callback when auto-post blind fails
+ * @param enabled - Optional override for the URL param setting (reactive)
  */
 export function useAutoPostBlinds(
     tableId: string,
@@ -37,15 +42,23 @@ export function useAutoPostBlinds(
     isUsersTurn: boolean,
     onBlindStarted?: (blindType: "small" | "big") => void,
     onBlindComplete?: (blindType: "small" | "big", txHash: string) => void,
-    onBlindError?: (error: Error) => void
+    onBlindError?: (error: Error) => void,
+    enabled?: boolean
 ): void {
     // Track if we've already triggered blind posting for this opportunity
     const hasTriggeredSmallBlindRef = useRef<boolean>(false);
     const hasTriggeredBigBlindRef = useRef<boolean>(false);
     // Track if blind posting is currently in progress to prevent duplicate calls
     const isProcessingRef = useRef<boolean>(false);
-    // Check if auto-post blinds is enabled (cached on first render)
-    const autoPostBlindsEnabledRef = useRef<boolean>(getAutoPostBlindsEnabled());
+    // Check if auto-post blinds is enabled — prefer the reactive `enabled` prop, fall back to URL param
+    const autoPostBlindsEnabledRef = useRef<boolean>(enabled ?? getAutoPostBlindsEnabled());
+
+    // Keep the ref up-to-date when the reactive `enabled` prop changes
+    useEffect(() => {
+        if (!isNullish(enabled)) {
+            autoPostBlindsEnabledRef.current = enabled;
+        }
+    }, [enabled]);
 
     const triggerPostSmallBlind = useCallback(async () => {
         if (!tableId || isProcessingRef.current || smallBlindAmount === 0n) {

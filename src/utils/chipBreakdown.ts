@@ -112,12 +112,12 @@ export interface ChipStackEntry {
  *   decomposeAmount(0.50) → [{ $1, white, 1 }]  // fallback
  */
 export function decomposeAmount(dollarAmount: number): ChipStackEntry[] {
-    const floored = Math.floor(dollarAmount);
+    // Work in cents for full accuracy
+    const totalCents = Math.round(dollarAmount * 100);
 
-    // Sub-dollar or zero → single white chip (visual placeholder)
-    // The dollar label on the pill still shows the exact amount
-    if (floored < 1) {
-        const fallback = CHIP_DENOMINATIONS[CHIP_DENOMINATIONS.length - 1]; // $1 chip
+    if (totalCents <= 0) {
+        // Fallback: show 1¢ chip for zero or negative
+        const fallback = CHIP_DENOMINATIONS.find(d => d.value === 0.01)!;
         return [{
             value: fallback.value,
             file: fallback.file,
@@ -127,14 +127,14 @@ export function decomposeAmount(dollarAmount: number): ChipStackEntry[] {
         }];
     }
 
-    let remainder = floored;
+    let remainder = totalCents;
     const stacks: ChipStackEntry[] = [];
 
     // Greedy: take as many of each denomination as possible, largest first.
-    // Because $1 divides everything, remainder always reaches 0.
     for (const denom of CHIP_DENOMINATIONS) {
-        if (remainder <= 0) break;
-        const count = Math.floor(remainder / denom.value);
+        const denomCents = Math.round(denom.value * 100);
+        if (remainder < denomCents) continue;
+        const count = Math.floor(remainder / denomCents);
         if (count > 0) {
             stacks.push({
                 value: denom.value,
@@ -143,8 +143,9 @@ export function decomposeAmount(dollarAmount: number): ChipStackEntry[] {
                 count,
                 visibleCount: Math.min(count, MAX_CHIPS_PER_STACK),
             });
-            remainder -= count * denom.value;
+            remainder -= count * denomCents;
         }
+        if (remainder <= 0) break;
     }
 
     // If we used more denomination types than MAX_STACKS_PER_GROUP allows,

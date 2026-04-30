@@ -1,85 +1,23 @@
 import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
-import { formatPlayerId, formatAmount } from "../utils/accountUtils";
+import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
+import { formatAmount } from "../utils/accountUtils";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
 import { ActionDTO } from "@block52/poker-vm-sdk";
+import { formatActionName, formatRoundName, getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
-import { useIndexerApi } from "../context/IndexerApiContext";
 import styles from "./ActionsLog.module.css";
-
-// Function to format action names with proper capitalization and spacing
-const formatActionName = (action: string): string => {
-    switch (action.toLowerCase()) {
-        case "join":
-            return "Join";
-        case "post-small-blind":
-            return "Post Small Blind";
-        case "post-big-blind":
-            return "Post Big Blind";
-        case "deal":
-            return "Deal";
-        case "call":
-            return "Call";
-        case "check":
-            return "Check";
-        case "bet":
-            return "Bet";
-        case "raise":
-            return "Raise";
-        case "fold":
-            return "Fold";
-        case "show":
-            return "Show";
-        case "muck":
-            return "Muck";
-        case "all-in":
-            return "All In";
-        case "leave":
-            return "Leave";
-        case "sit-out":
-            return "Sit Out";
-        case "sit-in":
-            return "Sit In";
-        case "new-hand":
-            return "New Hand";
-        default:
-            // Fallback: capitalize first letter and replace hyphens with spaces
-            return action.charAt(0).toUpperCase() + action.slice(1).replace(/-/g, " ");
-    }
-};
-
-// Function to format round names with proper poker terminology
-const formatRoundName = (round: string): string => {
-    switch (round.toLowerCase()) {
-        case "ante":
-            return "Ante";
-        case "preflop":
-            return "Pre-flop";
-        case "flop":
-            return "Flop";
-        case "turn":
-            return "Turn";
-        case "river":
-            return "River";
-        case "showdown":
-            return "Showdown";
-        case "end":
-            return "End";
-        default:
-            // Fallback: capitalize first letter
-            return round.charAt(0).toUpperCase() + round.slice(1);
-    }
-};
 
 // Simple component to display only the action log
 const ActionsLog: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { previousActions } = useGameProgress(id);
     const { gameState, gameFormat } = useGameStateContext();
-    const indexerApi = useIndexerApi();
+    const { winnerInfo } = useWinnerInfo();
+    const showWinnerSummary = shouldShowWinnerSummary(gameState, winnerInfo);
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
     const [copiedShare, setCopiedShare] = useState(false);
@@ -130,16 +68,15 @@ const ActionsLog: React.FC = () => {
         }
 
         // Format actions for clipboard
-        const logText = previousActions
-            .map((action: ActionDTO) => {
-                const player = formatPlayerId(action.playerId);
-                const actionName = formatActionName(action.action);
-                const amount = action.amount ? ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}` : "";
-                const round = formatRoundName(action.round);
-                const seat = action.seat;
-                return `${player} (Seat ${seat}): ${actionName}${amount} - ${round}`;
-            })
-            .join("\n");
+        const isTournament = isTournamentFormat(gameFormat);
+        const actionLines = previousActions.map((action: ActionDTO) => getActionLine(action, isTournament));
+
+        // Append winner summary rows when the hand has ended
+        const winnerLines = showWinnerSummary && winnerInfo
+            ? winnerInfo.map(getWinnerLine)
+            : [];
+
+        const logText = [...actionLines, ...winnerLines].join("\n");
 
         copyTextToClipboard(
             logText,
@@ -178,53 +115,29 @@ const ActionsLog: React.FC = () => {
         }
     };
 
-    const handleShareHand = async () => {
+    const handleShareHand = () => {
         if (!id || !gameState?.handNumber) {
             toast.info("No hand data available to share");
             return;
         }
-        try {
-            // Look up block height for current hand from indexer
-            const handData = await indexerApi.getHand(id, String(gameState.handNumber)) as { block_height?: number } | null;
-            const actionIndex = gameState.previousActions?.length || 0;
 
-            if (handData?.block_height) {
-                const shareUrl = `${window.location.origin}/table/${id}?blocknumber=${handData.block_height}&actionindex=${actionIndex}`;
-                copyTextToClipboard(
-                    shareUrl,
-                    () => {
-                        setCopiedShare(true);
-                        toast.success("Table replay URL copied to clipboard!");
-                        setTimeout(() => setCopiedShare(false), 2000);
-                    },
-                    "Failed to copy share URL"
-                );
-            } else {
-                // Fallback to explorer URL if block height not available
-                const shareUrl = `${window.location.origin}/explorer/hand/${id}/${gameState.handNumber}`;
-                copyTextToClipboard(
-                    shareUrl,
-                    () => {
-                        setCopiedShare(true);
-                        toast.success("Hand replay URL copied to clipboard!");
-                        setTimeout(() => setCopiedShare(false), 2000);
-                    },
-                    "Failed to copy share URL"
-                );
-            }
-        } catch {
-            // Fallback to explorer URL on error
-            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${gameState.handNumber}`;
-            copyTextToClipboard(
-                shareUrl,
-                () => {
-                    setCopiedShare(true);
-                    toast.success("Hand replay URL copied to clipboard!");
-                    setTimeout(() => setCopiedShare(false), 2000);
-                },
-                "Failed to copy share URL"
-            );
-        }
+        // Build a readonly share link targeting the chain's GameStateAt RPC
+        // (pokerchain#160). We encode the global action index of the latest
+        // action in the current hand — NOT the array length — since the chain
+        // matches on ActionDTO.Index.
+        const actions = gameState.previousActions ?? [];
+        const latestActionIndex = actions.length > 0 ? actions[actions.length - 1].index : 0;
+        const shareUrl = `${window.location.origin}/table/${id}?hand=${gameState.handNumber}&index=${latestActionIndex}`;
+
+        copyTextToClipboard(
+            shareUrl,
+            () => {
+                setCopiedShare(true);
+                toast.success("Table replay URL copied to clipboard!");
+                setTimeout(() => setCopiedShare(false), 2000);
+            },
+            "Failed to copy share URL"
+        );
     };
 
     return (
@@ -263,31 +176,35 @@ const ActionsLog: React.FC = () => {
             {previousActions && previousActions.length > 0 ? (
                 <div className="space-y-0.5 p-2">
                     {previousActions.map((action: ActionDTO, index: number) => (
-                        <div 
-                            key={index} 
+                        <div
+                            key={index}
                             className={`text-xs py-1 border-b ${styles.actionRow}`}
                         >
                             <div className="flex justify-between">
-                                <span 
-                                    className={`font-mono ${styles.playerId}`}
-                                >
-                                    {formatPlayerId(action.playerId)}
-                                </span>
-                                <span 
-                                    className={`text-[10px] ${styles.secondaryText}`}
-                                >
-                                    Seat {action.seat}
-                                </span>
-                            </div>
-                            <div className="flex justify-between mt-0.5">
                                 <span className={styles.actionText}>
                                     {formatActionName(action.action)}
                                     {action.amount && ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}`}
                                 </span>
-                                <span 
+                                <span
                                     className={`text-[10px] ${styles.secondaryText}`}
                                 >
-                                    {formatRoundName(action.round)}
+                                    Seat {action.seat} · {formatRoundName(action.round)}
+                                </span>
+                            </div>
+                        </div>
+                    ))}
+                    {showWinnerSummary && winnerInfo?.map((w, i) => (
+                        <div
+                            key={`winner-${i}`}
+                            className={`text-xs py-1 border-b ${styles.actionRow} ${styles.winnerRow}`}
+                        >
+                            <div className="flex justify-between">
+                                <span className={styles.winnerText}>
+                                    WINS {w.formattedAmount}
+                                    {w.description && ` — ${w.description}`}
+                                </span>
+                                <span className={`text-[10px] ${styles.secondaryText}`}>
+                                    Seat {w.seat} · Showdown
                                 </span>
                             </div>
                         </div>

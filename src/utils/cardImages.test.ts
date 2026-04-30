@@ -2,6 +2,8 @@ import {
     getCardImageUrl,
     getCardBackUrl,
     getChipImageUrl,
+    getGenericChipImageUrl,
+    getSoundUrl,
     getDealerImageUrl,
     preloadCardImages,
     preloadAllCards
@@ -10,9 +12,26 @@ import {
 describe("cardImages", () => {
     const GITHUB_CDN_BASE = "https://raw.githubusercontent.com/block52/cards/main";
 
+
     describe("getChipImageUrl", () => {
         it("should return correct chip image URL", () => {
-            expect(getChipImageUrl()).toBe(`${GITHUB_CDN_BASE}/chip.svg`);
+            expect(getChipImageUrl("chip.svg")).toBe(`${GITHUB_CDN_BASE}/chips/chip.svg`);
+        });
+
+        it("should return correct chip image URL for 25chip.svg", () => {
+            expect(getChipImageUrl("25chip.svg")).toBe(`${GITHUB_CDN_BASE}/chips/25chip.svg`);
+        });
+    });
+
+    describe("getGenericChipImageUrl", () => {
+        it("should return correct generic chip image URL", () => {
+            expect(getGenericChipImageUrl()).toBe(`${GITHUB_CDN_BASE}/chips/chip.svg`);
+        });
+    });
+
+    describe("getSoundUrl", () => {
+        it("should return correct sound URL", () => {
+            expect(getSoundUrl("bet.mp3")).toBe(`${GITHUB_CDN_BASE}/sounds/bet.mp3`);
         });
     });
 

@@ -51,7 +51,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                     </div>
                 );
             } else {
-                return <div key={idx} className="w-[85px] h-[127px] aspect-square border-[0.5px] border-dashed border-white rounded-[5px]" />;
+                return <div key={idx} className="w-[85px] h-[127px] aspect-square border-[0.5px] border-dashed border-white rounded-[5px] " style={{ borderColor: "rgba(255,255,255,0.35)" }} />;
             }
         });
     }, [communityCards, cardBackStyle]);

@@ -1,5 +1,6 @@
 import { renderHook } from "@testing-library/react";
 import { useTurnNotification, createFaviconNotification } from "./useTurnNotification";
+import { getSoundUrl } from "../../utils/cardImages";
 
 // Mock colorConfig to avoid import.meta issues
 jest.mock("../../utils/colorConfig", () => ({
@@ -179,7 +180,7 @@ describe("useTurnNotification", () => {
         renderHook(() => useTurnNotification(true, { enableSound: true }));
         
         // Audio should be created and played
-        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect((global as any).Audio).toHaveBeenCalledWith(getSoundUrl("chip-notification.mp3"));
         expect(mockAudio.play).toHaveBeenCalled();
     });
 
@@ -251,14 +252,14 @@ describe("useTurnNotification", () => {
 
         // Test with volume > 1 (should be clamped to 1.0)
         renderHook(() => useTurnNotification(true, { soundVolume: 2.0 }));
-        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect((global as any).Audio).toHaveBeenCalledWith(getSoundUrl("chip-notification.mp3"));
         expect(mockAudio.volume).toBe(1.0);
 
         // Test with volume < 0 (should be clamped to 0.0)
         jest.clearAllMocks();
         mockAudio.volume = 0;
         renderHook(() => useTurnNotification(true, { soundVolume: -0.5 }));
-        expect((global as any).Audio).toHaveBeenCalledWith("/chip-notification.mp3");
+        expect((global as any).Audio).toHaveBeenCalledWith(getSoundUrl("chip-notification.mp3"));
         expect(mockAudio.volume).toBe(0.0);
     });
 

@@ -44,11 +44,12 @@ interface GameStateContextType {
     validationError: ValidationError | null;
     pendingAction: PendingAction | null;
     isReplayMode: boolean;
-    replayBlockNumber: number | null;
+    replayHandNumber: number | null;
+    replayActionIndex: number | null;
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
     sendAction: (action: string, amount?: string) => Promise<void>;
-    loadHistoricalState: (tableId: string, blockNumber: number) => Promise<void>;
+    loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number) => Promise<void>;
 }
 
 const GameStateContext = createContext<GameStateContextType | null>(null);
@@ -66,7 +67,8 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const [validationError, setValidationError] = useState<ValidationError | null>(null);
     const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [isReplayMode, setIsReplayMode] = useState<boolean>(false);
-    const [replayBlockNumber, setReplayBlockNumber] = useState<number | null>(null);
+    const [replayHandNumber, setReplayHandNumber] = useState<number | null>(null);
+    const [replayActionIndex, setReplayActionIndex] = useState<number | null>(null);
     const { currentNetwork } = useNetwork();
 
     // Use ref instead of state for currentTableId to prevent re-renders
@@ -346,10 +348,12 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         []
     );
 
-    // Load historical game state from chain at a specific block height (replay mode)
+    // Load point-in-time snapshot from chain (replay mode for readonly share links).
+    // Uses pokerchain#160 GameStateAt RPC: previousActions is truncated to actions at
+    // or before actionIndex, hole cards and deck are masked (public view).
     const loadHistoricalState = useCallback(
-        async (tableId: string, blockNumber: number): Promise<void> => {
-            // Clean up any existing WebSocket connection
+        async (tableId: string, handNumber: number, actionIndex: number): Promise<void> => {
+            // Clean up any existing WebSocket connection — replay mode is a one-shot fetch.
             if (wsRef.current) {
                 wsRef.current.close();
                 wsRef.current = null;
@@ -359,21 +363,22 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             setError(null);
             setValidationError(null);
             setIsReplayMode(true);
-            setReplayBlockNumber(blockNumber);
+            setReplayHandNumber(handNumber);
+            setReplayActionIndex(actionIndex);
             currentTableIdRef.current = tableId;
 
             try {
                 const cosmosApi = new CosmosApi({ baseUrl: currentNetwork.rest!, secure: false, timeout: 10000 });
-                const response = await cosmosApi.getGameStateAtBlock(tableId, blockNumber) as { game_state?: string };
+                const response = await cosmosApi.getGameStateAt(tableId, handNumber, actionIndex) as { game_state?: string };
 
                 if (!response || !response.game_state) {
-                    throw new Error(`No game state found at block ${blockNumber}`);
+                    throw new Error(`No game state found for hand ${handNumber} at action ${actionIndex}`);
                 }
 
                 const parsed = JSON.parse(response.game_state);
 
-                // The chain response may be a GameStateResponseDTO (with gameState nested)
-                // or the TexasHoldemStateDTO directly
+                // Chain may return a GameStateResponseDTO (with gameState nested)
+                // or TexasHoldemStateDTO directly.
                 const gameStateData = parsed.gameState || parsed;
                 const rawFormat = parsed.format;
                 const rawVariant = parsed.variant;
@@ -415,13 +420,14 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             validationError,
             pendingAction,
             isReplayMode,
-            replayBlockNumber,
+            replayHandNumber,
+            replayActionIndex,
             subscribeToTable,
             unsubscribeFromTable,
             sendAction,
             loadHistoricalState
         }),
-        [gameState, gameFormat, gameVariant, isLoading, error, validationError, pendingAction, isReplayMode, replayBlockNumber, subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState]
+        [gameState, gameFormat, gameVariant, isLoading, error, validationError, pendingAction, isReplayMode, replayHandNumber, replayActionIndex, subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState]
     );
 
     return <GameStateContext.Provider value={contextValue}>{children}</GameStateContext.Provider>;

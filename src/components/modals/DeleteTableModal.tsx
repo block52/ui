@@ -39,6 +39,7 @@ const DeleteTableModal: React.FC<DeleteTableModalProps> = React.memo(({ isOpen, 
             error={error}
             isProcessing={isDeleting}
             patternId="hexagons-delete"
+            scrollable={false}
         >
             {/* Warning Message */}
             <div className="mb-6">

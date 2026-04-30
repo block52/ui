@@ -21,6 +21,7 @@ import { useAutoDeal } from "./useAutoDeal";
 import { useAutoPostBlinds } from "./useAutoPostBlinds";
 import { useAutoNewHand } from "./useAutoNewHand";
 import { useAutoFold } from "./useAutoFold";
+import { useAutoMuck } from "./useAutoMuck";
 
 export {
     betHand,
@@ -47,7 +48,8 @@ export {
     useAutoDeal,
     useAutoPostBlinds,
     useAutoNewHand,
-    useAutoFold
+    useAutoFold,
+    useAutoMuck
 };
 
 export type { OptimisticActionType, SitInMethod, SitOutMethod };

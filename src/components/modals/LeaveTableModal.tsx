@@ -34,6 +34,7 @@ const LeaveTableModal: React.FC<LeaveTableModalProps> = React.memo(({ isOpen, on
             error={error}
             isProcessing={isLeaving}
             patternId="hexagons-leave"
+            scrollable={false}
         >
             {/* Warning Message */}
             <div className="mb-6">

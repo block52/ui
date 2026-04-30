@@ -9,6 +9,24 @@
   box-shadow: 1px 2px 6px 3px color-mix(in srgb, #000000 30%, transparent);
 }
 
+.equity-chip {
+  position: absolute;
+  top: -14px;
+  right: -6px;
+  background-color: rgba(0, 0, 0, 0.8);
+  color: #facc15;
+  font-weight: 700;
+  font-size: 0.75rem;
+  line-height: 1;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  border: 1px solid #facc15;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  z-index: 20;
+  white-space: nowrap;
+}
+
 .badge-number {
   display: flex;
   align-items: center;

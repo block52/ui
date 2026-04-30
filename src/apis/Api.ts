@@ -24,6 +24,8 @@ export class CosmosApi extends HTTPClient {
         this.get(`block52/pokerchain/poker/v1/game_state/${gameId}`, {
             headers: { "x-cosmos-block-height": String(blockHeight) }
         });
+    public getGameStateAt = (gameId: string, handNumber: number, actionIndex: number) =>
+        this.get(`block52/pokerchain/poker/v1/game_state_at/${gameId}/${handNumber}/${actionIndex}`);
     public getWithdrawalRequests = () => this.get("/pokerchain/poker/withdrawal_requests");
     public getIsTxProcessed = (txHash: string) => this.get(`/block52/pokerchain/poker/v1/is_tx_processed/${txHash}`);
     public getNftAvatar = (cosmosAddress: string) => this.get(`/pokerchain/poker/nft_avatar/${cosmosAddress}`);

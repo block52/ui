@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { startNewHand } from "./startNewHand";
 import { getAutoNewHandEnabled } from "../../utils/urlParams";
+import { isNullish } from "../../utils/guards";
 
 /**
  * Hook to automatically trigger new hand when the current hand ends.
@@ -9,6 +10,9 @@ import { getAutoNewHandEnabled } from "../../utils/urlParams";
  * Auto-new-hand is enabled by default and can be disabled via URL query param:
  * - ?autonewhand=false -> disables auto-new-hand
  * - ?autonewhand=true or no param -> enables auto-new-hand (default)
+ *
+ * The `enabled` parameter, when provided, overrides the URL query param.
+ * It is reactive — toggling it mid-session takes effect immediately.
  *
  * When enabled, this hook will automatically trigger the new hand action when:
  * 1. The user has the NEW_HAND action in their legal actions
@@ -22,6 +26,7 @@ import { getAutoNewHandEnabled } from "../../utils/urlParams";
  * @param onNewHandStarted - Optional callback when auto-new-hand starts
  * @param onNewHandComplete - Optional callback when auto-new-hand completes
  * @param onNewHandError - Optional callback when auto-new-hand fails
+ * @param enabled - Optional override for the URL param setting (reactive)
  */
 export function useAutoNewHand(
     tableId: string,
@@ -30,14 +35,22 @@ export function useAutoNewHand(
     isUsersTurn: boolean,
     onNewHandStarted?: () => void,
     onNewHandComplete?: (txHash: string) => void,
-    onNewHandError?: (error: Error) => void
+    onNewHandError?: (error: Error) => void,
+    enabled?: boolean
 ): void {
     // Track if we've already triggered new hand for this opportunity
     const hasTriggeredRef = useRef<boolean>(false);
     // Track if new hand is currently in progress to prevent duplicate calls
     const isProcessingRef = useRef<boolean>(false);
-    // Check if auto-new-hand is enabled (cached on first render)
-    const autoNewHandEnabledRef = useRef<boolean>(getAutoNewHandEnabled());
+    // Check if auto-new-hand is enabled — prefer the reactive `enabled` prop, fall back to URL param
+    const autoNewHandEnabledRef = useRef<boolean>(enabled ?? getAutoNewHandEnabled());
+
+    // Keep the ref up-to-date when the reactive `enabled` prop changes
+    useEffect(() => {
+        if (!isNullish(enabled)) {
+            autoNewHandEnabledRef.current = enabled;
+        }
+    }, [enabled]);
 
     const triggerAutoNewHand = useCallback(async () => {
         if (!tableId || isProcessingRef.current) {

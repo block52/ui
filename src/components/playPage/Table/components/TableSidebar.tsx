@@ -15,7 +15,9 @@ export interface TableSidebarProps {
 export const TableSidebar: React.FC<TableSidebarProps> = ({ isOpen }) => {
     return (
         <div className={`action-log-overlay ${isOpen ? "action-log-open" : "action-log-closed"}`}>
-            <ActionsLog />
+            <div className="h-full bg-[#1a2234] border-l border-white/10 flex flex-col overflow-hidden">
+                <ActionsLog />
+            </div>
         </div>
     );
 };

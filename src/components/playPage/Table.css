@@ -162,14 +162,31 @@
     position: absolute;
     z-index: 0;
     pointer-events: none;
-    bottom: 15px;
+    top: 50%;
     left: 50%;
-    transform: translate(-50%, 30%);
+    transform: translate(-50%, -50%) 
+    scale(1.5);
 }
 
 .table-logo img {
     width: 300px;
     opacity: 0.3;
+    object-fit: contain;
+}
+
+/* Bottom-right club logo watermark overlay */
+.club-watermark {
+    position: fixed;
+    bottom: 180px;
+    right: 16px;
+    z-index: 15;
+    pointer-events: none;
+    opacity: 0.7;
+}
+
+.club-watermark img {
+    width: 64px;
+    height: 64px;
     object-fit: contain;
 }
 
@@ -233,9 +250,15 @@
     opacity: 1;
 }
 
+.settings-panel-width {
+    width: 300px;
+}
+
 .action-log-closed {
     width: 0;
     opacity: 0;
+    overflow: hidden;
+    pointer-events: none;
 }
 
 .powered-by-block52 {

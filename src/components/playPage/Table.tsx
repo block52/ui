@@ -56,6 +56,7 @@ import {
     TableHeader,
     TableBoard,
     TableSidebar,
+    TableSettingsSidebar,
     TableModals,
     PlayerSeating,
     TableStatusMessages,
@@ -108,6 +109,7 @@ import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalA
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
@@ -621,28 +623,38 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, validationError, error, loadHistoricalState, isReplayMode, replayBlockNumber } =
-        useGameStateContext();
+    const {
+        subscribeToTable,
+        unsubscribeFromTable,
+        gameState,
+        gameFormat,
+        validationError,
+        error,
+        loadHistoricalState,
+        isReplayMode,
+        replayHandNumber,
+        replayActionIndex
+    } = useGameStateContext();
     const { currentNetwork } = useNetwork();
 
-    // Replay mode — read blocknumber/actionindex query params
-    const { isReplayMode: hasReplayParams, blockNumber: replayBlockParam, actionIndex: replayActionIndex, clearReplayParams } = useReplayMode();
+    // Replay mode — read hand/index query params from the readonly share link.
+    const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams } = useReplayMode();
 
     useEffect(() => {
         if (id) {
-            if (hasReplayParams && replayBlockParam) {
-                // Replay mode: fetch historical state from chain, no WebSocket
-                loadHistoricalState(id, replayBlockParam);
+            if (hasReplayParams && replayHandParam !== null && replayActionParam !== null) {
+                // Replay mode: fetch point-in-time snapshot from chain, no WebSocket.
+                loadHistoricalState(id, replayHandParam, replayActionParam);
             } else {
-                // Live mode: subscribe to WebSocket
+                // Live mode: subscribe to WebSocket.
                 subscribeToTable(id);
             }
         }
-    }, [id, hasReplayParams, replayBlockParam, subscribeToTable, loadHistoricalState]);
+    }, [id, hasReplayParams, replayHandParam, replayActionParam, subscribeToTable, loadHistoricalState]);
 
-    // Card back style configuration - can be customized per club/table
-    // Options: "default", "block52", "custom", or a custom URL
-    const cardBackStyle: CardBackStyle = "default";
+    // Card back style configuration - driven by VITE_CARD_BACK_URL env var
+    // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
+    const cardBackStyle: CardBackStyle = import.meta.env.VITE_CARD_BACK_URL || "default";
 
     // Game Start Countdown
     const { gameStartTime, showCountdown, handleCountdownComplete, handleSkipCountdown } = useGameStartCountdown();
@@ -746,8 +758,9 @@ const Table = React.memo(() => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
+    const { turnNotificationSound } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
-        enableSound: true,
+        enableSound: turnNotificationSound,
         soundVolume: 0.3,
         flashInterval: 1000
     });
@@ -995,8 +1008,20 @@ const Table = React.memo(() => {
     // useEffect(() => { ... }, [tableSize, id]);
 
     const onCloseSideBar = useCallback(() => {
-        setOpenSidebar(!openSidebar);
-    }, [openSidebar]);
+        setOpenSidebar(prev => {
+            if (!prev) setOpenSettings(false);
+            return !prev;
+        });
+    }, []);
+
+    const [openSettings, setOpenSettings] = useState(false);
+
+    const onToggleSettings = useCallback(() => {
+        setOpenSettings(prev => {
+            if (!prev) setOpenSidebar(false);
+            return !prev;
+        });
+    }, []);
 
     // Memoize formatted balance - Cosmos returns microunits (6 decimals)
     const balanceFormatted = useMemo(() => (accountBalance ? formatUSDCToSimpleDollars(accountBalance) : "0.00"), [accountBalance]);
@@ -1039,7 +1064,9 @@ const Table = React.memo(() => {
             return;
         }
         try {
-            const shareUrl = `${window.location.origin}/explorer/hand/${id}/${handNumber}`;
+            const actions = gameState?.previousActions ?? [];
+            const latestActionIndex = actions.length > 0 ? actions[actions.length - 1].index : 0;
+            const shareUrl = `${window.location.origin}/table/${id}?hand=${handNumber}&index=${latestActionIndex}`;
             await navigator.clipboard.writeText(shareUrl);
             toast.success("Hand link copied to clipboard!", {
                 position: "top-right",
@@ -1048,7 +1075,7 @@ const Table = React.memo(() => {
         } catch {
             toast.error("Failed to copy share URL.");
         }
-    }, [id, handNumber]);
+    }, [id, handNumber, gameState?.previousActions]);
 
     // Memoize event handlers to prevent re-renders
     const handleLobbyClick = useCallback(() => {
@@ -1117,14 +1144,14 @@ const Table = React.memo(() => {
     return (
         <div className="table-container">
             {/* Replay mode banner */}
-            {isReplayMode && replayBlockNumber && (
+            {isReplayMode && replayHandNumber != null && (
                 <div
                     className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-4 py-2 px-4 text-sm"
                     style={{ background: "rgba(214, 60, 94, 0.9)", color: "#fff" }}
                 >
                     <span>
-                        Viewing hand at block #{replayBlockNumber}
-                        {replayActionIndex != null ? ` (action ${replayActionIndex})` : ""}
+                        Viewing hand #{replayHandNumber}
+                        {replayActionIndex != null ? ` at action ${replayActionIndex}` : ""}
                     </span>
                     <button
                         onClick={clearReplayParams}
@@ -1183,12 +1210,14 @@ const Table = React.memo(() => {
                 nextToAct={nextToAct}
                 currentPlayerData={currentPlayerData || null}
                 openSidebar={openSidebar}
+                openSettings={openSettings}
                 handleLobbyClick={handleLobbyClick}
                 handleCopyTableLink={handleCopyTableLink}
                 handleDepositClick={handleDepositClick}
                 fetchAccountBalance={fetchAccountBalance}
                 copyToClipboard={copyToClipboard}
                 onCloseSideBar={onCloseSideBar}
+                onToggleSettings={onToggleSettings}
                 handleLeaveTableClick={handleLeaveTableClick}
                 handleShareHand={handleShareHand}
             />
@@ -1360,6 +1389,9 @@ const Table = React.memo(() => {
             {/*//! ACTION LOG OVERLAY */}
             <TableSidebar isOpen={openSidebar} />
 
+            {/*//! SETTINGS OVERLAY */}
+            <TableSettingsSidebar isOpen={openSettings} />
+
             {/* Status Messages */}
             <TableStatusMessages
                 viewportMode={viewportMode}
@@ -1424,6 +1456,13 @@ const Table = React.memo(() => {
 
             {/* Mobile Portrait Blocking (#200) */}
             <MobileOrientationOverlay isPortraitBlocked={isPortraitBlocked} onGoToLobby={handleLobbyClick} />
+
+            {/* Bottom-right club logo watermark */}
+            {clubLogo && (
+                <div className="club-watermark">
+                    <img src={clubLogo} alt="Club Logo" />
+                </div>
+            )}
         </div>
     );
 });
