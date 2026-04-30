@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
 import { formatChipCount } from "../../utils/potDisplayUtils";
+import { hasContent, hasValue } from "../../utils/guards";
 
 export interface BlindLevelInfo {
     /** Current blind level (0-based), undefined if not provided by backend */
@@ -52,9 +53,17 @@ export const useBlindLevel = (startTime?: number): BlindLevelInfo => {
     // Blind level from backend
     const level = gameOptions?.blindLevel;
 
-    // Next blinds from backend
-    const nextSmallBlind = gameOptions?.nextSmallBlind ? Number(gameOptions.nextSmallBlind) : 0;
-    const nextBigBlind = gameOptions?.nextBigBlind ? Number(gameOptions.nextBigBlind) : 0;
+    // Next blinds from backend — required for SNG/Tournament games
+    if (isActive && hasValue(gameOptions)) {
+        if (!hasContent(gameOptions.nextSmallBlind)) {
+            throw new Error("gameOptions.nextSmallBlind is required for SNG/Tournament games");
+        }
+        if (!hasContent(gameOptions.nextBigBlind)) {
+            throw new Error("gameOptions.nextBigBlind is required for SNG/Tournament games");
+        }
+    }
+    const nextSmallBlind = hasContent(gameOptions?.nextSmallBlind) ? Number(gameOptions.nextSmallBlind) : 0;
+    const nextBigBlind = hasContent(gameOptions?.nextBigBlind) ? Number(gameOptions.nextBigBlind) : 0;
 
     // Blind level duration in seconds
     const blindLevelDuration = gameOptions?.blindLevelDuration;
