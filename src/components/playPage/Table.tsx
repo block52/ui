@@ -113,6 +113,7 @@ import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
+import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
 
 // Table Error Page
 import TableErrorPage from "./TableErrorPage";
@@ -750,12 +751,15 @@ const Table = React.memo(() => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
-    const { turnNotificationSound } = useGameSettings();
+    const { turnNotificationSound, playerActionSounds } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
         enableSound: turnNotificationSound,
         soundVolume: 0.3,
         flashInterval: 1000
     });
+
+    // Broadcast action sounds to all players at the table (not just the local user)
+    useGameStateSounds(playerActionSounds);
 
     // Add the useTableState hook to get table state properties
     const { tableSize } = useTableState();
