@@ -77,14 +77,29 @@ describe("Indexer API E2E Tests", () => {
         });
     });
 
+    // Shared fixture: resolved once from the live indexer before the hand tests run.
+    // This avoids hardcoding a game/hand ID that may no longer exist.
+    let fixtureGameId: string;
+    let fixtureHandNumber: string;
+
+    beforeAll(async () => {
+        // Fetch the most recent hand from the indexer to use as a stable fixture.
+        // Using limit=1 with no game_id returns the latest indexed hand.
+        const recent = (await indexerApi.getRecentHand()) as HandListResponse;
+        if (recent?.data?.length > 0) {
+            fixtureGameId = recent.data[0].game_id;
+            fixtureHandNumber = String(recent.data[0].hand_number);
+        }
+    });
+
     describe("Get Hand Detail", () => {
         it("should get hand detail", async () => {
-            const gameId = "0xd466e68331cccfab4c214171a0737a2fc80b6542cf4468d51acf4de84c77e35f"; // Replace with a valid game ID for testing
-            const handNumber = "7"; // Replace with a valid hand number for testing
-            const response = (await indexerApi.getHand(gameId, handNumber)) as HandDetail;
+            expect(fixtureGameId).toBeDefined();
+            expect(fixtureHandNumber).toBeDefined();
+            const response = (await indexerApi.getHand(fixtureGameId, fixtureHandNumber)) as HandDetail;
             expect(response).toBeDefined();
-            expect(response.game_id).toBe(gameId);
-            expect(response.hand_number).toBe(parseInt(handNumber));
+            expect(response.game_id).toBe(fixtureGameId);
+            expect(response.hand_number).toBe(parseInt(fixtureHandNumber));
             expect(response.block_height).toBeDefined();
             expect(response.deck_seed).toBeDefined();
             expect(response.deck).toBeDefined();
@@ -95,15 +110,15 @@ describe("Indexer API E2E Tests", () => {
 
     describe("Get Hands List", () => {
         it("should get list of hands for a game", async () => {
-            const gameId = "0xd466e68331cccfab4c214171a0737a2fc80b6542cf4468d51acf4de84c77e35f"; // Replace with a valid game ID for testing
-            const response = (await indexerApi.getHands(gameId)) as HandListResponse;
+            expect(fixtureGameId).toBeDefined();
+            const response = (await indexerApi.getHands(fixtureGameId)) as HandListResponse;
             expect(response).toBeDefined();
             expect(response.pagination).toBeDefined();
             expect(response.data).toBeDefined();
             expect(Array.isArray(response.data)).toBe(true);
             if (response.data.length > 0) {
                 const hand = response.data[0];
-                expect(hand.game_id).toBe(gameId);
+                expect(hand.game_id).toBe(fixtureGameId);
                 expect(hand.hand_number).toBeDefined();
                 expect(hand.block_height).toBeDefined();
                 expect(hand.deck_seed).toBeDefined();
