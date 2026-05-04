@@ -25,6 +25,7 @@ import GenesisState from "./pages/GenesisState";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import NodeStatusPage from "./pages/NodeStatusPage";
 import NodesPage from "./pages/NodesPage";
+import TechNotesPage from "./pages/tech-notes/TechNotesPage";
 import { TestSdk } from "./test-sdk";
 import { GameStateProvider } from "./context/GameStateContext";
 import { GameSettingsProvider } from "./context/GameSettingsContext";
@@ -122,6 +123,7 @@ function AppContent() {
                 <Route path="/explorer/hand/:gameId" element={<HandPage />} />
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
+                <Route path="/tech-notes" element={<TechNotesPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
             <ToastContainer
