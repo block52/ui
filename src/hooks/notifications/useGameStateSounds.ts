@@ -1,8 +1,10 @@
 import { useEffect, useRef } from "react";
-import { PlayerActionType, NonPlayerActionType } from "@block52/poker-vm-sdk";
+import { PlayerActionType } from "@block52/poker-vm-sdk";
 import { useGameProgress } from "../game/useGameProgress";
 import { useActionSounds } from "./useActionSounds";
 import { getCosmosAddressSync } from "../../utils/cosmosAccountUtils";
+import { hasElements, hasValue } from "../../utils/guards";
+import { getActionSoundKey } from "../../utils/actionSoundUtils";
 
 /**
  * Plays action sounds for ALL players at the table by watching the shared game state.
@@ -35,10 +37,10 @@ export const useGameStateSounds = (enabled: boolean): void => {
 
     useEffect(() => {
         if (!enabled) return;
-        if (!previousActions || previousActions.length === 0) return;
+        if (!hasElements(previousActions)) return;
 
         // Hand rolled over — reset tracking
-        if (lastHandNumberRef.current !== null && lastHandNumberRef.current !== handNumber) {
+        if (hasValue(lastHandNumberRef.current) && lastHandNumberRef.current !== handNumber) {
             lastPlayedIndexRef.current = -1;
         }
         lastHandNumberRef.current = handNumber;
@@ -57,31 +59,7 @@ export const useGameStateSounds = (enabled: boolean): void => {
         // a sound optimistically on click, so we only fire for other players.
         if (localAddress && latestAction.playerId === localAddress) return;
 
-        // Map SDK enum action value to sound key
-        const soundKey = (() => {
-            switch (latestAction.action) {
-                case PlayerActionType.FOLD:
-                    return "fold";
-                case PlayerActionType.CALL:
-                    return "call";
-                case PlayerActionType.CHECK:
-                case PlayerActionType.SMALL_BLIND:
-                case PlayerActionType.BIG_BLIND:
-                    return "check";
-                case PlayerActionType.BET:
-                    return "bet";
-                case PlayerActionType.RAISE:
-                    return "raise";
-                case PlayerActionType.ALL_IN:
-                    return "all-in";
-                case PlayerActionType.MUCK:
-                    return "muck";
-                case PlayerActionType.SHOW:
-                    return "show";
-                default:
-                    return null;
-            }
-        })();
+        const soundKey = getActionSoundKey(latestAction.action);
 
         if (soundKey) {
             playActionSound(soundKey);
