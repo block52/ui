@@ -38,4 +38,6 @@ export class IndexerApi extends HTTPClient {
     public getRandomnessAnalysis = () => this.get("/api/v1/analysis/randomness");
     public getHand = (gameId: string, handNumber: string) => this.get(`/api/v1/hands/${gameId}/${handNumber}`);
     public getHands = (gameId: string) => this.get(`/api/v1/hands?game_id=${gameId}&limit=100`);
+    /** Returns the single most recent indexed hand across all games. Used as a live test fixture. */
+    public getRecentHand = () => this.get("/api/v1/hands?limit=1");
 }
