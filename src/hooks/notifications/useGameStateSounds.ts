@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-import { PlayerActionType } from "@block52/poker-vm-sdk";
 import { useGameProgress } from "../game/useGameProgress";
 import { useActionSounds } from "./useActionSounds";
 import { getCosmosAddressSync } from "../../utils/cosmosAccountUtils";
