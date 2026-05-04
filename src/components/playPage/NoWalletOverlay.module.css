@@ -1,0 +1,80 @@
+.modalContainer {
+    background-color: var(--ui-bg-dark);
+    border: 1px solid var(--ui-border-color);
+}
+
+.dividerPrimary {
+    background: linear-gradient(to right, transparent, var(--brand-primary), transparent);
+}
+
+.suitPrimary {
+    color: var(--brand-primary);
+}
+
+.suitDanger {
+    color: var(--accent-danger);
+}
+
+.primaryButton {
+    background-color: var(--brand-primary);
+}
+
+.primaryButton:hover:not(:disabled) {
+    background-color: color-mix(in srgb, var(--brand-primary) 80%, white);
+}
+
+.secondaryButton {
+    background-color: var(--ui-bg-medium);
+    border: 1px solid color-mix(in srgb, var(--ui-border-color) 60%, transparent);
+}
+
+.secondaryButton:hover {
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 70%, white);
+}
+
+.ghostButton {
+    color: var(--ui-text-secondary);
+}
+
+.ghostButton:hover {
+    color: white;
+}
+
+.seedWordCard {
+    background-color: color-mix(in srgb, var(--table-bg-base) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.seedWordIndex {
+    color: var(--ui-text-secondary);
+}
+
+.textSecondary {
+    color: var(--ui-text-secondary);
+}
+
+.inputField {
+    background-color: color-mix(in srgb, var(--table-bg-base, #111827) 60%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    color: white;
+}
+
+.inputField:focus {
+    outline: none;
+    border-color: var(--brand-primary);
+}
+
+.copyButton {
+    background-color: var(--ui-bg-medium);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
+    color: var(--ui-text-secondary);
+}
+
+.copyButton:hover {
+    color: white;
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 70%, white);
+}
+
+.errorText {
+    color: var(--accent-danger);
+}
