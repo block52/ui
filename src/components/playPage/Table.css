@@ -177,7 +177,7 @@
 /* Bottom-right club logo watermark overlay */
 .club-watermark {
     position: fixed;
-    bottom: 180px;
+    bottom: 150px;
     right: 16px;
     z-index: 15;
     pointer-events: none;
