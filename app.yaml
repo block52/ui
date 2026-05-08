@@ -14,4 +14,14 @@ services:
         rewrite: /index.html
     envs:
       - key: REACT_APP_PROXY_URL
-        value: https://proxy.block52.xyz
+        scope: BUILD_TIME
+      - key: VITE_APP_TITLE
+        scope: BUILD_TIME
+      - key: VITE_APP_DESCRIPTION
+        scope: BUILD_TIME
+      - key: VITE_APP_URL
+        scope: BUILD_TIME
+      - key: VITE_APP_DOMAIN
+        scope: BUILD_TIME
+      - key: VITE_APP_IMAGE
+        scope: BUILD_TIME
