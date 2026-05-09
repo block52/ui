@@ -37,6 +37,7 @@ import { ProfileAvatarModal } from "./components/profile";
 import { PaymentApiProvider } from "./context/PaymentApiContext";
 import { CosmosApiProvider } from "./context/CosmosApiContext";
 import { IndexerApiProvider } from "./context/IndexerApiContext";
+import ErrorBoundary from "./components/common/ErrorBoundary";
 
 const queryClient = new QueryClient();
 
@@ -91,6 +92,7 @@ function AppContent() {
             <FaviconSetter />
             <GlobalHeader />
             <ProfileAvatarModal />
+            <ErrorBoundary>
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<Table />} />
@@ -124,6 +126,7 @@ function AppContent() {
                 <Route path="/node/:name" element={<NodeStatusPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
+            </ErrorBoundary>
             <ToastContainer
                 position="top-right"
                 autoClose={false}
