@@ -113,6 +113,8 @@ import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
+import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
+import NoWalletOverlay from "./NoWalletOverlay";
 
 // Table Error Page
 import TableErrorPage from "./TableErrorPage";
@@ -632,17 +634,28 @@ const Table = React.memo(() => {
     const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams } = useReplayMode();
     const indexerApi = useIndexerApi();
 
+    // No-wallet detection: must be declared before the subscribeToTable useEffect that depends on it.
+    const [hasWallet, setHasWallet] = useState<boolean>(() => !!getCosmosAddressSync());
+    const handleWalletReady = useCallback(() => {
+        setHasWallet(true);
+        // Now that the wallet is saved, start the WebSocket subscription
+        if (id) {
+            subscribeToTable(id);
+        }
+    }, [id, subscribeToTable]);
+
     useEffect(() => {
         if (id) {
             if (hasReplayParams && replayHandParam !== null && replayActionParam !== null) {
                 // Replay mode: fetch point-in-time snapshot from chain, no WebSocket.
                 loadHistoricalState(id, replayHandParam, replayActionParam);
-            } else {
-                // Live mode: subscribe to WebSocket.
+            } else if (hasWallet) {
+                // Live mode: only subscribe once we have a wallet — subscribing without
+                // one immediately sets an error that hides the NoWalletOverlay.
                 subscribeToTable(id);
             }
         }
-    }, [id, hasReplayParams, replayHandParam, replayActionParam, subscribeToTable, loadHistoricalState]);
+    }, [id, hasWallet, hasReplayParams, replayHandParam, replayActionParam, subscribeToTable, loadHistoricalState]);
 
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
@@ -750,12 +763,15 @@ const Table = React.memo(() => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
-    const { turnNotificationSound } = useGameSettings();
+    const { turnNotificationSound, playerActionSounds } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
         enableSound: turnNotificationSound,
         soundVolume: 0.3,
         flashInterval: 1000
     });
+
+    // Broadcast action sounds to all players at the table (not just the local user)
+    useGameStateSounds(playerActionSounds);
 
     // Add the useTableState hook to get table state properties
     const { tableSize } = useTableState();
@@ -1121,7 +1137,8 @@ const Table = React.memo(() => {
     }, [id, currentPlayerData, currentNetwork, fetchAccountBalance]);
 
     // Show error page if connection/general error occurred
-    if (error && id) {
+    // Do NOT show the error page when the user has no wallet — the overlay handles that case.
+    if (error && id && hasWallet) {
         const handleRetry = () => {
             unsubscribeFromTable();
             subscribeToTable(id);
@@ -1472,6 +1489,9 @@ const Table = React.memo(() => {
                     <img src={clubLogo} alt="Club Logo" />
                 </div>
             )}
+
+            {/* No-wallet overlay — blurs the table and walks the user through wallet setup */}
+            {!hasWallet && <NoWalletOverlay onWalletReady={handleWalletReady} />}
         </div>
     );
 });
