@@ -794,10 +794,8 @@ const Table = React.memo(() => {
     const { gameOptions } = useGameOptions();
 
     // Blind level info for SNG/Tournament games.
-    // levelStartTime is expected on gameOptions.otherOptions until promoted to a first-class field on GameOptionsDTO.
-    // While missing, hasTimer stays false and the countdown is hidden.
-    const levelStartTime = gameOptions?.otherOptions?.levelStartTime as number | undefined;
-    const blindLevel = useBlindLevel(levelStartTime);
+    // When the chain doesn't supply levelStartTime, hasTimer stays false and the countdown is hidden.
+    const blindLevel = useBlindLevel(gameOptions?.levelStartTime);
 
     // Add the useGameResults hook
     const { results } = useGameResults();
