@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { hasContent, hasValue } from "../../utils/guards";
 
 export interface SitAndGoPayoutPlace {
     place: number;
@@ -39,12 +40,12 @@ export const useSitAndGoPayouts = (): SitAndGoPayoutsReturn => {
         const options = gameState?.gameOptions;
         const minBuyIn = options?.minBuyIn;
         const maxPlayers = options?.maxPlayers;
-        if (!minBuyIn || !maxPlayers) {
+        if (!hasContent(minBuyIn) || !hasValue(maxPlayers)) {
             return { isSitAndGo: true, prizePool: null, places: [] };
         }
 
         const curve = PAYOUT_CURVES[maxPlayers];
-        if (!curve) {
+        if (!hasValue(curve)) {
             return { isSitAndGo: true, prizePool: null, places: [] };
         }
 
