@@ -797,6 +797,22 @@ const Table = React.memo(() => {
     // When the chain doesn't supply levelStartTime, hasTimer stays false and the countdown is hidden.
     const blindLevel = useBlindLevel(gameOptions?.levelStartTime);
 
+    // TEMP DEBUG (#330): verify chain is sending blind-level timer fields. Remove after confirming.
+    if (gameOptions) {
+        // eslint-disable-next-line no-console
+        console.log("[blind-timer-debug]", {
+            levelStartTime: gameOptions.levelStartTime,
+            blindLevelDuration: gameOptions.blindLevelDuration,
+            blindLevel: gameOptions.blindLevel,
+            smallBlind: gameOptions.smallBlind,
+            bigBlind: gameOptions.bigBlind,
+            nextSmallBlind: gameOptions.nextSmallBlind,
+            nextBigBlind: gameOptions.nextBigBlind,
+            hasTimer: blindLevel.hasTimer,
+            secondsRemaining: blindLevel.secondsRemaining,
+        });
+    }
+
     // Add the useGameResults hook
     const { results } = useGameResults();
 
