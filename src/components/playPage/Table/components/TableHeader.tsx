@@ -17,6 +17,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
+import SngPayoutPanel from "../../SngPayoutPanel";
 import { formatGameFormatDisplay } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { BlindLevelInfo } from "../../../../hooks/game/useBlindLevel";
@@ -268,6 +269,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                 <FaShare size={10} />
                                 <span className="hidden sm:inline">Share</span>
                             </button>
+                            <SngPayoutPanel />
                             <a
                                 href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(`${window.location.origin}/explorer/hand/${tableId}/${handNumber}`)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
                                 target="_blank"

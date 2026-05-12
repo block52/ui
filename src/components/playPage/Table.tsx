@@ -113,7 +113,6 @@ import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
-import SngPayoutPanel from "./SngPayoutPanel";
 import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
 import NoWalletOverlay from "./NoWalletOverlay";
 
@@ -1392,9 +1391,6 @@ const Table = React.memo(() => {
 
                 {/* Live Hand Strength Display */}
                 <LiveHandStrengthDisplay />
-
-                {/* SNG payout positions — lower-right of table body */}
-                <SngPayoutPanel />
             </div>
 
             {/*//! FOOTER — hidden in replay mode (read-only) */}
