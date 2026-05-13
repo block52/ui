@@ -58,7 +58,14 @@ export const useCosmosGameState = (gameId: string, playerAddress?: string): UseC
     const performAction = useCallback(async (action: string, amountB52USDC: bigint = 0n): Promise<string> => {
         try {
             setError(null);
-            const txHash = await cosmosClient.performActionSync(gameId, action, amountB52USDC);
+            // NOTE: cosmosClient is a CosmosClient (read-only base class).
+            // performActionSync only exists on SigningCosmosClient, so we
+            // keep performAction here. The hook is in `src/hooks/game/`
+            // and appears to be unused by the main action flow (real
+            // submissions go through useOptimisticAction / playerActions/);
+            // this codepath would need a wider refactor to construct a
+            // SigningCosmosClient before it could use the sync variant.
+            const txHash = await cosmosClient.performAction(gameId, action, amountB52USDC);
 
             // Refetch game state after action
             setTimeout(() => {
