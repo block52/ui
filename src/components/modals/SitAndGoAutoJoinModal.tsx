@@ -189,26 +189,14 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             console.error("❌ Failed to join Sit & Go:", error);
             setBuyInError(error.message || "Failed to join table");
         }
-    }, [
-        publicKey,
-        tableId,
-        isUserAlreadyPlaying,
-        hasJoined,
-        emptySeatIndexes.length,
-        maxBuyInFormatted,
-        balanceFormatted,
-        gameOptions,
-        joinSitAndGo,
-        subscribeToTable,
-        onJoinSuccess
-    ]);
+    }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, joinSitAndGo, subscribeToTable, onJoinSuccess]);
 
     // Don't show modal if user is already playing or has joined
     if (isUserAlreadyPlaying || hasJoined) {
         return null;
     }
 
-    const playerCountLabel = getGameTypeMnemonic(gameOptions?.minPlayers);
+    const playerCountLabel = getGameTypeMnemonic(gameOptions?.maxPlayers);
 
     // Compact mode for mobile landscape (short viewport)
     const isCompact = typeof window !== "undefined" && window.innerHeight <= 500;
