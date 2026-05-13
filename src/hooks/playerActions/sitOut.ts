@@ -24,7 +24,7 @@ export async function sitOut(
 ): Promise<PlayerActionResult> {
     const { signingClient } = await getSigningClient(network);
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "sit-out",
         0n,

@@ -14,7 +14,7 @@ export async function foldHand(tableId: string, network: NetworkEndpoints): Prom
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "fold",
         0n

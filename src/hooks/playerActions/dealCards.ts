@@ -14,7 +14,7 @@ export async function dealCards(tableId: string, network: NetworkEndpoints): Pro
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "deal",
         0n
@@ -45,7 +45,7 @@ export async function dealCardsWithEntropy(
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "deal",
         0n,

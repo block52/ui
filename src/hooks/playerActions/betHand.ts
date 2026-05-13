@@ -15,7 +15,7 @@ export async function betHand(tableId: string, amount: bigint, network: NetworkE
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "bet",
         amount

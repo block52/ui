@@ -15,7 +15,7 @@ export async function raiseHand(tableId: string, amount: bigint, network: Networ
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "raise",
         amount

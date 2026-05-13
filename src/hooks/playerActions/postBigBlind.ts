@@ -15,7 +15,7 @@ export async function postBigBlind(tableId: string, amount: bigint, network: Net
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "post-big-blind",
         amount

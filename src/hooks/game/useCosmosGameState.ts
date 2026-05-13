@@ -58,7 +58,7 @@ export const useCosmosGameState = (gameId: string, playerAddress?: string): UseC
     const performAction = useCallback(async (action: string, amountB52USDC: bigint = 0n): Promise<string> => {
         try {
             setError(null);
-            const txHash = await cosmosClient.performAction(gameId, action, amountB52USDC);
+            const txHash = await cosmosClient.performActionSync(gameId, action, amountB52USDC);
 
             // Refetch game state after action
             setTimeout(() => {

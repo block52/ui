@@ -14,7 +14,7 @@ export async function checkHand(tableId: string, network: NetworkEndpoints): Pro
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "check",
         0n

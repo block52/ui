@@ -17,7 +17,7 @@ export async function leaveTable(tableId: string, value: string, network: Networ
 
 
     // Call SigningCosmosClient.performAction() with "leave" action
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "leave",
         BigInt(value)

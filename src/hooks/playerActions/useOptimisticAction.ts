@@ -45,7 +45,18 @@ interface UseOptimisticActionReturn {
 
 /**
  * Execute a poker action on the Cosmos blockchain.
- * Uses the SDK's performAction method directly.
+ *
+ * Uses the SDK's performActionSync method (CheckTx-only, returns in
+ * ~50-100ms) rather than performAction (waits for block inclusion,
+ * ~5s with current chain config). The authoritative state arrives
+ * via the WebSocket push once the block commits; the SDK throws here
+ * only on CheckTx rejection (invalid signature, insufficient gas,
+ * malformed message) — that's the immediate rollback signal.
+ *
+ * The "no WS confirmation within N seconds" timeout-based rollback
+ * is a separate enhancement tracked as a follow-up on block52/ui#359.
+ *
+ * Refs: block52/ui#359, block52/poker-vm#2104.
  */
 async function executeAction(
     tableId: string,
@@ -56,7 +67,7 @@ async function executeAction(
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         action,
         amount

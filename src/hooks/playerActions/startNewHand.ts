@@ -14,7 +14,7 @@ export async function startNewHand(tableId: string, network: NetworkEndpoints): 
     const { signingClient, userAddress } = await getSigningClient(network);
 
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "new-hand",
         0n

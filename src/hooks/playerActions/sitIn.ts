@@ -33,7 +33,7 @@ export async function sitIn(
         data: `method=${method}`
     });
 
-    const transactionHash = await signingClient.performAction(
+    const transactionHash = await signingClient.performActionSync(
         tableId,
         "sit-in",
         0n,
