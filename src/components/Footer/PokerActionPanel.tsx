@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useSearchParams } from "react-router-dom";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
@@ -258,8 +259,25 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoNewHandEnabled
     );
 
-    // Show deal button if player has the deal action
-    const shouldShowDealButton = hasDealAction && isUsersTurn;
+    // Manual-button visibility flags (block52/ui#368). The deal +
+    // post-blind buttons are largely redundant once the corresponding
+    // auto-action is enabled — auto-fires near-instantly, the manual
+    // button just flashes. Hide by default. Query-string flags reveal
+    // them for power-users / debugging, mirroring the existing
+    // ?autodeal=false / ?autoblinds=false convention.
+    //
+    // Auto-fallback: if a user explicitly disables an auto-action
+    // (e.g. ?autodeal=false), the corresponding manual button shows
+    // regardless — otherwise the table would be bricked (no way to
+    // perform the action).
+    const [searchParams] = useSearchParams();
+    const manualDealEnabled = searchParams.get("manualdeal") === "true";
+    const manualBlindsEnabled = searchParams.get("manualblinds") === "true";
+
+    // Show deal button if player has the deal action AND
+    // (manual flag is on OR auto-deal is off).
+    const shouldShowDealButton =
+        hasDealAction && isUsersTurn && (manualDealEnabled || !autoDealEnabled);
     const hideOtherButtons = shouldShowDealButton;
 
     // Get action details
@@ -434,13 +452,18 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         const shouldShowSmallBlindButton = hasSmallBlindAction && isUsersTurn;
         const shouldShowBigBlindButton = hasBigBlindAction && isUsersTurn;
 
+        // Same auto-fallback shape as the deal button — manual blinds
+        // appear when the manual flag is on OR auto-post-blinds is off.
+        // block52/ui#368.
+        const blindsManualOrAutoOff = manualBlindsEnabled || !autoPostBlindsEnabled;
+
         return {
             canFoldAnytime: hasFoldAction && playerStatus !== PlayerStatus.FOLDED && showButtons,
             showActionButtons: isUsersTurn && legalActions && legalActions.length > 0 && showButtons,
-            showSmallBlindButton: shouldShowSmallBlindButton && showButtons,
-            showBigBlindButton: shouldShowBigBlindButton && showButtons
+            showSmallBlindButton: shouldShowSmallBlindButton && showButtons && blindsManualOrAutoOff,
+            showBigBlindButton: shouldShowBigBlindButton && showButtons && blindsManualOrAutoOff
         };
-    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions]);
+    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions, manualBlindsEnabled, autoPostBlindsEnabled]);
 
     // Increment/decrement handlers - always step by big blind amount
     const getStep = (): number => {
