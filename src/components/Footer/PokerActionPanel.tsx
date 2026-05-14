@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import {
@@ -349,9 +350,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // Canonical clear: chain has advanced past the actionCount at which
     // we submitted, i.e. our action was committed.
     useEffect(() => {
-        if (pendingActionCount === null) return;
+        if (isNullish(pendingActionCount)) return;
         const current = gameState?.actionCount;
-        if (current !== undefined && current > pendingActionCount) {
+        if (!isNullish(current) && current > pendingActionCount) {
             setLoadingAction(null);
             setPendingActionCount(null);
         }
@@ -362,7 +363,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // never advanced). After DIRTY_STATE_TIMEOUT_MS, re-enable the button
     // so the user can try again.
     useEffect(() => {
-        if (pendingActionCount === null) return;
+        if (isNullish(pendingActionCount)) return;
         const t = setTimeout(() => {
             console.warn(
                 `[action] no confirmation within ${DIRTY_STATE_TIMEOUT_MS}ms ` +
