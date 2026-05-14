@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import {
@@ -59,6 +60,21 @@ import type { PokerActionPanelProps } from "./types";
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
     // Loading state for actions
     const [loadingAction, setLoadingAction] = useState<string | null>(null);
+
+    // "Dirty" tracker for the gap between SDK SYNC return (~50ms) and the
+    // WS push delivering the committed state (~5s). We capture the chain's
+    // actionCount at submit time and keep loadingAction set until the chain
+    // says "I processed your action" by advancing past that number. Without
+    // this, the button stops spinning ~50ms after click but the panel sits
+    // with stale legalActions for the rest of the block budget, letting the
+    // player re-click the same action. See block52/ui#364.
+    const [pendingActionCount, setPendingActionCount] = useState<number | null>(null);
+
+    // How long to wait for the chain to confirm before re-enabling the
+    // button anyway. Generous enough to survive a slow WS / 5s commit
+    // window, tight enough that a genuinely stuck state recovers within
+    // the player's per-turn timeout budget.
+    const DIRTY_STATE_TIMEOUT_MS = 8000;
 
     // Action sounds
     const { playActionSound } = useActionSounds();
@@ -294,11 +310,24 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         }
     }, [hasRaiseAction, hasBetAction, minRaise, minBet]);
 
-    // Helper function to wrap action handlers with loading state
+    // Helper function to wrap action handlers with loading state.
+    // The spinner stays on until ONE of:
+    //   - chain advances actionCount past the value captured at submit
+    //     (see the watcher useEffect below — canonical confirmation)
+    //   - DIRTY_STATE_TIMEOUT_MS elapses (escape hatch useEffect below)
+    //   - actionFn() throws (CheckTx rejected — clear immediately so the
+    //     user can retry)
+    // We intentionally do NOT clear in a `finally` after a successful
+    // SDK return: with SYNC broadcast that fires ~50ms after click,
+    // which used to be ~5s under BLOCK broadcast — leaving the button
+    // re-enabled while the panel still showed stale legalActions.
+    // block52/ui#364.
     const handleActionWithTransaction = useCallback(
         async (actionName: string, actionFn: () => Promise<string | null>, skipActionSound = false) => {
+            const submittedAt = gameState?.actionCount ?? 0;
             try {
                 setLoadingAction(actionName);
+                setPendingActionCount(submittedAt);
                 if (!skipActionSound && playerActionSounds) {
                     playActionSound(actionName);
                 }
@@ -306,15 +335,45 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 if (txHash && onTransactionSubmitted) {
                     onTransactionSubmitted(txHash);
                 }
+                // Success path: let the watcher useEffect clear when the
+                // chain confirms via actionCount, or the timeout fires.
             } catch (error) {
                 console.error(`Error executing ${actionName}:`, error);
-                throw error;
-            } finally {
                 setLoadingAction(null);
+                setPendingActionCount(null);
+                throw error;
             }
         },
-        [onTransactionSubmitted, playActionSound, playerActionSounds]
+        [gameState?.actionCount, onTransactionSubmitted, playActionSound, playerActionSounds]
     );
+
+    // Canonical clear: chain has advanced past the actionCount at which
+    // we submitted, i.e. our action was committed.
+    useEffect(() => {
+        if (isNullish(pendingActionCount)) return;
+        const current = gameState?.actionCount;
+        if (!isNullish(current) && current > pendingActionCount) {
+            setLoadingAction(null);
+            setPendingActionCount(null);
+        }
+    }, [gameState?.actionCount, pendingActionCount]);
+
+    // Escape hatch: WS push never arrived (chain stalled, WS disconnect,
+    // or — rare — CheckTx passed but DeliverTx rejected so actionCount
+    // never advanced). After DIRTY_STATE_TIMEOUT_MS, re-enable the button
+    // so the user can try again.
+    useEffect(() => {
+        if (isNullish(pendingActionCount)) return;
+        const t = setTimeout(() => {
+            console.warn(
+                `[action] no confirmation within ${DIRTY_STATE_TIMEOUT_MS}ms ` +
+                    `for actionCount=${pendingActionCount}; clearing dirty state.`,
+            );
+            setLoadingAction(null);
+            setPendingActionCount(null);
+        }, DIRTY_STATE_TIMEOUT_MS);
+        return () => clearTimeout(t);
+    }, [pendingActionCount]);
 
     // Handler for dealing cards with entropy
     const handleDealWithEntropy = useCallback(
