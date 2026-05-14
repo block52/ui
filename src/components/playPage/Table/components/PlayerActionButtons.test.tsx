@@ -23,6 +23,14 @@ jest.mock("../../../common/actionHandlers", () => ({
     handleSitOut: (...args: unknown[]) => mockHandleSitOut(...args),
 }));
 
+// Mock GameStateContext — the sit-in dirty state added in block52/ui#367
+// reads actionCount from this context. These tests don't exercise that
+// pathway (they assert render structure + click handlers), so a static
+// stub is sufficient.
+jest.mock("../../../../context/GameStateContext", () => ({
+    useGameStateContext: () => ({ gameState: { actionCount: 0 } }),
+}));
+
 // Mock getPlayerActionDisplay — import the real module so we can spy on it
 jest.mock("../../../../utils/playerActionDisplayUtils", () => {
     const actual = jest.requireActual("../../../../utils/playerActionDisplayUtils");
