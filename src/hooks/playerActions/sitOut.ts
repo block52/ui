@@ -1,4 +1,5 @@
 import { getSigningClient } from "../../utils/cosmos/client";
+import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
 import type { SitOutMethod } from "@block52/poker-vm-sdk";
@@ -26,7 +27,7 @@ export async function sitOut(
 
     const transactionHash = await signingClient.performActionSync(
         tableId,
-        "sit-out",
+        NonPlayerActionType.SIT_OUT,
         0n,
         `method=${method}`
     );
@@ -34,6 +35,6 @@ export async function sitOut(
     return {
         hash: transactionHash,
         gameId: tableId,
-        action: "sit-out"
+        action: NonPlayerActionType.SIT_OUT
     };
 }

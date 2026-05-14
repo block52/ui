@@ -1,4 +1,5 @@
 import { getSigningClient } from "../../utils/cosmos/client";
+import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { LeaveTableResult } from "../../types";
 
@@ -13,13 +14,13 @@ import type { LeaveTableResult } from "../../types";
  * @throws Error if Cosmos wallet is not initialized or if the action fails
  */
 export async function leaveTable(tableId: string, value: string, network: NetworkEndpoints, _nonce?: number): Promise<LeaveTableResult> {
-    const { signingClient, userAddress } = await getSigningClient(network);
+    const { signingClient } = await getSigningClient(network);
 
 
     // Call SigningCosmosClient.performAction() with "leave" action
     const transactionHash = await signingClient.performActionSync(
         tableId,
-        "leave",
+        NonPlayerActionType.LEAVE,
         BigInt(value)
     );
 
@@ -27,7 +28,7 @@ export async function leaveTable(tableId: string, value: string, network: Networ
     return {
         hash: transactionHash,
         gameId: tableId,
-        action: "leave",
+        action: NonPlayerActionType.LEAVE,
         value
     };
 }

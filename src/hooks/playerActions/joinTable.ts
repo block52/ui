@@ -1,4 +1,5 @@
 import { COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import { getSigningClient } from "../../utils/cosmos/client";
 import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
@@ -18,7 +19,7 @@ export async function joinTable(tableId: string, options: JoinTableOptions, netw
         throw new Error("Table ID is required to join a table");
     }
 
-    const { signingClient, userAddress } = await getSigningClient(network);
+    const { signingClient } = await getSigningClient(network);
 
 
     // Convert buy-in amount from USDC to micro-USDC (b52usdc)

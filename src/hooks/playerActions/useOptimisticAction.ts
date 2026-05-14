@@ -64,7 +64,7 @@ async function executeAction(
     amount: bigint,
     network: NetworkEndpoints
 ): Promise<PlayerActionResult> {
-    const { signingClient, userAddress } = await getSigningClient(network);
+    const { signingClient } = await getSigningClient(network);
 
 
     const transactionHash = await signingClient.performActionSync(

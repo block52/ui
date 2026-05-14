@@ -1,4 +1,5 @@
 import { getSigningClient } from "../../utils/cosmos/client";
+import { PlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
 
@@ -12,12 +13,12 @@ import type { PlayerActionResult } from "../../types";
  * @throws Error if Cosmos wallet is not initialized or if the action fails
  */
 export async function callHand(tableId: string, amount: bigint, network: NetworkEndpoints): Promise<PlayerActionResult> {
-    const { signingClient, userAddress } = await getSigningClient(network);
+    const { signingClient } = await getSigningClient(network);
 
 
     const transactionHash = await signingClient.performActionSync(
         tableId,
-        "call",
+        PlayerActionType.CALL,
         amount
     );
 
@@ -25,7 +26,7 @@ export async function callHand(tableId: string, amount: bigint, network: Network
     return {
         hash: transactionHash,
         gameId: tableId,
-        action: "call",
+        action: PlayerActionType.CALL,
         amount: amount.toString()
     };
 }

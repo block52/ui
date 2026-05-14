@@ -1,4 +1,5 @@
 import { getSigningClient } from "../../utils/cosmos/client";
+import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
 
@@ -23,19 +24,18 @@ export async function sitIn(
 ): Promise<PlayerActionResult> {
     console.log("🔧 sitIn() called with:", { tableId, method });
     console.log("🔑 Getting signing client...");
-    const { signingClient, userAddress } = await getSigningClient(network);
-    console.log("✅ Signing client obtained, userAddress:", userAddress);
+    const { signingClient } = await getSigningClient(network);
 
     console.log("📡 Calling SDK performAction with:", {
         tableId,
-        action: "sit-in",
+        action: NonPlayerActionType.SIT_IN,
         amount: "0n",
         data: `method=${method}`
     });
 
     const transactionHash = await signingClient.performActionSync(
         tableId,
-        "sit-in",
+        NonPlayerActionType.SIT_IN,
         0n,
         `method=${method}`
     );
@@ -45,6 +45,6 @@ export async function sitIn(
     return {
         hash: transactionHash,
         gameId: tableId,
-        action: "sit-in"
+        action: NonPlayerActionType.SIT_IN
     };
 }
