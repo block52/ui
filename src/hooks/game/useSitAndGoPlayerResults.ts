@@ -45,7 +45,13 @@ export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
         return allResults.length > 0;
     }, [allResults]);
 
-    // Get result for a specific player address
+    // Get result for a specific player address.
+    //
+    // ONLY reads from gameState.results (tournament-final placements),
+    // never synthesizes a place from gameState.winners (per-hand winner).
+    // Conflating the two used to render "1st Place" overlays on hand
+    // winners mid-tournament — when winners[] was populated but the
+    // player wasn't yet in results[]. See test file's REGRESSION block.
     const getPlayerResult = useMemo(() => {
         return (playerAddress: string): PlayerResultData | null => {
             if (!playerAddress || !hasResults) return null;
@@ -55,22 +61,7 @@ export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
                 r => r.playerId?.toLowerCase() === playerAddress.toLowerCase()
             );
 
-            if (!result) {
-                // Check if player is the winner (not in results but won)
-                const winner = gameState?.winners?.find(
-                    w => w.address?.toLowerCase() === playerAddress.toLowerCase()
-                );
-
-                if (winner) {
-                    // Winner gets 1st place - return raw BigInt string
-                    return {
-                        place: 1,
-                        payout: winner.amount || "0",
-                        isWinner: true
-                    };
-                }
-                return null;
-            }
+            if (!result) return null;
 
             return {
                 place: result.place,
@@ -78,7 +69,7 @@ export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
                 isWinner: result.place === 1
             };
         };
-    }, [allResults, hasResults, gameState?.winners]);
+    }, [allResults, hasResults]);
 
     // Get result for a specific seat number
     const getSeatResult = useMemo(() => {
