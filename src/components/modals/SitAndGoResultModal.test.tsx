@@ -25,6 +25,33 @@ jest.mock("../../utils/numberUtils", () => ({
     formatUSDCToSimpleDollars: (raw: string) => raw,
 }));
 
+// Stub the Claim NFT flow's hooks. The render-level assertions in
+// this suite cover the "Leave Table" path + content variants; the
+// Claim flow has its own dedicated tests elsewhere. Mocks here are
+// inert so the modal mounts cleanly.
+const mockFetchSignature = jest.fn();
+jest.mock("../../hooks/game/useFetchSngClaimSignature", () => ({
+    useFetchSngClaimSignature: () => ({ fetchSignature: mockFetchSignature }),
+}));
+const mockClaim = jest.fn();
+jest.mock("../../hooks/wallet/useClaimSngWinNFT", () => ({
+    useClaimSngWinNFT: () => ({
+        claim: mockClaim,
+        hash: undefined,
+        isClaimPending: false,
+        isClaimConfirmed: false,
+        claimError: null,
+    }),
+}));
+jest.mock("../../hooks/wallet/useUserWalletConnect", () => ({
+    __esModule: true,
+    default: () => ({
+        address: "0xUSER",
+        isConnected: true,
+        open: jest.fn(),
+    }),
+}));
+
 const TABLE_ID = "0xabc";
 const USER_ADDRESS = "b521user";
 
@@ -37,6 +64,8 @@ beforeEach(() => {
     localStorage.clear();
     mockGetPlayerResult.mockReset();
     mockIsSitAndGo.mockReset();
+    mockFetchSignature.mockReset();
+    mockClaim.mockReset();
     mockIsSitAndGo.mockReturnValue(true);
     setStoredAddress(USER_ADDRESS);
 });
@@ -116,5 +145,61 @@ describe("SitAndGoResultModal", () => {
         render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} />);
 
         expect(screen.queryByTestId("sng-result-modal")).toBeNull();
+    });
+
+    describe("Claim NFT button (block52/poker-vm#2119)", () => {
+        // The button is conditionally rendered: only on paid finishes.
+
+        it("shows the Claim NFT button for a paid finish", () => {
+            mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} />);
+            expect(screen.getByTestId("sng-result-claim-btn")).toBeInTheDocument();
+        });
+
+        it("does NOT show the Claim NFT button for an unpaid finish", () => {
+            mockGetPlayerResult.mockReturnValue({ place: 4, payout: "0", isWinner: false });
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} />);
+            expect(screen.queryByTestId("sng-result-claim-btn")).toBeNull();
+        });
+
+        it("Claim flow: signature fetched → contract claim called", async () => {
+            const payload = {
+                recipient: "0xUSER" as const,
+                gameId: "0xabc" as const,
+                place: 2,
+                payout: "400000",
+                timestamp: 1747300000,
+                format: "0xff" as const,
+                signature: "0xsig" as const,
+            };
+            mockFetchSignature.mockResolvedValue(payload);
+            mockClaim.mockResolvedValue(undefined);
+            mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
+
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} />);
+            fireEvent.click(screen.getByTestId("sng-result-claim-btn"));
+
+            // Both calls should fire in order.
+            await new Promise(r => setTimeout(r, 0)); // flush microtasks
+            expect(mockFetchSignature).toHaveBeenCalledWith(TABLE_ID, USER_ADDRESS.toLowerCase());
+            expect(mockClaim).toHaveBeenCalledWith(payload);
+        });
+
+        it("surfaces the structured 'feature not yet live' error when fetchSignature throws", async () => {
+            mockFetchSignature.mockRejectedValue(
+                new Error("SNG win-NFT claim endpoint not yet deployed on the chain"),
+            );
+            mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
+
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} />);
+            fireEvent.click(screen.getByTestId("sng-result-claim-btn"));
+
+            // Error renders into the dedicated error slot.
+            await screen.findByTestId("sng-result-claim-error");
+            expect(screen.getByTestId("sng-result-claim-error")).toHaveTextContent(
+                /not yet deployed/i,
+            );
+            expect(mockClaim).not.toHaveBeenCalled();
+        });
     });
 });

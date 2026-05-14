@@ -18,8 +18,18 @@
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { useSitAndGoPlayerResults } from "../../hooks/game/useSitAndGoPlayerResults";
+import { useFetchSngClaimSignature } from "../../hooks/game/useFetchSngClaimSignature";
+import { useClaimSngWinNFT } from "../../hooks/wallet/useClaimSngWinNFT";
+import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { isNullish } from "../../utils/guards";
+
+type ClaimState =
+    | { kind: "idle" }
+    | { kind: "fetching" }    // fetching the validator signature from the chain
+    | { kind: "submitting" }  // user has signed in MetaMask; waiting for chain receipt
+    | { kind: "done" }
+    | { kind: "error"; message: string };
 
 const PLACE_SUFFIX = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 const ordinal = (place: number): string => PLACE_SUFFIX[place - 1] ?? `${place}th`;
@@ -72,6 +82,34 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
         setDismissed(localStorage.getItem(dismissKey(tableId, userAddress)) === "true");
     }, [tableId, userAddress]);
 
+    // Claim-NFT flow. Wired but currently gated on
+    // block52/poker-vm#2119 piece 2 (chain signature endpoint) and
+    // piece 1 deploy (contract address). The button surfaces the
+    // structured error from the underlying hook if either is missing
+    // so the user sees a clear "coming soon" message rather than a
+    // silent failure or zero-address tx.
+    const { fetchSignature } = useFetchSngClaimSignature();
+    const { claim, isClaimConfirmed, claimError, hash: claimHash } = useClaimSngWinNFT();
+    const { address: web3Address, isConnected: isWeb3Connected, open: openWalletConnect } = useUserWalletConnect();
+    const [claimState, setClaimState] = useState<ClaimState>({ kind: "idle" });
+
+    // Flip to "done" once wagmi's useWaitForTransactionReceipt fires.
+    useEffect(() => {
+        if (isClaimConfirmed && claimState.kind === "submitting") {
+            setClaimState({ kind: "done" });
+        }
+    }, [isClaimConfirmed, claimState.kind]);
+
+    // Wagmi-level error (e.g. user rejected in MetaMask, RPC failed).
+    useEffect(() => {
+        if (claimError && claimState.kind === "submitting") {
+            setClaimState({
+                kind: "error",
+                message: claimError.message || "MetaMask transaction failed",
+            });
+        }
+    }, [claimError, claimState.kind]);
+
     if (isNullish(playerResult) || dismissed) return null;
     if (isNullish(tableId) || isNullish(userAddress)) return null;
 
@@ -84,6 +122,24 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
         localStorage.setItem(dismissKey(tableId, userAddress), "true");
         setDismissed(true);
         await onLeave();
+    };
+
+    const handleClaimClick = async () => {
+        if (!isWeb3Connected || !web3Address) {
+            // Nudge the user to connect MetaMask first.
+            openWalletConnect();
+            return;
+        }
+        try {
+            setClaimState({ kind: "fetching" });
+            const payload = await fetchSignature(tableId, userAddress);
+            setClaimState({ kind: "submitting" });
+            await claim(payload);
+        } catch (e) {
+            const message =
+                e instanceof Error ? e.message : "Failed to claim NFT";
+            setClaimState({ kind: "error", message });
+        }
     };
 
     // Copy: paid finishers get the celebratory variant (with payout
@@ -138,6 +194,47 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
                                 ${formatUSDCToSimpleDollars(payout)}
                             </div>
                         </div>
+                    )}
+
+                    {isPaid && (
+                        <button
+                            onClick={handleClaimClick}
+                            disabled={
+                                claimState.kind === "fetching" ||
+                                claimState.kind === "submitting" ||
+                                claimState.kind === "done"
+                            }
+                            data-testid="sng-result-claim-btn"
+                            className="w-full py-3 px-4 mb-3 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 text-sm font-semibold hover:bg-purple-500/20 hover:border-purple-500/60 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {claimState.kind === "fetching" && "Requesting signature…"}
+                            {claimState.kind === "submitting" && "Confirm in MetaMask…"}
+                            {claimState.kind === "done" && "✓ NFT Claimed"}
+                            {(claimState.kind === "idle" || claimState.kind === "error") && "Claim NFT"}
+                        </button>
+                    )}
+
+                    {claimState.kind === "error" && (
+                        <p
+                            className="text-xs text-red-400 text-center mb-3"
+                            data-testid="sng-result-claim-error"
+                        >
+                            {claimState.message}
+                        </p>
+                    )}
+
+                    {claimState.kind === "done" && claimHash && (
+                        <p className="text-xs text-green-300 text-center mb-3">
+                            Tx:{" "}
+                            <a
+                                href={`https://etherscan.io/tx/${claimHash}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="underline hover:text-green-200"
+                            >
+                                {`${claimHash.slice(0, 10)}…${claimHash.slice(-8)}`}
+                            </a>
+                        </p>
                     )}
 
                     <button
