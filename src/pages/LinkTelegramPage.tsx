@@ -46,10 +46,14 @@ export const LinkTelegramPage: React.FC = () => {
 
         try {
             // Lazy-load gramjs — keeps the main bundle slim.
-            const [{ TelegramClient }, { StringSession }] = await Promise.all([
+            // gramjs is CommonJS; Vite's dep optimizer exposes the whole module
+            // as `default`, so named exports must be destructured off that.
+            const [telegramMod, sessionsMod] = await Promise.all([
                 import("telegram"),
                 import("telegram/sessions")
             ]);
+            const { TelegramClient } = telegramMod.default;
+            const { StringSession } = sessionsMod.default;
 
             const sessionKey = SESSION_KEY_PREFIX + cosmosAddress;
             const savedSession = window.localStorage.getItem(sessionKey) || "";
