@@ -158,6 +158,17 @@ export const formatForSitAndGo = (value: number): string => {
 };
 
 /**
+ * Format a Sit & Go chip-stack string (the on-the-wire DTO form — Commandment 9)
+ * for display, bridging string → number → "1,500"-style output in one place so
+ * call sites don't repeat bare `Number(...)` casts (Commandment 12).
+ * @param stack Stack value as a string in chip units (NOT USDC microunits)
+ * @returns Formatted string like "1,500" or "10,000"
+ */
+export const formatSitAndGoStackString = (stack: string): string => {
+    return formatForSitAndGo(Number(stack));
+};
+
+/**
  * Format stack values for Cash Games
  * Shows with dollar sign and 2 decimal places
  * @param value The stack value as a number
