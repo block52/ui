@@ -4,19 +4,52 @@
  * Displays a modal for players who have joined a Sit & Go tournament
  * and are waiting for more players to fill the table before the game starts.
  */
-import React, { useMemo } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
+import { formatSitAndGoStackString } from "../../utils/numberUtils";
 import styles from "./SitAndGoWaitingModal.module.css";
 
 interface SitAndGoWaitingModalProps {
-    onLeaveClick?: () => void;
+    onLeaveConfirm?: () => Promise<void>;
+    playerStack?: string;
 }
 
-const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveClick }) => {
+const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConfirm, playerStack }) => {
     const { gameOptions } = useGameOptions();
     const { emptySeatIndexes } = useVacantSeatData();
+
+    const [isConfirming, setIsConfirming] = useState(false);
+    const [isLeaving, setIsLeaving] = useState(false);
+    const [leaveError, setLeaveError] = useState<string | null>(null);
+
+    const handleLeaveClick = useCallback(() => {
+        setLeaveError(null);
+        setIsConfirming(true);
+    }, []);
+
+    const handleCancel = useCallback(() => {
+        setIsConfirming(false);
+        setLeaveError(null);
+    }, []);
+
+    const handleConfirm = useCallback(async () => {
+        if (!onLeaveConfirm) return;
+        setIsLeaving(true);
+        setLeaveError(null);
+        try {
+            await onLeaveConfirm();
+        } catch (err) {
+            console.error("Error leaving SNG table:", err);
+            setLeaveError(err instanceof Error ? err.message : "Failed to leave table. Please try again.");
+            setIsLeaving(false);
+        }
+    }, [onLeaveConfirm]);
+
+    const chipsLabel = playerStack !== undefined ? formatSitAndGoStackString(playerStack) : null;
+    const buyInLabel = gameOptions?.startingStack ? formatSitAndGoStackString(gameOptions.startingStack) : null;
+    const canShowLeaveUi = onLeaveConfirm !== undefined && playerStack !== undefined;
 
     // Calculate players joined
     const playersJoined = useMemo(() => {
@@ -108,16 +141,56 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveClic
                         </div>
                     </div>
 
-                    
-                    {/* Leave Game Button */}
-                    {onLeaveClick && (
+
+                    {/* Leave Game — inline two-step confirmation (no separate modal) */}
+                    {canShowLeaveUi && !isConfirming && (
                         <div className="mb-4">
                             <button
-                                onClick={onLeaveClick}
+                                onClick={handleLeaveClick}
                                 className="w-full py-2 px-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 hover:border-red-500/60 transition-colors duration-200"
                             >
                                 Leave Game
                             </button>
+                        </div>
+                    )}
+
+                    {canShowLeaveUi && isConfirming && (
+                        <div className="mb-4 bg-gray-700/80 backdrop-blur-sm rounded-lg p-4 border border-red-500/40">
+                            <p className="text-white text-sm font-semibold mb-3 text-center">Leave this tournament?</p>
+
+                            <div className="space-y-1.5 mb-3">
+                                <div className="flex justify-between items-center text-sm">
+                                    <span className="text-gray-400">Your Chips:</span>
+                                    <span className="text-white font-bold">{chipsLabel}</span>
+                                </div>
+                                {buyInLabel && (
+                                    <div className="flex justify-between items-center text-xs">
+                                        <span className="text-gray-500">Buy-In:</span>
+                                        <span className="text-gray-300">{buyInLabel}</span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {leaveError && (
+                                <p className="text-red-400 text-xs mb-3 text-center break-words">{leaveError}</p>
+                            )}
+
+                            <div className="flex flex-col space-y-2">
+                                <button
+                                    onClick={handleConfirm}
+                                    disabled={isLeaving}
+                                    className="w-full py-2 px-4 rounded-lg border border-red-500/60 bg-red-500/20 text-red-300 text-sm font-medium hover:bg-red-500/30 hover:border-red-500/80 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    {isLeaving ? "Leaving..." : "Confirm Leave"}
+                                </button>
+                                <button
+                                    onClick={handleCancel}
+                                    disabled={isLeaving}
+                                    className="w-full py-2 px-4 rounded-lg border border-gray-500/40 bg-gray-600/30 text-gray-300 text-sm font-medium hover:bg-gray-600/50 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                                >
+                                    Cancel
+                                </button>
+                            </div>
                         </div>
                     )}
 
