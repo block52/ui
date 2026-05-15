@@ -31,6 +31,11 @@ export class CosmosApi extends HTTPClient {
     public getNftAvatar = (cosmosAddress: string) => this.get(`/pokerchain/poker/nft_avatar/${cosmosAddress}`);
 }
 
+export class BrokerApi extends HTTPClient {
+    public postBinding = (data: { walletAddress: string; tgUserId: number; tgUsername: string }) =>
+        this.post("/bindings", data);
+}
+
 export class IndexerApi extends HTTPClient {
     public getCardStats = () => this.get("/api/v1/stats/cards");
     public getSyncStatus = () => this.get("/api/v1/status");

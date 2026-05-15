@@ -26,6 +26,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import NodeStatusPage from "./pages/NodeStatusPage";
 import NodesPage from "./pages/NodesPage";
 import TechNotesPage from "./pages/tech-notes/TechNotesPage";
+import LinkTelegramPage from "./pages/LinkTelegramPage";
 import { TestSdk } from "./test-sdk";
 import { GameStateProvider } from "./context/GameStateContext";
 import { GameSettingsProvider } from "./context/GameSettingsContext";
@@ -38,6 +39,7 @@ import { ProfileAvatarModal } from "./components/profile";
 import { PaymentApiProvider } from "./context/PaymentApiContext";
 import { CosmosApiProvider } from "./context/CosmosApiContext";
 import { IndexerApiProvider } from "./context/IndexerApiContext";
+import { BrokerApiProvider } from "./context/BrokerApiContext";
 
 const queryClient = new QueryClient();
 
@@ -124,6 +126,7 @@ function AppContent() {
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
                 <Route path="/tech-notes" element={<TechNotesPage />} />
+                <Route path="/tg" element={<LinkTelegramPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
             <ToastContainer
@@ -160,7 +163,9 @@ function App() {
                             <PaymentApiProvider>
                                 <CosmosApiProvider>
                                     <IndexerApiProvider>
-                                        <AppContent />
+                                        <BrokerApiProvider>
+                                            <AppContent />
+                                        </BrokerApiProvider>
                                     </IndexerApiProvider>
                                 </CosmosApiProvider>
                             </PaymentApiProvider>
