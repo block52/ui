@@ -63,13 +63,11 @@ export interface JoinTableResult extends Omit<PlayerActionResult, "action"> {
 }
 
 /**
- * Result returned from leaveTable hook
- * Extends PlayerActionResult with leave-specific properties
+ * Result returned from leaveTable hook.
+ * MsgLeaveGame carries no amount — the chain decides the refund from its own
+ * state — so this is a thin alias over PlayerActionResult for now.
  */
-export interface LeaveTableResult extends PlayerActionResult {
-    /** The value associated with leaving (in micro-units as string) */
-    value: string;
-}
+export type LeaveTableResult = PlayerActionResult;
 
 // ============================================================================
 // TRANSACTION TYPES (consolidated from components/types.ts)

@@ -4,31 +4,19 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { LeaveTableResult } from "../../types";
 
 /**
- * Leave a poker table using Cosmos SDK SigningCosmosClient.
+ * Leave a poker table by broadcasting MsgLeaveGame on Cosmos.
  *
- * @param tableId - The ID of the table (game ID on Cosmos) to leave
- * @param value - The value to leave with (as string, in microunits)
- * @param network - The current network configuration from NetworkContext
- * @param _nonce - Optional nonce (not used in Cosmos SDK, kept for compatibility)
- * @returns Promise with LeaveTableResult containing transaction details
- * @throws Error if Cosmos wallet is not initialized or if the action fails
+ * MsgLeaveGame carries only {creator, gameId} — the chain decides the refund
+ * amount from its own state (cash → stack as microunits; SNG pre-start →
+ * original buy-in; SNG mid-game → no refund). The UI does NOT pass a value.
+ *
+ * @param tableId - The game ID on Cosmos
+ * @param network - Current network configuration from NetworkContext
+ * @returns Promise with LeaveTableResult containing transaction hash + action discriminator
+ * @throws Error if Cosmos wallet is not initialized or if the chain rejects the leave
  */
-export async function leaveTable(tableId: string, value: string, network: NetworkEndpoints, _nonce?: number): Promise<LeaveTableResult> {
+export async function leaveTable(tableId: string, network: NetworkEndpoints): Promise<LeaveTableResult> {
     const { signingClient } = await getSigningClient(network);
-
-
-    // Call SigningCosmosClient.performAction() with "leave" action
-    const transactionHash = await signingClient.performActionSync(
-        tableId,
-        NonPlayerActionType.LEAVE,
-        BigInt(value)
-    );
-
-
-    return {
-        hash: transactionHash,
-        gameId: tableId,
-        action: NonPlayerActionType.LEAVE,
-        value
-    };
+    const hash = await signingClient.leaveGame(tableId);
+    return { hash, gameId: tableId, action: NonPlayerActionType.LEAVE };
 }
