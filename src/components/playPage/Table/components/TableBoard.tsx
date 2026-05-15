@@ -42,16 +42,37 @@ export const TableBoard: React.FC<TableBoardProps> = ({
 }) => {
     // Memoize community cards rendering
     const communityCardsElements = useMemo(() => {
+        // Count how many contiguous real cards exist from position 0.
+        // Prevents out-of-order reveals when the backend sends intermediate states
+        // (e.g. turn revealed before flop during all-in runout).
+        let contiguousCount = 0;
+        for (let i = 0; i < 5; i++) {
+            const c = communityCards[i];
+            if (c && c !== "??" && c !== "XX") {
+                contiguousCount = i + 1;
+            } else {
+                break;
+            }
+        }
+
         return Array.from({ length: 5 }).map((_, idx) => {
-            if (idx < communityCards.length) {
-                const card = communityCards[idx];
+            const card = communityCards[idx];
+            const isVisible = idx < contiguousCount && card && card !== "??" && card !== "XX";
+
+            if (isVisible) {
                 return (
-                    <div key={idx} className="card animate-fall">
+                    <div key={`${idx}-${card}`} className="card animate-fall" style={{ animationDelay: `${idx * 150}ms` }}>
                         <OppositePlayerCards frontSrc={getCardImageUrl(card)} backSrc={getCardBackUrl(cardBackStyle)} flipped />
                     </div>
                 );
             } else {
-                return <div key={idx} className="w-[85px] h-[127px] aspect-square border-[0.5px] border-dashed border-white rounded-[5px] " style={{ borderColor: "rgba(255,255,255,0.35)" }} />;
+                return (
+                    <div
+                        key={idx}
+                        className="w-[85px] h-[127px] aspect-square border-[0.5px] border-dashed border-white rounded-[5px] "
+                        style={{ borderColor: "rgba(255,255,255,0.35)" }}
+                    />
+                );
             }
         });
     }, [communityCards, cardBackStyle]);
@@ -60,11 +81,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
         <>
             {/* Club Logo */}
             <div className={`table-logo ${tableTheme === "nouns" ? "table-logo-nouns" : ""}`}>
-                {tableTheme === "nouns" ? (
-                    <NounsGlasses width={300} className="nouns-glasses-logo" />
-                ) : (
-                    <img src={clubLogo} alt="Club Logo" />
-                )}
+                {tableTheme === "nouns" ? <NounsGlasses width={300} className="nouns-glasses-logo" /> : <img src={clubLogo} alt="Club Logo" />}
             </div>
 
             {/* Central Display Area */}
