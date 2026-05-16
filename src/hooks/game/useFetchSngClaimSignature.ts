@@ -1,5 +1,6 @@
 import { useCallback } from "react";
 import { useNetwork } from "../../context/NetworkContext";
+import { getCosmosUrls } from "../../utils/cosmos/urls";
 
 /**
  * Validator-signed payload returned by the chain for a SitAndGo win
@@ -18,39 +19,63 @@ export interface SngClaimPayload {
 }
 
 /**
+ * Shape returned by the chain's REST gateway. snake_case + payload
+ * fields as strings/numbers. Translated to {@link SngClaimPayload}
+ * (0x-typed branded strings) before handing off to the contract.
+ */
+interface ChainResponse {
+    recipient: string;
+    game_id: string;
+    place: number;
+    payout: string;
+    timestamp: string;  // gateway encodes uint64 as a JSON string
+    format: string;
+    signature: string;
+}
+
+/**
  * Fetches a validator-signed claim payload for the current user's
  * SNG win. Powers the "Claim NFT" button on {@link SitAndGoResultModal}.
  *
- * **Backend endpoint not yet live.** This hook is shipped alongside
- * the UI for [block52/poker-vm#2119] piece 3; the chain-side query
- * endpoint (piece 2) is the next deliverable from that issue.
- * Once piece 2 lands, this hook hits
- *   GET /poker/v1/sng_claim_signature?gameId=…&address=…
- * and returns the parsed payload. Until then the hook throws a
- * structured error that the modal renders as "Feature coming soon".
+ * Hits the chain query landed in
+ *   GET /block52/pokerchain/poker/v1/sng_claim_signature/{game_id}/{cosmos_address}
+ *
+ * (See block52/pokerchain#202.) The chain returns 4xx-ish errors as
+ * JSON `{ code, message }`; we surface message as the thrown Error
+ * so the modal's existing error-line treatment shows something
+ * useful instead of a raw `fetch failed`.
  */
 export const useFetchSngClaimSignature = () => {
     const { currentNetwork } = useNetwork();
 
     const fetchSignature = useCallback(
         async (gameId: string, address: string): Promise<SngClaimPayload> => {
-            // TODO(block52/poker-vm#2119, piece 2): swap this stub for
-            // a real GET against
-            //   `${currentNetwork.rest}/block52/pokerchain/poker/v1/sng_claim_signature`
-            // with query params { gameId, address }. The chain handler
-            // verifies the user finished paid + signs with the
-            // validator_eth_private_key, returning the payload above.
-            //
-            // For now we surface a clear "not yet available" error so
-            // the UI shows a sensible message instead of dispatching
-            // a zero-address tx.
-            void currentNetwork;
-            void gameId;
-            void address;
-            throw new Error(
-                "SNG win-NFT claim endpoint not yet deployed on the chain " +
-                "(tracked in block52/poker-vm#2119 piece 2). Check back once it ships.",
-            );
+            const { restEndpoint } = getCosmosUrls(currentNetwork);
+            const url = `${restEndpoint}/block52/pokerchain/poker/v1/sng_claim_signature/${encodeURIComponent(gameId)}/${encodeURIComponent(address)}`;
+
+            const response = await fetch(url);
+            const raw = await response.json().catch(() => ({}));
+
+            if (!response.ok) {
+                // Cosmos REST gateway error shape: { code, message, details }
+                const msg = typeof raw?.message === "string" ? raw.message : response.statusText;
+                throw new Error(`Failed to fetch SNG claim signature: ${msg}`);
+            }
+
+            const data = raw as ChainResponse;
+            if (!data.signature || !data.recipient) {
+                throw new Error("Chain returned an empty SNG claim signature payload");
+            }
+
+            return {
+                recipient: data.recipient as `0x${string}`,
+                gameId: data.game_id as `0x${string}`,
+                place: data.place,
+                payout: data.payout,
+                timestamp: Number(data.timestamp),
+                format: data.format as `0x${string}`,
+                signature: data.signature as `0x${string}`,
+            };
         },
         [currentNetwork],
     );
