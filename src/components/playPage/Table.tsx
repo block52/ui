@@ -1128,7 +1128,7 @@ const Table = React.memo(() => {
             throw new Error("Cannot leave: missing table ID or player data");
         }
 
-        await leaveTable(id, currentPlayerData.stack || "0", currentNetwork);
+        await leaveTable(id, currentNetwork);
 
         // Refresh balance after leaving
         fetchAccountBalance();

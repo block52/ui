@@ -12,6 +12,7 @@ import { useNetwork } from "../../context/NetworkContext";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getBlindsForDisplay } from "../../utils/gameFormatUtils";
 import { GameFormat } from "@block52/poker-vm-sdk";
+import DepositCore from "./DepositCore";
 import styles from "./BuyInModal.module.css";
 
 import type { BuyInModalProps } from "./types";
@@ -102,16 +103,19 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     const viewTableDisabled = exceedsBalance;
     const takeSeatDisabled = !canJoinRandomSeat || exceedsBalance;
 
+    // When balance is below the minimum buy-in, the modal swaps the
+    // buy-in form for the deposit flow inline. balance refreshes after
+    // a successful deposit (DepositCore calls refreshBalance), so this
+    // flips back automatically once the user has funded enough.
+    // block52/ui#378
+    const needsDeposit = balanceFormatted < minBuyInNumber;
+
     // Memoized event handlers
     const handleBuyInChange = useCallback((amount: string) => {
         setBuyInAmount(amount);
         setBuyInError("");
         localStorage.setItem("buy_in_amount", amount);
     }, []);
-
-    const handleDepositClick = useCallback(() => {
-        navigate("/");
-    }, [navigate]);
 
     const handleJoinClick = useCallback(() => {
         try {
@@ -305,6 +309,19 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                     )}
                 </div>
 
+                {needsDeposit ? (
+                    /* Inline deposit flow when balance is below minimum buy-in.
+                       DepositCore refreshes the wallet on success, which causes
+                       `needsDeposit` to flip false and the buy-in form to
+                       replace this block automatically. block52/ui#378 */
+                    <div className="mb-6">
+                        <div className={`mb-4 p-3 rounded-lg text-sm ${styles.depositLink}`}>
+                            You need at least ${minBuyInFormatted} to join this table. Deposit to continue.
+                        </div>
+                        <DepositCore showMethodSelector />
+                    </div>
+                ) : (
+                <>
                 {/* Stake Dropdown */}
                 <div className="mb-6">
                     <label className="block text-gray-300 mb-1 font-medium text-sm">Select Stake</label>
@@ -406,15 +423,16 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                         {isJoiningRandomSeat ? "Joining..." : "Take My Seat"}
                     </button>
                 </div>
+                </>
+                )}
 
-                {isDisabled && (
-                    <div className={`text-sm mb-4 ${styles.balanceError}`}>
-                        Your available balance does not reach the minimum buy-in amount for this game. Please{" "}
-                        <span className={`underline cursor-pointer ${styles.depositLink}`} onClick={handleDepositClick}>
-                            deposit
-                        </span>{" "}
-                        to continue.
-                    </div>
+                {needsDeposit && (
+                    <button
+                        onClick={onClose}
+                        className={`w-full mb-4 px-5 py-3 rounded-lg text-white font-medium transition-all duration-200 ${styles.cancelButton}`}
+                    >
+                        Cancel
+                    </button>
                 )}
 
                 <div className={`text-xs ${styles.noteText}`}>
