@@ -77,13 +77,13 @@ describe("useSitAndGoPayouts", () => {
         ]);
     });
 
-    it("3 players: 70/30 split", () => {
-        const options = buildOptions({ minBuyIn: "10000000", maxPlayers: 3 });
+    it("4 players: 70/30 split", () => {
+        const options = buildOptions({ minBuyIn: "10000000", maxPlayers: 4 });
         setContext(buildState(options));
         const { result } = renderHook(() => useSitAndGoPayouts());
 
-        expect(result.current.prizePool).toBe("30000000");
-        expect(result.current.places.map(p => p.payout)).toEqual(["21000000", "9000000"]);
+        expect(result.current.prizePool).toBe("40000000");
+        expect(result.current.places.map(p => p.payout)).toEqual(["28000000", "12000000"]);
     });
 
     it("6 players: 65/35 split", () => {
