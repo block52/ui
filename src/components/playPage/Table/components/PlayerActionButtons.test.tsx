@@ -31,6 +31,17 @@ jest.mock("../../../../context/GameStateContext", () => ({
     useGameStateContext: () => ({ gameState: { actionCount: 0 } }),
 }));
 
+// Mock GameSettingsContext — the seat-at-bottom toggle added in
+// block52/ui#392 reads from this context. Static stub keeps these
+// render/click tests focused on the existing behaviour.
+const mockToggleSeatAtBottom = jest.fn();
+jest.mock("../../../../context/GameSettingsContext", () => ({
+    useGameSettings: () => ({
+        seatAtBottom: true,
+        toggleSeatAtBottom: mockToggleSeatAtBottom,
+    }),
+}));
+
 // Mock getPlayerActionDisplay — import the real module so we can spy on it
 jest.mock("../../../../utils/playerActionDisplayUtils", () => {
     const actual = jest.requireActual("../../../../utils/playerActionDisplayUtils");
