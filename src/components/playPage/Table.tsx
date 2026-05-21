@@ -1191,7 +1191,7 @@ const Table = React.memo(() => {
                 onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
                 style={{
                     position: "fixed",
-                    bottom: 12,
+                    bottom: isMobileLandscape ? 60 : 12,
                     left: 12,
                     zIndex: 999999,
                     padding: "6px 12px",
