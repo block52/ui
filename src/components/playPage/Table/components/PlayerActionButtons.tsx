@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import BuyChipsButton from "../../../BuyChipsButton";
 import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
 import { useGameStateContext } from "../../../../context/GameStateContext";
+import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { isNullish } from "../../../../utils/guards";
 
 // Wait for the chain to confirm sit-in via actionCount before re-enabling the
@@ -79,6 +80,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     //   • DIRTY_STATE_TIMEOUT_MS elapses (escape hatch)
     //   • handleSitIn throws (CheckTx rejected — clear immediately)
     const { gameState } = useGameStateContext();
+    const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
     const [sittingIn, setSittingIn] = useState(false);
     const [pendingActionCount, setPendingActionCount] = useState<number | null>(null);
 
@@ -234,7 +236,20 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             return (
                 <>
                     {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass}`}>
+                    <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
+                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={seatAtBottom}
+                                    onChange={toggleSeatAtBottom}
+                                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                                />
+                                <span className={`ml-2 ${seatAtBottom ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                                    Seat me at 6 o'clock
+                                </span>
+                            </label>
+                        </div>
                         <button
                             onClick={handleSitInClick}
                             disabled={sittingIn}

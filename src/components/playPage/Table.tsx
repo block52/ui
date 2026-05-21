@@ -763,7 +763,7 @@ const Table = React.memo(() => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
-    const { turnNotificationSound, playerActionSounds } = useGameSettings();
+    const { turnNotificationSound, playerActionSounds, seatAtBottom } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
         enableSound: turnNotificationSound,
         soundVolume: 0.3,
@@ -959,14 +959,19 @@ const Table = React.memo(() => {
 
     // AUTO-ROTATION: Automatically rotate table when user joins
     // Auto-rotate table so current player is always at bottom (6 o'clock) (#13)
+    // Gated by the seatAtBottom user setting (#392) — when off, render absolute layout.
     // Formula in PlayerSeating: seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1
     // For position 0 (bottom) to show seat S: S = ((0 - startIndex + tableSize) % tableSize) + 1
     // Solving: startIndex = (tableSize - (S - 1)) % tableSize
     useEffect(() => {
+        if (!seatAtBottom) {
+            setStartIndex(0);
+            return;
+        }
         if (currentUserSeat > 0 && tableSize > 0) {
             setStartIndex((tableSize - (currentUserSeat - 1)) % tableSize);
         }
-    }, [currentUserSeat, tableSize]);
+    }, [currentUserSeat, tableSize, seatAtBottom]);
 
     // Winner animations
     const hasWinner = Array.isArray(winnerInfo) && winnerInfo.length > 0;
