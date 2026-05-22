@@ -551,7 +551,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                 <MainActionButtons
                                     canFold={canFoldAnytime}
                                     canCheck={hasCheckAction}
-                                    canCall={hasCallAction}
+                                    // Defensive guard for #2152: never offer CALL to an ALL_IN
+                                    // player. The engine doesn't emit CALL in this case, but a
+                                    // stale legalActions render (optimistic-update desync, mid-
+                                    // tx flicker) could otherwise paint a "CALL $0.00" button.
+                                    canCall={hasCallAction && userPlayer?.status !== PlayerStatus.ALL_IN}
                                     callAmount={formattedCallAmount}
                                     canBet={hasBetAction}
                                     canRaise={hasRaiseAction}
