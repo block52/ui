@@ -1,4 +1,4 @@
-import { ActionDTO, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound, CHIP_ACTIONS } from "./chipUtils";
 import { MAX_ACTION_GROUPS } from "../constants/chips";
 
@@ -208,35 +208,55 @@ describe("calculateCurrentRoundBetting", () => {
 
     it("sums amounts for the current round only", () => {
         const actions = [
-            { playerId: player, round: TexasHoldemRound.PREFLOP, amount: "100" },
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "200" },
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "300" },
+            makeAction({ playerId: player, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "100", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "200", index: 1 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.RAISE, amount: "300", index: 2 }),
         ];
         expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("500");
     });
 
     it("filters by player address", () => {
         const actions = [
-            { playerId: "0xOther", round: TexasHoldemRound.FLOP, amount: "1000" },
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "200" },
+            makeAction({ playerId: "0xOther", round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "1000", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "200", index: 1 }),
         ];
         expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("200");
     });
 
     it("excludes zero and empty amounts", () => {
         const actions = [
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "0" },
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "" },
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "500" },
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "0", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "", index: 1 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500", index: 2 }),
         ];
         expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("500");
     });
 
     it("handles large BigInt amounts correctly", () => {
         const actions = [
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "999999999999999999" },
-            { playerId: player, round: TexasHoldemRound.FLOP, amount: "1" },
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "999999999999999999", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "1", index: 1 }),
         ];
         expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("1000000000000000000");
+    });
+
+    // Regression: block52/poker-vm#2141 (originally block52/ui#279).
+    // A folded player's mid-hand TOP_UP must never count toward chips on the table
+    // for the current round, even though addNonPlayerAction tags it with currentRound.
+    it("excludes TOP_UP actions logged in the current round (issue #2141)", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: NonPlayerActionType.TOP_UP, amount: "300000", index: 1 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("500");
+    });
+
+    it("excludes non-bet actions (FOLD, CHECK) even with amount", () => {
+        const actions = [
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.FOLD, amount: "100", index: 0 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.CHECK, amount: "200", index: 1 }),
+            makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "400", index: 2 }),
+        ];
+        expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("400");
     });
 });
