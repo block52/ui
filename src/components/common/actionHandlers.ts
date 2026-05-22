@@ -33,8 +33,6 @@ interface ActionHandlerOptions {
     successLog?: string;
     /** Log message prefix for attempt (optional) */
     attemptLog?: string;
-    /** Show alert on error (optional) */
-    alertOnError?: boolean;
 }
 
 /**
@@ -115,11 +113,6 @@ function createTableIdAmountHandler(
             return result?.hash || null;
         } catch (error: any) {
             console.error(`Failed to ${actionName}:`, error);
-
-            if (options.alertOnError) {
-                alert(`Failed to ${actionName}: ${error.message}`);
-            }
-
             return null;
         }
     };
@@ -205,8 +198,7 @@ const handleBet = createAmountFirstHandler("bet", betHand);
  */
 const handlePostSmallBlind = createTableIdAmountHandler("post small blind", postSmallBlind, {
     attemptLog: "🎰 Attempting to post small blind:",
-    successLog: "✅ Small blind posted successfully",
-    alertOnError: true
+    successLog: "✅ Small blind posted successfully"
 });
 
 /**

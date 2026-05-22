@@ -59,7 +59,6 @@ import {
     TableSettingsSidebar,
     TableModals,
     PlayerSeating,
-    TableStatusMessages,
     PlayerActionButtons,
     LayoutDebugInfo
 } from "./Table/components";
@@ -1419,21 +1418,6 @@ const Table = React.memo(() => {
             {/*//! SETTINGS OVERLAY */}
             <TableSettingsSidebar isOpen={openSettings} />
 
-            {/* Status Messages */}
-            <TableStatusMessages
-                viewportMode={viewportMode}
-                isMobileLandscape={isMobileLandscape}
-                currentUserSeat={currentUserSeat}
-                nextToActSeat={nextToActSeat}
-                isGameInProgress={isGameInProgress}
-                isCurrentUserTurn={isCurrentUserTurn}
-                playerLegalActions={playerLegalActions}
-                tableActivePlayers={tableActivePlayers}
-                isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
-                smallBlindPosition={tableDataValues.tableDataSmallBlindPosition}
-                bigBlindPosition={tableDataValues.tableDataBigBlindPosition}
-                dealerPosition={tableDataValues.tableDataDealer}
-            />
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
