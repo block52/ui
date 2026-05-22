@@ -459,9 +459,22 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         setRaiseAmount(prev => Math.max(prev - step, minAmount));
     };
 
-    const handleAllInAction = () => {
+    const handleAllInAction = async () => {
         const maxAmount = hasBetAction ? maxBet : maxRaise;
         setRaiseAmount(maxAmount);
+
+        if (import.meta.env.VITE_ALL_IN_INSTANT_EXECUTE !== "true") return;
+
+        if (!tableId) return;
+        const amountMicro = fromDisplay(maxAmount);
+        if (playerActionSounds) {
+            playActionSound("all-in");
+        }
+        await handleActionWithTransaction(
+            hasRaiseAction ? "raise" : "bet",
+            async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),
+            true
+        );
     };
 
     return (
