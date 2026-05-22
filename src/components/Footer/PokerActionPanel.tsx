@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { isNullish } from "../../utils/guards";
+import { hasContent, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import {
@@ -460,18 +460,20 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     };
 
     const handleAllInAction = async () => {
-        if (!tableId) return;
         const maxAmount = hasBetAction ? maxBet : maxRaise;
-        const amountMicro = fromDisplay(maxAmount);
-
         setRaiseAmount(maxAmount);
+
+        if (import.meta.env.VITE_ALL_IN_INSTANT_EXECUTE !== "true") return;
+
+        if (!hasContent(tableId)) return;
+        const amountMicro = fromDisplay(maxAmount);
         if (playerActionSounds) {
             playActionSound("all-in");
         }
         await handleActionWithTransaction(
             hasRaiseAction ? "raise" : "bet",
             async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),
-            true // skipActionSound — all-in sound already played above
+            true
         );
     };
 
