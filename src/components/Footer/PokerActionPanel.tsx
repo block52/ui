@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { isNullish } from "../../utils/guards";
+import { hasContent, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import {
@@ -465,7 +465,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
         if (import.meta.env.VITE_ALL_IN_INSTANT_EXECUTE !== "true") return;
 
-        if (!tableId) return;
+        if (!hasContent(tableId)) return;
         const amountMicro = fromDisplay(maxAmount);
         if (playerActionSounds) {
             playActionSound("all-in");
