@@ -256,7 +256,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                 Hand #{handNumber}
                             </span>
                             <span className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
-                                <span className="ml-2">Actions # {actionCount}</span>
+                                <span className="ml-2">Actions #{actionCount}</span>
                             </span>
                             <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
                                 <span className="sm:ml-2">Next to act: Seat {nextToAct}</span>
