@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, isNullish } from "../../utils/guards";
+import { hasContent, hasValue, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import {
@@ -555,7 +555,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     // player. The engine doesn't emit CALL in this case, but a
                                     // stale legalActions render (optimistic-update desync, mid-
                                     // tx flicker) could otherwise paint a "CALL $0.00" button.
-                                    canCall={hasCallAction && userPlayer?.status !== PlayerStatus.ALL_IN}
+                                    canCall={hasCallAction && hasValue(userPlayer) && userPlayer.status !== PlayerStatus.ALL_IN}
                                     callAmount={formattedCallAmount}
                                     canBet={hasBetAction}
                                     canRaise={hasRaiseAction}
