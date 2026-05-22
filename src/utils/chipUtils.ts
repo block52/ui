@@ -89,16 +89,21 @@ export const hasPlayerBetInRound = (
 };
 
 /**
- * Calculate how much a player has bet in the current round only.
+ * Sum of a player's actual bet-placing actions in the current round.
+ *
+ * Excludes non-bet actions (TOP_UP, JOIN, LEAVE, FOLD, CHECK, etc.) so that
+ * a mid-hand top-up by a folded player never renders as chips in front of
+ * them. See block52/poker-vm#2141 and block52/ui#279.
  */
 export const calculateCurrentRoundBetting = (
     playerAddress: string,
     currentRound: string,
-    previousActions: Array<{ playerId: string; round: string; amount?: string }>
+    previousActions: ActionDTO[]
 ): string => {
     const currentRoundActions = previousActions.filter(action =>
         action.playerId === playerAddress &&
         action.round === currentRound &&
+        CHIP_ACTIONS.includes(action.action) &&
         action.amount &&
         action.amount !== "0" &&
         action.amount !== ""
