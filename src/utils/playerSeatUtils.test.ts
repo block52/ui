@@ -1,4 +1,4 @@
-import { findUserSeat } from "./playerSeatUtils";
+import { findUserSeat, isSeatBigBlind } from "./playerSeatUtils";
 
 describe("findUserSeat", () => {
     const gameState = {
@@ -29,5 +29,35 @@ describe("findUserSeat", () => {
         expect(findUserSeat(null, "b52aaa")).toBeUndefined();
         expect(findUserSeat(undefined, "b52aaa")).toBeUndefined();
         expect(findUserSeat({}, "b52aaa")).toBeUndefined();
+    });
+});
+
+describe("isSeatBigBlind", () => {
+    it("returns true when seat matches bigBlindPosition", () => {
+        expect(isSeatBigBlind(3, 3)).toBe(true);
+        expect(isSeatBigBlind(1, 1)).toBe(true);
+        expect(isSeatBigBlind(9, 9)).toBe(true);
+    });
+
+    it("returns false when seat does not match bigBlindPosition", () => {
+        expect(isSeatBigBlind(3, 4)).toBe(false);
+        expect(isSeatBigBlind(5, 1)).toBe(false);
+    });
+
+    it("returns false when seat is undefined", () => {
+        expect(isSeatBigBlind(undefined, 3)).toBe(false);
+    });
+
+    it("returns false when bigBlindPosition is undefined", () => {
+        expect(isSeatBigBlind(3, undefined)).toBe(false);
+    });
+
+    it("returns false when both are undefined", () => {
+        expect(isSeatBigBlind(undefined, undefined)).toBe(false);
+    });
+
+    it("treats seat 0 as not-seated (false even if bigBlindPosition is 0)", () => {
+        expect(isSeatBigBlind(0, 0)).toBe(false);
+        expect(isSeatBigBlind(0, 3)).toBe(false);
     });
 });

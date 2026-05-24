@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
+import { isSeatBigBlind } from "../../utils/playerSeatUtils";
 import { sitOut, SIT_OUT_METHOD_NEXT_HAND } from "./sitOut";
 
 /**
@@ -45,11 +46,7 @@ export function useAutoSitOutNextBB(
     }, [tableId, network, onComplete, onError]);
 
     useEffect(() => {
-        const seatIsBB =
-            typeof userSeat === "number" &&
-            userSeat > 0 &&
-            typeof bigBlindPosition === "number" &&
-            bigBlindPosition === userSeat;
+        const seatIsBB = isSeatBigBlind(userSeat, bigBlindPosition);
 
         const shouldFire =
             enabled &&

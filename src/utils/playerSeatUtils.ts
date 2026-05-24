@@ -1,6 +1,27 @@
 import type { PlayerDTO } from "@block52/poker-vm-sdk";
 import { hasContent } from "./guards";
 
+/**
+ * Returns true when the given seat is the big-blind position for the current
+ * hand. Both inputs may be undefined (player not seated yet, or game state
+ * not loaded), in which case the result is false rather than throwing — the
+ * call sites are auto-action guards where "we don't know yet" should mean
+ * "don't fire."
+ *
+ * Seat 0 is treated as not-seated. Chain seats are 1-indexed.
+ */
+export function isSeatBigBlind(
+    seat: number | undefined,
+    bigBlindPosition: number | undefined
+): boolean {
+    return (
+        typeof seat === "number" &&
+        seat > 0 &&
+        typeof bigBlindPosition === "number" &&
+        bigBlindPosition === seat
+    );
+}
+
 interface GameStateLike {
     players?: ReadonlyArray<Pick<PlayerDTO, "address" | "seat">>;
 }
