@@ -183,7 +183,7 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("To join the table, click on an available seat.")).toBeInTheDocument();
     });
 
-    it("renders sit-out checkbox when SIT_OUT action available", () => {
+    it("renders both sit-out checkboxes when SIT_OUT action available", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -192,7 +192,8 @@ describe("PlayerActionButtons", () => {
                 handNumber={2}
             />
         );
-        expect(screen.getByRole("checkbox")).toBeInTheDocument();
+        expect(screen.getAllByRole("checkbox")).toHaveLength(2);
         expect(screen.getByText("Sit Out Next Hand")).toBeInTheDocument();
+        expect(screen.getByText("Sit Out Next Big Blind")).toBeInTheDocument();
     });
 });

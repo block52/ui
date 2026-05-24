@@ -10,7 +10,7 @@ import React, { useState, useEffect, useRef } from "react";
 
 import { LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
 import { handleSitOut, handleSitIn } from "../../../common/actionHandlers";
-import { SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
+import { SIT_IN_METHOD_POST_NOW, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { getPlayerActionDisplay } from "../../../../utils/playerActionDisplayUtils";
 import { toast } from "react-toastify";
@@ -19,6 +19,8 @@ import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
 import { useGameStateContext } from "../../../../context/GameStateContext";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { isNullish } from "../../../../utils/guards";
+import { findUserSeat } from "../../../../utils/playerSeatUtils";
+import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
 
 // Wait for the chain to confirm sit-in via actionCount before re-enabling the
 // button. Mirrors the dirty-state pattern landed in block52/ui#365 for the
@@ -70,6 +72,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // Optimistic local state for immediate visual feedback
     const [optimisticChecked, setOptimisticChecked] = useState<boolean | null>(null);
 
+    // Browser-only intent for "Sit Out Next Big Blind" (#114). No chain state:
+    // the hook below fires a standard SIT_OUT(next-hand) when bigBlindPosition
+    // rotates onto our seat, then this flag is cleared so the box unchecks.
+    const [sitOutNextBbQueued, setSitOutNextBbQueued] = useState<boolean>(false);
+
     // Dirty state for the Sit-In button. Was previously useOptimistic which
     // auto-reverts when the underlying transition completes — that's
     // exactly the gap we want to close: SDK SYNC return (~50ms) reverted
@@ -96,6 +103,16 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         setOptimisticChecked(!isChecked);
         handleSitOut(tableId, currentNetwork);
     };
+
+    useAutoSitOutNextBB(
+        tableId,
+        currentNetwork,
+        findUserSeat(gameState, getCosmosAddressSync()),
+        gameState?.bigBlindPosition,
+        sitOutNextBbQueued,
+        () => setSitOutNextBbQueued(false), // clear box after fire
+        () => setSitOutNextBbQueued(false)  // also clear on error so user can retry
+    );
 
     const display = getPlayerActionDisplay({
         playerStatus,
@@ -292,7 +309,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <>
                     {buyChipsElement}
                     <div className={`fixed z-30 ${positionClass}`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
                             <label className="flex items-center cursor-pointer">
                                 <input
                                     type="checkbox"
@@ -302,6 +319,17 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                 />
                                 <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
                                     Sit Out Next Hand
+                                </span>
+                            </label>
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="checkbox"
+                                    checked={sitOutNextBbQueued}
+                                    onChange={() => setSitOutNextBbQueued(prev => !prev)}
+                                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                                />
+                                <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                                    Sit Out Next Big Blind
                                 </span>
                             </label>
                         </div>
