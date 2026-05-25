@@ -94,6 +94,7 @@ import { usePlayerChipData } from "../../hooks/player/usePlayerChipData";
 //3. Game State Providers
 import { useTableState } from "../../hooks/game/useTableState"; //Provides currentRound, formattedTotalPot, tableSize, tableSize determines player layout (6 vs 9 players)
 import { useGameProgress } from "../../hooks/game/useGameProgress"; //Provides isGameInProgress - whether a hand is active
+import { useHoleCardWatchdog } from "../../hooks/game/useHoleCardWatchdog"; //#409: auto-recover when owning player's hole cards fail to arrive
 
 //todo wire up to use the sdk instead of the proxy
 // 4. Player Actions
@@ -788,6 +789,9 @@ const Table = React.memo(() => {
 
     // Add the useGameProgress hook
     const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);
+
+    // #409 watchdog: detect "I'm in a hand but my hole cards are missing" and auto re-subscribe.
+    useHoleCardWatchdog(id);
 
     // Add the useGameOptions hook
     const { gameOptions } = useGameOptions();
