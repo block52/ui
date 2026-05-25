@@ -1,5 +1,5 @@
 import type { PlayerDTO } from "@block52/poker-vm-sdk";
-import { hasContent } from "./guards";
+import { hasValue, hasContent, hasElements } from "./guards";
 
 /**
  * Returns true when the given seat is the big-blind position for the current
@@ -14,16 +14,11 @@ export function isSeatBigBlind(
     seat: number | undefined,
     bigBlindPosition: number | undefined
 ): boolean {
-    return (
-        typeof seat === "number" &&
-        seat > 0 &&
-        typeof bigBlindPosition === "number" &&
-        bigBlindPosition === seat
-    );
+    return hasValue(seat) && seat > 0 && hasValue(bigBlindPosition) && bigBlindPosition === seat;
 }
 
 interface GameStateLike {
-    players?: ReadonlyArray<Pick<PlayerDTO, "address" | "seat">>;
+    players?: Array<Pick<PlayerDTO, "address" | "seat">>;
 }
 
 /**
@@ -39,8 +34,8 @@ export function findUserSeat(
     gameState: GameStateLike | null | undefined,
     userAddress: string | null | undefined
 ): number | undefined {
-    if (!hasContent(userAddress) || !gameState?.players) return undefined;
+    const players = gameState?.players;
+    if (!hasContent(userAddress) || !hasElements(players)) return undefined;
     const wanted = userAddress.toLowerCase();
-    const player = gameState.players.find(p => p.address?.toLowerCase() === wanted);
-    return player?.seat;
+    return players.find(p => p.address?.toLowerCase() === wanted)?.seat;
 }

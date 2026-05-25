@@ -1,5 +1,6 @@
 import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
+import { hasContent } from "../../utils/guards";
 import { isSeatBigBlind } from "../../utils/playerSeatUtils";
 import { sitOut, SIT_OUT_METHOD_NEXT_HAND } from "./sitOut";
 
@@ -31,7 +32,7 @@ export function useAutoSitOutNextBB(
     const isProcessingRef = useRef<boolean>(false);
 
     const triggerSitOut = useCallback(async () => {
-        if (!tableId || isProcessingRef.current) return;
+        if (!hasContent(tableId) || isProcessingRef.current) return;
 
         isProcessingRef.current = true;
         try {
