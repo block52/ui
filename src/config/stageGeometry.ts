@@ -390,9 +390,9 @@ const GLOBAL_OFFSETS: Partial<Record<TableSize,
             3: { dx: -204, dy: 20 },      // seat 4
             4: { dx: -85, dy: -8 },      // seat 5
             5: { dx: 7, dy: -8 },       // seat 6
-            6: { dx: 130, dy: 20 },     // seat 7
+            6: { dx: 130, dy: 40 },     // seat 7
             7: { dx: 35, dy: 2 },    // seat 8
-            8: { dx: 50, dy: 40 }         // seat 9
+            8: { dx: 50, dy: 20 }         // seat 9
         }
     }
 };
