@@ -102,6 +102,7 @@ import { leaveTable } from "../../hooks/playerActions/leaveTable";
 
 // 5. Winner Info
 import { useWinnerInfo } from "../../hooks/game/useWinnerInfo"; // Provides winner information for animations
+import { useWinnerCards } from "../../hooks/game/useWinnerCards"; // Winning card codes for card-lift animation
 import { useGameResults } from "../../hooks/game/useGameResults"; // Game results display
 
 // other
@@ -687,6 +688,7 @@ const Table = React.memo(() => {
 
     // invoke hook for seat loop
     const { winnerInfo } = useWinnerInfo();
+    const winnerCards = useWinnerCards();
 
     // Zoom is now handled by the table layout configuration
     // const calculateZoom = useCallback(() => { ... }, []);
@@ -1341,6 +1343,7 @@ const Table = React.memo(() => {
                                 isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
                                 cardBackStyle={cardBackStyle}
                                 tableTheme={tableStyle}
+                                winnerCards={winnerCards}
                             />
 
                             {/* Chips — map screen position to rotated seat number */}

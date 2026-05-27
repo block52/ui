@@ -15,6 +15,7 @@ import * as React from "react";
 import { useParams } from "react-router-dom";
 import Badge from "../common/Badge";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
+import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
 import { WinnerInfo } from "../../../types";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { useShowingCardsByAddress } from "../../../hooks/player/useShowingCardsByAddress";
@@ -42,6 +43,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     const { id } = useParams<{ id: string }>();
     const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
     const { winnerInfo } = useWinnerInfo();
+    const winnerCards = useWinnerCards();
     const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
     const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
     const { getAvatarForAddress } = useProfileAvatar();
@@ -140,8 +142,8 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                         isShowingCards && showingCards ? (
                             // Show the actual cards if player is showing
                             <>
-                                <img src={getCardImageUrl(showingCards[0])} alt="Player Card 1" width={60} height={80} className="mb-[11px]" />
-                                <img src={getCardImageUrl(showingCards[1])} alt="Player Card 2" width={60} height={80} className="mb-[11px]" />
+                                <img src={getCardImageUrl(showingCards[0])} alt="Player Card 1" width={60} height={80} className={`mb-[11px]${isWinner && winnerCards.size > 0 && winnerCards.has(showingCards[0]) ? " animate-win-card" : ""}${isWinner && winnerCards.size > 0 && !winnerCards.has(showingCards[0]) ? " opacity-40" : ""}`} />
+                                <img src={getCardImageUrl(showingCards[1])} alt="Player Card 2" width={60} height={80} className={`mb-[11px]${isWinner && winnerCards.size > 0 && winnerCards.has(showingCards[1]) ? " animate-win-card" : ""}${isWinner && winnerCards.size > 0 && !winnerCards.has(showingCards[1]) ? " opacity-40" : ""}`} />
                             </>
                         ) : (
                             // Show card backs for opponents (they shouldn't see actual cards)

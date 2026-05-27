@@ -58,8 +58,22 @@
 }
 
 .animate-fall {
-    animation: fall 1.0s ease-out both;
+    animation: fall 1.0s ease-out backwards;
 }
+
+/* Winning card highlight — lifts card upward and brightens it */
+@keyframes card-lift {
+    0%   { transform: translateY(0)     scale(1);    filter: brightness(1); }
+    100% { transform: translateY(-14px) scale(1.05); filter: brightness(1.25) drop-shadow(0 0 8px rgba(255, 215, 0, 0.85)); }
+}
+
+.animate-win-card {
+    animation: card-lift 350ms ease-out forwards;
+    position: relative;
+    z-index: 20;
+}
+
+
 
 /* Animation classes */
 .shimmer-animation {

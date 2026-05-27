@@ -30,6 +30,9 @@ export interface TableBoardProps {
     // Styling
     cardBackStyle: CardBackStyle;
     tableTheme?: TableTheme;
+
+    // Winning hand cards — cards in this set get the lift animation
+    winnerCards?: Set<string>;
 }
 
 export const TableBoard: React.FC<TableBoardProps> = ({
@@ -38,7 +41,8 @@ export const TableBoard: React.FC<TableBoardProps> = ({
     communityCards,
     isSitAndGoWaitingForPlayers,
     cardBackStyle,
-    tableTheme = "modern"
+    tableTheme = "modern",
+    winnerCards
 }) => {
     // Memoize community cards rendering
     const communityCardsElements = useMemo(() => {
@@ -55,13 +59,21 @@ export const TableBoard: React.FC<TableBoardProps> = ({
             }
         }
 
+        const hasWinningCards = (winnerCards?.size ?? 0) > 0;
+
         return Array.from({ length: 5 }).map((_, idx) => {
             const card = communityCards[idx];
             const isVisible = idx < contiguousCount && card && card !== "??" && card !== "XX";
+            const isWinCard = isVisible && hasWinningCards && (winnerCards!.has(card));
+            const shouldMute = isVisible && hasWinningCards && !winnerCards!.has(card);
 
             if (isVisible) {
                 return (
-                    <div key={`${idx}-${card}`} className="card animate-fall" style={{ animationDelay: `${idx * 150}ms` }}>
+                    <div
+                        key={`${idx}-${card}`}
+                        className={`card animate-fall${isWinCard ? " animate-win-card" : ""}${shouldMute ? " opacity-40" : ""}`}
+                        style={{ animationDelay: `${idx * 150}ms` }}
+                    >
                         <OppositePlayerCards frontSrc={getCardImageUrl(card)} backSrc={getCardBackUrl(cardBackStyle)} flipped />
                     </div>
                 );
@@ -75,7 +87,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 );
             }
         });
-    }, [communityCards, cardBackStyle]);
+    }, [communityCards, cardBackStyle, winnerCards]);
 
     return (
         <>
