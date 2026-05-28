@@ -124,36 +124,44 @@ export const useNewTable = (): UseNewTableReturn => {
             if (txHash) {
                 setNewGameId(txHash);
 
-                // Fetch the transaction to extract the game_id from events
+                const cosmosClient = getCosmosClient(currentNetwork);
+
+                if (!cosmosClient) {
+                    return null;
+                }
+
+                // Wait a moment for the transaction to be indexed
+                await new Promise(resolve => setTimeout(resolve, 2000));
+
+                let tx;
                 try {
-                    const cosmosClient = getCosmosClient(currentNetwork);
-
-                    if (!cosmosClient) {
-                        return null;
-                    }
-
-                    // Wait a moment for the transaction to be indexed
-                    await new Promise(resolve => setTimeout(resolve, 2000));
-
-                    const tx = await cosmosClient.getTx(txHash);
-
-                    // Extract game_id from game_created event
-                    let gameId: string | null = null;
-                    if (tx?.tx_response?.events) {
-                        const gameCreatedEvent = tx.tx_response.events.find((e: any) => e.type === "game_created");
-                        if (gameCreatedEvent) {
-                            const gameIdAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "game_id");
-                            if (gameIdAttr) {
-                                gameId = gameIdAttr.value;
-                            }
-                        }
-                    }
-
-                    return { txHash, gameId };
+                    tx = await cosmosClient.getTx(txHash);
                 } catch (_txError) {
-                    // Return txHash even if we couldn't get game_id
+                    // Indexer hiccup — tx is on-chain but we couldn't fetch it.
                     return { txHash, gameId: null };
                 }
+
+                // Chain accepted the tx into a block but the message can still
+                // have failed (non-zero code). Surface the raw_log so the UI
+                // doesn't show a misleading success state.
+                const code = tx?.tx_response?.code;
+                if (code !== undefined && code !== 0) {
+                    throw new Error(tx?.tx_response?.raw_log || `tx failed with code ${code}`);
+                }
+
+                // Extract game_id from game_created event
+                let gameId: string | null = null;
+                if (tx?.tx_response?.events) {
+                    const gameCreatedEvent = tx.tx_response.events.find((e: any) => e.type === "game_created");
+                    if (gameCreatedEvent) {
+                        const gameIdAttr = gameCreatedEvent.attributes?.find((a: any) => a.key === "game_id");
+                        if (gameIdAttr) {
+                            gameId = gameIdAttr.value;
+                        }
+                    }
+                }
+
+                return { txHash, gameId };
             } else {
                 return null;
             }

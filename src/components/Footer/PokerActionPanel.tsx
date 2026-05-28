@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { isNullish } from "../../utils/guards";
+import { hasContent, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import {
@@ -483,18 +483,20 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     };
 
     const handleAllInAction = async () => {
-        if (!tableId) return;
         const maxAmount = hasBetAction ? maxBet : maxRaise;
-        const amountMicro = fromDisplay(maxAmount);
-
         setRaiseAmount(maxAmount);
+
+        if (import.meta.env.VITE_ALL_IN_INSTANT_EXECUTE !== "true") return;
+
+        if (!hasContent(tableId)) return;
+        const amountMicro = fromDisplay(maxAmount);
         if (playerActionSounds) {
             playActionSound("all-in");
         }
         await handleActionWithTransaction(
             hasRaiseAction ? "raise" : "bet",
             async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),
-            true // skipActionSound — all-in sound already played above
+            true
         );
     };
 
@@ -506,7 +508,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         >
             <div
                 className={`flex flex-col w-full justify-center rounded-lg relative z-10 ${
-                    isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : "lg:w-[850px] mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full"
+                    isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : "lg:w-[570px] mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full"
                 }`}
             >
                 {/* Deal Button Group */}
@@ -572,7 +574,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                 <MainActionButtons
                                     canFold={canFoldAnytime}
                                     canCheck={hasCheckAction}
-                                    canCall={hasCallAction}
+                                    // Defensive guard for #2152: never offer CALL to an ALL_IN
+                                    // player. The engine doesn't emit CALL in this case, but a
+                                    // stale legalActions render (optimistic-update desync, mid-
+                                    // tx flicker) could otherwise paint a "CALL $0.00" button.
+                                    canCall={hasCallAction && userPlayer?.status !== PlayerStatus.ALL_IN}
                                     callAmount={formattedCallAmount}
                                     canBet={hasBetAction}
                                     canRaise={hasRaiseAction}

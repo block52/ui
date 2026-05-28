@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useCallback } from "react";
+import { TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { microToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { calculateMinTopUp, calculateMaxTopUp } from "../../utils/topUpUtils";
+import { useGameStateContext } from "../../context/GameStateContext";
 import { Modal, LoadingSpinner } from "../common";
 import styles from "./TopUpModal.module.css";
 import type { TopUpModalProps } from "./types";
@@ -8,6 +10,16 @@ import type { TopUpModalProps } from "./types";
 const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyIn, walletBalance, onClose, onTopUp }) => {
     const [topUpError, setTopUpError] = useState("");
     const [isProcessing, setIsProcessing] = useState(false);
+    const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+    // block52/poker-vm#2141 / ui#279: while a hand is in progress (PREFLOP..SHOWDOWN)
+    // the PVM queues the top-up and only credits it at the next reInit. Surface that
+    // to the player so they don't expect chips to land mid-hand.
+    const { gameState } = useGameStateContext();
+    const handInProgress =
+        gameState?.round !== undefined &&
+        gameState.round !== TexasHoldemRound.ANTE &&
+        gameState.round !== TexasHoldemRound.END;
 
     const { currentStackFormatted, maxBuyInFormatted, walletBalanceFormatted, minTopUpFormatted, maxTopUpFormatted, minTopUpMicro, maxTopUpMicro } = useMemo(() => {
         const current = microToUsdc(currentStack);
@@ -78,13 +90,32 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
             }
 
             await onTopUp(topUpMicrounits.toString());
+            setSuccessMessage(
+                handInProgress
+                    ? "Top-up confirmed. Chips will be added from the next hand."
+                    : "Top-up confirmed. Chips added to your stack."
+            );
         } catch (error) {
             console.error("Error in top-up:", error);
             setTopUpError("Failed to top up. Please try again.");
         } finally {
             setIsProcessing(false);
         }
-    }, [topUpAmount, minTopUpMicro, maxTopUpMicro, minTopUpFormatted, maxTopUpFormatted, onTopUp]);
+    }, [topUpAmount, minTopUpMicro, maxTopUpMicro, minTopUpFormatted, maxTopUpFormatted, onTopUp, handInProgress]);
+
+    if (successMessage) {
+        return (
+            <Modal isOpen={true} onClose={onClose} title="Buy Chips" titleIcon="💰" patternId="hexagons-topup-success">
+                <p className="text-gray-200 mb-6">{successMessage}</p>
+                <button
+                    onClick={onClose}
+                    className={`w-full px-5 py-3 rounded-lg text-white font-medium hover:opacity-80 transition-opacity ${styles.buyButton}`}
+                >
+                    Close
+                </button>
+            </Modal>
+        );
+    }
 
     if (!canTopUp) {
         return (

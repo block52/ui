@@ -18,6 +18,7 @@ const LS_KEY_AUTO_FOLD = "setting_autofold";
 const LS_KEY_AUTO_MUCK = "setting_automuck";
 const LS_KEY_TURN_SOUND = "setting_turnsound";
 const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
+const LS_KEY_SEAT_AT_BOTTOM = "setting_seatatbottom";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -33,6 +34,7 @@ export interface GameSettings {
     autoMuck: boolean;
     turnNotificationSound: boolean;
     playerActionSounds: boolean;
+    seatAtBottom: boolean;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -43,6 +45,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleAutoMuck: () => void;
     toggleTurnNotificationSound: () => void;
     togglePlayerActionSounds: () => void;
+    toggleSeatAtBottom: () => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue>(null as any);
@@ -68,6 +71,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [playerActionSounds, setPlayerActionSounds] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_PLAYER_ACTION_SOUNDS, true)
+    );
+    const [seatAtBottom, setSeatAtBottom] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_SEAT_AT_BOTTOM, true)
     );
 
     const toggleAutoDeal = useCallback(() => {
@@ -126,6 +132,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleSeatAtBottom = useCallback(() => {
+        setSeatAtBottom(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_SEAT_AT_BOTTOM, String(next));
+            return next;
+        });
+    }, []);
+
     return (
         <GameSettingsContext.Provider
             value={{
@@ -136,13 +150,15 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
                 autoMuck,
                 turnNotificationSound,
                 playerActionSounds,
+                seatAtBottom,
                 toggleAutoDeal,
                 toggleAutoPostBlinds,
                 toggleAutoNewHand,
                 toggleAutoFold,
                 toggleAutoMuck,
                 toggleTurnNotificationSound,
-                togglePlayerActionSounds
+                togglePlayerActionSounds,
+                toggleSeatAtBottom
             }}
         >
             {children}

@@ -2,6 +2,7 @@ import * as React from "react";
 import { memo, useMemo, useCallback, useState, useEffect } from "react";
 import Badge from "../common/Badge";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
+import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import { useParams } from "react-router-dom";
@@ -23,6 +24,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const { id } = useParams<{ id: string }>();
         const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
         const { winnerInfo } = useWinnerInfo();
+        const winnerCards = useWinnerCards();
         const { extendTime, canExtend, isCurrentUserTurn, isActive: isTurnTimerActive } = usePlayerTimer(id, index);
 
         const { dealerSeat } = useDealerPosition();
@@ -112,25 +114,31 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                 return <div className="w-[120px] h-[80px]"></div>;
             }
 
+            const hasWinningCards = winnerCards.size > 0;
+            const liftCard0 = isWinner && hasWinningCards && winnerCards.has(holeCards[0]);
+            const liftCard1 = isWinner && hasWinningCards && winnerCards.has(holeCards[1]);
+            const muteCard0 = isWinner && hasWinningCards && !winnerCards.has(holeCards[0]);
+            const muteCard1 = isWinner && hasWinningCards && !winnerCards.has(holeCards[1]);
+
             return (
                 <>
                     <img
                         src={getCardImageUrl(holeCards[0])}
                         width={60}
                         height={80}
-                        className="mb-[11px]"
+                        className={`mb-[11px]${liftCard0 ? " animate-win-card" : ""}${muteCard0 ? " opacity-40" : ""}`}
                         onError={_e => console.error(`❌ Player ${index} card1 failed to load:`, getCardImageUrl(holeCards[0]))}
                     />
                     <img
                         src={getCardImageUrl(holeCards[1])}
                         width={60}
                         height={80}
-                        className="mb-[11px]"
+                        className={`mb-[11px]${liftCard1 ? " animate-win-card" : ""}${muteCard1 ? " opacity-40" : ""}`}
                         onError={_e => console.error(`❌ Player ${index} card2 failed to load:`, getCardImageUrl(holeCards[1]))}
                     />
                 </>
             );
-        }, [holeCards, index]);
+        }, [holeCards, index, isWinner, winnerCards]);
 
         // 6) container style for positioning
         const containerStyle = useMemo(

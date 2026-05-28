@@ -9,57 +9,63 @@ import {
     preloadAllCards
 } from "./cardImages";
 
+// Jest's moduleNameMapper rewrites all *.svg imports to "test-file-stub" (see jest.config.cjs).
+// All bundled card / card-back helpers return that stub in the test environment.
+const BUNDLED_SVG = "test-file-stub";
+
+// Non-critical assets (chips, sounds, dealer) are still served from a CDN — jsDelivr,
+// against the block52/cards GitHub repo. raw.githubusercontent.com is not a CDN and was
+// the source of the intermittent load failures we moved away from.
+const CDN_BASE = "https://cdn.jsdelivr.net/gh/block52/cards@main";
+
 describe("cardImages", () => {
-    const GITHUB_CDN_BASE = "https://raw.githubusercontent.com/block52/cards/main";
-
-
     describe("getChipImageUrl", () => {
         it("should return correct chip image URL", () => {
-            expect(getChipImageUrl("chip.svg")).toBe(`${GITHUB_CDN_BASE}/chips/chip.svg`);
+            expect(getChipImageUrl("chip.svg")).toBe(`${CDN_BASE}/chips/chip.svg`);
         });
 
         it("should return correct chip image URL for 25chip.svg", () => {
-            expect(getChipImageUrl("25chip.svg")).toBe(`${GITHUB_CDN_BASE}/chips/25chip.svg`);
+            expect(getChipImageUrl("25chip.svg")).toBe(`${CDN_BASE}/chips/25chip.svg`);
         });
     });
 
     describe("getGenericChipImageUrl", () => {
         it("should return correct generic chip image URL", () => {
-            expect(getGenericChipImageUrl()).toBe(`${GITHUB_CDN_BASE}/chips/chip.svg`);
+            expect(getGenericChipImageUrl()).toBe(`${CDN_BASE}/chips/chip.svg`);
         });
     });
 
     describe("getSoundUrl", () => {
         it("should return correct sound URL", () => {
-            expect(getSoundUrl("bet.mp3")).toBe(`${GITHUB_CDN_BASE}/sounds/bet.mp3`);
+            expect(getSoundUrl("bet.mp3")).toBe(`${CDN_BASE}/sounds/bet.mp3`);
         });
     });
 
     describe("getDealerImageUrl", () => {
         it("should return correct dealer image URL", () => {
-            expect(getDealerImageUrl()).toBe(`${GITHUB_CDN_BASE}/dealer.svg`);
+            expect(getDealerImageUrl()).toBe(`${CDN_BASE}/dealer.svg`);
         });
     });
 
     describe("getCardBackUrl", () => {
         it("should return default card back when no style specified", () => {
-            expect(getCardBackUrl()).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardBackUrl()).toBe(BUNDLED_SVG);
         });
 
         it("should return default card back when style is 'default'", () => {
-            expect(getCardBackUrl("default")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardBackUrl("default")).toBe(BUNDLED_SVG);
         });
 
         it("should return Block52 branded card back when style is 'block52'", () => {
-            expect(getCardBackUrl("block52")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardBackUrl("block52")).toBe(BUNDLED_SVG);
         });
 
         it("should return legacy card back when style is 'legacy'", () => {
-            expect(getCardBackUrl("legacy")).toBe(`${GITHUB_CDN_BASE}/Back.svg`);
+            expect(getCardBackUrl("legacy")).toBe(BUNDLED_SVG);
         });
 
         it("should return custom card back when style is 'custom'", () => {
-            expect(getCardBackUrl("custom")).toBe(`${GITHUB_CDN_BASE}/BackCustom.svg`);
+            expect(getCardBackUrl("custom")).toBe(BUNDLED_SVG);
         });
 
         it("should return custom URL when provided", () => {
@@ -74,50 +80,51 @@ describe("cardImages", () => {
     });
 
     describe("getCardImageUrl", () => {
-        it("should return correct URL for Ace of Spades", () => {
-            expect(getCardImageUrl("AS")).toBe(`${GITHUB_CDN_BASE}/AS.svg`);
+        it("should return bundled URL for Ace of Spades", () => {
+            expect(getCardImageUrl("AS")).toBe(BUNDLED_SVG);
         });
 
-        it("should return correct URL for Ten of Clubs", () => {
-            expect(getCardImageUrl("TC")).toBe(`${GITHUB_CDN_BASE}/TC.svg`);
+        it("should return bundled URL for Ten of Clubs", () => {
+            expect(getCardImageUrl("TC")).toBe(BUNDLED_SVG);
         });
 
-        it("should return correct URL for King of Hearts", () => {
-            expect(getCardImageUrl("KH")).toBe(`${GITHUB_CDN_BASE}/KH.svg`);
+        it("should return bundled URL for King of Hearts", () => {
+            expect(getCardImageUrl("KH")).toBe(BUNDLED_SVG);
         });
 
-        it("should return correct URL for 2 of Diamonds", () => {
-            expect(getCardImageUrl("2D")).toBe(`${GITHUB_CDN_BASE}/2D.svg`);
+        it("should return bundled URL for 2 of Diamonds", () => {
+            expect(getCardImageUrl("2D")).toBe(BUNDLED_SVG);
         });
 
         it("should return card back for empty string", () => {
-            expect(getCardImageUrl("")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl("")).toBe(BUNDLED_SVG);
         });
 
         it("should return card back for question marks", () => {
-            expect(getCardImageUrl("??")).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl("??")).toBe(BUNDLED_SVG);
         });
 
         it("should return card back for undefined", () => {
-            expect(getCardImageUrl(undefined as any)).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl(undefined as any)).toBe(BUNDLED_SVG);
         });
 
         it("should return card back for null", () => {
-            expect(getCardImageUrl(null as any)).toBe(`${GITHUB_CDN_BASE}/b52CardBack.svg`);
+            expect(getCardImageUrl(null as any)).toBe(BUNDLED_SVG);
         });
 
-        it("should handle all suits", () => {
-            expect(getCardImageUrl("AC")).toBe(`${GITHUB_CDN_BASE}/AC.svg`);
-            expect(getCardImageUrl("AD")).toBe(`${GITHUB_CDN_BASE}/AD.svg`);
-            expect(getCardImageUrl("AH")).toBe(`${GITHUB_CDN_BASE}/AH.svg`);
-            expect(getCardImageUrl("AS")).toBe(`${GITHUB_CDN_BASE}/AS.svg`);
+        it("should return card back for unknown card code", () => {
+            // Falls through to the default back — unknown codes should never render a broken image.
+            expect(getCardImageUrl("ZZ")).toBe(BUNDLED_SVG);
         });
 
-        it("should handle all ranks", () => {
+        it("should resolve all 52 ranks × suits without throwing", () => {
+            const suits = ["C", "D", "H", "S"];
             const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
-            ranks.forEach(rank => {
-                expect(getCardImageUrl(`${rank}S`)).toBe(`${GITHUB_CDN_BASE}/${rank}S.svg`);
-            });
+            for (const r of ranks) {
+                for (const s of suits) {
+                    expect(getCardImageUrl(`${r}${s}`)).toBe(BUNDLED_SVG);
+                }
+            }
         });
     });
 
@@ -128,9 +135,8 @@ describe("cardImages", () => {
             } as any;
         });
 
-        it("should create Image objects for each card code", () => {
-            const cardCodes = ["AS", "KH", "QD", "JC"];
-            preloadCardImages(cardCodes);
+        it("should not throw for an array of codes", () => {
+            expect(() => preloadCardImages(["AS", "KH", "QD", "JC"])).not.toThrow();
         });
 
         it("should handle empty array", () => {
@@ -151,13 +157,6 @@ describe("cardImages", () => {
 
         it("should preload all 52 cards plus back", () => {
             expect(() => preloadAllCards()).not.toThrow();
-        });
-
-        it("should include all suits and ranks", () => {
-            const suits = ["C", "D", "H", "S"];
-            const ranks = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
-
-            expect(suits.length * ranks.length).toBe(52);
         });
     });
 });

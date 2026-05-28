@@ -31,6 +31,17 @@ jest.mock("../../../../context/GameStateContext", () => ({
     useGameStateContext: () => ({ gameState: { actionCount: 0 } }),
 }));
 
+// Mock GameSettingsContext — the seat-at-bottom toggle added in
+// block52/ui#392 reads from this context. Static stub keeps these
+// render/click tests focused on the existing behaviour.
+const mockToggleSeatAtBottom = jest.fn();
+jest.mock("../../../../context/GameSettingsContext", () => ({
+    useGameSettings: () => ({
+        seatAtBottom: true,
+        toggleSeatAtBottom: mockToggleSeatAtBottom,
+    }),
+}));
+
 // Mock getPlayerActionDisplay — import the real module so we can spy on it
 jest.mock("../../../../utils/playerActionDisplayUtils", () => {
     const actual = jest.requireActual("../../../../utils/playerActionDisplayUtils");
@@ -81,7 +92,7 @@ beforeEach(() => {
 });
 
 describe("PlayerActionButtons", () => {
-    it("renders nothing visible when display kind is none and no top-up available", () => {
+    it("renders only the Top-Up Chips wrapper when display kind is none and no top-up legal (#401)", () => {
         const { container } = render(
             <PlayerActionButtons
                 {...baseProps}
@@ -90,8 +101,11 @@ describe("PlayerActionButtons", () => {
                 legalActions={[]}
             />
         );
-        // BuyChipsButton is mocked to return null, so container should be empty
-        expect(container.firstChild).toBeNull();
+        // Per #401 AC-1 the Top-Up Chips button slot is always present while seated;
+        // its inner BuyChipsButton (mocked here) renders disabled when chain rejects.
+        // Confirm: a single wrapper div, no other action panels.
+        expect(container.children).toHaveLength(1);
+        expect(container.firstChild).toHaveClass("fixed", "z-30");
     });
 
     it("renders waiting for players message for solo player", () => {
@@ -172,7 +186,7 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("To join the table, click on an available seat.")).toBeInTheDocument();
     });
 
-    it("renders sit-out checkbox when SIT_OUT action available", () => {
+    it("renders both sit-out checkboxes when SIT_OUT action available", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -181,7 +195,8 @@ describe("PlayerActionButtons", () => {
                 handNumber={2}
             />
         );
-        expect(screen.getByRole("checkbox")).toBeInTheDocument();
+        expect(screen.getAllByRole("checkbox")).toHaveLength(2);
         expect(screen.getByText("Sit Out Next Hand")).toBeInTheDocument();
+        expect(screen.getByText("Sit Out Next Big Blind")).toBeInTheDocument();
     });
 });

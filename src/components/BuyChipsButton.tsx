@@ -15,10 +15,11 @@ interface BuyChipsButtonProps {
 /**
  * BuyChipsButton component
  *
- * Displays a button in the bottom-left corner of the table UI that allows
- * players to top up their chip stack when not in an active hand.
+ * Displays a Top-Up Chips button at the bottom-right of the table UI.
+ * Visible whenever the user is seated (#401); the disabled state reflects
+ * whether the chain currently accepts a top-up request.
  *
- * Location: Bottom-left corner of table screen (as per issue #774)
+ * Location: Bottom-right of table screen (as per issue #774).
  */
 const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
     tableId,
@@ -49,9 +50,9 @@ const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
                 className={`px-4 py-2 rounded-lg font-medium text-white shadow-md transition-all duration-200 ${
                     canTopUp ? styles.topUpEnabled : styles.topUpDisabled
                 }`}
-                title={canTopUp ? "Add chips to your stack" : "Cannot top up during an active hand"}
+                title={canTopUp ? "Add chips for the next hand" : "Top-up not available right now"}
             >
-                💰 BUY CHIPS
+                💰 TOP-UP CHIPS
             </button>
 
             {showModal && (

@@ -12,7 +12,7 @@
 import React from "react";
 import { isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import GameStartCountdown from "../../common/GameStartCountdown";
-import { SitAndGoAutoJoinModal } from "../../../modals";
+import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
 import TransactionPopup from "../../common/TransactionPopup";
 import { LeaveTableModal } from "../../../modals";
@@ -58,7 +58,6 @@ export const TableModals: React.FC<TableModalsProps> = ({
     tableId,
     onAutoJoinSuccess,
     isSitAndGoWaitingForPlayers,
-    handleLeaveTableClick,
     recentTxHash,
     handleCloseTransactionPopup,
     isLeaveModalOpen,
@@ -80,7 +79,22 @@ export const TableModals: React.FC<TableModalsProps> = ({
             )}
 
             {/* Sit & Go Waiting Modal - Shows for Sit & Go games when user is playing but waiting for more players */}
-            {isSitAndGoWaitingForPlayers && <SitAndGoWaitingModal onLeaveClick={handleLeaveTableClick} />}
+            {isSitAndGoWaitingForPlayers && (
+                <SitAndGoWaitingModal
+                    onLeaveConfirm={handleLeaveTableConfirm}
+                    playerStack={currentPlayerStack}
+                />
+            )}
+
+            {/* Sit & Go Result Modal - Self-gates on the user having a tournament
+                result in gameState.results[]. Skips the LeaveTableModal confirm
+                step and goes straight to the chain leave: the user has already
+                acknowledged the result by clicking "Leave Table", and the
+                table is finished — no balance-still-on-table concern.
+                block52/ui#371. */}
+            {gameFormat && isSitAndGoFormat(gameFormat) && (
+                <SitAndGoResultModal tableId={tableId} onLeave={handleLeaveTableConfirm} />
+            )}
 
             {/* Transaction Popup - Bottom Right */}
             <TransactionPopup txHash={recentTxHash} onClose={handleCloseTransactionPopup} />

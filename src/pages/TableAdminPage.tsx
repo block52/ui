@@ -79,6 +79,17 @@ export default function TableAdminPage() {
 
     const handleGameFormatChange = (newType: GameFormat) => {
         setGameFormat(newType);
+        // SNG/Tournament only supports chain-defined entrant counts.
+        // Snap an out-of-range maxPlayers to the nearest valid value.
+        if (isTournamentFormat(newType)) {
+            const validSngCounts = [2, 4, 6, 9];
+            if (!validSngCounts.includes(maxPlayers)) {
+                const next = validSngCounts.reduce((a, b) =>
+                    Math.abs(b - maxPlayers) < Math.abs(a - maxPlayers) ? b : a
+                );
+                setMaxPlayers(next);
+            }
+        }
     };
     // Buy-in in Big Blinds (BB) for Cash games
     const [minBuyInBB, setMinBuyInBB] = useState(20);
@@ -176,11 +187,14 @@ export default function TableAdminPage() {
         setTableCountBeforeCreation(tables.length);
         
         try {
+            // SNG requires fixed entrant count (min_players == max_players).
+            const finalMinPlayers = isTournament ? maxPlayers : minPlayers;
+
             const result = await createTable({
                 format: gameFormat,
                 minBuyIn: finalMinBuyIn,
                 maxBuyIn: finalMaxBuyIn,
-                minPlayers,
+                minPlayers: finalMinPlayers,
                 maxPlayers,
                 smallBlind: parseFloat(smallBlind),
                 bigBlind: parseFloat(bigBlind),

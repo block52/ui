@@ -22,6 +22,7 @@ import { useAutoPostBlinds } from "./useAutoPostBlinds";
 import { useAutoNewHand } from "./useAutoNewHand";
 import { useAutoFold } from "./useAutoFold";
 import { useAutoMuck } from "./useAutoMuck";
+import { useAutoSitOutNextBB } from "./useAutoSitOutNextBB";
 
 export {
     betHand,
@@ -49,7 +50,8 @@ export {
     useAutoPostBlinds,
     useAutoNewHand,
     useAutoFold,
-    useAutoMuck
+    useAutoMuck,
+    useAutoSitOutNextBB
 };
 
 export type { OptimisticActionType, SitInMethod, SitOutMethod };

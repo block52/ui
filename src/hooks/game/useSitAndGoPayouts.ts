@@ -16,17 +16,14 @@ export interface SitAndGoPayoutsReturn {
 }
 
 // Single-table SNG payout curves (basis points, sum to 10000).
-// Indexed by maxPlayers; covers the common single-table seat counts.
+// Must match pokerchain DefaultSngPayoutStructures
+// (x/poker/types/params.go) — those are the only entrant counts the
+// chain will create and finalize for SNG.
 const PAYOUT_CURVES: Record<number, number[]> = {
     2: [10000],
-    3: [7000, 3000],
     4: [7000, 3000],
-    5: [6500, 3500],
     6: [6500, 3500],
-    7: [5000, 3000, 2000],
-    8: [5000, 3000, 2000],
-    9: [5000, 3000, 2000],
-    10: [5000, 3000, 2000]
+    9: [5000, 3000, 2000]
 };
 
 const EMPTY: SitAndGoPayoutsReturn = { isSitAndGo: false, prizePool: null, places: [] };

@@ -59,7 +59,6 @@ import {
     TableSettingsSidebar,
     TableModals,
     PlayerSeating,
-    TableStatusMessages,
     PlayerActionButtons,
     LayoutDebugInfo
 } from "./Table/components";
@@ -95,6 +94,7 @@ import { usePlayerChipData } from "../../hooks/player/usePlayerChipData";
 //3. Game State Providers
 import { useTableState } from "../../hooks/game/useTableState"; //Provides currentRound, formattedTotalPot, tableSize, tableSize determines player layout (6 vs 9 players)
 import { useGameProgress } from "../../hooks/game/useGameProgress"; //Provides isGameInProgress - whether a hand is active
+import { useHoleCardWatchdog } from "../../hooks/game/useHoleCardWatchdog"; //#409: auto-recover when owning player's hole cards fail to arrive
 
 //todo wire up to use the sdk instead of the proxy
 // 4. Player Actions
@@ -102,6 +102,7 @@ import { leaveTable } from "../../hooks/playerActions/leaveTable";
 
 // 5. Winner Info
 import { useWinnerInfo } from "../../hooks/game/useWinnerInfo"; // Provides winner information for animations
+import { useWinnerCards } from "../../hooks/game/useWinnerCards"; // Winning card codes for card-lift animation
 import { useGameResults } from "../../hooks/game/useGameResults"; // Game results display
 
 // other
@@ -687,6 +688,7 @@ const Table = React.memo(() => {
 
     // invoke hook for seat loop
     const { winnerInfo } = useWinnerInfo();
+    const winnerCards = useWinnerCards();
 
     // Zoom is now handled by the table layout configuration
     // const calculateZoom = useCallback(() => { ... }, []);
@@ -763,7 +765,7 @@ const Table = React.memo(() => {
     } = useNextToActInfo(id);
 
     // Enable turn-to-act notifications (tab flashing + optional sound)
-    const { turnNotificationSound, playerActionSounds } = useGameSettings();
+    const { turnNotificationSound, playerActionSounds, seatAtBottom } = useGameSettings();
     useTurnNotification(isCurrentUserTurn, {
         enableSound: turnNotificationSound,
         soundVolume: 0.3,
@@ -789,6 +791,9 @@ const Table = React.memo(() => {
 
     // Add the useGameProgress hook
     const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);
+
+    // #409 watchdog: detect "I'm in a hand but my hole cards are missing" and auto re-subscribe.
+    useHoleCardWatchdog(id);
 
     // Add the useGameOptions hook
     const { gameOptions } = useGameOptions();
@@ -959,14 +964,19 @@ const Table = React.memo(() => {
 
     // AUTO-ROTATION: Automatically rotate table when user joins
     // Auto-rotate table so current player is always at bottom (6 o'clock) (#13)
+    // Gated by the seatAtBottom user setting (#392) — when off, render absolute layout.
     // Formula in PlayerSeating: seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1
     // For position 0 (bottom) to show seat S: S = ((0 - startIndex + tableSize) % tableSize) + 1
     // Solving: startIndex = (tableSize - (S - 1)) % tableSize
     useEffect(() => {
+        if (!seatAtBottom) {
+            setStartIndex(0);
+            return;
+        }
         if (currentUserSeat > 0 && tableSize > 0) {
             setStartIndex((tableSize - (currentUserSeat - 1)) % tableSize);
         }
-    }, [currentUserSeat, tableSize]);
+    }, [currentUserSeat, tableSize, seatAtBottom]);
 
     // Winner animations
     const hasWinner = Array.isArray(winnerInfo) && winnerInfo.length > 0;
@@ -1128,7 +1138,7 @@ const Table = React.memo(() => {
             throw new Error("Cannot leave: missing table ID or player data");
         }
 
-        await leaveTable(id, currentPlayerData.stack || "0", currentNetwork);
+        await leaveTable(id, currentNetwork);
 
         // Refresh balance after leaving
         fetchAccountBalance();
@@ -1191,7 +1201,7 @@ const Table = React.memo(() => {
                 onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
                 style={{
                     position: "fixed",
-                    bottom: 12,
+                    bottom: isMobileLandscape ? 60 : 12,
                     left: 12,
                     zIndex: 999999,
                     padding: "6px 12px",
@@ -1333,6 +1343,7 @@ const Table = React.memo(() => {
                                 isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
                                 cardBackStyle={cardBackStyle}
                                 tableTheme={tableStyle}
+                                winnerCards={winnerCards}
                             />
 
                             {/* Chips — map screen position to rotated seat number */}
@@ -1414,21 +1425,6 @@ const Table = React.memo(() => {
             {/*//! SETTINGS OVERLAY */}
             <TableSettingsSidebar isOpen={openSettings} />
 
-            {/* Status Messages */}
-            <TableStatusMessages
-                viewportMode={viewportMode}
-                isMobileLandscape={isMobileLandscape}
-                currentUserSeat={currentUserSeat}
-                nextToActSeat={nextToActSeat}
-                isGameInProgress={isGameInProgress}
-                isCurrentUserTurn={isCurrentUserTurn}
-                playerLegalActions={playerLegalActions}
-                tableActivePlayers={tableActivePlayers}
-                isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
-                smallBlindPosition={tableDataValues.tableDataSmallBlindPosition}
-                bigBlindPosition={tableDataValues.tableDataBigBlindPosition}
-                dealerPosition={tableDataValues.tableDataDealer}
-            />
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />

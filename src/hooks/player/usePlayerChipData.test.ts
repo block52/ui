@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usePlayerChipData } from "./usePlayerChipData";
 import { useGameStateContext } from "../../context/GameStateContext";
 
@@ -216,7 +216,9 @@ describe("usePlayerChipData", () => {
                         {
                             playerId: "cosmos1allin",
                             round: TexasHoldemRound.FLOP,
-                            amount: "5000000"
+                            action: PlayerActionType.ALL_IN,
+                            amount: "5000000",
+                            index: 0
                         }
                     ]
                 },
@@ -250,7 +252,9 @@ describe("usePlayerChipData", () => {
                         {
                             playerId: "cosmos1folded",
                             round: TexasHoldemRound.TURN,
-                            amount: "1000000"
+                            action: PlayerActionType.BET,
+                            amount: "1000000",
+                            index: 0
                         }
                     ]
                 },
@@ -358,12 +362,16 @@ describe("usePlayerChipData", () => {
                         {
                             playerId: "cosmos1player",
                             round: TexasHoldemRound.PREFLOP,
-                            amount: "2000000" // Preflop bet
+                            action: PlayerActionType.CALL,
+                            amount: "2000000", // Preflop bet
+                            index: 0
                         },
                         {
                             playerId: "cosmos1player",
                             round: TexasHoldemRound.FLOP,
-                            amount: "3000000" // Flop bet (current round)
+                            action: PlayerActionType.BET,
+                            amount: "3000000", // Flop bet (current round)
+                            index: 1
                         }
                     ]
                 },
@@ -398,12 +406,16 @@ describe("usePlayerChipData", () => {
                         {
                             playerId: "cosmos1player",
                             round: TexasHoldemRound.RIVER,
-                            amount: "2000000" // First river bet
+                            action: PlayerActionType.BET,
+                            amount: "2000000", // First river bet
+                            index: 0
                         },
                         {
                             playerId: "cosmos1player",
                             round: TexasHoldemRound.RIVER,
-                            amount: "3000000" // Raise on river
+                            action: PlayerActionType.RAISE,
+                            amount: "3000000", // Raise on river
+                            index: 1
                         }
                     ]
                 },
