@@ -92,7 +92,7 @@ beforeEach(() => {
 });
 
 describe("PlayerActionButtons", () => {
-    it("renders nothing visible when display kind is none and no top-up available", () => {
+    it("renders only the Top-Up Chips wrapper when display kind is none and no top-up legal (#401)", () => {
         const { container } = render(
             <PlayerActionButtons
                 {...baseProps}
@@ -101,8 +101,11 @@ describe("PlayerActionButtons", () => {
                 legalActions={[]}
             />
         );
-        // BuyChipsButton is mocked to return null, so container should be empty
-        expect(container.firstChild).toBeNull();
+        // Per #401 AC-1 the Top-Up Chips button slot is always present while seated;
+        // its inner BuyChipsButton (mocked here) renders disabled when chain rejects.
+        // Confirm: a single wrapper div, no other action panels.
+        expect(container.children).toHaveLength(1);
+        expect(container.firstChild).toHaveClass("fixed", "z-30");
     });
 
     it("renders waiting for players message for solo player", () => {

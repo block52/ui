@@ -194,9 +194,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         }, DIRTY_STATE_TIMEOUT_MS);
         return () => clearTimeout(t);
     }, [pendingActionCount]);
-    // Buy Chips button rendered independently (bottom-right, opposite to action buttons)
+    // Top-Up Chips button: always visible while the user is seated (#401).
+    // Disabled state is driven by `canTopUp` so the chain rejection (e.g. ACTIVE
+    // status with current PVM verify rules) shows greyed-out rather than hidden.
     const buyChipsElement =
-        canTopUp && tableId ? (
+        isCurrentUserSeated && tableId ? (
             <div className={`fixed z-30 ${buyChipsPositionClass}`}>
                 <BuyChipsButton
                     tableId={tableId}
