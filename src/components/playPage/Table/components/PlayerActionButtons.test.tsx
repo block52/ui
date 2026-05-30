@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
+import { GameFormat, NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
 import { PlayerActionButtons, PlayerActionButtonsProps } from "./PlayerActionButtons";
 import { SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
@@ -27,8 +27,9 @@ jest.mock("../../../common/actionHandlers", () => ({
 // reads actionCount from this context. These tests don't exercise that
 // pathway (they assert render structure + click handlers), so a static
 // stub is sufficient.
+const mockGameStateContext = { gameState: { actionCount: 0 }, gameFormat: undefined as GameFormat | undefined };
 jest.mock("../../../../context/GameStateContext", () => ({
-    useGameStateContext: () => ({ gameState: { actionCount: 0 } }),
+    useGameStateContext: () => mockGameStateContext,
 }));
 
 // Mock GameSettingsContext — the seat-at-bottom toggle added in
@@ -184,6 +185,21 @@ describe("PlayerActionButtons", () => {
         );
         expect(screen.getByText("You are spectating this table")).toBeInTheDocument();
         expect(screen.getByText("To join the table, click on an available seat.")).toBeInTheDocument();
+    });
+
+    it("hides BuyChipsButton in SNG games even when TOP_UP is in legalActions", () => {
+        mockGameStateContext.gameFormat = GameFormat.SIT_AND_GO;
+        const { container } = render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.TOP_UP)]}
+                totalSeatedPlayers={3}
+                handNumber={2}
+            />
+        );
+        // The wrapping div for BuyChipsButton should not be rendered in SNG
+        expect(container.querySelector(".fixed.z-30")).toBeNull();
+        mockGameStateContext.gameFormat = undefined;
     });
 
     it("renders both sit-out checkboxes when SIT_OUT action available", () => {

@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useRef } from "react";
 
-import { LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
+import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
 import { handleSitOut, handleSitIn } from "../../../common/actionHandlers";
 import { SIT_IN_METHOD_POST_NOW, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
@@ -86,7 +86,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     //     (canonical "chain processed it" signal)
     //   • DIRTY_STATE_TIMEOUT_MS elapses (escape hatch)
     //   • handleSitIn throws (CheckTx rejected — clear immediately)
-    const { gameState } = useGameStateContext();
+    const { gameState, gameFormat } = useGameStateContext();
     const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
     const [sittingIn, setSittingIn] = useState(false);
     const [pendingActionCount, setPendingActionCount] = useState<number | null>(null);
@@ -123,9 +123,10 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         hasActivePlayers
     });
 
-    // Top-up: check if TOP_UP is in legal actions
+    // Top-up: check if TOP_UP is in legal actions (never available in SNG)
     const topUpAction = legalActions.find(a => a.action === NonPlayerActionType.TOP_UP);
-    const canTopUp = !!topUpAction && !!tableId;
+    const isSNG = gameFormat === GameFormat.SIT_AND_GO;
+    const canTopUp = !!topUpAction && !!tableId && !isSNG;
     const { topUp } = useTableTopUp(tableId || "", currentNetwork);
 
     const handleTopUp = async (amount: string) => {
@@ -194,11 +195,12 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         }, DIRTY_STATE_TIMEOUT_MS);
         return () => clearTimeout(t);
     }, [pendingActionCount]);
-    // Top-Up Chips button: always visible while the user is seated (#401).
+    // Top-Up Chips button: always visible while the user is seated (#401),
+    // but completely hidden in SNG games where top-ups are not allowed (#2172).
     // Disabled state is driven by `canTopUp` so the chain rejection (e.g. ACTIVE
     // status with current PVM verify rules) shows greyed-out rather than hidden.
     const buyChipsElement =
-        isCurrentUserSeated && tableId ? (
+        isCurrentUserSeated && tableId && !isSNG ? (
             <div className={`fixed z-30 ${buyChipsPositionClass}`}>
                 <BuyChipsButton
                     tableId={tableId}
