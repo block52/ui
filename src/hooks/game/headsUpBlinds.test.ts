@@ -28,8 +28,7 @@ jest.mock("../../context/gameState/GameUIContext", () => ({
         return {
             isLoading: m.isLoading,
             error: m.error,
-            validationError: m.validationError,
-            pendingAction: m.pendingAction
+            validationError: m.validationError
         };
     }
 }));
@@ -124,10 +123,8 @@ function setMockContext(gameState: TexasHoldemStateDTO | undefined, gameFormat: 
         isLoading: false,
         error: null,
         validationError: null,
-        pendingAction: null,
         subscribeToTable: jest.fn(),
-        unsubscribeFromTable: jest.fn(),
-        sendAction: jest.fn()
+        unsubscribeFromTable: jest.fn()
     });
 }
 

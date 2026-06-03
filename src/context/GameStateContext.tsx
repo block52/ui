@@ -7,7 +7,7 @@ import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { GameDataProvider, useGameData } from "./gameState/GameDataContext";
 import { GameMetaProvider, useGameMeta } from "./gameState/GameMetaContext";
-import { GameUIProvider, useGameUI, PendingAction } from "./gameState/GameUIContext";
+import { GameUIProvider, useGameUI } from "./gameState/GameUIContext";
 import { ReplayProvider, useReplay } from "./gameState/ReplayContext";
 import { GameActionsProvider, useGameActions } from "./gameState/GameActionsContext";
 
@@ -38,13 +38,11 @@ export interface GameStateContextType {
     isLoading: boolean;
     error: Error | null;
     validationError: ValidationError | null;
-    pendingAction: PendingAction | null;
     isReplayMode: boolean;
     replayHandNumber: number | null;
     replayActionIndex: number | null;
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
-    sendAction: (action: string, amount?: string) => Promise<void>;
     loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number) => Promise<void>;
 }
 
@@ -59,7 +57,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<Error | null>(null);
     const [validationError, setValidationError] = useState<ValidationError | null>(null);
-    const [pendingAction, setPendingAction] = useState<PendingAction | null>(null);
     const [isReplayMode, setIsReplayMode] = useState<boolean>(false);
     const [replayHandNumber, setReplayHandNumber] = useState<number | null>(null);
     const [replayActionIndex, setReplayActionIndex] = useState<number | null>(null);
@@ -220,7 +217,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                             setGameState(gameStateData as TexasHoldemStateDTO);
                             setGameFormat(rawFormat as GameFormat | undefined);
                             setGameVariant(rawVariant as GameVariant | undefined);
-                            setPendingAction(null);
                             return;
                         }
 
@@ -233,21 +229,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         setGameVariant(rawVariant as GameVariant);
                         setError(null);
                         setValidationError(null);
-                        setPendingAction(null);
-                    } else if (message.event === "pending") {
-                        // Handle optimistic update - action accepted by mempool but not yet confirmed
-                        const pendingData = message.data;
-                        if (pendingData) {
-                            setPendingAction({
-                                gameId: pendingData.gameId || message.gameId,
-                                actor: pendingData.actor,
-                                action: pendingData.action,
-                                amount: pendingData.amount,
-                                timestamp: Date.now()
-                            });
-                        }
-                    } else if (message.event === "action_accepted") {
-                        // Acknowledgment that our action was accepted - no action needed
                     } else if (message.type === "error" || message.event === "error") {
                         // Handle error messages from the backend
                         const errorMsg =
@@ -257,7 +238,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
 
                         setError(new Error(errorMsg));
                         setIsLoading(false);
-                        setPendingAction(null);
 
                         // If it's a game not found error, clear the game state
                         if (message.code === "GAME_NOT_FOUND") {
@@ -308,39 +288,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         setIsLoading(false);
         setError(null);
         setValidationError(null);
-        setPendingAction(null);
     }, []);
-
-    // Send action through WebSocket for immediate broadcast
-    const sendAction = useCallback(
-        async (action: string, amount?: string): Promise<void> => {
-            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-                throw new Error("WebSocket not connected");
-            }
-
-            if (!currentTableIdRef.current) {
-                throw new Error("Not subscribed to a table");
-            }
-
-            // Get Cosmos player address
-            const playerAddress = localStorage.getItem("user_cosmos_address");
-
-            if (!playerAddress) {
-                throw new Error("No Block52 wallet address found. Please connect your wallet.");
-            }
-
-            const actionMessage = {
-                type: "action",
-                gameId: currentTableIdRef.current,
-                playerAddress: playerAddress,
-                action: action,
-                amount: amount
-            };
-
-            wsRef.current.send(JSON.stringify(actionMessage));
-        },
-        []
-    );
 
     // Load point-in-time snapshot from chain (replay mode for readonly share links).
     // Uses pokerchain#160 GameStateAt RPC: previousActions is truncated to actions at
@@ -380,7 +328,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 setGameState(gameStateData as TexasHoldemStateDTO);
                 setGameFormat(rawFormat as GameFormat | undefined);
                 setGameVariant(rawVariant as GameVariant | undefined);
-                setPendingAction(null);
             } catch (err) {
                 console.error("[GameStateContext] Failed to load historical state:", err);
                 setError(err instanceof Error ? err : new Error("Failed to load historical state"));
@@ -407,7 +354,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         <GameActionsProvider
             subscribeToTable={subscribeToTable}
             unsubscribeFromTable={unsubscribeFromTable}
-            sendAction={sendAction}
             loadHistoricalState={loadHistoricalState}
         >
             <GameMetaProvider gameFormat={gameFormat} gameVariant={gameVariant}>
@@ -420,7 +366,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         isLoading={isLoading}
                         error={error}
                         validationError={validationError}
-                        pendingAction={pendingAction}
                     >
                         <GameDataProvider gameState={gameState}>{children}</GameDataProvider>
                     </GameUIProvider>
@@ -440,9 +385,9 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
 export const useGameStateContext = (): GameStateContextType => {
     const { gameState } = useGameData();
     const { gameFormat, gameVariant } = useGameMeta();
-    const { isLoading, error, validationError, pendingAction } = useGameUI();
+    const { isLoading, error, validationError } = useGameUI();
     const { isReplayMode, replayHandNumber, replayActionIndex } = useReplay();
-    const { subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState } = useGameActions();
+    const { subscribeToTable, unsubscribeFromTable, loadHistoricalState } = useGameActions();
 
     return useMemo(
         () => ({
@@ -452,13 +397,11 @@ export const useGameStateContext = (): GameStateContextType => {
             isLoading,
             error,
             validationError,
-            pendingAction,
             isReplayMode,
             replayHandNumber,
             replayActionIndex,
             subscribeToTable,
             unsubscribeFromTable,
-            sendAction,
             loadHistoricalState
         }),
         [
@@ -468,13 +411,11 @@ export const useGameStateContext = (): GameStateContextType => {
             isLoading,
             error,
             validationError,
-            pendingAction,
             isReplayMode,
             replayHandNumber,
             replayActionIndex,
             subscribeToTable,
             unsubscribeFromTable,
-            sendAction,
             loadHistoricalState
         ]
     );

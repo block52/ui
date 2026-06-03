@@ -17,8 +17,7 @@ jest.mock("../../context/gameState/GameUIContext", () => ({
         return {
             isLoading: m.isLoading,
             error: m.error,
-            validationError: m.validationError,
-            pendingAction: m.pendingAction
+            validationError: m.validationError
         };
     }
 }));

@@ -10,7 +10,6 @@ import React, { createContext, useContext, useMemo } from "react";
 export interface GameActionsContextValue {
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
-    sendAction: (action: string, amount?: string) => Promise<void>;
     loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number) => Promise<void>;
 }
 
@@ -23,13 +22,12 @@ interface GameActionsProviderProps extends GameActionsContextValue {
 export const GameActionsProvider: React.FC<GameActionsProviderProps> = ({
     subscribeToTable,
     unsubscribeFromTable,
-    sendAction,
     loadHistoricalState,
     children
 }) => {
     const value = useMemo<GameActionsContextValue>(
-        () => ({ subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState }),
-        [subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState]
+        () => ({ subscribeToTable, unsubscribeFromTable, loadHistoricalState }),
+        [subscribeToTable, unsubscribeFromTable, loadHistoricalState]
     );
     return <GameActionsContext.Provider value={value}>{children}</GameActionsContext.Provider>;
 };
