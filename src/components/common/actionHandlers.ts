@@ -17,6 +17,30 @@ import {
 } from "../../hooks/playerActions";
 import type { SitInMethod, SitOutMethod } from "../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
+import { PlayerActionType, NonPlayerActionType } from "@block52/poker-vm-sdk";
+
+/**
+ * Optimistic WS broadcaster — the function returned by useGameActions().sendAction.
+ *
+ * Every click handler announces the action over the table's WebSocket *before*
+ * submitting the real REST transaction. The announcement gives other clients
+ * watching the same table a sub-100ms optimistic update; the REST submission
+ * (~50–100ms CheckTx + ~5s commit) is the authoritative path.
+ *
+ * Failure of the WS announcement is non-fatal — we always proceed with the
+ * REST submission so the user's action still goes through.
+ */
+export type OptimisticBroadcaster = (action: string, amount?: string) => Promise<void>;
+
+/**
+ * Fire-and-forget WS announcement. Swallows errors so a dead WebSocket
+ * never blocks the real REST submission below it.
+ */
+function announce(send: OptimisticBroadcaster, action: string, amount?: string): void {
+    send(action, amount).catch(err => {
+        console.warn(`[actionHandlers] optimistic broadcast for ${action} failed:`, err);
+    });
+}
 
 /**
  * Result type from player action functions
@@ -44,14 +68,18 @@ interface ActionHandlerOptions {
  */
 function createSimpleHandler(
     actionName: string,
+    wsAction: PlayerActionType | NonPlayerActionType,
     actionFn: (tableId: string, network: NetworkEndpoints) => Promise<ActionResult | null>,
     options: ActionHandlerOptions = {}
 ) {
     return async (
         tableId: string | undefined,
-        network: NetworkEndpoints
+        network: NetworkEndpoints,
+        send: OptimisticBroadcaster
     ): Promise<string | null> => {
         if (!tableId) return null;
+
+        announce(send, wsAction);
 
         try {
             const result = await actionFn(tableId, network);
@@ -70,15 +98,19 @@ function createSimpleHandler(
  */
 function createAmountFirstHandler(
     actionName: string,
+    wsAction: PlayerActionType | NonPlayerActionType,
     actionFn: (tableId: string, amount: bigint, network: NetworkEndpoints) => Promise<ActionResult | null>,
     options: ActionHandlerOptions = {}
 ) {
     return async (
         amount: bigint,
         tableId: string | undefined,
-        network: NetworkEndpoints
+        network: NetworkEndpoints,
+        send: OptimisticBroadcaster
     ): Promise<string | null> => {
         if (!tableId) return null;
+
+        announce(send, wsAction, amount.toString());
 
         try {
             const result = await actionFn(tableId, amount, network);
@@ -97,15 +129,19 @@ function createAmountFirstHandler(
  */
 function createTableIdAmountHandler(
     actionName: string,
+    wsAction: PlayerActionType | NonPlayerActionType,
     actionFn: (tableId: string, amount: bigint, network: NetworkEndpoints) => Promise<ActionResult | null>,
     options: ActionHandlerOptions = {}
 ) {
     return async (
         tableId: string | undefined,
         amount: bigint,
-        network: NetworkEndpoints
+        network: NetworkEndpoints,
+        send: OptimisticBroadcaster
     ): Promise<string | null> => {
         if (!tableId) return null;
+
+        announce(send, wsAction, amount.toString());
 
         try {
             const result = await actionFn(tableId, amount, network);
@@ -122,26 +158,28 @@ function createTableIdAmountHandler(
 // Simple handlers (tableId, network) -> Promise<string | null>
 // =============================================================================
 
-const handleCheck = createSimpleHandler("check", checkHand);
+const handleCheck = createSimpleHandler("check", PlayerActionType.CHECK, checkHand);
 
-const handleFold = createSimpleHandler("fold", foldHand);
+const handleFold = createSimpleHandler("fold", PlayerActionType.FOLD, foldHand);
 
-const handleMuck = createSimpleHandler("muck cards", muckCards);
+const handleMuck = createSimpleHandler("muck cards", PlayerActionType.MUCK, muckCards);
 
-const handleShow = createSimpleHandler("show cards", showCards);
+const handleShow = createSimpleHandler("show cards", PlayerActionType.SHOW, showCards);
 
-const handleDeal = createSimpleHandler("deal", dealCards, {
+const handleDeal = createSimpleHandler("deal", NonPlayerActionType.DEAL, dealCards, {
     successLog: "Deal completed successfully"
 });
 
-const handleStartNewHand = createSimpleHandler("start new hand", startNewHand);
+const handleStartNewHand = createSimpleHandler("start new hand", NonPlayerActionType.NEW_HAND, startNewHand);
 
 const handleSitOut = async (
     tableId: string | undefined,
     network: NetworkEndpoints,
+    send: OptimisticBroadcaster,
     method: SitOutMethod = SIT_OUT_METHOD_NEXT_HAND
 ): Promise<string | null> => {
     if (!tableId) return null;
+    announce(send, NonPlayerActionType.SIT_OUT);
     try {
         const result = await sitOut(tableId, network, method);
         return result?.hash || null;
@@ -154,6 +192,7 @@ const handleSitOut = async (
 const handleSitIn = async (
     tableId: string | undefined,
     network: NetworkEndpoints,
+    send: OptimisticBroadcaster,
     method: SitInMethod = SIT_IN_METHOD_POST_NOW
 ): Promise<string | null> => {
     console.log("🎲 handleSitIn called with:", { tableId, network, method });
@@ -161,6 +200,7 @@ const handleSitIn = async (
         console.error("❌ handleSitIn: tableId is undefined");
         return null;
     }
+    announce(send, NonPlayerActionType.SIT_IN);
     try {
         console.log("📞 Calling sitIn action...");
         const result = await sitIn(tableId, network, method);
@@ -180,13 +220,13 @@ const handleSitIn = async (
  * Handle call action
  * @param amount - Amount in micro-units as bigint (10^6 precision)
  */
-const handleCall = createAmountFirstHandler("call", callHand);
+const handleCall = createAmountFirstHandler("call", PlayerActionType.CALL, callHand);
 
 /**
  * Handle bet action
  * @param amount - Amount in micro-units as bigint (10^6 precision)
  */
-const handleBet = createAmountFirstHandler("bet", betHand);
+const handleBet = createAmountFirstHandler("bet", PlayerActionType.BET, betHand);
 
 // =============================================================================
 // TableId-amount handlers (tableId, amount, network) -> Promise<string | null>
@@ -196,7 +236,7 @@ const handleBet = createAmountFirstHandler("bet", betHand);
  * Handle post small blind action
  * @param amount - Amount in micro-units as bigint (10^6 precision)
  */
-const handlePostSmallBlind = createTableIdAmountHandler("post small blind", postSmallBlind, {
+const handlePostSmallBlind = createTableIdAmountHandler("post small blind", PlayerActionType.SMALL_BLIND, postSmallBlind, {
     attemptLog: "🎰 Attempting to post small blind:",
     successLog: "✅ Small blind posted successfully"
 });
@@ -205,7 +245,7 @@ const handlePostSmallBlind = createTableIdAmountHandler("post small blind", post
  * Handle post big blind action
  * @param amount - Amount in micro-units as bigint (10^6 precision)
  */
-const handlePostBigBlind = createTableIdAmountHandler("post big blind", postBigBlind, {
+const handlePostBigBlind = createTableIdAmountHandler("post big blind", PlayerActionType.BIG_BLIND, postBigBlind, {
     successLog: "✅ Big blind posted successfully"
 });
 
@@ -213,7 +253,7 @@ const handlePostBigBlind = createTableIdAmountHandler("post big blind", postBigB
  * Handle raise action
  * @param amount - Amount in micro-units as bigint (10^6 precision)
  */
-const handleRaise = createTableIdAmountHandler("raise", raiseHand);
+const handleRaise = createTableIdAmountHandler("raise", PlayerActionType.RAISE, raiseHand);
 
 // =============================================================================
 // Exports

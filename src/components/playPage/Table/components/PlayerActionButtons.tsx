@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import BuyChipsButton from "../../../BuyChipsButton";
 import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
 import { useGameStateContext } from "../../../../context/GameStateContext";
+import { useGameActions } from "../../../../context/gameState/GameActionsContext";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { isNullish } from "../../../../utils/guards";
 import { findUserSeat } from "../../../../utils/playerSeatUtils";
@@ -87,6 +88,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     //   • DIRTY_STATE_TIMEOUT_MS elapses (escape hatch)
     //   • handleSitIn throws (CheckTx rejected — clear immediately)
     const { gameState, gameFormat } = useGameStateContext();
+    const { sendAction } = useGameActions();
     const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
     const [sittingIn, setSittingIn] = useState(false);
     const [pendingActionCount, setPendingActionCount] = useState<number | null>(null);
@@ -101,7 +103,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
 
     const handleToggleSitOutNextHand = () => {
         setOptimisticChecked(!isChecked);
-        handleSitOut(tableId, currentNetwork);
+        handleSitOut(tableId, currentNetwork, sendAction);
     };
 
     useAutoSitOutNextBB(
@@ -144,13 +146,13 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             hasTriggeredAutoSitIn.current = true;
             console.log("🚀 Bootstrap: auto-sending SIT_IN for table:", tableId);
             // Bootstrap: method is irrelevant, use post-now (next-bb deferred, poker-vm#1895)
-            handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
+            handleSitIn(tableId, currentNetwork, sendAction, SIT_IN_METHOD_POST_NOW);
         }
         // Reset when no longer in auto-sit-in state
         if (display.kind !== "auto-sit-in") {
             hasTriggeredAutoSitIn.current = false;
         }
-    }, [display.kind, tableId, currentNetwork]);
+    }, [display.kind, tableId, currentNetwork, sendAction]);
 
     const handleSitInClick = async () => {
         if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
@@ -159,7 +161,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         setSittingIn(true);
         setPendingActionCount(submittedAt);
         try {
-            await handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
+            await handleSitIn(tableId, currentNetwork, sendAction, SIT_IN_METHOD_POST_NOW);
             // Success path: let the watcher useEffect clear when the chain
             // confirms via actionCount, or the timeout fires.
         } catch (err) {

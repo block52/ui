@@ -32,6 +32,20 @@ jest.mock("../../../../context/GameStateContext", () => ({
     useGameStateContext: () => mockGameStateContext,
 }));
 
+// Mock GameActionsContext — the optimistic-broadcast wiring landed for
+// Option B reads sendAction from this context. Static no-op stub keeps
+// these render/click tests focused on existing behaviour; the broadcast
+// itself is fire-and-forget so the action layer doesn't await it.
+const mockSendAction = jest.fn(async () => undefined);
+jest.mock("../../../../context/gameState/GameActionsContext", () => ({
+    useGameActions: () => ({
+        subscribeToTable: jest.fn(),
+        unsubscribeFromTable: jest.fn(),
+        sendAction: mockSendAction,
+        loadHistoricalState: jest.fn(),
+    }),
+}));
+
 // Mock GameSettingsContext — the seat-at-bottom toggle added in
 // block52/ui#392 reads from this context. Static stub keeps these
 // render/click tests focused on the existing behaviour.
@@ -146,6 +160,7 @@ describe("PlayerActionButtons", () => {
         expect(mockHandleSitIn).toHaveBeenCalledWith(
             "table-123",
             mockNetwork,
+            mockSendAction,
             SIT_IN_METHOD_POST_NOW
         );
     });

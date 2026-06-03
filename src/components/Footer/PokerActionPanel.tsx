@@ -18,6 +18,7 @@ import { useTableState, useNextToActInfo } from "../../hooks";
 import { useActionSounds } from "../../hooks/notifications/useActionSounds";
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useGameActions } from "../../context/gameState/GameActionsContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
 import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
@@ -98,6 +99,10 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     // Get game state and player data
     const { gameState, gameFormat } = useGameStateContext();
+    // Optimistic WS broadcaster — every click handler announces the action over
+    // the table's WebSocket before the REST submission, so other clients get a
+    // sub-100ms preview instead of waiting on chain commit (~5s).
+    const { sendAction } = useGameActions();
     const isTournament = isTournamentFormat(gameFormat);
     const players = gameState?.players || null;
     const { legalActions, isPlayerTurn, playerStatus } = usePlayerLegalActions();
@@ -398,7 +403,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         if (!tableId || smallBlindMicro === 0n) return;
 
         await handleActionWithTransaction("small-blind", async () => {
-            return await handlePostSmallBlind(tableId, smallBlindMicro, network);
+            return await handlePostSmallBlind(tableId, smallBlindMicro, network, sendAction);
         });
     };
 
@@ -406,7 +411,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         if (!tableId || bigBlindMicro === 0n) return;
 
         await handleActionWithTransaction("big-blind", async () => {
-            return await handlePostBigBlind(tableId, bigBlindMicro, network);
+            return await handlePostBigBlind(tableId, bigBlindMicro, network, sendAction);
         });
     };
 
@@ -415,7 +420,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         const amountMicro = fromDisplay(raiseAmount);
 
         await handleActionWithTransaction("bet", async () => {
-            return await handleBet(amountMicro, tableId, network);
+            return await handleBet(amountMicro, tableId, network, sendAction);
         });
     };
 
@@ -424,7 +429,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         const amountMicro = fromDisplay(raiseAmount);
 
         await handleActionWithTransaction("raise", async () => {
-            return await handleRaise(tableId, amountMicro, network);
+            return await handleRaise(tableId, amountMicro, network, sendAction);
         });
     };
 
@@ -472,7 +477,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         }
         await handleActionWithTransaction(
             hasRaiseAction ? "raise" : "bet",
-            async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),
+            async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network, sendAction) : await handleBet(amountMicro, tableId, network, sendAction)),
             true
         );
     };
@@ -506,7 +511,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                             action="new-hand"
                             label="START NEW HAND"
                             loading={loadingAction === "new-hand"}
-                            onClick={() => handleActionWithTransaction("new-hand", () => handleStartNewHand(tableId, network))}
+                            onClick={() => handleActionWithTransaction("new-hand", () => handleStartNewHand(tableId, network, sendAction))}
                             variant="primary"
                             className="px-6 lg:px-8 py-2 lg:py-3 text-sm lg:text-base font-bold"
                         />
@@ -522,8 +527,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                 canMuck={hasMuckAction}
                                 canShow={hasShowAction}
                                 loading={loadingAction}
-                                onMuck={() => handleActionWithTransaction("muck", () => handleMuck(tableId, network))}
-                                onShow={() => handleActionWithTransaction("show", () => handleShow(tableId, network))}
+                                onMuck={() => handleActionWithTransaction("muck", () => handleMuck(tableId, network, sendAction))}
+                                onShow={() => handleActionWithTransaction("show", () => handleShow(tableId, network, sendAction))}
                             />
                         )}
 
@@ -541,7 +546,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                 isTournament={isTournament}
                                 onPostSmallBlind={handlePostSmallBlindAction}
                                 onPostBigBlind={handlePostBigBlindAction}
-                                onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network))}
+                                onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network, sendAction))}
                             />
                         )}
 
@@ -569,9 +574,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     previousActions={gameState?.previousActions || []}
                                     userAddress={userAddress || ""}
                                     isTournament={isTournament}
-                                    onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network))}
-                                    onCheck={() => handleActionWithTransaction("check", () => handleCheck(tableId, network))}
-                                    onCall={() => handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network))}
+                                    onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network, sendAction))}
+                                    onCheck={() => handleActionWithTransaction("check", () => handleCheck(tableId, network, sendAction))}
+                                    onCall={() => handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network, sendAction))}
                                     onBetOrRaise={hasRaiseAction ? handleRaiseAction : handleBetAction}
                                 />
 

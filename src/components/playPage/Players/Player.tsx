@@ -15,6 +15,7 @@ import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerR
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { useNetwork } from "../../../context/NetworkContext";
+import { useGameActions } from "../../../context/gameState/GameActionsContext";
 import { handleSitIn } from "../../common/actionHandlers";
 import { SIT_IN_METHOD_POST_NOW } from "../../../hooks/playerActions";
 import styles from "./PlayersCommon.module.css";
@@ -31,13 +32,14 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
         const { getAvatarForAddress } = useProfileAvatar();
         const { currentNetwork } = useNetwork();
+        const { sendAction } = useGameActions();
 
         // Callback for "I'm Back" button on badge
         const handleSitInFromBadge = useCallback(() => {
             if (id) {
-                handleSitIn(id, currentNetwork, SIT_IN_METHOD_POST_NOW);
+                handleSitIn(id, currentNetwork, sendAction, SIT_IN_METHOD_POST_NOW);
             }
-        }, [id, currentNetwork]);
+        }, [id, currentNetwork, sendAction]);
 
         // Check if this seat is the dealer
         const isDealer = dealerSeat === index;
