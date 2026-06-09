@@ -218,8 +218,3 @@ export const waitForCondition = async (condition: () => boolean, timeout = 5000)
         await new Promise(resolve => setTimeout(resolve, 50));
     }
 };
-
-/**
- * Flush all pending promises
- */
-export const flushPromises = () => new Promise(resolve => setTimeout(resolve, 0));

@@ -74,13 +74,6 @@ export const getClient = (): any => {
 };
 
 /**
- * Clear the client instance (useful when private key changes or for testing)
- */
-export const clearClientInstance = (): void => {
-    clientInstance = null;
-};
-
-/**
  * Get account balance directly from the blockchain
  * @returns Promise with the account balance as string
  * @throws Error if private key or public key is missing, or if the fetch fails
