@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { LoadingSpinner } from "../common";
 import { TexasHoldemRound, ActionDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import { FoldButton } from "./FoldButton";
@@ -14,6 +14,9 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
     callAmount,
     canBet,
     canRaise,
+    canAllIn,
+    allInAmount,
+    allInActionIndex,
     raiseAmount,
     isRaiseAmountInvalid,
     playerStatus,
@@ -27,11 +30,22 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
     onFold,
     onCheck,
     onCall,
-    onBetOrRaise
+    onBetOrRaise,
+    onAllIn
 }) => {
     // Calculate the total amount to display for raise button
     // This includes blinds posted during ANTE round when we're in PREFLOP
     const raiseToAmount = canRaise ? getRaiseToAmount(raiseAmount, previousActions, currentRound, userAddress) : raiseAmount;
+
+    // Short-shove (poker-vm#2244): when the engine offers ALL_IN but no
+    // bet/raise, there's no slider + Bet/Raise button to confirm through. To
+    // honour the "no accidental full-stack commit" rule (ui#395) we arm on the
+    // first click and only dispatch on the confirm click. We store the action
+    // index we armed against (not a bare boolean) so the arm resets itself as
+    // soon as the action index advances — i.e. on any new turn/state — with no
+    // effect needed.
+    const [armedAllInIndex, setArmedAllInIndex] = useState<number | null>(null);
+    const armedAllIn = armedAllInIndex === allInActionIndex;
     return (
         <div className={`flex justify-between ${isMobileLandscape ? "gap-0.5" : "gap-1 lg:gap-2"}`}>
             {/* Show fold button if canFold OR if currently folding (to show spinner) */}
@@ -109,6 +123,30 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                         <>
                             {canRaise ? "RAISE TO" : "BET"}{" "}
                             <span className={styles.amountAccent}>{formatDisplayAmount(raiseToAmount, isTournament)}</span>
+                        </>
+                    )}
+                </button>
+            )}
+
+            {/* Short-shove ALL-IN (poker-vm#2244): rendered only when ALL_IN is the
+                lone aggressive action (no bet/raise slider exists). Two-step: arm,
+                then confirm — see armedAllIn above. */}
+            {canAllIn && (
+                <button
+                    onClick={armedAllIn ? onAllIn : () => setArmedAllInIndex(allInActionIndex)}
+                    disabled={loading !== null}
+                    className={`cursor-pointer hover:scale-105 btn-all-in rounded-lg w-full border shadow-md backdrop-blur-sm transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 ${
+                        armedAllIn ? "ring-2 ring-white animate-pulse" : ""
+                    } ${isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-2 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm"}`}
+                >
+                    {loading === "all-in" ? (
+                        <>
+                            <LoadingSpinner size="sm" />
+                            JAMMING...
+                        </>
+                    ) : (
+                        <>
+                            {armedAllIn ? "CONFIRM ALL-IN" : "ALL-IN"} <span className={styles.amountAccent}>{allInAmount}</span>
                         </>
                     )}
                 </button>

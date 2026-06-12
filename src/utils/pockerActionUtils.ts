@@ -50,6 +50,10 @@ export const getActionFlags = (legalActions: LegalActionDTO[]): ActionFlags => (
     hasCallAction: hasAction(legalActions, PlayerActionType.CALL),
     hasBetAction: hasAction(legalActions, PlayerActionType.BET),
     hasRaiseAction: hasAction(legalActions, PlayerActionType.RAISE),
+    // Short-shove (poker-vm#2244): a player facing a bet who can't make a full
+    // min-raise is offered ALL_IN instead of RAISE. Without this flag the UI is
+    // blind to that action and renders only FOLD/CALL.
+    hasAllInAction: hasAction(legalActions, PlayerActionType.ALL_IN),
     hasMuckAction: hasAction(legalActions, PlayerActionType.MUCK),
     hasShowAction: hasAction(legalActions, PlayerActionType.SHOW),
     hasDealAction: hasAction(legalActions, NonPlayerActionType.DEAL),
@@ -64,6 +68,7 @@ export type ActionFlags = {
     hasCallAction: boolean;
     hasBetAction: boolean;
     hasRaiseAction: boolean;
+    hasAllInAction: boolean;
     hasMuckAction: boolean;
     hasShowAction: boolean;
     hasDealAction: boolean;

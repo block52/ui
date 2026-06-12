@@ -122,6 +122,12 @@ export interface MainActionButtonsProps {
     callAmount: string;
     canBet: boolean;
     canRaise: boolean;
+    // Short-shove (poker-vm#2244): ALL_IN is legal but RAISE/BET are not, so a
+    // dedicated two-step ALL-IN button renders alongside FOLD/CALL.
+    canAllIn: boolean;
+    allInAmount: string;
+    // Action index the ALL-IN two-step arms against; resets the arm when it advances.
+    allInActionIndex: number;
     raiseAmount: number;
     isRaiseAmountInvalid: boolean;
     playerStatus: PlayerStatus;
@@ -136,6 +142,7 @@ export interface MainActionButtonsProps {
     onCheck: () => void;
     onCall: () => void;
     onBetOrRaise: () => void;
+    onAllIn: () => void;
 }
 
 // ============================================================================

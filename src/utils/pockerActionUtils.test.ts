@@ -171,6 +171,7 @@ describe("pockerActionUtils", () => {
             { action: PlayerActionType.CALL, min: "1000", max: "1000", index: 4 },
             { action: PlayerActionType.BET, min: "1000", max: "5000000", index: 5 },
             { action: PlayerActionType.RAISE, min: "2000", max: "5000000", index: 6 },
+            { action: PlayerActionType.ALL_IN, min: "3800", max: "3800", index: 6 },
             { action: PlayerActionType.MUCK, min: undefined, max: undefined, index: 7 },
             { action: PlayerActionType.SHOW, min: undefined, max: undefined, index: 8 },
             { action: NonPlayerActionType.DEAL, min: undefined, max: undefined, index: 9 },
@@ -186,6 +187,7 @@ describe("pockerActionUtils", () => {
             expect(flags.hasCallAction).toBe(true);
             expect(flags.hasBetAction).toBe(true);
             expect(flags.hasRaiseAction).toBe(true);
+            expect(flags.hasAllInAction).toBe(true);
             expect(flags.hasMuckAction).toBe(true);
             expect(flags.hasShowAction).toBe(true);
             expect(flags.hasDealAction).toBe(true);
@@ -207,7 +209,25 @@ describe("pockerActionUtils", () => {
             expect(flags.hasCallAction).toBe(true);
             expect(flags.hasBetAction).toBe(false);
             expect(flags.hasRaiseAction).toBe(false);
+            expect(flags.hasAllInAction).toBe(false);
             expect(flags.hasCheckAction).toBe(false);
+        });
+
+        // Short-shove (poker-vm#2244): a player facing a bet who can't make a
+        // full min-raise is offered fold/call/all-in — NO raise/bet. The flag
+        // must light up so the panel renders the ALL-IN button.
+        it("should flag hasAllInAction for a short shove (fold/call/all-in, no raise)", () => {
+            const shortShoveActions: LegalActionDTO[] = [
+                { action: PlayerActionType.FOLD, min: undefined, max: undefined, index: 16 },
+                { action: PlayerActionType.CALL, min: "3000", max: "3000", index: 16 },
+                { action: PlayerActionType.ALL_IN, min: "3800", max: "3800", index: 16 }
+            ];
+            const flags = getActionFlags(shortShoveActions);
+            expect(flags.hasFoldAction).toBe(true);
+            expect(flags.hasCallAction).toBe(true);
+            expect(flags.hasAllInAction).toBe(true);
+            expect(flags.hasRaiseAction).toBe(false);
+            expect(flags.hasBetAction).toBe(false);
         });
     });
 });

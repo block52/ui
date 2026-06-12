@@ -1,3 +1,4 @@
+import { allInHand } from "./allInHand";
 import { betHand } from "./betHand";
 import { callHand } from "./callHand";
 import { checkHand } from "./checkHand";
@@ -25,6 +26,7 @@ import { useAutoMuck } from "./useAutoMuck";
 import { useAutoSitOutNextBB } from "./useAutoSitOutNextBB";
 
 export {
+    allInHand,
     betHand,
     callHand,
     checkHand,

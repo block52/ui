@@ -13,7 +13,8 @@ import {
     startNewHand,
     postSmallBlind,
     postBigBlind,
-    raiseHand
+    raiseHand,
+    allInHand
 } from "../../hooks/playerActions";
 import type { SitInMethod, SitOutMethod } from "../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
@@ -215,6 +216,12 @@ const handlePostBigBlind = createTableIdAmountHandler("post big blind", postBigB
  */
 const handleRaise = createTableIdAmountHandler("raise", raiseHand);
 
+/**
+ * Handle all-in action (short-shove case, poker-vm#2244)
+ * @param amount - The all-in amount in micro-units as bigint (10^6 precision) — the player's full stack
+ */
+const handleAllIn = createTableIdAmountHandler("all-in", allInHand);
+
 // =============================================================================
 // Exports
 // =============================================================================
@@ -232,7 +239,8 @@ export {
     handleStartNewHand,
     handlePostSmallBlind,
     handlePostBigBlind,
-    handleRaise
+    handleRaise,
+    handleAllIn
 };
 
 // Also export the factories for potential reuse

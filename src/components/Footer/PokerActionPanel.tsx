@@ -41,7 +41,8 @@ import {
     handlePostSmallBlind,
     handlePostBigBlind,
     handleBet,
-    handleRaise
+    handleRaise,
+    handleAllIn
 } from "../common/actionHandlers";
 
 // Import utils
@@ -151,6 +152,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         hasCallAction,
         hasBetAction,
         hasRaiseAction,
+        hasAllInAction,
         hasMuckAction,
         hasShowAction,
         hasDealAction,
@@ -285,6 +287,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const callAction = getActionByType(legalActions, PlayerActionType.CALL);
     const betAction = getActionByType(legalActions, PlayerActionType.BET);
     const raiseAction = getActionByType(legalActions, PlayerActionType.RAISE);
+    // Short-shove (poker-vm#2244): the all-in entry's min === max === full stack.
+    const allInAction = getActionByType(legalActions, PlayerActionType.ALL_IN);
 
     // Store amounts as bigint internally (in micro-units, 10^6 precision)
     const minBetMicro = useMemo(() => parseMicroToBigInt(betAction?.min), [betAction]);
@@ -292,6 +296,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const minRaiseMicro = useMemo(() => parseMicroToBigInt(raiseAction?.min), [raiseAction]);
     const maxRaiseMicro = useMemo(() => parseMicroToBigInt(raiseAction?.max), [raiseAction]);
     const callAmountMicro = useMemo(() => parseMicroToBigInt(callAction?.min), [callAction]);
+    const allInAmountMicro = useMemo(() => parseMicroToBigInt(allInAction?.max), [allInAction]);
 
     // Convert to display values — USDC conversion for cash, raw chips for tournaments
     const toDisplay = useCallback((micro: bigint) => (isTournament ? Number(micro) : microBigIntToUsdc(micro)), [isTournament]);
@@ -308,6 +313,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const formattedBigBlindAmount = useMemo(() => formatDisplayAmount(toDisplay(bigBlindMicro), isTournament), [toDisplay, bigBlindMicro, isTournament]);
     const bigBlindUsdc = useMemo(() => toDisplay(bigBlindMicro), [toDisplay, bigBlindMicro]);
     const formattedCallAmount = useMemo(() => formatDisplayAmount(callAmount, isTournament), [callAmount, isTournament]);
+    const formattedAllInAmount = useMemo(() => formatDisplayAmount(toDisplay(allInAmountMicro), isTournament), [toDisplay, allInAmountMicro, isTournament]);
     const formattedMaxBetAmount = useMemo(
         () => getFormattedMaxBetAmount(hasBetAction, maxBet, maxRaise, isTournament),
         [hasBetAction, maxBet, maxRaise, isTournament]
@@ -514,6 +520,15 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         );
     };
 
+    // Short-shove (poker-vm#2244): the engine offers ALL_IN (not RAISE/BET) when
+    // a player facing a bet can't make a full min-raise. There is no slider to
+    // max here — dispatch the engine's ALL_IN directly at the player's full
+    // stack (the all-in entry's max). The two-step confirm lives in the button.
+    const handleShortAllInAction = async () => {
+        if (!hasContent(tableId)) return;
+        await handleActionWithTransaction("all-in", () => handleAllIn(tableId, allInAmountMicro, network));
+    };
+
     return (
         <div
             className={`fixed left-0 right-0 text-white flex justify-center items-center relative ${
@@ -612,6 +627,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     callAmount={formattedCallAmount}
                                     canBet={hasBetAction}
                                     canRaise={hasRaiseAction}
+                                    // Short-shove (poker-vm#2244): ALL_IN is the lone aggressive
+                                    // action — no bet/raise, so no slider renders.
+                                    canAllIn={hasAllInAction && !hasBetAction && !hasRaiseAction}
+                                    allInAmount={formattedAllInAmount}
+                                    allInActionIndex={allInAction?.index ?? -1}
                                     raiseAmount={raiseAmount}
                                     isRaiseAmountInvalid={isRaiseAmountInvalid}
                                     playerStatus={userPlayer?.status || PlayerStatus.SEATED}
@@ -626,6 +646,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     onCheck={() => handleActionWithTransaction("check", () => handleCheck(tableId, network))}
                                     onCall={() => handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network))}
                                     onBetOrRaise={hasRaiseAction ? handleRaiseAction : handleBetAction}
+                                    onAllIn={handleShortAllInAction}
                                 />
 
                                 {/* Raise/Bet Controls */}
