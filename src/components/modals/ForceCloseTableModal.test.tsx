@@ -15,7 +15,6 @@ jest.mock("../../utils/colorConfig", () => ({
     colors: { accent: { danger: "#ff0000" } }
 }));
 
-// eslint-disable-next-line import/first
 import ForceCloseTableModal from "./ForceCloseTableModal";
 
 const baseProps = {

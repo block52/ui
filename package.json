@@ -52,7 +52,7 @@
     "dev": "vite --host 0.0.0.0",
     "dev:lint": "eslint . --fix && vite --host 0.0.0.0 --port 5173",
     "dev:nocheck": "vite --host 0.0.0.0 --port 5173",
-    "build": "tsc -b && vite build",
+    "build": "node_modules/typescript-native/bin/tsc -b && vite build",
     "start": "vite preview --host 0.0.0.0 --port 5173",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -106,7 +106,8 @@
     "jest-environment-jsdom": "^30.3.0",
     "postcss": "^8.4.49",
     "prettier": "^3.8.0",
-    "typescript": "^7.0.2",
+    "typescript": "^5.7.2",
+    "typescript-native": "npm:typescript@^7.0.2",
     "typescript-eslint": "^8.57.2",
     "vite": "^8.1.4"
   },
