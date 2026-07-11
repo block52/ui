@@ -5,6 +5,7 @@ import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { formatActionName } from "../../components/ActionsLog.utils";
 import { formatAmount } from "../../utils/accountUtils";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { isEmpty } from "../../utils/guards";
 
 /**
  * Committed-action echo (docs/plans/2026_07_11_action_feedback_ux.md — Approach C).
@@ -40,7 +41,8 @@ export interface ActionEchoEntry {
     isMe: boolean;
 }
 
-function toEntry(action: ActionDTO, isTournament: boolean, myAddress: string | null): ActionEchoEntry {
+/** Map a committed action to a badge entry. Exported for unit testing. */
+export function toEntry(action: ActionDTO, isTournament: boolean, myAddress: string | null): ActionEchoEntry {
     const name = formatActionName(action.action);
     // Amount only reads for chip actions and only when non-zero (fold/check carry "0").
     const amount = action.amount && action.amount !== "0" ? ` ${formatAmount(action.amount, undefined, isTournament)}` : "";
@@ -101,7 +103,7 @@ export function useAppliedActions(): Record<number, ActionEchoEntry> {
         }
 
         const fresh = actions.filter(a => a.index > lastIndexRef.current && ECHOED_ACTIONS.has(a.action));
-        if (fresh.length === 0) return;
+        if (isEmpty(fresh)) return;
         lastIndexRef.current = maxIndex;
 
         // Keep only the latest action per seat — a burst (e.g. a reconnect state jump
