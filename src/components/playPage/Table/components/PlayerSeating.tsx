@@ -21,6 +21,8 @@ import OppositePlayer from "../../Players/OppositePlayer";
 import VacantPlayer from "../../Players/VacantPlayer";
 import TurnAnimation from "../../Animations/TurnAnimation";
 import WinAnimation from "../../Animations/WinAnimation";
+import ActionEcho from "../../Animations/ActionEcho";
+import { useAppliedActions } from "../../../../hooks/game/useAppliedActions";
 import { CardBackStyle } from "../../../../utils/cardImages";
 
 // Memoize TurnAnimation
@@ -64,6 +66,10 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     cardBackStyle,
     updateBalanceOnPlayerJoin
 }) => {
+    // Committed-action echoes (Approach C) — latest applied action per seat, keyed
+    // by committed index so a new action re-triggers the badge. Read-only observer.
+    const actionEchoes = useAppliedActions();
+
     // ================================================================
     // CRITICAL ROTATION LOGIC - THIS IS WHERE THE ROTATION HAPPENS
     // ================================================================
@@ -179,6 +185,17 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
 
                         {/* Winner ripple — same position as player */}
                         {isWinnerSeat && <WinAnimation index={seatNum - 1} position={position} />}
+
+                        {/* Committed-action echo — floats a transient badge over the
+                            seat that just acted (own + opponents). Positioned like the
+                            turn indicator; keyed on the action index so it re-fires. */}
+                        {actionEchoes[seatNum] && (
+                            <ActionEcho
+                                key={`echo-${seatNum}-${actionEchoes[seatNum].index}`}
+                                echo={actionEchoes[seatNum]}
+                                position={tableLayout.positions.turnAnimations[positionIndex] ?? position}
+                            />
+                        )}
 
                         {componentToRender}
                     </div>
