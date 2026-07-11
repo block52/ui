@@ -10,11 +10,13 @@ import { isEmpty } from "../../utils/guards";
 /**
  * Committed-action echo (docs/plans/2026_07_11_action_feedback_ux.md — Approach C).
  *
- * Derives a transient "you did that / they did that" confirmation from committed
- * state alone: it watches `gameState.previousActions` and emits the newest entry
- * per seat as it lands. Because it renders only what the chain/gateway committed,
- * it can never contradict the authoritative state (unlike an optimistic overlay),
- * and it gives opponent actions the same feedback the table otherwise lacks.
+ * Derives a transient "you did that" confirmation from committed state alone: it
+ * watches `gameState.previousActions` and emits the local player's newest action
+ * as it lands. Because it renders only what the chain/gateway committed, it can
+ * never contradict the authoritative state (unlike an optimistic overlay).
+ *
+ * Scoped to the local player's own seat only — opponents already have their own
+ * per-seat action indicator, so echoing theirs would be redundant.
  *
  * The panel already threads `previousActions` to MainActionButtons; this hook is a
  * read-only observer and adds no writes. See PlayerSeating for the render side.
@@ -102,12 +104,14 @@ export function useAppliedActions(): Record<number, ActionEchoEntry> {
             setEchoes({});
         }
 
-        const fresh = actions.filter(a => a.index > lastIndexRef.current && ECHOED_ACTIONS.has(a.action));
+        // Only the local player's own actions echo — opponents have their own indicator.
+        const isMine = (a: ActionDTO) => !!myAddress && a.playerId?.toLowerCase() === myAddress;
+        const fresh = actions.filter(a => a.index > lastIndexRef.current && ECHOED_ACTIONS.has(a.action) && isMine(a));
         if (isEmpty(fresh)) return;
         lastIndexRef.current = maxIndex;
 
-        // Keep only the latest action per seat — a burst (e.g. a reconnect state jump
-        // spanning several actions) collapses to one badge per seat, never a replay.
+        // Keep only the latest action (per seat, but that's just our own seat here) —
+        // a burst (e.g. a reconnect state jump) collapses to one badge, never a replay.
         setEchoes(prev => {
             const next = { ...prev };
             for (const a of fresh) next[a.seat] = toEntry(a, isTournament, myAddress);
