@@ -14,9 +14,7 @@ jest.mock("../common", () => ({
 
 jest.mock("../../context/GameStateContext");
 
-// eslint-disable-next-line import/first
 import TopUpModal from "./TopUpModal";
-// eslint-disable-next-line import/first
 import { useGameStateContext } from "../../context/GameStateContext";
 
 const mockUseGameStateContext = useGameStateContext as jest.MockedFunction<typeof useGameStateContext>;

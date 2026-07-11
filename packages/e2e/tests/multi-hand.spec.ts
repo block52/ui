@@ -45,7 +45,7 @@ test("play two hands in a row via new-hand", async ({ page }) => {
 
   await test.step("start the next hand", async () => {
     // Auto-new-hand is off, so the manual "START NEW HAND" button drives it.
-    const newHand = page.locator('[data-action="new-hand"]');
+    const newHand = page.locator("[data-action=\"new-hand\"]");
     await expect(newHand).toBeEnabled({ timeout: 15_000 });
     await newHand.click();
   });
