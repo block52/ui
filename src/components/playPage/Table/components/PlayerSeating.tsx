@@ -209,8 +209,9 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                         {isWinnerSeat && <WinAnimation index={seatNum - 1} position={position} />}
 
                         {/* Committed-action echo — floats a transient badge over the
-                            seat that just acted (own + opponents). Positioned like the
-                            turn indicator; keyed on the action index so it re-fires. */}
+                            local player's own seat when they act (opponents already
+                            have their own indicator). Positioned like the turn
+                            indicator; keyed on the action index so it re-fires. */}
                         {actionEchoes[seatNum] && (
                             <ActionEcho
                                 key={`echo-${seatNum}-${actionEchoes[seatNum].index}`}
