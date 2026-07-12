@@ -18,6 +18,7 @@ const LS_KEY_AUTO_FOLD = "setting_autofold";
 const LS_KEY_AUTO_MUCK = "setting_automuck";
 const LS_KEY_TURN_SOUND = "setting_turnsound";
 const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
+const LS_KEY_ACTION_HAPTICS = "setting_actionhaptics";
 const LS_KEY_SEAT_AT_BOTTOM = "setting_seatatbottom";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
@@ -34,6 +35,7 @@ export interface GameSettings {
     autoMuck: boolean;
     turnNotificationSound: boolean;
     playerActionSounds: boolean;
+    actionHaptics: boolean;
     seatAtBottom: boolean;
 }
 
@@ -45,6 +47,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleAutoMuck: () => void;
     toggleTurnNotificationSound: () => void;
     togglePlayerActionSounds: () => void;
+    toggleActionHaptics: () => void;
     toggleSeatAtBottom: () => void;
 }
 
@@ -71,6 +74,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [playerActionSounds, setPlayerActionSounds] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_PLAYER_ACTION_SOUNDS, true)
+    );
+    const [actionHaptics, setActionHaptics] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_ACTION_HAPTICS, true)
     );
     const [seatAtBottom, setSeatAtBottom] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_SEAT_AT_BOTTOM, true)
@@ -132,6 +138,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleActionHaptics = useCallback(() => {
+        setActionHaptics(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_ACTION_HAPTICS, String(next));
+            return next;
+        });
+    }, []);
+
     const toggleSeatAtBottom = useCallback(() => {
         setSeatAtBottom(prev => {
             const next = !prev;
@@ -149,6 +163,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             autoMuck,
             turnNotificationSound,
             playerActionSounds,
+            actionHaptics,
             seatAtBottom,
             toggleAutoDeal,
             toggleAutoPostBlinds,
@@ -157,6 +172,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleAutoMuck,
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
+            toggleActionHaptics,
             toggleSeatAtBottom
         }),
         [
@@ -167,6 +183,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             autoMuck,
             turnNotificationSound,
             playerActionSounds,
+            actionHaptics,
             seatAtBottom,
             toggleAutoDeal,
             toggleAutoPostBlinds,
@@ -175,6 +192,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleAutoMuck,
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
+            toggleActionHaptics,
             toggleSeatAtBottom
         ]
     );
