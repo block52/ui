@@ -21,14 +21,16 @@ export default defineConfig({
   fullyParallel: false, // one stub, shared in-memory game state — keep tests serial
   workers: 1,
   retries: process.env.CI ? 1 : 0,
-  reporter: [["list"], ["html", { open: "never" }]],
+  // gif-reporter.ts converts every test's recorded video into a GIF (packages/e2e/artifacts/).
+  reporter: [["list"], ["html", { open: "never" }], ["./gif-reporter.ts"]],
   timeout: 30_000,
   expect: { timeout: 10_000 },
   use: {
     baseURL: UI_URL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    // Record every test so gif-reporter.ts can turn each run into a review GIF.
+    video: "on",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
