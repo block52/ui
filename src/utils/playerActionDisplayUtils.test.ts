@@ -109,6 +109,27 @@ describe("shouldShowPlayerActionPanel", () => {
 // ===== getPlayerActionDisplay =====
 
 describe("getPlayerActionDisplay", () => {
+    // --- AC-0: Eliminated (busted) player — never waiting-for-players (block52/ui#511) ---
+
+    it("returns none for a BUSTED player even when solo (no waiting-for-players lobby message)", () => {
+        const result = getPlayerActionDisplay({
+            ...base,
+            playerStatus: PlayerStatus.BUSTED,
+            totalSeatedPlayers: 1,
+        });
+        expect(result).toEqual({ kind: "none" });
+    });
+
+    it("returns none for a BUSTED player regardless of legal actions or seated count", () => {
+        const result = getPlayerActionDisplay({
+            ...base,
+            playerStatus: PlayerStatus.BUSTED,
+            legalActions: [action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_OUT)],
+            totalSeatedPlayers: 3,
+        });
+        expect(result).toEqual({ kind: "none" });
+    });
+
     // --- AC-1: Solo player — waiting-for-players regardless of actions ---
 
     it("returns waiting-for-players for solo player with SIT_IN action", () => {
