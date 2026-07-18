@@ -13,13 +13,18 @@
  * (block52/poker-vm#2325). The player signs; the gateway relays the correct
  * message after PVM-verifying the optimistic apply.
  *
- * Sequence is tracked LOCALLY (query the account once, +1 per signed action):
- * optimistic actions are signed faster than the chain commits, so a
- * per-action sequence query would return the stale committed value.
+ * Gameplay actions are UNORDERED (pokerchain#247): signPerformAction signs with
+ * no account sequence, so optimistic play can never desync the chain sequence
+ * (the #2413 cascade). NO client-side sequence tracking for gameplay.
+ *
+ * Money-movers stay ORDERED (strict monotonic replay protection for money
+ * movement). Because unordered gameplay txs never touch the account sequence
+ * (the chain's IncrementSequenceDecorator skips them), the account sequence
+ * advances ONLY on money-movers — so a fresh per-money-mover sequence query is
+ * correct and race-free (money-movers are infrequent).
  *
  * Graceful degradation:
  *   - account not on-chain (unfunded) → no tx (gameplay still works, no settlement)
- *   - sign error → no tx + sequence reset so the next action re-syncs
  */
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import { hasElements } from "../guards";
@@ -28,17 +33,15 @@ import type { SigningCosmosClient, TexasHoldemStateDTO } from "@block52/poker-vm
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { getCosmosUrls } from "./client";
 
-interface SeqState {
-    accountNumber: number;
-    sequence: number;
-}
-
-const seqByAddress = new Map<string, SeqState>();
 const unfundedWarned = new Set<string>();
 
-/** Clears tracked sequence so the next action re-fetches it (call on re-sync). */
-export function resetSettlementSequence(address: string): void {
-    seqByAddress.delete(address);
+/**
+ * @deprecated No-op since gameplay went unordered (pokerchain#247) — there is no
+ * client-tracked gameplay sequence to reset. Retained so the WS `resync` handler
+ * and existing callers keep compiling; slated for removal with the resync path.
+ */
+export function resetSettlementSequence(_address: string): void {
+    // intentionally empty
 }
 
 /**
@@ -56,11 +59,8 @@ export function finishingOrderFromState(gameState: TexasHoldemStateDTO | undefin
     return [...results].sort((a, b) => a.place - b.place).map(r => r.playerId);
 }
 
-async function loadSeqState(address: string, restEndpoint: string): Promise<SeqState | null> {
-    const cached = seqByAddress.get(address);
-    if (cached) {
-        return cached;
-    }
+/** Money-movers need the account's live sequence (they're ordered). */
+async function fetchAccount(address: string, restEndpoint: string): Promise<{ accountNumber: number; sequence: number } | null> {
     try {
         const res = await fetch(`${restEndpoint}/cosmos/auth/v1beta1/accounts/${address}`);
         if (!res.ok) {
@@ -75,22 +75,25 @@ async function loadSeqState(address: string, restEndpoint: string): Promise<SeqS
         if (!body.account) {
             return null;
         }
-        const state: SeqState = {
+        return {
             accountNumber: Number(body.account.account_number),
             sequence: Number(body.account.sequence)
         };
-        seqByAddress.set(address, state);
-        return state;
     } catch (err) {
-        console.error("[settlement] failed to load account sequence:", err);
+        console.error("[settlement] failed to load account:", err);
         return null;
     }
 }
+
+const MONEY_MOVERS: string[] = [NonPlayerActionType.JOIN, NonPlayerActionType.LEAVE, NonPlayerActionType.TOP_UP];
 
 /**
  * Signs the action as a cosmos tx for settlement relay; returns the base64
  * TxRaw, or undefined when settlement isn't possible (unfunded account / sign
  * error) — in which case the caller proceeds with gameplay only.
+ *
+ * Gameplay → UNORDERED (no sequence, no account query). Money-movers → ORDERED
+ * (fresh sequence fetch — gameplay never advances it, so no local tracking).
  */
 export async function signSettlementTx(
     signingClient: SigningCosmosClient,
@@ -102,26 +105,25 @@ export async function signSettlementTx(
     data: string,
     finishingOrder: string[] = []
 ): Promise<string | undefined> {
-    const { restEndpoint } = getCosmosUrls(network);
-    const state = await loadSeqState(address, restEndpoint);
-    if (!state) {
-        return undefined;
-    }
-    const signerData = {
-        accountNumber: state.accountNumber,
-        sequence: state.sequence,
-        chainId: COSMOS_CHAIN_ID
-    };
     try {
-        // Money-movers settle via their dedicated message (does the bank
-        // movement); everything else is a MsgPerformAction. (#2325)
-        const { base64 } = await signMoneyMover(signingClient, tableId, action, amount, data, signerData, finishingOrder)
-            ?? await signingClient.signPerformAction(tableId, action, amount, data, signerData);
-        state.sequence += 1; // advance locally for the next action
-        return base64;
+        // Gameplay: unordered — no sequence, no account query.
+        if (!MONEY_MOVERS.includes(action)) {
+            const { base64 } = await signingClient.signPerformAction(tableId, action, amount, data);
+            return base64;
+        }
+
+        // Money-mover: ordered — fetch the live sequence (only money-movers move
+        // it, so this is current and race-free).
+        const { restEndpoint } = getCosmosUrls(network);
+        const account = await fetchAccount(address, restEndpoint);
+        if (!account) {
+            return undefined;
+        }
+        const signerData = { ...account, chainId: COSMOS_CHAIN_ID };
+        const result = await signMoneyMover(signingClient, tableId, action, amount, data, signerData, finishingOrder);
+        return result?.base64;
     } catch (err) {
-        console.error("[settlement] sign failed, resetting sequence:", err);
-        resetSettlementSequence(address);
+        console.error("[settlement] sign failed:", err);
         return undefined;
     }
 }

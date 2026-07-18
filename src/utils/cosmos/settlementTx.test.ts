@@ -75,12 +75,13 @@ describe("signSettlementTx — money-mover dispatch (#2325)", () => {
         expect(client.signPerformAction).not.toHaveBeenCalled();
     });
 
-    it("falls back to MsgPerformAction for gameplay actions", async () => {
+    it("uses MsgPerformAction for gameplay actions, signed UNORDERED (no signerData, #247)", async () => {
         const client = makeClient();
         const tx = await signSettlementTx(client as unknown as SigningCosmosClient, ADDR, fakeNetwork, "game-1", PlayerActionType.BET, 50n, "");
 
         expect(tx).toBe("PERFORM_TX");
-        expect(client.signPerformAction).toHaveBeenCalledWith("game-1", PlayerActionType.BET, 50n, "", expect.any(Object));
+        // Gameplay is unordered — signPerformAction is called with NO signerData.
+        expect(client.signPerformAction).toHaveBeenCalledWith("game-1", PlayerActionType.BET, 50n, "");
         expect(client.signJoinGame).not.toHaveBeenCalled();
     });
 
