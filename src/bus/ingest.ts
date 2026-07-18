@@ -82,11 +82,6 @@ export type ClassifiedMessage =
           /** true for GAME_NOT_FOUND — the existing game state is cleared. */
           clearGameState: boolean;
       }
-    // The gateway's settlement drain rejected one of this account's txs for a
-    // cosmos account-sequence mismatch and is asking us to re-anchor: reset the
-    // locally-tracked sequence so the next action re-fetches the chain value and
-    // re-signs from there. (poker-vm#2413)
-    | { kind: "resync" }
     | { kind: "ignore" };
 
 /**
@@ -191,11 +186,6 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
             error: new Error(errorMsg),
             clearGameState: message.code === "GAME_NOT_FOUND"
         };
-    }
-
-    // Settlement drain asked us to re-anchor our cosmos sequence (poker-vm#2413).
-    if (message.type === "resync") {
-        return { kind: "resync" };
     }
 
     // Gateway subscribed/ack, unknown types, and wrong-table frames.

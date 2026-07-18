@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useNetwork } from "./NetworkContext";
 import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { createAuthPayload } from "../utils/cosmos/signing";
-import { resetSettlementSequence } from "../utils/cosmos/settlementTx";
 import { getGameTransport, getGatewayWsUrl } from "../utils/gameTransport";
 import { setLatestGameState } from "../hooks/playerActions/transportAction";
 import { ClassifiedMessage } from "../bus/ingest";
@@ -153,18 +152,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 setPendingAction(null);
                 if (classified.clearGameState) {
                     setGameState(undefined);
-                }
-                break;
-            }
-            case "resync": {
-                // The gateway's settlement drain rejected one of our txs for a
-                // cosmos account-sequence mismatch. Clear the locally-tracked
-                // sequence so the next signed action re-fetches the chain's real
-                // sequence and re-anchors — no gameplay impact. (poker-vm#2413)
-                const address = localStorage.getItem(STORAGE_KEYS.cosmosAddress);
-                if (address) {
-                    resetSettlementSequence(address);
-                    console.warn("[settlement] gateway requested sequence resync; re-anchoring on next action");
                 }
                 break;
             }

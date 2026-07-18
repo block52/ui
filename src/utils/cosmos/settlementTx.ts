@@ -36,15 +36,6 @@ import { getCosmosUrls } from "./client";
 const unfundedWarned = new Set<string>();
 
 /**
- * @deprecated No-op since gameplay went unordered (pokerchain#247) — there is no
- * client-tracked gameplay sequence to reset. Retained so the WS `resync` handler
- * and existing callers keep compiling; slated for removal with the resync path.
- */
-export function resetSettlementSequence(_address: string): void {
-    // intentionally empty
-}
-
-/**
  * Derives the place-1-first finishing order (player addresses) from a finished
  * SNG's results[]. Empty when the game isn't finalized (no results), so the
  * chain falls back to its own state for cash/already-finalized leaves. The

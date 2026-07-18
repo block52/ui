@@ -77,10 +77,6 @@ describe("classifyMessage", () => {
         it("ignores a gateway `subscribed` ack frame", () => {
             expect(classifyMessage({ type: "subscribed", gameId: TABLE_ID }, TABLE_ID)).toEqual({ kind: "ignore" });
         });
-
-        it("classifies a gateway `resync` frame (settlement sequence re-anchor, #2413)", () => {
-            expect(classifyMessage({ type: "resync", gameId: TABLE_ID }, TABLE_ID)).toEqual({ kind: "resync" });
-        });
     });
 
     describe("cosmos state-bearing events", () => {
