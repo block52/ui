@@ -27,7 +27,6 @@ import CustomDealer from "../../../assets/CustomDealer.svg";
 import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "../../../utils/numberUtils";
 import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
-import { getGameTransport } from "../../../utils/gameTransport";
 import { hasElements } from "../../../utils/guards";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
@@ -117,13 +116,13 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             return isNaN(val) ? minBuyInNum : val;
         }, [buyInAmount, minBuyInNum]);
 
-        // Check if buy-in exceeds available balance
+        // Check if buy-in exceeds available balance. This gates the join button
+        // for BOTH transports: under WS-first (#2325) a gateway join relays a
+        // real MsgJoinGame that escrows from the on-chain USDC balance, so an
+        // unfunded player must not be able to attempt a buy-in (#2433). The
+        // earlier gateway bypass (ui#440/poker-vm#2221) predates that and let
+        // unfunded users click into a seat — removed.
         const exceedsBalance = useMemo(() => {
-            // Gateway transport (ui#440): the buy-in is applied by the
-            // gateway's engine, not drawn from the on-chain balance — the
-            // chain-balance gate would block every gateway join until
-            // settlement lands (poker-vm#2221), so skip it.
-            if (getGameTransport() === "gateway") return false;
             const buyInValue = parseFloat(buyInAmount) || 0;
             const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
             if (!usdcBalance) return true; // If user has no USDC balance, treat as exceeding balance

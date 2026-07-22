@@ -23,18 +23,6 @@ import { finishingOrderFromState, signSettlementTx } from "../../utils/cosmos/se
 import { getGameTransport, getGatewayApi } from "../../utils/gameTransport";
 import { isNullish, hasElements } from "../../utils/guards";
 
-/**
- * Money-IN movers: they deposit funds into the poker module escrow on chain
- * (JOIN escrows the buy-in, TOP_UP adds to it). Unlike gameplay — which moves
- * no money and may play optimistically before settlement — these MUST have their
- * escrow tx relayed, or the player gets chips for free (#2433). LEAVE is
- * deliberately excluded: it's money-OUT, so best-effort settlement can't hand
- * out free chips, and hard-blocking it could strand a player in their seat.
- */
-function isMoneyInMover(action: string): boolean {
-    return action === NonPlayerActionType.JOIN || action === NonPlayerActionType.TOP_UP;
-}
-
 let latestGameState: TexasHoldemStateDTO | undefined;
 
 /** Published by GameStateContext on every state update. */
@@ -151,16 +139,13 @@ export async function executeGatewayAction(
         console.error("[settlement] tx signing skipped:", err);
     }
 
-    // Money-IN movers (join / top-up) MUST escrow on chain — they cannot degrade
-    // to the "play now, settle later" path that gameplay uses. If we couldn't
-    // produce the escrow tx (unfunded account / sign failure), reject BEFORE the
-    // gateway applies the action optimistically, or the player would be seated
-    // (or topped up) for free — no funds ever leave the wallet (#2433). Gameplay
-    // still degrades gracefully; LEAVE is money-OUT and stays best-effort so a
-    // player is never stranded in their seat.
-    if (isMoneyInMover(action) && !tx) {
-        throw new Error("Insufficient funds — your Block52 account isn't funded on chain. Deposit before buying in.");
-    }
+    // NOTE (#2433): the unfunded-buy-in gate is a BALANCE check on the join
+    // button (VacantPlayer/BuyInModal disable it when buy-in > wallet balance),
+    // plus the AUTHORITATIVE server-side guard in the gateway which rejects a
+    // money-mover relayed with no settlement tx. We deliberately DON'T block
+    // here on `!tx`: a missing tx also means "no on-chain account yet" (dev /
+    // stub / fresh-but-funded account), which is a legitimate optimistic join —
+    // the balance gate already caught the truly-unfunded case.
 
     const response = await getGatewayApi().submitAction({
         gameId: tableId,

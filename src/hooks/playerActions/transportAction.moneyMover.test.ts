@@ -19,10 +19,14 @@ const mockGetGatewayApi = getGatewayApi as jest.MockedFunction<typeof getGateway
 
 type SigningClient = Awaited<ReturnType<typeof getSigningClient>>["signingClient"];
 
-// Money-IN movers (join / top-up) MUST relay their escrow tx. When the account
-// isn't funded, signSettlementTx returns undefined — the gateway must NOT be
-// asked to apply the action, or the player is seated for free (#2433).
-describe("executeGatewayAction money-mover guard (#2433)", () => {
+// The unfunded-buy-in gate lives on the join button (a BALANCE check in
+// VacantPlayer/BuyInModal) and — authoritatively — in the gateway, which rejects
+// a money-mover relayed with no settlement tx (#2433). executeGatewayAction must
+// NOT itself block on a missing tx: a missing tx also means "no on-chain account
+// yet" (dev / stub / fresh-but-funded), a legitimate optimistic join. These tests
+// pin that contract so we don't regress back to a client-side throw that broke
+// the stub e2e.
+describe("executeGatewayAction money-mover relay (#2433)", () => {
     const fakeNetwork = { name: "testnet", rpc: "http://x", rest: "http://y" } as unknown as NetworkEndpoints;
     const submitAction = jest.fn();
 
@@ -40,20 +44,7 @@ describe("executeGatewayAction money-mover guard (#2433)", () => {
 
     afterEach(() => localStorage.clear());
 
-    it.each([NonPlayerActionType.JOIN, NonPlayerActionType.TOP_UP])(
-        "throws for %s when the escrow tx can't be signed (unfunded)",
-        async action => {
-            mockSignSettlementTx.mockResolvedValue(undefined);
-
-            await expect(
-                executeGatewayAction("game-1", action, 1, 1000000n, "seat=1", fakeNetwork)
-            ).rejects.toThrow(/insufficient funds/i);
-
-            expect(submitAction).not.toHaveBeenCalled();
-        }
-    );
-
-    it("submits a JOIN once the escrow tx is present", async () => {
+    it("relays a JOIN with the escrow tx attached when it could be signed", async () => {
         mockSignSettlementTx.mockResolvedValue("base64-tx");
 
         await executeGatewayAction("game-1", NonPlayerActionType.JOIN, 1, 1000000n, "seat=1", fakeNetwork);
@@ -62,20 +53,21 @@ describe("executeGatewayAction money-mover guard (#2433)", () => {
         expect(submitAction).toHaveBeenCalledWith(expect.objectContaining({ tx: "base64-tx", action: NonPlayerActionType.JOIN }));
     });
 
-    it("still submits gameplay actions without a settlement tx (optimistic play)", async () => {
+    it("still submits a JOIN with no tx (no on-chain account yet — the button balance-gate is the funds guard)", async () => {
+        mockSignSettlementTx.mockResolvedValue(undefined);
+
+        await executeGatewayAction("game-1", NonPlayerActionType.JOIN, 1, 1000000n, "seat=1", fakeNetwork);
+
+        expect(submitAction).toHaveBeenCalledTimes(1);
+        expect(submitAction).toHaveBeenCalledWith(expect.objectContaining({ tx: undefined, action: NonPlayerActionType.JOIN }));
+    });
+
+    it("submits gameplay actions without a settlement tx (optimistic play)", async () => {
         mockSignSettlementTx.mockResolvedValue(undefined);
 
         await executeGatewayAction("game-1", "call", 3, 1000000n, "", fakeNetwork);
 
         expect(submitAction).toHaveBeenCalledTimes(1);
         expect(submitAction).toHaveBeenCalledWith(expect.objectContaining({ tx: undefined, action: "call" }));
-    });
-
-    it("does not hard-block LEAVE without a settlement tx (money-out, never strands a player)", async () => {
-        mockSignSettlementTx.mockResolvedValue(undefined);
-
-        await executeGatewayAction("game-1", NonPlayerActionType.LEAVE, 5, 0n, "", fakeNetwork);
-
-        expect(submitAction).toHaveBeenCalledTimes(1);
     });
 });
