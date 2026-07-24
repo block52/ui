@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "dependencies": {
-    "@block52/poker-vm-sdk": "1.2.16",
+    "@block52/poker-vm-sdk": "1.2.17",
     "@metamask/sdk": "^0.34.0",
     "@reown/appkit": "1.6.7",
     "@reown/appkit-adapter-ethers": "1.6.7",
