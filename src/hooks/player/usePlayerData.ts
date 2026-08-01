@@ -4,6 +4,7 @@ import { PlayerDataReturn } from "../../types/index";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameMeta } from "../../context/gameState/GameMetaContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
+import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { convertUSDCToNumber } from "../../utils/numberUtils";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 
@@ -22,21 +23,16 @@ export const usePlayerData = (seatIndex?: number): PlayerDataReturn => {
   const { gameState } = useGameData();
   const { gameFormat } = useGameMeta();
   const { isLoading, error } = useGameUI();
+  const playersBySeat = usePlayersBySeat();
 
-  // Get player data from the table state
+  // Get player data from the table state via the shared seat index (#2455).
   const playerData = React.useMemo((): PlayerDTO | null => {
     if (!gameState || !seatIndex) {
       return null;
     }
 
-    if (!gameState.players) {
-      return null;
-    }
-
-    const player = gameState.players.find((p: PlayerDTO) => p.seat === seatIndex);
-
-    return player || null;
-  }, [gameState, seatIndex]);
+    return playersBySeat.get(seatIndex) ?? null;
+  }, [gameState, seatIndex, playersBySeat]);
   
   // Check if this is a tournament-style game (sit-and-go or tournament)
   const isTournament = React.useMemo((): boolean => {

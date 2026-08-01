@@ -3,6 +3,7 @@ import { ActionDTO, PlayerDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { PlayerChipDataReturn } from "../../types/index";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
+import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound } from "../../utils/chipUtils";
 import { hasElements } from "../../utils/guards";
 
@@ -21,11 +22,11 @@ import { hasElements } from "../../utils/guards";
 export const usePlayerChipData = (seatIndex: number): PlayerChipDataReturn => {
     const { gameState } = useGameData();
     const { isLoading, error } = useGameUI();
+    const playersBySeat = usePlayersBySeat();
 
     const player = useMemo<PlayerDTO | null>(() => {
-        if (!gameState?.players || !Array.isArray(gameState.players)) return null;
-        return gameState.players.find((p: PlayerDTO) => p.seat === seatIndex) ?? null;
-    }, [gameState?.players, seatIndex]);
+        return playersBySeat.get(seatIndex) ?? null;
+    }, [playersBySeat, seatIndex]);
 
     const round = gameState?.round;
     const previousActions: ActionDTO[] = gameState?.previousActions ?? [];

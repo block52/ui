@@ -64,6 +64,28 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     cardBackStyle,
     updateBalanceOnPlayerJoin
 }) => {
+    // Seat-indexed lookups built once per update (#2455). The render loop below
+    // maps over every UI position and previously called .find()/.some() by seat
+    // on these arrays per position — O(n²) per game-state update on a full table.
+    // Building the maps once turns each per-seat lookup into O(1).
+    const activePlayerBySeat = React.useMemo(() => {
+        const bySeat = new Map<number, PlayerDTO>();
+        for (const p of tableActivePlayers) bySeat.set(p.seat, p);
+        return bySeat;
+    }, [tableActivePlayers]);
+
+    const dataPlayerBySeat = React.useMemo(() => {
+        const bySeat = new Map<number, PlayerDTO>();
+        for (const p of tableDataPlayers) bySeat.set(p.seat, p);
+        return bySeat;
+    }, [tableDataPlayers]);
+
+    const winnerSeats = React.useMemo(() => {
+        const seats = new Set<number>();
+        if (winnerInfo) for (const w of winnerInfo) seats.add(w.seat);
+        return seats;
+    }, [winnerInfo]);
+
     // ================================================================
     // CRITICAL ROTATION LOGIC - THIS IS WHERE THE ROTATION HAPPENS
     // ================================================================
@@ -93,7 +115,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
             const seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
 
             // Find if a player is seated at this position
-            const playerAtThisSeat = tableActivePlayers.find((p: PlayerDTO) => p.seat === seatNumber);
+            const playerAtThisSeat = activePlayerBySeat.get(seatNumber);
 
             // Check if this seat belongs to the current user
             const isCurrentUser = playerAtThisSeat && playerAtThisSeat.address?.toLowerCase() === userWalletAddress?.toLowerCase();
@@ -105,7 +127,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 left: position.left,
                 top: position.top,
                 color: position.color || "#6b7280", // Default gray if no color
-                status: tableDataPlayers?.find((p: PlayerDTO) => p.seat === seatNumber)?.status,
+                status: dataPlayerBySeat.get(seatNumber)?.status,
                 onJoin: updateBalanceOnPlayerJoin
             };
 
@@ -130,7 +152,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [tableActivePlayers, userWalletAddress, currentIndex, tableDataPlayers, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle]
+        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle]
     );
 
     // Render all player positions
@@ -160,7 +182,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 // Calculate seat number for animations (turn indicator, winner effects)
                 // This uses the SAME formula as getComponentToRender to stay in sync
                 const seatNum = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
-                const isWinnerSeat = !!winnerInfo?.some(w => w.seat === seatNum);
+                const isWinnerSeat = winnerSeats.has(seatNum);
 
                 // Get the actual component to render (Player, OppositePlayer, or VacantPlayer)
                 // This function handles all the rotation logic internally
