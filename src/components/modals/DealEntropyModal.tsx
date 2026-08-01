@@ -4,15 +4,7 @@ import CryptoJS from "crypto-js";
 import type { DealEntropyModalProps } from "./types";
 import styles from "./DealEntropyModal.module.css";
 import { truncateMiddle } from "../../utils/stringUtils";
-
-/**
- * Generates a random hex string using crypto.getRandomValues
- */
-function generateSystemEntropy(): string {
-    const array = new Uint8Array(32); // 256 bits
-    crypto.getRandomValues(array);
-    return "0x" + Array.from(array, byte => byte.toString(16).padStart(2, "0")).join("");
-}
+import { generateSystemEntropy } from "../../utils/entropy";
 
 /**
  * Hashes a string using SHA-256
