@@ -439,6 +439,10 @@ export interface WinnerInfo {
 
 export interface WinnerInfoReturn {
     winnerInfo: WinnerInfo[] | null;
+    // Seat-indexed view of winnerInfo, built once per update (#2455). Consumers
+    // that look a winner up by seat (Player, OppositePlayer, WinAnimation) read
+    // winnerBySeat.get(seat) instead of re-scanning winnerInfo per seat.
+    winnerBySeat: Map<number, WinnerInfo>;
     error: Error | null;
 }
 

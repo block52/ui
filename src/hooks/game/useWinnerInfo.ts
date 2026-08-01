@@ -54,6 +54,7 @@ export const useWinnerInfo = (): WinnerInfoReturn => {
     // Default values in case of error or loading
     const defaultState: WinnerInfoReturn = {
         winnerInfo: null as WinnerInfo[] | null,
+        winnerBySeat: new Map<number, WinnerInfo>(),
         error
     };
 
@@ -65,8 +66,17 @@ export const useWinnerInfo = (): WinnerInfoReturn => {
     try {
         // Process winner information
         const winners = getWinnerInfo(gameState);
+        // Build the seat index once so per-seat consumers do O(1) lookups
+        // instead of each re-scanning winnerInfo by seat (#2455).
+        const winnerBySeat = new Map<number, WinnerInfo>();
+        if (winners) {
+            for (const winner of winners) {
+                winnerBySeat.set(winner.seat, winner);
+            }
+        }
         const result: WinnerInfoReturn = {
             winnerInfo: winners,
+            winnerBySeat,
             error: null
         };
 

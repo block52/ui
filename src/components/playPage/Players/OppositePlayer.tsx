@@ -16,7 +16,6 @@ import { useParams } from "react-router-dom";
 import Badge from "../common/Badge";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
-import { WinnerInfo } from "../../../types";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { useShowingCardsByAddress } from "../../../hooks/player/useShowingCardsByAddress";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
@@ -43,7 +42,7 @@ type OppositePlayerProps = {
 const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
     const { id } = useParams<{ id: string }>();
     const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
-    const { winnerInfo } = useWinnerInfo();
+    const { winnerInfo, winnerBySeat } = useWinnerInfo();
     const winnerCards = useWinnerCards();
     const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
     const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
@@ -70,28 +69,21 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     // 1) detect when any winner exists
     const hasWinner = React.useMemo(() => hasElements(winnerInfo), [winnerInfo]);
 
-    // Check if this player is a winner
-    const isWinner = React.useMemo(() => {
-        if (!winnerInfo) return false;
-        return winnerInfo.some((winner: WinnerInfo) => winner.seat === index);
-    }, [winnerInfo, index]);
+    // Check if this player is a winner via the shared seat index (#2455)
+    const isWinner = React.useMemo(() => winnerBySeat.has(index), [winnerBySeat, index]);
 
     // 2) dim non-winners when someone has won, also dim busted players like sitting out
     const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
 
     // Get winner amount if this player is a winner
     const winnerAmount = React.useMemo(() => {
-        if (!isWinner || !winnerInfo) return null;
-        const winner = winnerInfo.find((w: WinnerInfo) => w.seat === index);
-        return winner ? winner.formattedAmount : null;
-    }, [isWinner, winnerInfo, index]);
+        return winnerBySeat.get(index)?.formattedAmount ?? null;
+    }, [winnerBySeat, index]);
 
     // Get winner hand description (e.g. "Full House") if this player is a winner
     const winnerHandDescription = React.useMemo(() => {
-        if (!isWinner || !winnerInfo) return null;
-        const winner = winnerInfo.find(w => w.seat === index);
-        return winner?.description ?? null;
-    }, [isWinner, winnerInfo, index]);
+        return winnerBySeat.get(index)?.description ?? null;
+    }, [winnerBySeat, index]);
 
     // Check if this player is showing cards
     const isShowingCards = React.useMemo(() => {

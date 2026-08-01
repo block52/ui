@@ -4,9 +4,9 @@ import { WinAnimationProps } from "../../../types/index";
 import "./WinAnimation.css";
 
 const WinAnimation: React.FC<WinAnimationProps & { position?: { left: string; top: string } }> = React.memo(({ index, position }) => {
-    const { winnerInfo } = useWinnerInfo();
+    const { winnerBySeat } = useWinnerInfo();
 
-    const isWinner = !!winnerInfo?.some(w => w.seat === index + 1);
+    const isWinner = winnerBySeat.has(index + 1);
     if (!isWinner || !position) return null;
 
     return (

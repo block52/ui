@@ -6,7 +6,7 @@ import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import { useParams } from "react-router-dom";
-import type { PlayerProps, WinnerInfo } from "../../../types/index";
+import type { PlayerProps } from "../../../types/index";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import CustomDealer from "../../../assets/CustomDealer.svg";
@@ -24,7 +24,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
         const { id } = useParams<{ id: string }>();
         const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
-        const { winnerInfo } = useWinnerInfo();
+        const { winnerInfo, winnerBySeat } = useWinnerInfo();
         const winnerCards = useWinnerCards();
         const { extendTime, canExtend, isCurrentUserTurn, isActive: isTurnTimerActive } = usePlayerTimer(id, index);
 
@@ -89,25 +89,21 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         // 1) detect when any winner exists
         const hasWinner = useMemo(() => hasElements(winnerInfo), [winnerInfo]);
 
-        // 2) memoize winner check
-        const isWinner = useMemo(() => !!winnerInfo?.some((w: WinnerInfo) => w.seat === index), [winnerInfo, index]);
+        // 2) memoize winner check via the shared seat index (#2455)
+        const isWinner = useMemo(() => winnerBySeat.has(index), [winnerBySeat, index]);
 
         // 3) dim non-winners when someone has won, also dim busted players like sitting out
         const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
 
         // 4) memoize winner amount
         const winnerAmount = useMemo(() => {
-            if (!isWinner || !winnerInfo) return null;
-            const winner = winnerInfo.find((w: WinnerInfo) => w.seat === index);
-            return winner?.formattedAmount ?? null;
-        }, [isWinner, winnerInfo, index]);
+            return winnerBySeat.get(index)?.formattedAmount ?? null;
+        }, [winnerBySeat, index]);
 
         // 4b) memoize winner hand description (e.g. "Full House")
         const winnerHandDescription = useMemo(() => {
-            if (!isWinner || !winnerInfo) return null;
-            const winner = winnerInfo.find(w => w.seat === index);
-            return winner?.description ?? null;
-        }, [isWinner, winnerInfo, index]);
+            return winnerBySeat.get(index)?.description ?? null;
+        }, [winnerBySeat, index]);
 
         // 5) render hole cards
         const renderCards = useCallback(() => {
