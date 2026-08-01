@@ -69,6 +69,18 @@ export function useAllInEquity(): AllInEquityResult {
     }, [activePlayers]);
 
     /**
+     * Seat index of showingPlayers so the visible-cards loop below is O(1)
+     * per player instead of re-scanning showingPlayers per seat (#2455).
+     */
+    const showingPlayerBySeat = useMemo(() => {
+        const bySeat = new Map<number, { seat: number; holeCards?: string[] }>();
+        if (showingPlayers) {
+            for (const sp of showingPlayers) bySeat.set(sp.seat, sp);
+        }
+        return bySeat;
+    }, [showingPlayers]);
+
+    /**
      * Get players with visible cards (from showingPlayers or game state)
      */
     const playersWithVisibleCards = useMemo(() => {
@@ -78,7 +90,7 @@ export function useAllInEquity(): AllInEquityResult {
 
         for (const player of activePlayers) {
             // Check if player is showing cards
-            const showingPlayer = showingPlayers?.find((sp: { seat: number; holeCards?: string[] }) => sp.seat === player.seat);
+            const showingPlayer = showingPlayerBySeat.get(player.seat);
             if (showingPlayer?.holeCards && showingPlayer.holeCards.length === 2) {
                 visible.push({ seat: player.seat, cards: showingPlayer.holeCards });
                 continue;
@@ -97,7 +109,15 @@ export function useAllInEquity(): AllInEquityResult {
         }
 
         return visible;
-    }, [activePlayers, showingPlayers, gameState?.players]);
+    }, [activePlayers, showingPlayerBySeat, gameState?.players]);
+
+    /**
+     * Seats that have visible cards — membership test for the all-in gate
+     * below, O(1) instead of a per-player .some() scan (#2455).
+     */
+    const visibleSeats = useMemo(() => {
+        return new Set(playersWithVisibleCards.map(v => v.seat));
+    }, [playersWithVisibleCards]);
 
     /**
      * Round is at showdown / end.
@@ -113,7 +133,7 @@ export function useAllInEquity(): AllInEquityResult {
         // Scenario A: all active players all-in with all hole cards visible.
         if (allPlayersAllIn && activePlayers.length >= 2) {
             const allHaveVisibleCards = activePlayers.every(
-                (p: PlayerDTO) => playersWithVisibleCards.some(v => v.seat === p.seat)
+                (p: PlayerDTO) => visibleSeats.has(p.seat)
             );
             if (allHaveVisibleCards) return true;
         }
@@ -122,7 +142,7 @@ export function useAllInEquity(): AllInEquityResult {
         if (isShowdown) return true;
 
         return false;
-    }, [allPlayersAllIn, activePlayers, playersWithVisibleCards, isShowdown]);
+    }, [allPlayersAllIn, activePlayers, visibleSeats, isShowdown, playersWithVisibleCards.length]);
 
     /**
      * Get community cards from game state
