@@ -33,6 +33,70 @@ export function formatTransactionLabel(action?: string, messageType?: string): s
 }
 
 /**
+ * Extract the Cosmos message type from a transaction's hex-encoded bytes.
+ *
+ * Cosmos SDK transactions embed each message's protobuf type URL as a plain
+ * ASCII string (e.g. "/pokerchain.poker.v1.MsgCreateGame"), length-prefixed
+ * inside the tx bytes. Rather than maintaining a hardcoded lookup of every
+ * message type (which drifts every time the chain adds a new `Msg*`), we decode
+ * the type URL directly out of the hex and derive a human-readable label from
+ * it. Any newly added message type is therefore labelled automatically.
+ *
+ * @param hexTx - lowercase hex string of the raw transaction bytes
+ * @returns a display label (e.g. "Create Game"), or null if no type URL found
+ */
+export function extractMessageTypeFromHex(hexTx: string): string | null {
+    if (!hexTx) return null;
+
+    // A type URL starts with "/" (0x2f) and is a run of printable URL-safe
+    // characters: letters, digits, ".", "_" and further "/" separators.
+    // Decode the hex to ASCII first, then match the URL pattern on the text.
+    const ascii = hexToAscii(hexTx);
+    const match = ascii.match(/\/[A-Za-z0-9._]+\.(Msg[A-Za-z0-9]+)/);
+    if (!match) return null;
+
+    // match[1] is the bare message name (e.g. "MsgCreateGame").
+    const messageName = match[1];
+
+    // A few message types have curated labels that differ from the plain
+    // derived form; everything else auto-derives via formatTransactionLabel
+    // (strip "Msg", space-case) so new message types need no maintenance here.
+    if (messageName in MESSAGE_TYPE_LABEL_OVERRIDES) {
+        return MESSAGE_TYPE_LABEL_OVERRIDES[messageName];
+    }
+
+    return formatTransactionLabel(undefined, messageName);
+}
+
+/**
+ * Curated display labels for message types whose derived name isn't the
+ * friendliest. Keyed by bare message name (e.g. "MsgSend"). Only add an entry
+ * when the auto-derived label ("Send", "Withdraw Delegator Reward", ...) is
+ * genuinely worse — do NOT mirror the whole message set here.
+ */
+const MESSAGE_TYPE_LABEL_OVERRIDES: { [messageName: string]: string } = {
+    MsgSend: "Bank Send (Transfer)",
+    MsgWithdrawDelegatorReward: "Withdraw Rewards"
+};
+
+/**
+ * Decode a hex string to ASCII, keeping only printable characters.
+ * Non-printable bytes become spaces so they act as delimiters between the
+ * printable runs (such as embedded type URLs) we care about.
+ */
+function hexToAscii(hex: string): string {
+    const bytes = hex.match(/.{1,2}/g);
+    if (!bytes) return "";
+
+    let out = "";
+    for (const byte of bytes) {
+        const code = parseInt(byte, 16);
+        out += code >= 0x20 && code <= 0x7e ? String.fromCharCode(code) : " ";
+    }
+    return out;
+}
+
+/**
  * Capitalize the first letter of a string
  */
 function capitalizeFirst(str: string): string {

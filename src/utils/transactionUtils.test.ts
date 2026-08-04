@@ -1,6 +1,7 @@
 import { describe, it, expect } from "@jest/globals";
 import {
     formatTransactionLabel,
+    extractMessageTypeFromHex,
     formatTransferDirection,
     getTransferDirectionClass,
     formatShortHash,
@@ -8,6 +9,39 @@ import {
 } from "./transactionUtils";
 
 describe("transactionUtils", () => {
+    describe("extractMessageTypeFromHex", () => {
+        // Fixtures: a couple of leading protobuf bytes (0a2a = field 1, len 42)
+        // followed by the ASCII type URL encoded as hex — the shape real
+        // Cosmos tx bytes have.
+        it("decodes a known pokerchain message type", () => {
+            const hex = "0a2a2f706f6b6572636861696e2e706f6b65722e76312e4d736743726561746547616d65";
+            expect(extractMessageTypeFromHex(hex)).toBe("Create Game");
+        });
+
+        it("decodes message types that were previously 'unknown' (no hardcoded entry needed)", () => {
+            const forceClose = "0a2a2f706f6b6572636861696e2e706f6b65722e76312e4d7367466f726365436c6f736547616d65";
+            expect(extractMessageTypeFromHex(forceClose)).toBe("Force Close Game");
+
+            const recordEth = "0a2a2f706f6b6572636861696e2e706f6b65722e76312e4d73675265636f7264457468426c6f636b486569676874";
+            expect(extractMessageTypeFromHex(recordEth)).toBe("Record Eth Block Height");
+        });
+
+        it("applies curated label overrides for cosmos-sdk message types", () => {
+            const send = "0a2a2f636f736d6f732e62616e6b2e763162657461312e4d736753656e64";
+            expect(extractMessageTypeFromHex(send)).toBe("Bank Send (Transfer)");
+
+            // /cosmos.distribution.v1beta1.MsgWithdrawDelegatorReward
+            const withdrawReward =
+                "0a2a2f636f736d6f732e646973747269627574696f6e2e763162657461312e4d7367576974686472617744656c656761746f72526577617264";
+            expect(extractMessageTypeFromHex(withdrawReward)).toBe("Withdraw Rewards");
+        });
+
+        it("returns null when no type URL is present", () => {
+            expect(extractMessageTypeFromHex("deadbeef0011223344")).toBeNull();
+            expect(extractMessageTypeFromHex("")).toBeNull();
+        });
+    });
+
     describe("formatTransactionLabel", () => {
         it("should return action when provided", () => {
             expect(formatTransactionLabel("call", "MsgPerformAction")).toBe("Call");
