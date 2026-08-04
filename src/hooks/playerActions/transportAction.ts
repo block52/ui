@@ -73,6 +73,23 @@ export function getLatestGameState(): TexasHoldemStateDTO | undefined {
  */
 const CHAIN_ANCHORED_ACTIONS = new Set<string>([]);
 
+/**
+ * The engine keys replay protection on the action index (TexasHoldem
+ * .getActionIndex) and rejects a mismatch with "Invalid action index." This
+ * happens when ANOTHER player acts between our state snapshot and our submit —
+ * a mid-hand join / sit-in consumes indices — leaving ours stale. See ui#530.
+ */
+function isStaleIndexError(err: unknown): boolean {
+    const msg = err instanceof Error ? err.message : String(err ?? "");
+    return /invalid action index/i.test(msg);
+}
+
+// User-facing, retryable message for the stale-index case. We deliberately do
+// NOT auto-retry (that can mask real problems / double-fire); instead we surface
+// a clear prompt so the user re-submits, which recomputes the index from the
+// state that has since advanced. Kept short so the action-error toast reads well.
+const STALE_INDEX_MESSAGE = "Your turn advanced while you were acting — please try again.";
+
 export async function executeTransportAction(
     tableId: string,
     action: string,
@@ -80,25 +97,36 @@ export async function executeTransportAction(
     network: NetworkEndpoints,
     data?: string
 ): Promise<PlayerActionResult> {
-    if (getGameTransport() === "gateway" && !CHAIN_ANCHORED_ACTIONS.has(action)) {
-        const address = localStorage.getItem(STORAGE_KEYS.cosmosAddress);
-        const currentPlayer = latestGameState?.players?.find(p => p.address === address);
-        const actionIndex = currentPlayer?.legalActions?.[0]?.index;
-        if (isNullish(actionIndex)) {
-            // Per Commandment 7: surface it — no guessed indices.
-            throw new Error(`No legal action index available for ${action} — game state may be stale`);
+    try {
+        if (getGameTransport() === "gateway" && !CHAIN_ANCHORED_ACTIONS.has(action)) {
+            const address = localStorage.getItem(STORAGE_KEYS.cosmosAddress);
+            const currentPlayer = latestGameState?.players?.find(p => p.address === address);
+            // Read the index from the FRESHEST snapshot at submit time.
+            const actionIndex = currentPlayer?.legalActions?.[0]?.index;
+            if (isNullish(actionIndex)) {
+                // Per Commandment 7: surface it — no guessed indices.
+                throw new Error(`No legal action index available for ${action} — game state may be stale`);
+            }
+            return await executeGatewayAction(tableId, action, actionIndex, amount, data ?? "", network);
         }
-        return executeGatewayAction(tableId, action, actionIndex, amount, data ?? "", network);
-    }
 
-    const { signingClient } = await getSigningClient(network);
-    const transactionHash = await signingClient.performActionSync(tableId, action, amount, data);
-    return {
-        hash: transactionHash,
-        gameId: tableId,
-        action,
-        amount: amount.toString()
-    };
+        const { signingClient } = await getSigningClient(network);
+        const transactionHash = await signingClient.performActionSync(tableId, action, amount, data);
+        return {
+            hash: transactionHash,
+            gameId: tableId,
+            action,
+            amount: amount.toString()
+        };
+    } catch (err) {
+        // Rewrite the raw "Invalid action index" (from either transport) into a
+        // clear, retryable prompt (ui#530). A rejected action was NOT applied, so
+        // re-submitting is safe. Every other error propagates unchanged.
+        if (isStaleIndexError(err)) {
+            throw new Error(STALE_INDEX_MESSAGE);
+        }
+        throw err;
+    }
 }
 
 export async function executeGatewayAction(
