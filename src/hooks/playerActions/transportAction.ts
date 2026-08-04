@@ -175,6 +175,16 @@ export async function executeGatewayAction(
     // stub / fresh-but-funded account), which is a legitimate optimistic join —
     // the balance gate already caught the truly-unfunded case.
 
+    // Close the snapshot→submit gap (ui#530). Signing above is async, so another
+    // player's action can advance the index between when we read it and now,
+    // making our signed index stale. Re-check against the freshest snapshot and
+    // bail with the retryable prompt BEFORE firing a guaranteed-reject round trip.
+    // A race to chain application still remains — this only shrinks the window.
+    const freshIndex = nextActionIndex(latestGameState);
+    if (actionIndex < freshIndex) {
+        throw new Error(STALE_INDEX_MESSAGE);
+    }
+
     const response = await getGatewayApi().submitAction({
         gameId: tableId,
         action,

@@ -1,5 +1,5 @@
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { executeTransportAction, setLatestGameState } from "./transportAction";
+import { executeGatewayAction, executeTransportAction, setLatestGameState } from "./transportAction";
 import { getSigningClient } from "../../utils/cosmos/client";
 import { signActionMessage } from "../../utils/cosmos/signing";
 import { signSettlementTx } from "../../utils/cosmos/settlementTx";
@@ -64,5 +64,31 @@ describe("executeTransportAction stale-index handling (ui#530)", () => {
         submitAction.mockResolvedValue({ type: "error", error: "It is not your turn to act" });
 
         await expect(executeTransportAction("game-1", "check", 0n, fakeNetwork)).rejects.toThrow(/not your turn/i);
+    });
+
+    // Pre-submit freshness check: signing is async, so another player can advance
+    // the index while we sign. Catch that BEFORE the POST, not after a reject.
+    describe("executeGatewayAction pre-submit freshness check", () => {
+        const stateWithLastIndex = (index: number): TexasHoldemStateDTO =>
+            ({ previousActions: [{ index }], players: [{ address: ADDRESS }] } as unknown as TexasHoldemStateDTO);
+
+        it("bails (retryable) without submitting when the index advanced during signing", async () => {
+            // Another player's action lands while we sign, bumping the next index.
+            mockSignActionMessage.mockImplementation(async () => {
+                setLatestGameState(stateWithLastIndex(7)); // nextActionIndex -> 8
+                return "eip191-sig";
+            });
+
+            await expect(executeGatewayAction("game-1", "check", 5, 0n, "", fakeNetwork)).rejects.toThrow(/please try again/i);
+            expect(submitAction).not.toHaveBeenCalled();
+        });
+
+        it("submits when our index is still current at submit time", async () => {
+            setLatestGameState(stateWithLastIndex(4)); // nextActionIndex -> 5
+            submitAction.mockResolvedValue({ type: "ack" });
+
+            await executeGatewayAction("game-1", "check", 5, 0n, "", fakeNetwork);
+            expect(submitAction).toHaveBeenCalledTimes(1);
+        });
     });
 });
