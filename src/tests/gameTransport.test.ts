@@ -12,20 +12,20 @@ describe("game transport selection", () => {
         if (saved.url === undefined) delete process.env.VITE_GATEWAY_URL;
     });
 
-    it("defaults to gateway — chain is the opt-out", () => {
+    it("defaults to chain — gateway is the opt-out (#2469)", () => {
         delete process.env.VITE_GAME_TRANSPORT;
-        expect(getGameTransport()).toBe("gateway");
+        expect(getGameTransport()).toBe("chain");
     });
 
-    it("selects chain only on the exact flag", () => {
-        process.env.VITE_GAME_TRANSPORT = "chain";
-        expect(getGameTransport()).toBe("chain");
+    it("selects gateway only on the exact flag", () => {
+        process.env.VITE_GAME_TRANSPORT = "gateway";
+        expect(getGameTransport()).toBe("gateway");
 
-        process.env.VITE_GAME_TRANSPORT = "CHAIN";
-        expect(getGameTransport()).toBe("chain");
+        process.env.VITE_GAME_TRANSPORT = "GATEWAY";
+        expect(getGameTransport()).toBe("gateway");
 
         process.env.VITE_GAME_TRANSPORT = "something-else";
-        expect(getGameTransport()).toBe("gateway");
+        expect(getGameTransport()).toBe("chain");
     });
 
     it("derives the ws endpoint from the http base URL", () => {

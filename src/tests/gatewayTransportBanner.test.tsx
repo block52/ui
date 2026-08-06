@@ -25,8 +25,8 @@ describe("GatewayTransportBanner", () => {
         restore("VITE_SHOW_BANNER", saved.show);
     });
 
-    it("is hidden by default (ui#494) even on the default gateway transport", () => {
-        delete process.env.VITE_GAME_TRANSPORT; // gateway is the default
+    it("is hidden by default (ui#494) even on the gateway transport", () => {
+        process.env.VITE_GAME_TRANSPORT = "gateway"; // chain is the default now (#2469)
         delete process.env.VITE_SHOW_BANNER;
         process.env.VITE_GATEWAY_URL = "https://pvm.block52.xyz/gateway";
         render(<GatewayTransportBanner />);
@@ -34,7 +34,7 @@ describe("GatewayTransportBanner", () => {
     });
 
     it("shows when VITE_SHOW_BANNER=true on the gateway transport", () => {
-        delete process.env.VITE_GAME_TRANSPORT; // gateway is the default
+        process.env.VITE_GAME_TRANSPORT = "gateway"; // opt back in to the legacy path
         process.env.VITE_SHOW_BANNER = "true";
         process.env.VITE_GATEWAY_URL = "https://pvm.block52.xyz/gateway";
         render(<GatewayTransportBanner />);

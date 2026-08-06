@@ -15,11 +15,12 @@ export type GameTransport = "chain" | "gateway";
 const DEFAULT_GATEWAY_URL = "https://pvm.block52.xyz/gateway";
 
 export function getGameTransport(): GameTransport {
-    // Gateway is the DEFAULT transport (decision 2026-06-08): the optimistic
-    // path is what players should feel. Set VITE_GAME_TRANSPORT=chain to opt
-    // back into chain-direct submission.
+    // Chain-direct is the DEFAULT transport (2026-08-06, #2469): state comes from
+    // the node relay's optimistic mempool oracle (pokerchain#263) and actions
+    // submit chain-direct, retiring the gateway+redis drain. Set
+    // VITE_GAME_TRANSPORT=gateway to opt back into the legacy gateway path.
     const raw = (viteEnv.VITE_GAME_TRANSPORT || "").toLowerCase();
-    return raw === "chain" ? "chain" : "gateway";
+    return raw === "gateway" ? "gateway" : "chain";
 }
 
 export function getGatewayHttpUrl(): string {
