@@ -80,7 +80,7 @@ describe("classifyMessage", () => {
     });
 
     describe("cosmos state-bearing events", () => {
-        it.each(["state", "player_joined_game", "action_performed", "game_created"])(
+        it.each(["state", "optimistic", "player_joined_game", "action_performed", "game_created"])(
             "classifies cosmos `%s` as a valid state",
             event => {
                 const snapshot = makeSnapshot();

@@ -20,8 +20,18 @@ import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVari
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import type { PendingAction } from "../context/gameState/GameUIContext";
 
-/** Cosmos event names that carry a full game-state snapshot. */
-const COSMOS_STATE_EVENTS = ["state", "player_joined_game", "action_performed", "game_created"];
+/**
+ * Cosmos event names that carry a full game-state snapshot.
+ *
+ * `optimistic` is the relay's mempool-arrival push (block52/pokerchain#263): the
+ * same {gameId, ..., gameState} shape as a committed frame, but projected from a
+ * pending action before it commits, so a passive (persistent) subscription sees
+ * the action sub-block instead of after a ~5s block. It carries the full state
+ * and reconciles automatically — the subsequent `action_performed` commit frame
+ * is the authoritative snapshot (same PVM → same state) — so it's rendered like
+ * any other state-bearing event.
+ */
+const COSMOS_STATE_EVENTS = ["state", "optimistic", "player_joined_game", "action_performed", "game_created"];
 
 /**
  * Loosely-typed inbound WS envelope. There is no SDK type for the transport
