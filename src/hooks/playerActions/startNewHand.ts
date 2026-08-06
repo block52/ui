@@ -2,7 +2,6 @@ import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
 import { generatePlayerSeedHex } from "../../utils/entropy";
-import { getGameTransport } from "../../utils/gameTransport";
 import { executeTransportAction } from "./transportAction";
 
 /**
@@ -15,10 +14,16 @@ import { executeTransportAction } from "./transportAction";
  */
 export async function startNewHand(tableId: string, network: NetworkEndpoints): Promise<PlayerActionResult> {
     // The chain is the authoritative deck source (poker-vm#2450). The acting
-    // player supplies 32 bytes of entropy as data "seed=<hex>"; the chain folds
-    // it into the per-hand VRF (deck = player seed ⊕ proposer VRF) and shuffles.
-    // The client no longer picks the deck — a client deck is what forked the
-    // chain from the gateway (poker-vm#2418).
-    const data = getGameTransport() === "gateway" ? `seed=${generatePlayerSeedHex()}` : undefined;
+    // player supplies 32 bytes of entropy as data "seed=<hex>"; the chain shuffles
+    // the deck deterministically from it (ShuffleFromVRF). The client no longer
+    // picks the deck — a client deck is what forked the chain from the gateway
+    // (poker-vm#2418).
+    //
+    // Always send the seed — on BOTH transports (pokerchain#265). A seeded deck is
+    // deterministic from the tx, so the optimistic mempool oracle can reproduce it
+    // (same ShuffleFromVRF) and surface new-hand/deal at ~250ms instead of ~5s. A
+    // seedless new-hand falls back to a chain-state shuffle the oracle can't
+    // reproduce, so it would still lag to commit.
+    const data = `seed=${generatePlayerSeedHex()}`;
     return executeTransportAction(tableId, NonPlayerActionType.NEW_HAND, 0n, network, data);
 }
