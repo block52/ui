@@ -58,8 +58,12 @@ function createSimpleHandler(
 
             return result?.hash || null;
         } catch (error: any) {
+            // Rethrow (don't swallow to null): the caller — handleActionWithTransaction —
+            // needs the throw to clear its dirty state immediately and surface an error
+            // toast, instead of spinning for the full 8s timeout. See §2 of
+            // docs/plans/2026_07_11_action_feedback_ux.md.
             console.error(`Failed to ${actionName}:`, error);
-            return null;
+            throw error;
         }
     };
 }
@@ -85,8 +89,9 @@ function createAmountFirstHandler(
 
             return result?.hash || null;
         } catch (error: any) {
+            // Rethrow — see createSimpleHandler above (§2 of the action-feedback plan).
             console.error(`Failed to ${actionName}:`, error);
-            return null;
+            throw error;
         }
     };
 }
@@ -112,8 +117,9 @@ function createTableIdAmountHandler(
 
             return result?.hash || null;
         } catch (error: any) {
+            // Rethrow — see createSimpleHandler above (§2 of the action-feedback plan).
             console.error(`Failed to ${actionName}:`, error);
-            return null;
+            throw error;
         }
     };
 }

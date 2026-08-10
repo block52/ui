@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { toast } from "react-toastify";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { hasContent, hasElements, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
@@ -19,7 +20,9 @@ import { formatDisplayAmount } from "../../utils/numberUtils";
 // Import hooks
 import { useTableState, useNextToActInfo } from "../../hooks";
 import { useActionSounds } from "../../hooks/notifications/useActionSounds";
+import { useActionHaptics } from "../../hooks/notifications/useActionHaptics";
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
+import { useActionAck } from "../../hooks/playerActions/useActionAck";
 import { nextActionIndex } from "../../hooks/playerActions/transportAction";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
@@ -58,6 +61,7 @@ import { ShowdownButtons } from "./ShowdownButtons";
 import { BlindButtonGroup } from "./BlindButtonGroup";
 import { MainActionButtons } from "./MainActionButtons";
 import { RaiseBetControls } from "./RaiseBetControls";
+import { ActionAckPill } from "./ActionAckPill";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
@@ -100,6 +104,20 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     // Action sounds
     const { playActionSound } = useActionSounds();
+    // Press-time haptic tick (Approach A) — gated on the actionHaptics setting.
+    const { vibrate } = useActionHaptics();
+    // Action-acknowledgement pill phase machine (Approach A). begin() at submit,
+    // confirm() from the same watcher that clears the dirty state, fail() from
+    // the catch / timeout.
+    const {
+        phase: ackPhase,
+        label: ackLabel,
+        variant: ackVariant,
+        begin: beginAck,
+        confirm: confirmAck,
+        fail: failAck,
+        clear: clearAck
+    } = useActionAck();
 
     // Detect mobile landscape orientation
     const [isMobileLandscape, setIsMobileLandscape] = useState(getViewportMode() === "mobile-landscape");
@@ -133,7 +151,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoNewHand: autoNewHandEnabled,
         autoFold: autoFoldEnabled,
         autoMuck: autoMuckEnabled,
-        playerActionSounds
+        playerActionSounds,
+        actionHaptics
     } = useGameSettings();
 
     // Get user address
@@ -358,7 +377,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // re-enabled while the panel still showed stale legalActions.
     // block52/ui#364.
     const handleActionWithTransaction = useCallback(
-        async (actionName: string, actionFn: () => Promise<string | null>, skipActionSound = false) => {
+        async (actionName: string, actionFn: () => Promise<string | null>, skipActionSound = false, ackAmountText?: string) => {
             const submittedAt = gameState?.actionCount ?? 0;
             const submittedAtHand = gameState?.handNumber ?? null;
             try {
@@ -366,8 +385,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 setPendingActionCount(submittedAt);
                 setPendingHandNumber(submittedAtHand);
                 setPendingActionIndex(nextActionIndex(gameState));
+                // Acknowledgement pill: the receipt starts at click and is
+                // confirmed by the same watcher that clears loadingAction, so
+                // the fast path can't flash-and-vanish. No-op for actions
+                // without ack copy (deal/new-hand).
+                beginAck(actionName, ackAmountText);
                 if (!skipActionSound && playerActionSounds) {
                     playActionSound(actionName);
+                }
+                if (actionHaptics) {
+                    vibrate(10);
                 }
                 const txHash = await actionFn();
                 if (txHash && onTransactionSubmitted) {
@@ -381,10 +408,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 setPendingActionCount(null);
                 setPendingHandNumber(null);
                 setPendingActionIndex(null);
+                // §2: the handler factories now rethrow instead of swallowing to
+                // null, so this catch finally fires for real transport failures
+                // (gateway 422, CheckTx reject, network error). Flip the pill to
+                // "failed" and tell the player why, instead of an 8s dead spinner.
+                failAck();
+                toast.error(error instanceof Error ? error.message : "Action failed — please try again");
                 throw error;
             }
         },
-        [gameState?.actionCount, gameState?.handNumber, onTransactionSubmitted, playActionSound, playerActionSounds]
+        [gameState?.actionCount, gameState?.handNumber, onTransactionSubmitted, playActionSound, playerActionSounds, actionHaptics, vibrate, beginAck, failAck]
     );
 
     // Canonical clear: the backend advanced past the point at which we
@@ -406,8 +439,12 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
             setPendingActionCount(null);
             setPendingActionIndex(null);
             setPendingHandNumber(null);
+            // Drive the pill's "confirmed" flash off the exact signal that
+            // ends the dirty state — no separate reconciliation. No-op if the
+            // pill isn't in its "sending" phase (e.g. deal/new-hand).
+            confirmAck();
         }
-    }, [gameState, pendingActionCount, pendingActionIndex, pendingHandNumber]);
+    }, [gameState, pendingActionCount, pendingActionIndex, pendingHandNumber, confirmAck]);
 
     // Escape hatch: WS push never arrived (chain stalled, WS disconnect,
     // or — rare — CheckTx passed but DeliverTx rejected so actionCount
@@ -424,9 +461,24 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
             setPendingActionCount(null);
             setPendingHandNumber(null);
             setPendingActionIndex(null);
+            // No confirmation ever arrived — turn the pill red so the player
+            // knows to retry (the buttons return with the dirty-state clear).
+            failAck();
         }, DIRTY_STATE_TIMEOUT_MS);
         return () => clearTimeout(t);
-    }, [pendingActionCount]);
+    }, [pendingActionCount, failAck]);
+
+    // Heads-up back-to-back turns: if the player is facing a fresh betting
+    // decision while the confirmed receipt is still holding, drop it immediately
+    // so the pill never delays the next street's buttons out of the footer slot.
+    // Gated on an actual actionable legal action (not the end-of-hand / new-hand
+    // pseudo-turn) so the "✓" payoff still shows after a hand-ending fold.
+    const facingActionDecision = isUsersTurn && (hasFoldAction || hasCheckAction || hasCallAction || hasBetAction || hasRaiseAction);
+    useEffect(() => {
+        if (ackPhase === "confirmed" && facingActionDecision) {
+            clearAck();
+        }
+    }, [ackPhase, facingActionDecision, clearAck]);
 
     // Handler for dealing cards with entropy
     const handleDealWithEntropy = useCallback(
@@ -466,19 +518,40 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const handleBetAction = async () => {
         if (!tableId) return;
         const amountMicro = fromDisplay(raiseAmount);
+        const betText = formatDisplayAmount(raiseAmount, isTournament);
 
-        await handleActionWithTransaction("bet", async () => {
-            return await handleBet(amountMicro, tableId, network);
-        });
+        await handleActionWithTransaction(
+            "bet",
+            async () => {
+                return await handleBet(amountMicro, tableId, network);
+            },
+            false,
+            betText
+        );
     };
 
     const handleRaiseAction = async () => {
         if (!tableId) return;
         const amountMicro = fromDisplay(raiseAmount);
+        // Match the "RAISE TO $X" figure shown on the button (blinds posted in
+        // ANTE fold into the preflop total), so the pill reads the same number.
+        const raiseToDisplay = getRaiseToAmount(
+            raiseAmount,
+            gameState?.previousActions || [],
+            gameState?.round || TexasHoldemRound.ANTE,
+            userAddress || "",
+            isTournament
+        );
+        const raiseToText = formatDisplayAmount(raiseToDisplay, isTournament);
 
-        await handleActionWithTransaction("raise", async () => {
-            return await handleRaise(tableId, amountMicro, network);
-        });
+        await handleActionWithTransaction(
+            "raise",
+            async () => {
+                return await handleRaise(tableId, amountMicro, network);
+            },
+            false,
+            raiseToText
+        );
     };
 
     // Calculate button visibility flags
@@ -526,7 +599,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         await handleActionWithTransaction(
             hasRaiseAction ? "raise" : "bet",
             async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),
-            true
+            true,
+            formatDisplayAmount(maxAmount, isTournament)
         );
     };
 
@@ -538,7 +612,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         if (playerActionSounds) {
             playActionSound("all-in");
         }
-        await handleActionWithTransaction("raise", () => handleRaise(tableId, stackMicro, network), true);
+        await handleActionWithTransaction("raise", () => handleRaise(tableId, stackMicro, network), true, formattedAllInAmount);
     };
 
     return (
@@ -593,8 +667,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                     </div>
                 )}
 
-                {/* Only show other buttons if deal button is not showing */}
-                {!hideOtherButtons && (
+                {/* Acknowledgement pill (Approach A): takes the footer slot the
+                    button row occupied while an action is in flight/confirming.
+                    It renders no legalActions, so it survives the state flip that
+                    unmounts the buttons on confirm. Mutually exclusive with them. */}
+                {!hideOtherButtons && ackPhase !== null && (
+                    <ActionAckPill phase={ackPhase} label={ackLabel} variant={ackVariant} isMobileLandscape={isMobileLandscape} />
+                )}
+
+                {/* Only show other buttons if the deal button and ack pill are not showing */}
+                {!hideOtherButtons && ackPhase === null && (
                     <>
                         {/* Showdown Buttons */}
                         {(hasMuckAction || hasShowAction) && (
@@ -657,7 +739,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     allInAmount={formattedAllInAmount}
                                     onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network))}
                                     onCheck={() => handleActionWithTransaction("check", () => handleCheck(tableId, network))}
-                                    onCall={() => handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network))}
+                                    onCall={() => handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network), false, formattedCallAmount)}
                                     onBetOrRaise={hasRaiseAction ? handleRaiseAction : handleBetAction}
                                     onAllIn={handleShortShoveAllInAction}
                                 />

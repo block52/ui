@@ -218,3 +218,77 @@
   box-shadow: 0 0 15px color-mix(in srgb, var(--brand-primary) 30%, transparent);
   transform: scale(1.05);
 }
+
+/* =========================================================================
+   Action acknowledgement pill (Approach A — action-feedback UX)
+   Renders in the footer slot the action buttons occupied: click → sending →
+   confirmed → fade. See src/components/Footer/ActionAckPill.tsx.
+   ========================================================================= */
+.ack-pill {
+  border: 2px solid var(--ui-border-color);
+  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
+  color: white;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  animation: ackPillIn 160ms ease-out;
+}
+
+@keyframes ackPillIn {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.ack-pill__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  line-height: 1;
+}
+
+/* Pulsing dot shown during the "sending" phase. */
+.ack-pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: currentColor;
+  display: inline-block;
+  animation: ackDotPulse 900ms ease-in-out infinite;
+}
+
+@keyframes ackDotPulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50%      { opacity: 1;    transform: scale(1.1); }
+}
+
+/* Confirmed: snap to the action color and give a small pop. */
+.ack-pill--confirmed { animation: ackPillConfirm 220ms ease-out; }
+
+@keyframes ackPillConfirm {
+  0%   { transform: scale(0.97); }
+  60%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+
+.ack-pill--fold.ack-pill--confirmed  { border-color: var(--accent-danger);  box-shadow: 0 0 16px color-mix(in srgb, var(--accent-danger) 45%, transparent); }
+.ack-pill--check.ack-pill--confirmed { border-color: var(--brand-primary);  box-shadow: 0 0 16px color-mix(in srgb, var(--brand-primary) 40%, transparent); }
+.ack-pill--call.ack-pill--confirmed  { border-color: var(--accent-success); box-shadow: 0 0 16px color-mix(in srgb, var(--accent-success) 45%, transparent); }
+.ack-pill--raise.ack-pill--confirmed { border-color: var(--accent-glow);    box-shadow: 0 0 16px color-mix(in srgb, var(--accent-glow) 45%, transparent); }
+
+.ack-pill--fold.ack-pill--confirmed  .ack-pill__icon { color: var(--accent-danger); }
+.ack-pill--check.ack-pill--confirmed .ack-pill__icon { color: var(--brand-primary); }
+.ack-pill--call.ack-pill--confirmed  .ack-pill__icon { color: var(--accent-success); }
+.ack-pill--raise.ack-pill--confirmed .ack-pill__icon { color: var(--accent-glow); }
+
+/* Failed: rejected submit (or the 8s timeout escape hatch). */
+.ack-pill--failed {
+  border-color: var(--accent-danger);
+  color: var(--accent-danger);
+  background: linear-gradient(to right, color-mix(in srgb, var(--accent-danger) 18%, var(--ui-bg-dark)), var(--ui-bg-dark));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent-danger) 40%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ack-pill,
+  .ack-pill--confirmed { animation: none; }
+  .ack-pill__dot { animation: none; opacity: 0.8; }
+}

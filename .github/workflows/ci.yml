@@ -106,3 +106,16 @@ jobs:
           name: playwright-report
           path: packages/e2e/playwright-report/
           retention-days: 7
+
+      # gif-reporter.ts converts every e2e test's recorded video into an animated
+      # GIF for visual review (ffmpeg is preinstalled on ubuntu-latest). Uploaded
+      # as a standalone artifact so the GIFs are one click away, not buried in the
+      # HTML report.
+      - name: Upload e2e GIFs
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: e2e-gifs
+          path: packages/e2e/artifacts/*.gif
+          if-no-files-found: ignore
+          retention-days: 7

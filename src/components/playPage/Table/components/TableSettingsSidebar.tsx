@@ -47,9 +47,11 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
     const {
         turnNotificationSound,
         playerActionSounds,
+        actionHaptics,
         autoMuck,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
+        toggleActionHaptics,
         toggleAutoMuck
     } = useGameSettings();
 
@@ -74,6 +76,12 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                         description="Play sounds when players perform actions such as bet, raise, call, fold, and check."
                         checked={playerActionSounds}
                         onToggle={togglePlayerActionSounds}
+                    />
+                    <ToggleRow
+                        label="Action Haptics"
+                        description="Vibrate briefly when you commit an action (supported mobile devices only)."
+                        checked={actionHaptics}
+                        onToggle={toggleActionHaptics}
                     />
                     <ToggleRow
                         label="Auto Muck"
