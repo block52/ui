@@ -112,7 +112,7 @@ export const NETWORK_PRESETS: NetworkEndpoints[] = [
     },
     // [4] 🧪 Wallet Stub - Local @block52/wallet-stub server (docs/plans/2026_07_11_wallet_stub_server.md)
     // Serves a funded balance + synthetic game state so the UI runs with no chain/funds.
-    // Run: `yarn stub`. Gameplay actions/WS use VITE_GATEWAY_URL (default the same origin).
+    // Run: `yarn stub`. Gameplay actions/WS use this network's rpc/ws endpoints.
     {
         name: "Stub",
         rpc: "http://localhost:8546",

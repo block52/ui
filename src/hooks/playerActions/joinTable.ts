@@ -1,7 +1,6 @@
-import { COSMOS_CONSTANTS, NonPlayerActionType, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { COSMOS_CONSTANTS, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { getSigningClient } from "../../utils/cosmos/client";
-import { getGameTransport } from "../../utils/gameTransport";
-import { executeGatewayAction, getLatestGameState, nextActionIndex } from "./transportAction";
+import { getLatestGameState } from "./transportAction";
 import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { JoinTableResult } from "../../types";
@@ -62,24 +61,7 @@ export async function joinTable(tableId: string, options: JoinTableOptions, netw
     // the SNG/tournament engine mis-seats). See resolveJoinSeat.
     const seat = resolveJoinSeat(options.seatNumber, getLatestGameState());
 
-    // WS-first money-mover (#2325): under gateway transport the join goes
-    // through the gateway, which PVM-verifies and applies it optimistically,
-    // then relays the player's PRE-SIGNED MsgJoinGame (attached by
-    // executeGatewayAction → signSettlementTx) for the escrow. The seat rides
-    // in the signature-bound data field; a joiner isn't seated yet, so the
-    // index is the table's shared next-action index.
-    if (getGameTransport() === "gateway") {
-        const index = nextActionIndex(getLatestGameState());
-        const result = await executeGatewayAction(tableId, NonPlayerActionType.JOIN, index, buyInAmount, `seat=${seat}`, network);
-        return {
-            hash: result.hash,
-            gameId: tableId,
-            seat,
-            buyInAmount: buyInAmount.toString()
-        };
-    }
-
-    // Direct-to-chain (non-gateway): broadcast MsgJoinGame ourselves.
+    // Broadcast MsgJoinGame chain-direct.
     const transactionHash = await signingClient.joinGame(
         tableId,
         seat,

@@ -2,7 +2,6 @@ import { useCallback } from "react";
 import { useGameActions } from "../../context/gameState/GameActionsContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { useNetwork } from "../../context/NetworkContext";
-import { getGameTransport } from "../../utils/gameTransport";
 import { executeTransportAction } from "./transportAction";
 import type { PlayerActionResult } from "../../types";
 import { PlayerActionType, NonPlayerActionType } from "@block52/poker-vm-sdk";
@@ -77,19 +76,15 @@ export function useOptimisticAction(): UseOptimisticActionReturn {
                 throw new Error(`Amount required for ${action}`);
             }
 
-            // Chain transport: announce via WS first (best-effort latency
-            // optimization for other subscribers). Gateway transport needs
-            // no announce — the gateway broadcast IS the validated state.
-            if (getGameTransport() !== "gateway") {
-                try {
-                    await sendAction(action, amount?.toString());
-                } catch {
-                    // intentional: WS broadcast is best-effort
-                }
+            // Announce via WS first (best-effort latency optimization for
+            // other subscribers); the chain broadcast is the validated state.
+            try {
+                await sendAction(action, amount?.toString());
+            } catch {
+                // intentional: WS broadcast is best-effort
             }
 
-            // Single transport-aware executor (ui#440): SDK performActionSync
-            // on chain, signed POST /actions on gateway.
+            // Chain-direct executor: SDK performActionSync.
             return executeTransportAction(tableId, action, amount ?? 0n, currentNetwork);
         },
         [sendAction, currentNetwork]

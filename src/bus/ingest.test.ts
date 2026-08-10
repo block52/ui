@@ -50,35 +50,6 @@ function cosmosMessage(event: string, gameId: string, snapshot: TexasHoldemState
 }
 
 describe("classifyMessage", () => {
-    describe("gateway state frames", () => {
-        it("normalizes and classifies a gateway `state` frame as a valid state", () => {
-            const snapshot = makeSnapshot();
-            const gatewayFrame: RawWsMessage = {
-                type: "state",
-                gameId: TABLE_ID,
-                state: {
-                    gameId: TABLE_ID,
-                    format: "cash",
-                    variant: "texas-holdem",
-                    gameState: snapshot
-                }
-            };
-
-            const result = classifyMessage(gatewayFrame, TABLE_ID);
-
-            expect(result.kind).toBe("state");
-            if (result.kind !== "state") throw new Error("unreachable");
-            expect(result.snapshot).toEqual(snapshot);
-            expect(result.format).toBe("cash");
-            expect(result.variant).toBe("texas-holdem");
-            expect(result.validationError).toBeNull();
-        });
-
-        it("ignores a gateway `subscribed` ack frame", () => {
-            expect(classifyMessage({ type: "subscribed", gameId: TABLE_ID }, TABLE_ID)).toEqual({ kind: "ignore" });
-        });
-    });
-
     describe("cosmos state-bearing events", () => {
         it.each(["state", "optimistic", "player_joined_game", "action_performed", "game_created"])(
             "classifies cosmos `%s` as a valid state",

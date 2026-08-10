@@ -15,7 +15,6 @@
  *     renders what it can, while the error is surfaced).
  */
 import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
-import { normalizeGatewayMessage } from "../utils/gameTransport";
 import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import type { PendingAction } from "../context/gameState/GameUIContext";
@@ -97,7 +96,7 @@ export type ClassifiedMessage =
 /**
  * Classify a single parsed WebSocket message for the given table.
  *
- * @param raw - the parsed message (gateway or cosmos/PVM shape)
+ * @param raw - the parsed message (cosmos/PVM shape)
  * @param tableId - the table the provider is currently subscribed to
  */
 export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: string): ClassifiedMessage {
@@ -105,16 +104,7 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
         return { kind: "ignore" };
     }
 
-    // Gateway transport: state frames carry the canonical GameStateResponseDTO
-    // under `state` (poker-vm#2226). Normalize into the cosmos message shape so
-    // the branches below need zero gateway-specific parsing. Non-state gateway
-    // frames (subscribed/ack) normalize to null and fall through to `ignore`.
-    const normalized = normalizeGatewayMessage(raw);
-    const message: RawWsMessage = normalized
-        ? // normalized.data is `unknown` by contract; it is the canonical
-          // cosmos `data` shape, narrowed here at the transport boundary.
-          { gameId: normalized.gameId, event: normalized.event, data: normalized.data as RawWsMessage["data"] }
-        : raw;
+    const message: RawWsMessage = raw;
 
     // A state update is either the old PVM `gameStateUpdate` for this table or
     // any cosmos state-bearing event for this game.
