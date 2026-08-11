@@ -12,9 +12,9 @@ const STUB_HEALTH = "http://localhost:8546/health";
 /**
  * e2e: drive the real UI against the local wallet-stub. Both servers are booted
  * here (reused if you already have them running via `yarn dev` / `yarn stub`).
- * The UI reads VITE_GATEWAY_URL from ui/.env — it must point at the stub
- * (http://localhost:8546/gateway); the "Stub" network preset is seeded into
- * localStorage by tests/fixtures.ts, so no manual dropdown step.
+ * The app runs chain-direct: the "Stub" network preset (seeded into localStorage
+ * by tests/fixtures.ts) points the SDK at the stub's CometBFT RPC + chain WS on
+ * :8546, so no manual dropdown step and no gateway.
  */
 export default defineConfig({
   testDir: "./tests",
@@ -45,13 +45,6 @@ export default defineConfig({
       url: UI_URL,
       reuseExistingServer: true,
       timeout: 60_000,
-      // The banner-dependent specs (smoke, play-hand) assert the gateway
-      // transport banner is visible, which requires VITE_SHOW_BANNER=true.
-      // ui/.env intentionally does not set it (the banner is off by default in
-      // prod), so we inject it here — Vite exposes VITE_-prefixed process.env
-      // vars via import.meta.env — so a fresh checkout passes with no manual
-      // server booting and prod defaults are untouched (plan §5.6).
-      env: { VITE_SHOW_BANNER: "true" },
     },
   ],
 });

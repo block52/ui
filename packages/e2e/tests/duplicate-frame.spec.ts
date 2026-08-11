@@ -52,14 +52,14 @@ test("duplicate frame commits but derives no new events", async ({ page }) => {
     await expect(page.locator(".btn-call")).toBeVisible({ timeout: 15_000 });
   });
 
-  // Fetch the current canonical state and wrap it as a gateway state frame.
+  // Fetch the current canonical state and wrap it as a chain state frame.
   const frame = await test.step("build a state frame from the current game state", async () => {
     const res = await fetch(`${STUB}/block52/pokerchain/poker/v1/game_state/${CASH_GAME_ID}`);
     const body = (await res.json()) as GameStateResponse;
     return {
-      type: "state",
+      event: "action_performed",
       gameId: CASH_GAME_ID,
-      state: { format: body.format, variant: body.variant, gameState: body.gameState },
+      data: { format: body.format, variant: body.variant, gameState: body.gameState },
     };
   });
 

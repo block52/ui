@@ -1,24 +1,22 @@
 import type { Server } from "node:http";
 import { WebSocket, WebSocketServer } from "ws";
-import { gatewayStateMessage } from "./state.js";
+import { cosmosStateMessage } from "./state.js";
 
 /**
- * Gateway WebSocket hub (the WS half of the stub gateway). The UI connects to
- * ws://<gateway>/ws, sends {type:"subscribe", gameId, address, ...} on open, and
- * expects a {type:"state", gameId, state:{format,variant,gameState}} frame back
- * — GameStateContext errors after 5s of silence, so we reply immediately on
- * subscribe. Later state changes (M3 actions) are pushed via broadcast().
- *
- * Analogous to api-stub's SignalR hub, minus the legacy 2.x envelope.
+ * Chain WebSocket hub (the node-relay half of the stub). The UI connects to
+ * ws://<node>/ws?tableAddress=<id>&playerId=<addr>, sends
+ * {type:"subscribe", gameId, playerAddress, ...} on open, and expects a cosmos
+ * state frame back — GameStateContext errors after 5s of silence, so we reply
+ * immediately on subscribe. Later state changes are pushed via broadcast().
  */
 
-const WS_PATH = "/gateway/ws";
+const WS_PATH = "/ws";
 
 // gameId -> set of sockets subscribed to it, so an action broadcast only wakes
 // the clients watching that table.
 const subscribers = new Map<string, Set<WebSocket>>();
 
-export function attachGatewayWs(server: Server): void {
+export function attachChainWs(server: Server): void {
   const wss = new WebSocketServer({ noServer: true });
 
   server.on("upgrade", (req, socket, head) => {
@@ -30,7 +28,7 @@ export function attachGatewayWs(server: Server): void {
     wss.handleUpgrade(req, socket, head, (client) => onConnect(client));
   });
 
-  console.log(`[pvm-stub] gateway WS listening on ${WS_PATH}`);
+  console.log(`[pvm-stub] chain WS listening on ${WS_PATH}`);
 }
 
 function onConnect(client: WebSocket): void {
@@ -62,7 +60,7 @@ function onConnect(client: WebSocket): void {
 }
 
 function sendState(client: WebSocket, gameId: string): void {
-  const message = gatewayStateMessage(gameId);
+  const message = cosmosStateMessage(gameId);
   if (message && client.readyState === WebSocket.OPEN) {
     client.send(JSON.stringify(message));
   }
@@ -72,7 +70,7 @@ function sendState(client: WebSocket, gameId: string): void {
 export function broadcast(gameId: string): void {
   const set = subscribers.get(gameId);
   if (!set) return;
-  const message = gatewayStateMessage(gameId);
+  const message = cosmosStateMessage(gameId);
   if (!message) return;
   const payload = JSON.stringify(message);
   for (const client of set) {

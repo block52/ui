@@ -2,30 +2,26 @@ import type { Server } from "node:http";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { attachGatewayWs, broadcast, broadcastRaw, disconnectGame } from "./gateway-ws.js";
+import { attachChainWs, broadcastRaw, disconnectGame } from "./chain-ws.js";
+import { handleCometRpc } from "./comet-rpc.js";
 import {
-  applyAction,
   CASH_GAME_ID,
-  getFrameDelayMs,
   getGameState,
-  gatewayStateMessage,
   listGamesResponse,
   resetTables,
   setStubConfig,
+  getFrameDelayMs,
 } from "./state.js";
 
 /**
  * @block52/pvm-stub — local stub server so the UI runs with no chain, funds,
  * or bridge. Modeled on dynamiq/h3-portal/packages/api-stub.
  *
- * Point the UI at this via the "Stub" network preset (rest=http://localhost:8546)
- * and VITE_GATEWAY_URL=http://localhost:8546/gateway. See
- * ui/docs/plans/2026_07_11_wallet_stub_server.md.
- *
- * M1: funded balance + health.
- * M2 (this file): seeded lobby + game_state + gateway WS + action echo, so a
- *   table shows, opens, and renders. Actions are accepted and the current state
- *   re-broadcast (no hand logic yet — that's M3's holdem.ts + bot).
+ * Point the UI at this via the "Stub" network preset (all endpoints on :8546).
+ * The app runs chain-direct: state reads over REST, live updates over the chain
+ * WS (/ws, chain-ws.ts), and actions over CometBFT JSON-RPC (POST /, comet-rpc.ts)
+ * which decodes the poker Msg and drives the holdem.ts engine + bot.
+ * See ui/docs/plans/2026_07_11_wallet_stub_server.md.
  */
 
 const PORT = Number(process.env.PORT ?? 8546);
@@ -44,7 +40,6 @@ app.use("*", async (c, next) => {
 
 // ---- health -------------------------------------------------------------
 app.get("/health", (c) => c.json({ status: "ok", pkg: "@block52/pvm-stub" }));
-app.get("/gateway/health", (c) => c.json({ status: "ok" }));
 
 // ---- wallet balance (unlocks buy-in) ------------------------------------
 app.get("/cosmos/bank/v1beta1/balances/:address", (c) =>
@@ -66,57 +61,12 @@ app.get("/block52/pokerchain/poker/v1/game_state/:gameId", (c) => {
   return state ? c.json(state) : c.json({ error: "unknown gameId" }, 404);
 });
 
-// ---- gateway action submission ------------------------------------------
-// M2: accept the action, re-broadcast current state, ack. M3 replaces this with
-// holdem.ts (mutate state) + bot auto-play before the broadcast.
-app.post("/gateway/actions", async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as {
-    gameId?: string;
-    action?: string;
-    amount?: string;
-    address?: string;
-    data?: string;
-    index?: number;
-  };
-  const gameId = body.gameId ?? CASH_GAME_ID;
-  if (!getGameState(gameId)) {
-    return c.json({ type: "error", error: `unknown gameId ${gameId}` }, 422);
-  }
-  const action = {
-    action: body.action ?? "",
-    amount: body.amount,
-    address: body.address,
-    data: body.data,
-    index: body.index,
-  };
-
-  const frameDelayMs = getFrameDelayMs();
-  if (frameDelayMs > 0) {
-    // Per-frame mode: capture the state after each engine step (human, then
-    // each bot action) and broadcast them one at a time with frameDelayMs
-    // between, reproducing the live gateway's one-frame-per-action stream.
-    const frames: unknown[] = [];
-    applyAction(gameId, action, () => {
-      const frame = gatewayStateMessage(gameId);
-      if (frame) frames.push(structuredClone(frame));
-    });
-    frames.forEach((frame, i) => {
-      if (i === 0) broadcastRaw(gameId, frame);
-      else setTimeout(() => broadcastRaw(gameId, frame), i * frameDelayMs);
-    });
-  } else {
-    // Collapsed mode (default): mutate, auto-run the bot, broadcast once.
-    applyAction(gameId, action);
-    broadcast(gameId);
-  }
-
-  const state = getGameState(gameId)!;
-  return c.json({
-    type: "ack",
-    gameId,
-    index: body.index,
-    state: { format: state.format, variant: state.variant, gameState: state.gameState },
-  });
+// ---- chain-direct action submission (CometBFT JSON-RPC over POST /) ------
+// The UI's SDK signing client broadcasts poker Msgs here; the emulator decodes
+// them, drives holdem.applyAction, and pushes the resulting frame over /ws.
+app.post("/", async (c) => {
+  const body = (await c.req.json().catch(() => ({}))) as { id?: unknown; method?: string; params?: Record<string, unknown> };
+  return c.json((await handleCometRpc(body)) as object);
 });
 
 // ---- cosmetic reads the UI polls (benign shapes, stop the {} noise) ------
@@ -200,4 +150,4 @@ const server = serve({ fetch: app.fetch, port: PORT, hostname: HOST }, (info) =>
   console.log(`[pvm-stub] seeded cash table: ${CASH_GAME_ID}`);
 });
 
-attachGatewayWs(server as unknown as Server);
+attachChainWs(server as unknown as Server);

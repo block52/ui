@@ -13,7 +13,6 @@ test("fold preflop and the opponent wins the pot", async ({ page }) => {
 
   await test.step("open the seeded table", async () => {
     await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false`);
-    await expect(page.getByTestId("gateway-transport-banner")).toBeVisible();
     await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
   });
 

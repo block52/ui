@@ -17,10 +17,9 @@ cd packages/pvm-stub && yarn && yarn start
 
 ## Point the UI at it
 
-1. `.env`: `VITE_GATEWAY_URL=http://localhost:8546/gateway`
-2. In the app's network dropdown (top-right), select **Stub**.
-
-Your `/wallet` page should now show a funded USDC balance.
+In the app's network dropdown (top-right), select **Stub** — its preset points
+the SDK at this server's CometBFT RPC + chain WS on `:8546` (chain-direct; no
+gateway). Your `/wallet` page should now show a funded USDC balance.
 
 ## Config (env)
 
@@ -30,11 +29,14 @@ Your `/wallet` page should now show a funded USDC balance.
 | `STUB_USDC` | `1000000000` | USDC balance in 6-decimal microunits (1000 USDC) |
 | `STUB_STAKE` | `1000000000` | stake (gas) balance |
 
-## Status
+## How it works
 
-- **M1 (done):** funded balance + health probes.
-- **M2 (done):** seeded lobby (`list_games`) + `game_state` + gateway WS (`/gateway/ws`,
-  subscribe → state) + `POST /gateway/actions` echo. A table shows in the lobby, opens, and
-  renders — but the seeded hand is static (no play yet).
-- **M3 (next):** `holdem.ts` synthetic engine + auto-bot — actually play a hand. Then VCR
-  record/replay. See the plan.
+- **Funded balance + health** — `/health`, `/cosmos/bank/.../balances/:addr`.
+- **Lobby + state reads** — `list_games`, `game_state/:gameId`.
+- **Chain WS** (`/ws`) — the UI subscribes and receives cosmos state frames
+  (`{event, gameId, data:{format,variant,gameState}}`); see `chain-ws.ts`.
+- **Chain-direct actions** — the UI's SDK client broadcasts poker Msgs over
+  CometBFT JSON-RPC (`POST /`); `comet-rpc.ts` decodes them, drives the
+  `holdem.ts` engine + auto-bot, and pushes the resulting frame over `/ws`.
+- **Test control** — `/__control/{reset,config,inject,script,disconnect}` for
+  deterministic e2e (see `packages/e2e`).

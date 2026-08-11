@@ -49,7 +49,7 @@ interface Seat {
   lastAction: { action: string; amount: bigint; round: Round; index: number } | null;
 }
 
-interface Action {
+export interface Action {
   address?: string;
   action: string;
   amount?: string;
@@ -537,13 +537,18 @@ export function listGamesResponse() {
   return { games: JSON.stringify(games) };
 }
 
-/** Gateway WS state frame (normalizeGatewayMessage shape). */
-export function gatewayStateMessage(gameId: string) {
+/**
+ * Chain WS state frame — the cosmos/node-relay shape the UI's bus classifies
+ * directly (src/bus/ingest.ts): a COSMOS_STATE_EVENTS `event` plus the payload
+ * under `data:{format,variant,gameState}`. `action_performed` is the generic
+ * "state advanced" event.
+ */
+export function cosmosStateMessage(gameId: string) {
   const g = getGameStateResponse(gameId);
   if (!g) return null;
   return {
-    type: "state",
+    event: "action_performed",
     gameId,
-    state: { format: g.format, variant: g.variant, gameState: g.gameState },
+    data: { format: g.format, variant: g.variant, gameState: g.gameState },
   };
 }

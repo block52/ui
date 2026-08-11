@@ -15,7 +15,6 @@ test("play a full hand solo vs. the stub bot, to showdown", async ({ page }) => 
 
   await test.step("open the seeded table", async () => {
     await page.goto(`/table/${CASH_GAME_ID}`);
-    await expect(page.getByTestId("gateway-transport-banner")).toBeVisible();
     await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
   });
 

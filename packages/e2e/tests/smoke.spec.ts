@@ -3,18 +3,9 @@ import { test, expect, CASH_GAME_ID } from "./fixtures.js";
 /**
  * Harness sanity — proves the whole e2e path works BEFORE any gameplay:
  * Playwright boots its browser, fixtures.ts seeds the wallet + Stub network into
- * localStorage, the UI comes up on the stub, gateway transport is active, and the
- * stub's funded balance + seeded table render. Passes against the static (M2) stub.
+ * localStorage, the UI comes up chain-direct against the stub, and the stub's
+ * funded balance + seeded table render.
  */
-
-test("app boots against the stub in gateway transport mode", async ({ page }) => {
-  await page.goto("/");
-  // The global banner (App.tsx) renders when VITE_GAME_TRANSPORT=gateway AND
-  // VITE_SHOW_BANNER=true (opt-in since ui#494; the e2e .env sets it) and prints
-  // the gateway URL — proving transport + target in one shot.
-  await expect(page.getByTestId("gateway-transport-banner")).toBeVisible();
-  await expect(page.getByText("http://localhost:8546/gateway")).toBeVisible();
-});
 
 test("funded USDC balance from the stub shows on the dashboard", async ({ page }) => {
   await page.goto("/");
@@ -32,9 +23,8 @@ test("seeded table page renders without crashing", async ({ page }) => {
 
   await page.goto(`/table/${CASH_GAME_ID}`);
 
-  // Table shell mounted (banner is global) + at least one vacant seat from the
-  // seeded empty table. "Click to Join" is VacantPlayer's subtitle.
-  await expect(page.getByTestId("gateway-transport-banner")).toBeVisible();
+  // Table shell mounted + at least one vacant seat from the seeded empty table.
+  // "Click to Join" is VacantPlayer's subtitle.
   await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
   expect(errors, `page errors: ${errors.join(" | ")}`).toHaveLength(0);
 });

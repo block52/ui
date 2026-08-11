@@ -63,9 +63,9 @@ test("a burst is coalesced, keeping the showdown and converging to the newest fr
     });
 
     const wrap = (gameState: Record<string, unknown>) => ({
-      type: "state",
+      event: "action_performed",
       gameId: CASH_GAME_ID,
-      state: { format: body.format, variant: body.variant, gameState }
+      data: { format: body.format, variant: body.variant, gameState }
     });
 
     const seq: Array<{ frame: unknown; delayMs: number }> = [];

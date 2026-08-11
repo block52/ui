@@ -1,11 +1,11 @@
 /**
  * Thin adapter over the holdem engine, preserving the names server.ts and
- * gateway-ws.ts import. The seeded state + all mutation live in holdem.ts.
+ * chain-ws.ts import. The seeded state + all mutation live in holdem.ts.
  */
 export {
   CASH_GAME_ID,
   listGamesResponse,
-  gatewayStateMessage,
+  cosmosStateMessage,
   applyAction,
   resetTables,
   setStubConfig,
