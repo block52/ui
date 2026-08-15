@@ -1,5 +1,5 @@
-import { ActionDTO, NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound, CHIP_ACTIONS } from "./chipUtils";
+import { ActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { shouldShowChips, getRelevantChipAmounts, calculateCurrentRoundBetting, hasPlayerBetInRound, currentRoundContribution, isCheckFreeForPlayer, CHIP_ACTIONS } from "./chipUtils";
 import { MAX_ACTION_GROUPS } from "../constants/chips";
 
 // Helper to build an ActionDTO for tests
@@ -258,5 +258,76 @@ describe("calculateCurrentRoundBetting", () => {
             makeAction({ playerId: player, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "400", index: 2 }),
         ];
         expect(calculateCurrentRoundBetting(player, TexasHoldemRound.FLOP, actions)).toBe("400");
+    });
+});
+
+describe("currentRoundContribution", () => {
+    const p = "0xP1";
+
+    it("returns 0n when the player has no actions", () => {
+        expect(currentRoundContribution(p, TexasHoldemRound.FLOP, [])).toBe(0n);
+    });
+
+    it("sums ante blinds and preflop bets together for the preflop round", () => {
+        const actions = [
+            makeAction({ playerId: p, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200000", index: 0 }),
+            makeAction({ playerId: p, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "100000", index: 3 }),
+        ];
+        expect(currentRoundContribution(p, TexasHoldemRound.PREFLOP, actions)).toBe(300000n);
+    });
+
+    it("counts only the current round post-flop", () => {
+        const actions = [
+            makeAction({ playerId: p, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.CALL, amount: "200000", index: 3 }),
+            makeAction({ playerId: p, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "500000", index: 5 }),
+        ];
+        expect(currentRoundContribution(p, TexasHoldemRound.FLOP, actions)).toBe(500000n);
+    });
+});
+
+describe("isCheckFreeForPlayer", () => {
+    const sb = "0xSB", bb = "0xBB", utg = "0xUTG";
+    const players = [{ address: sb }, { address: bb }, { address: utg }] as PlayerDTO[];
+    const blinds = [
+        makeAction({ playerId: sb, round: TexasHoldemRound.ANTE, action: PlayerActionType.SMALL_BLIND, amount: "100000", index: 0 }),
+        makeAction({ playerId: bb, round: TexasHoldemRound.ANTE, action: PlayerActionType.BIG_BLIND, amount: "200000", index: 1 }),
+    ];
+
+    it("returns false for null players / missing address / missing round", () => {
+        expect(isCheckFreeForPlayer(null, bb, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+        expect(isCheckFreeForPlayer(players, undefined, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+        expect(isCheckFreeForPlayer(players, bb, undefined, blinds)).toBe(false);
+    });
+
+    it("preflop: the big blind is check-free until someone raises", () => {
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.PREFLOP, blinds)).toBe(true);
+    });
+
+    it("preflop: a non-blind seat facing the BB is not check-free", () => {
+        expect(isCheckFreeForPlayer(players, utg, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+        expect(isCheckFreeForPlayer(players, sb, TexasHoldemRound.PREFLOP, blinds)).toBe(false);
+    });
+
+    it("preflop: a raise removes the big blind's check-free status", () => {
+        const raised = [
+            ...blinds,
+            makeAction({ playerId: utg, round: TexasHoldemRound.PREFLOP, action: PlayerActionType.RAISE, amount: "600000", index: 3 }),
+        ];
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.PREFLOP, raised)).toBe(false);
+        expect(isCheckFreeForPlayer(players, utg, TexasHoldemRound.PREFLOP, raised)).toBe(true);
+    });
+
+    it("post-flop: everyone is check-free when no bet has been made", () => {
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.FLOP, blinds)).toBe(true);
+        expect(isCheckFreeForPlayer(players, utg, TexasHoldemRound.FLOP, blinds)).toBe(true);
+    });
+
+    it("post-flop: facing a bet is not check-free (but the bettor is)", () => {
+        const withBet = [
+            ...blinds,
+            makeAction({ playerId: sb, round: TexasHoldemRound.FLOP, action: PlayerActionType.BET, amount: "300000", index: 5 }),
+        ];
+        expect(isCheckFreeForPlayer(players, bb, TexasHoldemRound.FLOP, withBet)).toBe(false);
+        expect(isCheckFreeForPlayer(players, sb, TexasHoldemRound.FLOP, withBet)).toBe(true);
     });
 });

@@ -1,4 +1,4 @@
-import { ActionDTO, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { MAX_ACTION_GROUPS } from "../constants/chips";
 import { hasContent } from "./guards";
 
@@ -115,4 +115,56 @@ export const calculateCurrentRoundBetting = (
     }, BigInt(0));
 
     return totalCurrentRoundBetting.toString();
+};
+
+/**
+ * A player's total chips committed in the CURRENT betting round, blind-aware.
+ *
+ * Preflop, blinds post in the ANTE round but stay live for preflop betting, so
+ * ANTE + PREFLOP chip actions are summed together (mirrors getRelevantChipAmounts
+ * / usePlayerChipData). Postflop, only the current round counts. Returns micro
+ * units as a bigint.
+ */
+export const currentRoundContribution = (
+    playerAddress: string,
+    currentRound: string,
+    previousActions: ActionDTO[]
+): bigint => {
+    const isPreflop =
+        currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP;
+    return previousActions
+        .filter(a =>
+            a.playerId === playerAddress &&
+            (isPreflop
+                ? a.round === TexasHoldemRound.ANTE || a.round === TexasHoldemRound.PREFLOP
+                : a.round === currentRound) &&
+            CHIP_ACTIONS.includes(a.action) &&
+            hasContent(a.amount) &&
+            a.amount !== "0"
+        )
+        .reduce((sum, a) => sum + BigInt(a.amount || "0"), BigInt(0));
+};
+
+/**
+ * True when checking would be free for `address` right now — i.e. no other
+ * player has committed more chips than they have in the current betting round.
+ *
+ * Used to decide whether the pre-select "Check" control (ui#388) should be
+ * offered before it is the player's turn. Correctly handles the preflop big
+ * blind (their posted BB counts, so they stay "check-free" until someone raises)
+ * and non-blind preflop seats (facing the BB → not free).
+ */
+export const isCheckFreeForPlayer = (
+    players: PlayerDTO[] | null,
+    address: string | null | undefined,
+    currentRound: string | undefined,
+    previousActions: ActionDTO[]
+): boolean => {
+    if (!players || !address || !currentRound) return false;
+    const mine = currentRoundContribution(address, currentRound, previousActions);
+    const highest = players.reduce((max, p) => {
+        const c = currentRoundContribution(p.address, currentRound, previousActions);
+        return c > max ? c : max;
+    }, BigInt(0));
+    return mine >= highest;
 };
