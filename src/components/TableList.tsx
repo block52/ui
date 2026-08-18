@@ -243,7 +243,7 @@ const TableList: React.FC = () => {
                 <div className="flex items-center gap-3 ml-auto">
                     {treasuryAddress && (
                         <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                            <span className="text-sm text-gray-400 select-none">Treasury</span>
+                            <span className="text-sm text-gray-400 select-none">Treasury Only Tables</span>
                             <button
                                 role="switch"
                                 aria-checked={showTreasuryOnly}
