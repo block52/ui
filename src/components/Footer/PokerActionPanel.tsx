@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements, isNullish } from "../../utils/guards";
+import { hasContent, hasElements } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -20,8 +20,8 @@ import { formatDisplayAmount } from "../../utils/numberUtils";
 import { useTableState, useNextToActInfo } from "../../hooks";
 import { useActionSounds } from "../../hooks/notifications/useActionSounds";
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
-import { nextActionIndex } from "../../hooks/playerActions/transportAction";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useActionSubmit } from "../../context/ActionSubmitContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
 import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
@@ -32,19 +32,20 @@ import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
 import { useAutoShowCards } from "../../hooks/playerActions/useAutoShowCards";
 import { useAutoMuck } from "../../hooks/playerActions/useAutoMuck";
 
-// Import action handlers
-import {
-    handleCall,
-    handleCheck,
-    handleFold,
-    handleMuck,
-    handleShow,
-    handleStartNewHand,
-    handlePostSmallBlind,
-    handlePostBigBlind,
-    handleBet,
-    handleRaise
-} from "../common/actionHandlers";
+// Import raw action hooks — these THROW on failure (unlike the handle* wrappers
+// in actionHandlers, which swallow errors). Submission goes through the
+// ActionSubmitController, which owns dedupe / serialize / retry / error toasts.
+import { betHand } from "../../hooks/playerActions/betHand";
+import { callHand } from "../../hooks/playerActions/callHand";
+import { checkHand } from "../../hooks/playerActions/checkHand";
+import { foldHand } from "../../hooks/playerActions/foldHand";
+import { muckCards } from "../../hooks/playerActions/muckCards";
+import { showCards } from "../../hooks/playerActions/showCards";
+import { raiseHand } from "../../hooks/playerActions/raiseHand";
+import { postSmallBlind } from "../../hooks/playerActions/postSmallBlind";
+import { postBigBlind } from "../../hooks/playerActions/postBigBlind";
+import { startNewHand } from "../../hooks/playerActions/startNewHand";
+import type { PlayerActionResult } from "../../types";
 
 // Import utils
 import { getActionByType } from "../../utils/actionUtils";
@@ -63,40 +64,18 @@ import { RaiseBetControls } from "./RaiseBetControls";
 import type { PokerActionPanelProps } from "./types";
 
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
-    // Loading state for actions
-    const [loadingAction, setLoadingAction] = useState<string | null>(null);
+    // Manual button submission goes through the ActionSubmitController, which
+    // owns dedupe, serialization, the safe transport retry, the confirmation
+    // gate (busy stays until the chain advances a signal — ui#364/#440), the
+    // 8s escape-hatch, and centralized error toasts. `submitLoadingAction` is
+    // the in-flight manual action's label.
+    const { submit, loadingAction: submitLoadingAction } = useActionSubmit();
 
-    // "Dirty" tracker for the gap between SDK SYNC return (~50ms) and the
-    // WS push delivering the committed state (~5s). We capture the chain's
-    // actionCount at submit time and keep loadingAction set until the chain
-    // says "I processed your action" by advancing past that number. Without
-    // this, the button stops spinning ~50ms after click but the panel sits
-    // with stale legalActions for the rest of the block budget, letting the
-    // player re-click the same action. See block52/ui#364.
-    //
-    // pendingHandNumber is the safety net for actions that complete the hand
-    // (last action on the river, fold that ends a heads-up hand, etc). On
-    // those, actionCount may reset for the new hand so `current > pending`
-    // never becomes true and the spinner was stuck until the 8s timeout
-    // escape hatch — visible as "previous round's spinner still spinning
-    // in the next round". A handNumber bump is the canonical "new hand
-    // started" signal and implies our action was committed (otherwise the
-    // new hand wouldn't exist).
-    const [pendingActionCount, setPendingActionCount] = useState<number | null>(null);
-    const [pendingHandNumber, setPendingHandNumber] = useState<number | null>(null);
-
-    // Gateway transport: the engine's actionCount does NOT advance in
-    // gateway states (stays 0), so the actionCount watcher never fires and
-    // every action rode the timeout (ui#440 live-testing). The table's
-    // shared next-action index (any player's legalActions[].index) advances
-    // on every applied action on BOTH transports — watch it too.
-    const [pendingActionIndex, setPendingActionIndex] = useState<number | null>(null);
-
-    // How long to wait for the chain to confirm before re-enabling the
-    // button anyway. Generous enough to survive a slow WS / 5s commit
-    // window, tight enough that a genuinely stuck state recovers within
-    // the player's per-turn timeout budget.
-    const DIRTY_STATE_TIMEOUT_MS = 8000;
+    // Auto-action hooks (auto-fold/deal/blinds/new-hand/show/muck) still manage
+    // their own submission + self-clear via their callbacks; we merge their
+    // loading label with the controller's so buttons show a single spinner.
+    const [autoLoadingAction, setAutoLoadingAction] = useState<string | null>(null);
+    const loadingAction = submitLoadingAction ?? autoLoadingAction;
 
     // Action sounds
     const { playActionSound } = useActionSounds();
@@ -172,14 +151,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         network,
         hasDealAction,
         isUsersTurn,
-        () => setLoadingAction("deal"), // onDealStarted
+        () => setAutoLoadingAction("deal"), // onDealStarted
         txHash => {
-            setLoadingAction(null);
+            setAutoLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
             }
         }, // onDealComplete
-        () => setLoadingAction(null), // onDealError
+        () => setAutoLoadingAction(null), // onDealError
         autoDealEnabled
     );
 
@@ -193,14 +172,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         smallBlindMicro,
         bigBlindMicro,
         isUsersTurn,
-        blindType => setLoadingAction(blindType === "small" ? "small-blind" : "big-blind"), // onBlindStarted
+        blindType => setAutoLoadingAction(blindType === "small" ? "small-blind" : "big-blind"), // onBlindStarted
         (blindType, txHash) => {
-            setLoadingAction(null);
+            setAutoLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
             }
         }, // onBlindComplete
-        () => setLoadingAction(null), // onBlindError
+        () => setAutoLoadingAction(null), // onBlindError
         autoPostBlindsEnabled
     );
 
@@ -216,14 +195,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         hasCheckAction,
         isUsersTurn,
         timeRemaining,
-        action => setLoadingAction(action), // onAutoActionStarted
+        action => setAutoLoadingAction(action), // onAutoActionStarted
         (action, txHash) => {
-            setLoadingAction(null);
+            setAutoLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
             }
         }, // onAutoActionComplete
-        () => setLoadingAction(null), // onAutoActionError
+        () => setAutoLoadingAction(null), // onAutoActionError
         autoFoldEnabled
     );
 
@@ -234,14 +213,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         hasShowAction,
         isUsersTurn,
         timeRemaining,
-        () => setLoadingAction("show"), // onAutoShowStarted
+        () => setAutoLoadingAction("show"), // onAutoShowStarted
         txHash => {
-            setLoadingAction(null);
+            setAutoLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
             }
         }, // onAutoShowComplete
-        () => setLoadingAction(null) // onAutoShowError
+        () => setAutoLoadingAction(null) // onAutoShowError
     );
 
     // Auto-muck hook - automatically mucks cards at showdown when enabled in settings
@@ -250,14 +229,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         network,
         hasMuckAction,
         isUsersTurn,
-        () => setLoadingAction("muck"), // onAutoMuckStarted
+        () => setAutoLoadingAction("muck"), // onAutoMuckStarted
         txHash => {
-            setLoadingAction(null);
+            setAutoLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
             }
         }, // onAutoMuckComplete
-        () => setLoadingAction(null), // onAutoMuckError
+        () => setAutoLoadingAction(null), // onAutoMuckError
         autoMuckEnabled
     );
 
@@ -269,14 +248,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { isDealingNewHand } = useAutoNewHand(
         tableId,
         network,
-        () => setLoadingAction("new-hand"), // onNewHandStarted
+        () => setAutoLoadingAction("new-hand"), // onNewHandStarted
         txHash => {
-            setLoadingAction(null);
+            setAutoLoadingAction(null);
             if (onTransactionSubmitted) {
                 onTransactionSubmitted(txHash);
             }
         }, // onNewHandComplete
-        () => setLoadingAction(null), // onNewHandError
+        () => setAutoLoadingAction(null), // onNewHandError
         autoNewHandEnabled
     );
 
@@ -345,141 +324,58 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         }
     }, [hasRaiseAction, hasBetAction, minRaise, minBet]);
 
-    // Helper function to wrap action handlers with loading state.
-    // The spinner stays on until ONE of:
-    //   - chain advances actionCount past the value captured at submit
-    //     (see the watcher useEffect below — canonical confirmation)
-    //   - DIRTY_STATE_TIMEOUT_MS elapses (escape hatch useEffect below)
-    //   - actionFn() throws (CheckTx rejected — clear immediately so the
-    //     user can retry)
-    // We intentionally do NOT clear in a `finally` after a successful
-    // SDK return: with SYNC broadcast that fires ~50ms after click,
-    // which used to be ~5s under BLOCK broadcast — leaving the button
-    // re-enabled while the panel still showed stale legalActions.
-    // block52/ui#364.
-    const handleActionWithTransaction = useCallback(
-        async (actionName: string, actionFn: () => Promise<string | null>, skipActionSound = false) => {
-            const submittedAt = gameState?.actionCount ?? 0;
-            const submittedAtHand = gameState?.handNumber ?? null;
-            try {
-                setLoadingAction(actionName);
-                setPendingActionCount(submittedAt);
-                setPendingHandNumber(submittedAtHand);
-                setPendingActionIndex(nextActionIndex(gameState));
-                if (!skipActionSound && playerActionSounds) {
-                    playActionSound(actionName);
-                }
-                const txHash = await actionFn();
-                if (txHash && onTransactionSubmitted) {
-                    onTransactionSubmitted(txHash);
-                }
-                // Success path: let the watcher useEffect clear when the
-                // chain confirms via actionCount, or the timeout fires.
-            } catch (error) {
-                console.error(`Error executing ${actionName}:`, error);
-                setLoadingAction(null);
-                setPendingActionCount(null);
-                setPendingHandNumber(null);
-                setPendingActionIndex(null);
-                throw error;
+    // Submit a manual action through the controller. It plays the action sound,
+    // then hands off: the controller dedupes double-clicks, serializes, retries
+    // transport errors safely, holds the spinner until the chain confirms a
+    // signal (ui#364/#440), runs the 8s escape-hatch, and toasts any failure.
+    // Callers just describe the action and how to run it (the raw hook throws
+    // on failure, so the controller can classify it).
+    const submitAction = useCallback(
+        (actionName: string, run: () => Promise<PlayerActionResult>, playSound = true) => {
+            if (playSound && playerActionSounds) {
+                playActionSound(actionName);
             }
+            submit({ actionName, run, onSuccess: onTransactionSubmitted });
         },
-        [gameState?.actionCount, gameState?.handNumber, onTransactionSubmitted, playActionSound, playerActionSounds]
+        [submit, onTransactionSubmitted, playActionSound, playerActionSounds]
     );
 
-    // Canonical clear: the backend advanced past the point at which we
-    // submitted. Three composable signals — ANY one suffices:
-    //   - actionCount advanced (chain, mid-hand — #364)
-    //   - shared next-action index advanced (gateway, where actionCount
-    //     never moves — ui#440)
-    //   - handNumber advanced (hand-boundary actions, where actionCount
-    //     resets so `>` never fires — this PR)
-    useEffect(() => {
-        if (isNullish(pendingActionCount) && isNullish(pendingActionIndex) && isNullish(pendingHandNumber)) return;
-        const currentCount = gameState?.actionCount;
-        const currentHand = gameState?.handNumber;
-        const countAdvanced = !isNullish(pendingActionCount) && !isNullish(currentCount) && currentCount > pendingActionCount;
-        const indexAdvanced = !isNullish(pendingActionIndex) && nextActionIndex(gameState) > pendingActionIndex;
-        const handAdvanced = !isNullish(pendingHandNumber) && !isNullish(currentHand) && currentHand > pendingHandNumber;
-        if (countAdvanced || indexAdvanced || handAdvanced) {
-            setLoadingAction(null);
-            setPendingActionCount(null);
-            setPendingActionIndex(null);
-            setPendingHandNumber(null);
-        }
-    }, [gameState, pendingActionCount, pendingActionIndex, pendingHandNumber]);
-
-    // Escape hatch: WS push never arrived (chain stalled, WS disconnect,
-    // or — rare — CheckTx passed but DeliverTx rejected so actionCount
-    // never advanced). After DIRTY_STATE_TIMEOUT_MS, re-enable the button
-    // so the user can try again.
-    useEffect(() => {
-        if (isNullish(pendingActionCount)) return;
-        const t = setTimeout(() => {
-            console.warn(
-                `[action] no confirmation within ${DIRTY_STATE_TIMEOUT_MS}ms ` +
-                    `for actionCount=${pendingActionCount}; clearing dirty state.`,
-            );
-            setLoadingAction(null);
-            setPendingActionCount(null);
-            setPendingHandNumber(null);
-            setPendingActionIndex(null);
-        }, DIRTY_STATE_TIMEOUT_MS);
-        return () => clearTimeout(t);
-    }, [pendingActionCount]);
-
-    // Handler for dealing cards with entropy
+    // Handler for dealing cards with entropy. Async to satisfy DealButtonGroup's
+    // onDeal signature, though submission itself is fire-and-forget.
     const handleDealWithEntropy = useCallback(
-        async (entropy: string) => {
-            if (!tableId) return;
-
-            await handleActionWithTransaction("deal", async () => {
-                try {
-                    const result = await dealCardsWithEntropy(tableId, network, entropy);
-                    return result?.hash || null;
-                } catch (error: any) {
-                    console.error("Failed to deal:", error);
-                    throw error;
-                }
-            });
+        async (entropy: string): Promise<void> => {
+            submitAction("deal", () => dealCardsWithEntropy(tableId, network, entropy));
         },
-        [tableId, network, handleActionWithTransaction]
+        [tableId, network, submitAction]
     );
 
     // Action handlers - use blind amounts directly from gameState (per Commandment 7: NO fallbacks)
-    const handlePostSmallBlindAction = async () => {
-        if (!tableId || smallBlindMicro === 0n) return;
-
-        await handleActionWithTransaction("small-blind", async () => {
-            return await handlePostSmallBlind(tableId, smallBlindMicro, network);
-        });
+    const handlePostSmallBlindAction = () => {
+        if (smallBlindMicro === 0n) return;
+        submitAction("small-blind", () => postSmallBlind(tableId, smallBlindMicro, network));
     };
 
-    const handlePostBigBlindAction = async () => {
-        if (!tableId || bigBlindMicro === 0n) return;
-
-        await handleActionWithTransaction("big-blind", async () => {
-            return await handlePostBigBlind(tableId, bigBlindMicro, network);
-        });
+    const handlePostBigBlindAction = () => {
+        if (bigBlindMicro === 0n) return;
+        submitAction("big-blind", () => postBigBlind(tableId, bigBlindMicro, network));
     };
 
-    const handleBetAction = async () => {
-        if (!tableId) return;
+    const handleBetAction = () => {
         const amountMicro = fromDisplay(raiseAmount);
-
-        await handleActionWithTransaction("bet", async () => {
-            return await handleBet(amountMicro, tableId, network);
-        });
+        submitAction("bet", () => betHand(tableId, amountMicro, network));
     };
 
-    const handleRaiseAction = async () => {
-        if (!tableId) return;
+    const handleRaiseAction = () => {
         const amountMicro = fromDisplay(raiseAmount);
-
-        await handleActionWithTransaction("raise", async () => {
-            return await handleRaise(tableId, amountMicro, network);
-        });
+        submitAction("raise", () => raiseHand(tableId, amountMicro, network));
     };
+
+    const handleFoldAction = () => submitAction("fold", () => foldHand(tableId, network));
+    const handleCheckAction = () => submitAction("check", () => checkHand(tableId, network));
+    const handleCallAction = () => submitAction("call", () => callHand(tableId, callAmountMicro, network));
+    const handleMuckAction = () => submitAction("muck", () => muckCards(tableId, network));
+    const handleShowAction = () => submitAction("show", () => showCards(tableId, network));
+    const handleNewHandAction = () => submitAction("new-hand", () => startNewHand(tableId, network));
 
     // Calculate button visibility flags
     const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {
@@ -512,7 +408,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         setRaiseAmount(prev => Math.max(prev - step, minAmount));
     };
 
-    const handleAllInAction = async () => {
+    const handleAllInAction = () => {
         const maxAmount = hasBetAction ? maxBet : maxRaise;
         setRaiseAmount(maxAmount);
 
@@ -523,22 +419,23 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         if (playerActionSounds) {
             playActionSound("all-in");
         }
-        await handleActionWithTransaction(
+        // Sound already played above; skip the controller's default sound.
+        submitAction(
             hasRaiseAction ? "raise" : "bet",
-            async () => (hasRaiseAction ? await handleRaise(tableId, amountMicro, network) : await handleBet(amountMicro, tableId, network)),
-            true
+            () => (hasRaiseAction ? raiseHand(tableId, amountMicro, network) : betHand(tableId, amountMicro, network)),
+            false
         );
     };
 
     // Short-shove ALL-IN: dispatch the all-in-only RAISE for the whole stack (the
     // real legal action — no ALL_IN dispatch). Commits immediately; there is no
     // amount to stage. (poker-vm#2353, ui#457)
-    const handleShortShoveAllInAction = async () => {
+    const handleShortShoveAllInAction = () => {
         if (!hasContent(tableId)) return;
         if (playerActionSounds) {
             playActionSound("all-in");
         }
-        await handleActionWithTransaction("raise", () => handleRaise(tableId, stackMicro, network), true);
+        submitAction("raise", () => raiseHand(tableId, stackMicro, network), false);
     };
 
     return (
@@ -570,7 +467,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                             action="new-hand"
                             label="START NEW HAND"
                             loading={loadingAction === "new-hand"}
-                            onClick={() => handleActionWithTransaction("new-hand", () => handleStartNewHand(tableId, network))}
+                            onClick={handleNewHandAction}
                             variant="primary"
                             className="px-6 lg:px-8 py-2 lg:py-3 text-sm lg:text-base font-bold"
                         />
@@ -602,8 +499,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                 canMuck={hasMuckAction}
                                 canShow={hasShowAction}
                                 loading={loadingAction}
-                                onMuck={() => handleActionWithTransaction("muck", () => handleMuck(tableId, network))}
-                                onShow={() => handleActionWithTransaction("show", () => handleShow(tableId, network))}
+                                onMuck={handleMuckAction}
+                                onShow={handleShowAction}
                             />
                         )}
 
@@ -621,7 +518,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                 isTournament={isTournament}
                                 onPostSmallBlind={handlePostSmallBlindAction}
                                 onPostBigBlind={handlePostBigBlindAction}
-                                onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network))}
+                                onFold={handleFoldAction}
                             />
                         )}
 
@@ -655,9 +552,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     isTournament={isTournament}
                                     canAllIn={shortShoveRaise}
                                     allInAmount={formattedAllInAmount}
-                                    onFold={() => handleActionWithTransaction("fold", () => handleFold(tableId, network))}
-                                    onCheck={() => handleActionWithTransaction("check", () => handleCheck(tableId, network))}
-                                    onCall={() => handleActionWithTransaction("call", () => handleCall(callAmountMicro, tableId, network))}
+                                    onFold={handleFoldAction}
+                                    onCheck={handleCheckAction}
+                                    onCall={handleCallAction}
                                     onBetOrRaise={hasRaiseAction ? handleRaiseAction : handleBetAction}
                                     onAllIn={handleShortShoveAllInAction}
                                 />

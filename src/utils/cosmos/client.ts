@@ -244,7 +244,7 @@ export async function withSigningClientRetry<T>(
  * negative here just means we don't retry a recoverable failure; a false
  * positive could double-submit a tx that was actually rejected.
  */
-function isTransportError(err: unknown): boolean {
+export function isTransportError(err: unknown): boolean {
     if (!err || typeof err !== "object") return false;
     const message = (err as { message?: unknown }).message;
     if (typeof message !== "string") return false;

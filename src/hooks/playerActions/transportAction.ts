@@ -20,9 +20,26 @@ import { hasElements } from "../../utils/guards";
 
 let latestGameState: TexasHoldemStateDTO | undefined;
 
+/** Logical-track observers, notified on every snapshot published below. */
+type LatestGameStateListener = (gameState: TexasHoldemStateDTO | undefined) => void;
+const latestGameStateListeners = new Set<LatestGameStateListener>();
+
 /** Published by GameStateContext on every state update. */
 export function setLatestGameState(gameState: TexasHoldemStateDTO | undefined): void {
     latestGameState = gameState;
+    latestGameStateListeners.forEach(listener => listener(gameState));
+}
+
+/**
+ * Subscribe to the logical track (the immediate-at-ingest snapshot the bus
+ * publishes). Returns an unsubscribe function. Used by the outbound action
+ * submission controller to read fresh confirmation signals without polling.
+ */
+export function subscribeLatestGameState(listener: LatestGameStateListener): () => void {
+    latestGameStateListeners.add(listener);
+    return () => {
+        latestGameStateListeners.delete(listener);
+    };
 }
 
 /**
@@ -63,7 +80,7 @@ export function getLatestGameState(): TexasHoldemStateDTO | undefined {
  * happens when ANOTHER player acts between our state snapshot and our submit —
  * a mid-hand join / sit-in consumes indices — leaving ours stale. See ui#530.
  */
-function isStaleIndexError(err: unknown): boolean {
+export function isStaleIndexError(err: unknown): boolean {
     const msg = err instanceof Error ? err.message : String(err ?? "");
     return /invalid action index/i.test(msg);
 }
@@ -72,7 +89,7 @@ function isStaleIndexError(err: unknown): boolean {
 // NOT auto-retry (that can mask real problems / double-fire); instead we surface
 // a clear prompt so the user re-submits, which recomputes the index from the
 // state that has since advanced. Kept short so the action-error toast reads well.
-const STALE_INDEX_MESSAGE = "Your turn advanced while you were acting — please try again.";
+export const STALE_INDEX_MESSAGE = "Your turn advanced while you were acting — please try again.";
 
 export async function executeTransportAction(
     tableId: string,

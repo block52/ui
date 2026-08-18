@@ -9,8 +9,9 @@
 import React, { useState, useEffect, useRef } from "react";
 
 import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
-import { handleSitOut, handleSitIn } from "../../../common/actionHandlers";
-import { SIT_IN_METHOD_POST_NOW, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
+// Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
+// wrappers) so the ActionSubmitController can classify + surface the error.
+import { SIT_IN_METHOD_POST_NOW, sitIn, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { getPlayerActionDisplay } from "../../../../utils/playerActionDisplayUtils";
 import { toast } from "react-toastify";
@@ -18,14 +19,9 @@ import BuyChipsButton from "../../../BuyChipsButton";
 import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
 import { useGameStateContext } from "../../../../context/GameStateContext";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
-import { isNullish } from "../../../../utils/guards";
+import { useActionSubmit } from "../../../../context/ActionSubmitContext";
 import { findUserSeat } from "../../../../utils/playerSeatUtils";
 import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
-
-// Wait for the chain to confirm sit-in via actionCount before re-enabling the
-// button. Mirrors the dirty-state pattern landed in block52/ui#365 for the
-// main action panel. See block52/ui#364 for the rationale.
-const DIRTY_STATE_TIMEOUT_MS = 8000;
 
 export interface PlayerActionButtonsProps {
     isMobile: boolean;
@@ -77,23 +73,15 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // rotates onto our seat, then this flag is cleared so the box unchecks.
     const [sitOutNextBbQueued, setSitOutNextBbQueued] = useState<boolean>(false);
 
-    // Dirty state for the Sit-In button. Was previously useOptimistic which
-    // auto-reverts when the underlying transition completes — that's
-    // exactly the gap we want to close: SDK SYNC return (~50ms) reverted
-    // the button before the chain committed the sit-in (~5s later), so
-    // the user could re-click. Now we hold the dirty state until either
-    //   • chain advances actionCount past the value we captured at click
-    //     (canonical "chain processed it" signal)
-    //   • DIRTY_STATE_TIMEOUT_MS elapses (escape hatch)
-    //   • handleSitIn throws (CheckTx rejected — clear immediately)
+    // Sit-in/out submission runs through the shared ActionSubmitController: it
+    // dedupes double-clicks, serializes, retries transport errors safely, holds
+    // the spinner until the chain confirms a signal (ui#364), runs the 8s
+    // escape-hatch, and toasts failures — replacing the hand-rolled dirty-state
+    // this component used to carry.
     const { gameState, gameFormat } = useGameStateContext();
     const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
-    const [sittingIn, setSittingIn] = useState(false);
-    const [pendingActionCount, setPendingActionCount] = useState<number | null>(null);
-    // See PokerActionPanel: actionCount can reset across hand boundaries,
-    // so we also clear when handNumber advances (canonical "new hand"
-    // signal that implies our sit-in was committed).
-    const [pendingHandNumber, setPendingHandNumber] = useState<number | null>(null);
+    const { submit, loadingAction } = useActionSubmit();
+    const sittingIn = loadingAction === "sit-in";
 
     // Sync optimistic state with server state when it arrives
     const serverChecked = pendingSitOut === "next-hand";
@@ -105,7 +93,9 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
 
     const handleToggleSitOutNextHand = () => {
         setOptimisticChecked(!isChecked);
-        handleSitOut(tableId, currentNetwork);
+        if (tableId) {
+            submit({ actionName: "sit-out", run: () => sitOut(tableId, currentNetwork) });
+        }
     };
 
     useAutoSitOutNextBB(
@@ -147,70 +137,22 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         if (display.kind === "auto-sit-in" && !hasTriggeredAutoSitIn.current && tableId) {
             hasTriggeredAutoSitIn.current = true;
             console.log("🚀 Bootstrap: auto-sending SIT_IN for table:", tableId);
-            // Bootstrap: method is irrelevant, use post-now (next-bb deferred, poker-vm#1895)
-            handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
+            // Bootstrap: method is irrelevant, use post-now (next-bb deferred, poker-vm#1895).
+            // Shares the "sit-in" key with the manual button so the controller
+            // never double-fires if both trigger.
+            submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
         }
         // Reset when no longer in auto-sit-in state
         if (display.kind !== "auto-sit-in") {
             hasTriggeredAutoSitIn.current = false;
         }
-    }, [display.kind, tableId, currentNetwork]);
+    }, [display.kind, tableId, currentNetwork, submit]);
 
-    const handleSitInClick = async () => {
+    const handleSitInClick = () => {
         if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
-
-        const submittedAt = gameState?.actionCount ?? 0;
-        const submittedAtHand = gameState?.handNumber ?? null;
-        setSittingIn(true);
-        setPendingActionCount(submittedAt);
-        setPendingHandNumber(submittedAtHand);
-        try {
-            await handleSitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW);
-            // Success path: let the watcher useEffect clear when the chain
-            // confirms via actionCount, or the timeout fires.
-        } catch (err) {
-            console.error("Sit-in failed:", err);
-            setSittingIn(false);
-            setPendingActionCount(null);
-            setPendingHandNumber(null);
-        }
+        submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
     };
 
-    // Canonical clear: chain advanced past our submitted actionCount, OR a
-    // new hand started (handNumber bumped — implies our action committed,
-    // even if actionCount reset across the hand boundary).
-    useEffect(() => {
-        if (isNullish(pendingActionCount)) return;
-        const currentCount = gameState?.actionCount;
-        const currentHand = gameState?.handNumber;
-        const actionCountAdvanced = !isNullish(currentCount) && currentCount > pendingActionCount;
-        const handAdvanced =
-            !isNullish(pendingHandNumber) &&
-            !isNullish(currentHand) &&
-            currentHand > pendingHandNumber;
-        if (actionCountAdvanced || handAdvanced) {
-            setSittingIn(false);
-            setPendingActionCount(null);
-            setPendingHandNumber(null);
-        }
-    }, [gameState?.actionCount, gameState?.handNumber, pendingActionCount, pendingHandNumber]);
-
-    // Escape hatch: WS / chain stall, or CheckTx accepted but DeliverTx
-    // rejected so actionCount never advanced. Re-enable the button so the
-    // user can retry.
-    useEffect(() => {
-        if (isNullish(pendingActionCount)) return;
-        const t = setTimeout(() => {
-            console.warn(
-                `[sit-in] no confirmation within ${DIRTY_STATE_TIMEOUT_MS}ms ` +
-                    `for actionCount=${pendingActionCount}; clearing dirty state.`,
-            );
-            setSittingIn(false);
-            setPendingActionCount(null);
-            setPendingHandNumber(null);
-        }, DIRTY_STATE_TIMEOUT_MS);
-        return () => clearTimeout(t);
-    }, [pendingActionCount]);
     // Top-Up Chips button: always visible while the user is seated (#401),
     // but completely hidden in SNG games where top-ups are not allowed (#2172).
     // Disabled state is driven by `canTopUp` so the chain rejection (e.g. ACTIVE

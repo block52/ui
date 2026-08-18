@@ -15,8 +15,8 @@ import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerR
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { useNetwork } from "../../../context/NetworkContext";
-import { handleSitIn } from "../../common/actionHandlers";
-import { SIT_IN_METHOD_POST_NOW } from "../../../hooks/playerActions";
+import { useActionSubmit } from "../../../context/ActionSubmitContext";
+import { SIT_IN_METHOD_POST_NOW, sitIn } from "../../../hooks/playerActions";
 import { hasElements } from "../../../utils/guards";
 import styles from "./PlayersCommon.module.css";
 
@@ -32,13 +32,15 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
         const { getAvatarForAddress } = useProfileAvatar();
         const { currentNetwork } = useNetwork();
+        const { submit } = useActionSubmit();
 
-        // Callback for "I'm Back" button on badge
+        // Callback for "I'm Back" button on badge — routes through the
+        // ActionSubmitController (dedupe / serialize / retry / error toast).
         const handleSitInFromBadge = useCallback(() => {
             if (id) {
-                handleSitIn(id, currentNetwork, SIT_IN_METHOD_POST_NOW);
+                submit({ actionName: "sit-in", run: () => sitIn(id, currentNetwork, SIT_IN_METHOD_POST_NOW) });
             }
-        }, [id, currentNetwork]);
+        }, [id, currentNetwork, submit]);
 
         // Check if this seat is the dealer
         const isDealer = dealerSeat === index;

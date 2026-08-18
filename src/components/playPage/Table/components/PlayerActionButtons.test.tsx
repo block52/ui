@@ -15,12 +15,10 @@ jest.mock("../../../../hooks/game/useTableTopUp", () => ({
     useTableTopUp: () => ({ topUp: jest.fn(), loading: false, error: null }),
 }));
 
-// Mock action handlers
-const mockHandleSitIn = jest.fn();
-const mockHandleSitOut = jest.fn();
-jest.mock("../../../common/actionHandlers", () => ({
-    handleSitIn: (...args: unknown[]) => mockHandleSitIn(...args),
-    handleSitOut: (...args: unknown[]) => mockHandleSitOut(...args),
+// Mock the action submission controller hook — sit-in/out now route through it.
+const mockSubmit = jest.fn();
+jest.mock("../../../../context/ActionSubmitContext", () => ({
+    useActionSubmit: () => ({ submit: mockSubmit, loadingAction: null, isBusy: false, lastError: null }),
 }));
 
 // Mock GameStateContext — the sit-in dirty state added in block52/ui#367
@@ -88,8 +86,7 @@ const baseProps: PlayerActionButtonsProps = {
 };
 
 beforeEach(() => {
-    mockHandleSitIn.mockClear();
-    mockHandleSitOut.mockClear();
+    mockSubmit.mockClear();
 });
 
 describe("PlayerActionButtons", () => {
@@ -132,7 +129,7 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByRole("button", { name: "Sit In Next Hand" })).toBeInTheDocument();
     });
 
-    it("sit-in button calls handleSitIn with POST_NOW", () => {
+    it("sit-in button submits a sit-in action through the controller", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -143,10 +140,8 @@ describe("PlayerActionButtons", () => {
             />
         );
         fireEvent.click(screen.getByRole("button", { name: "Sit In Next Hand" }));
-        expect(mockHandleSitIn).toHaveBeenCalledWith(
-            "table-123",
-            mockNetwork,
-            SIT_IN_METHOD_POST_NOW
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
         );
     });
 

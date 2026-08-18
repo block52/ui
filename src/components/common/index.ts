@@ -8,5 +8,4 @@ export { Pagination } from "./Pagination";
 export { SortButton } from "./SortButton";
 export type { SortDirection } from "./SortButton";
 export type { BaseModalProps } from "./Modal";
-export * from "./actionHandlers";
 export * from "./utils";

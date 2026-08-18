@@ -38,6 +38,7 @@ import { ProfileAvatarModal } from "./components/profile";
 import { PaymentApiProvider } from "./context/PaymentApiContext";
 import { CosmosApiProvider } from "./context/CosmosApiContext";
 import { IndexerApiProvider } from "./context/IndexerApiContext";
+import { ActionSubmitProvider } from "./context/ActionSubmitContext";
 
 const queryClient = new QueryClient();
 
@@ -160,7 +161,9 @@ function App() {
                             <PaymentApiProvider>
                                 <CosmosApiProvider>
                                     <IndexerApiProvider>
-                                        <AppContent />
+                                        <ActionSubmitProvider>
+                                            <AppContent />
+                                        </ActionSubmitProvider>
                                     </IndexerApiProvider>
                                 </CosmosApiProvider>
                             </PaymentApiProvider>
