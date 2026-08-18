@@ -129,6 +129,30 @@ describe("ActionSubmitController", () => {
         expect(controller.getSnapshot()).toMatchObject({ status: "idle", loadingAction: null });
     });
 
+    it("clears busy when confirmation arrives while the broadcast is still in flight", async () => {
+        // Regression: a confirmation on the logical track can land before run()
+        // resolves. If we only watched once "confirming", busy would strand
+        // until the 8s timeout and block the next action (the E2E stall).
+        const { controller, setState } = makeController();
+        let resolveRun: (v: PlayerActionResult) => void = () => {};
+        const run = jest.fn(() => new Promise<PlayerActionResult>(resolve => (resolveRun = resolve)));
+
+        controller.submit({ actionName: "call", run });
+        await flush();
+        expect(controller.getSnapshot().status).toBe("busy"); // awaiting run()
+
+        // Confirmation arrives BEFORE run() resolves.
+        setState(snap({ actionCount: 6 }));
+        controller.onGameState(snap({ actionCount: 6 }));
+        await flush();
+        expect(controller.getSnapshot().status).toBe("idle");
+
+        // The late broadcast resolution is a harmless no-op.
+        resolveRun(ok());
+        await flush();
+        expect(controller.getSnapshot().status).toBe("idle");
+    });
+
     it("clears busy via the 8s escape-hatch timeout when no confirmation arrives", async () => {
         const { controller } = makeController();
         controller.submit({ actionName: "call", run: jest.fn().mockResolvedValue(ok()) });

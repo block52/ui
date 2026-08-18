@@ -101,7 +101,12 @@ export class ActionSubmitController {
      * never thrown. Dropped submissions (dedupe / queue full) return silently.
      */
     public submit(request: SubmitActionRequest): void {
-        const dedupeKey = request.dedupeKey ?? request.actionName;
+        // Default dedupe key is position-aware: `${actionName}:${actionIndex}`.
+        // A double-click fires at the SAME game position → same key → collapsed.
+        // The same action a street later fires at a NEW index → different key →
+        // never wrongly dropped by the settle window. Callers may override.
+        const baseIndex = snapshotConfirmationSignals(this.getState()).actionIndex;
+        const dedupeKey = request.dedupeKey ?? `${request.actionName}:${baseIndex}`;
         const at = this.now();
 
         if (this.isDuplicate(dedupeKey, at)) {
@@ -130,12 +135,18 @@ export class ActionSubmitController {
     }
 
     /**
-     * Feed the logical track. Drives a CONFIRMING job to done once a
-     * confirmation signal advances. Call on every snapshot update.
+     * Feed the logical track. Clears busy once a confirmation signal advances
+     * past the active job's baseline. Call on every snapshot update.
+     *
+     * Note: this does NOT gate on the "confirming" status. The logical track
+     * updates immediately at ingest, so a confirmation can arrive while the job
+     * is still "submitting" (the broadcast in flight) — gating on "confirming"
+     * would miss it and strand the spinner until the 8s timeout, blocking the
+     * next action. `isTerminal` keeps it idempotent against a double-confirm.
      */
     public onGameState(snapshot: TexasHoldemStateDTO | undefined): void {
         const job = this.activeJob;
-        if (job?.status === "confirming" && job.baseline && confirmationAdvanced(job.baseline, snapshot)) {
+        if (job && job.baseline && !this.isTerminal(job) && confirmationAdvanced(job.baseline, snapshot)) {
             this.confirmJob(job);
         }
     }
@@ -171,8 +182,15 @@ export class ActionSubmitController {
 
     private async runJob(job: SubmitJob): Promise<void> {
         job.baseline = snapshotConfirmationSignals(this.getState());
+        // Start the escape-hatch timer AND begin watching for confirmation at
+        // submit time: a confirmation signal (onGameState) can land before
+        // run() resolves, and it must clear busy either way.
+        this.startConfirmTimer(job);
 
         for (let attempt = 0; attempt <= this.config.maxTransportRetries; attempt++) {
+            if (this.isTerminal(job)) {
+                return; // confirmed via onGameState between attempts
+            }
             job.status = "submitting";
             this.emit();
 
@@ -180,11 +198,16 @@ export class ActionSubmitController {
                 const result: PlayerActionResult = await job.request.run();
                 job.hash = result.hash;
                 job.request.onSuccess?.(result.hash);
+                if (this.isTerminal(job)) {
+                    return; // confirmed while the broadcast was in flight
+                }
                 job.status = "confirming";
                 this.emit();
-                this.startConfirmTimer(job);
                 return; // onGameState or the confirm timer finishes it
             } catch (err) {
+                if (this.isTerminal(job)) {
+                    return; // confirmed while in flight — this error is moot
+                }
                 const kind = classifyActionError(err);
                 const message = err instanceof Error ? err.message : String(err ?? "");
 
@@ -197,6 +220,9 @@ export class ActionSubmitController {
                     // The action may have landed despite the transport error —
                     // let one WS tick settle, then check before re-broadcasting.
                     await this.delay(this.config.gateSettleMs);
+                    if (this.isTerminal(job)) {
+                        return;
+                    }
                     if (confirmationAdvanced(job.baseline, this.getState())) {
                         this.confirmJob(job); // it landed — do NOT re-broadcast
                         return;
@@ -210,6 +236,10 @@ export class ActionSubmitController {
                 return;
             }
         }
+    }
+
+    private isTerminal(job: SubmitJob): boolean {
+        return job.status === "confirmed" || job.status === "failed" || job.status === "deduped";
     }
 
     private startConfirmTimer(job: SubmitJob): void {
@@ -231,11 +261,17 @@ export class ActionSubmitController {
     }
 
     private confirmJob(job: SubmitJob): void {
+        if (this.isTerminal(job)) {
+            return; // already settled (e.g. onGameState + the run loop raced)
+        }
         job.status = "confirmed";
         this.finalize(job);
     }
 
     private failJob(job: SubmitJob, error: SubmitError): void {
+        if (this.isTerminal(job)) {
+            return;
+        }
         job.status = "failed";
         job.error = error;
         this.lastError = error;
