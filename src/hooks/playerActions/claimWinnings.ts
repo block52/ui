@@ -1,4 +1,4 @@
-import { getSigningClient } from "../../utils/cosmos/client";
+import { getSigningClient, withMoneyMoverRetry } from "../../utils/cosmos/client";
 import { getLatestGameState } from "./transportAction";
 import { finishingOrderFromState } from "../../utils/cosmos/settlementTx";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
@@ -72,6 +72,11 @@ export async function claimWinnings(tableId: string, network: NetworkEndpoints):
     //    was lossy and the chain's Results are still empty, the chain recomputes
     //    the payouts from its own prize-pool math using this ordering, rather
     //    than reverting with ErrSNGNotFinalized. Empty for a non-finished state.
-    const hash = await signingClient.leaveGame(tableId, finishingOrderFromState(state));
+    //    Retry once on a sequence mismatch: step 1's recordHandEnd is an ordered
+    //    money-mover that may still be pending in the mempool, so this settle's
+    //    fresh sequence query can collide with it (ui#530 follow-up).
+    const hash = await withMoneyMoverRetry(network, ({ signingClient }) =>
+        signingClient.leaveGame(tableId, finishingOrderFromState(state))
+    );
     return { hash, gameId: tableId };
 }

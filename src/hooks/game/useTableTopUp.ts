@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { getSigningClient } from "../../utils/cosmos/client";
+import { withMoneyMoverRetry } from "../../utils/cosmos/client";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 
 /**
@@ -36,8 +36,6 @@ export const useTableTopUp = (tableId: string, network: NetworkEndpoints) => {
                 throw new Error("Table ID is required for top-up");
             }
 
-            const { signingClient } = await getSigningClient(network);
-
             // Amount is already in microunits from the modal
             const topUpAmount = BigInt(amountMicrounits);
 
@@ -45,8 +43,12 @@ export const useTableTopUp = (tableId: string, network: NetworkEndpoints) => {
                 throw new Error("Invalid top-up amount. Must be a positive number.");
             }
 
-            // Broadcast MsgTopUp chain-direct.
-            const transactionHash = await signingClient.topUp(tableId, topUpAmount);
+            // Broadcast MsgTopUp chain-direct. TOP_UP is an ordered money-mover,
+            // so retry once on a sequence mismatch from a still-pending prior
+            // money-mover (ui#530 follow-up).
+            const transactionHash = await withMoneyMoverRetry(network, ({ signingClient }) =>
+                signingClient.topUp(tableId, topUpAmount)
+            );
 
             return {
                 hash: transactionHash,

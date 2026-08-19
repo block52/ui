@@ -36,7 +36,7 @@ jest.mock("./storage", () => ({
     getCosmosMnemonic: () => mockMnemonic()
 }));
 
-import { getSigningClient, clearSigningClientCache, withSigningClientRetry } from "./client";
+import { getSigningClient, clearSigningClientCache, withSigningClientRetry, withMoneyMoverRetry, isSequenceMismatchError } from "./client";
 
 const NETWORK_A: NetworkEndpoints = {
     name: "A",
@@ -198,6 +198,106 @@ describe("withSigningClientRetry", () => {
         ).rejects.toThrow("network unreachable");
 
         // First client + one rebuild attempt = 2 derivations, no more.
+        expect(mockCreateSigningClientFromMnemonic).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe("isSequenceMismatchError", () => {
+    it("matches the SDK account-sequence-mismatch broadcast error", () => {
+        const err = new Error(
+            "Broadcasting transaction failed with code 32 (codespace: sdk). Log: account sequence mismatch, expected 61, got 60: incorrect account sequence"
+        );
+        expect(isSequenceMismatchError(err)).toBe(true);
+    });
+
+    it("is case-insensitive and works on plain strings", () => {
+        expect(isSequenceMismatchError("Account Sequence Mismatch")).toBe(true);
+    });
+
+    it("does not match unrelated errors", () => {
+        expect(isSequenceMismatchError(new Error("insufficient gas"))).toBe(false);
+        expect(isSequenceMismatchError(new Error("Invalid action index"))).toBe(false);
+        expect(isSequenceMismatchError(null)).toBe(false);
+        expect(isSequenceMismatchError(undefined)).toBe(false);
+    });
+});
+
+describe("withMoneyMoverRetry", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        clearSigningClientCache();
+        mockCreateSigningClientFromMnemonic.mockReset();
+        mockAddress.mockReturnValue(ADDRESS_1);
+        mockMnemonic.mockReturnValue(MNEMONIC);
+        mockCreateSigningClientFromMnemonic.mockImplementation(async () => ({
+            joinGame: jest.fn(),
+            disconnect: jest.fn()
+        }));
+    });
+
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    it("passes through successful results without rebuilding the client", async () => {
+        const result = await withMoneyMoverRetry(NETWORK_A, async () => "joined");
+
+        expect(result).toBe("joined");
+        expect(mockCreateSigningClientFromMnemonic).toHaveBeenCalledTimes(1);
+    });
+
+    it("retries once with a fresh client after a sequence mismatch, waiting for the pending tx to commit", async () => {
+        let callCount = 0;
+        const promise = withMoneyMoverRetry(NETWORK_A, async () => {
+            callCount++;
+            if (callCount === 1) {
+                throw new Error("account sequence mismatch, expected 61, got 60: incorrect account sequence");
+            }
+            return "recovered";
+        });
+
+        // The retry is gated behind the backoff timer — advance it, then let the
+        // rebuilt-client microtasks settle.
+        await jest.advanceTimersByTimeAsync(2000);
+
+        await expect(promise).resolves.toBe("recovered");
+        // First client + rebuilt client (fresh sequence query) = 2 derivations.
+        expect(mockCreateSigningClientFromMnemonic).toHaveBeenCalledTimes(2);
+        expect(callCount).toBe(2);
+    });
+
+    it("retries once on transport errors without waiting (no backoff needed)", async () => {
+        let callCount = 0;
+        const promise = withMoneyMoverRetry(NETWORK_A, async () => {
+            callCount++;
+            if (callCount === 1) throw new Error("ECONNRESET: socket disconnected");
+            return "recovered";
+        });
+
+        await expect(promise).resolves.toBe("recovered");
+        expect(mockCreateSigningClientFromMnemonic).toHaveBeenCalledTimes(2);
+        expect(callCount).toBe(2);
+    });
+
+    it("does NOT retry unrelated application errors", async () => {
+        await expect(
+            withMoneyMoverRetry(NETWORK_A, async () => { throw new Error("insufficient funds"); })
+        ).rejects.toThrow("insufficient funds");
+
+        expect(mockCreateSigningClientFromMnemonic).toHaveBeenCalledTimes(1);
+    });
+
+    it("surfaces the error if the retry also fails (a persistently wedged sequence)", async () => {
+        const promise = withMoneyMoverRetry(NETWORK_A, async () => {
+            throw new Error("account sequence mismatch, expected 61, got 60");
+        });
+        // Attach a rejection handler before advancing timers so the eventual
+        // rejection is never momentarily unhandled.
+        const assertion = expect(promise).rejects.toThrow(/account sequence mismatch/);
+        await jest.advanceTimersByTimeAsync(2000);
+        await assertion;
+
+        // First client + one rebuild attempt = 2 derivations, no infinite loop.
         expect(mockCreateSigningClientFromMnemonic).toHaveBeenCalledTimes(2);
     });
 });

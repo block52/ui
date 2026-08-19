@@ -239,6 +239,67 @@ export async function withSigningClientRetry<T>(
 }
 
 /**
+ * Does this error look like a Cosmos account-sequence mismatch (SDK code 32,
+ * "account sequence mismatch, expected N, got M")?
+ *
+ * Money-movers (join / leave / top-up) are ORDERED — they carry the account
+ * sequence. When a prior money-mover is still pending in the mempool (accepted
+ * by CheckTx but not yet committed), a fresh `getSequence` query still returns
+ * the pre-increment value, so the next money-mover signs a sequence that
+ * collides and the chain rejects it with this error. Repeatable while the
+ * pending tx sits uncommitted — which is why "no one can join" (ui#530
+ * follow-up). Gameplay actions are UNORDERED and never hit this.
+ */
+export function isSequenceMismatchError(err: unknown): boolean {
+    const message = err instanceof Error ? err.message : String(err ?? "");
+    return /account sequence mismatch/i.test(message);
+}
+
+/**
+ * Run a chain-direct MONEY-MOVER (join / leave / top-up) with recovery for the
+ * two ways a cached client + ordered sequence can transiently fail:
+ *
+ *   - Transport error (stale RPC socket): clear the cache, reconnect, retry.
+ *   - Sequence mismatch (a prior money-mover still pending in the mempool):
+ *     clear the cache so the retry reconnects and re-queries the sequence, wait
+ *     a beat for the pending tx to commit and bump the on-chain sequence, then
+ *     retry. CosmJS re-queries `getSequence` on every broadcast, so a fresh
+ *     client picks up the advanced sequence once the pending tx lands.
+ *
+ * A single retry after a short delay clears the common "pending tx not yet
+ * committed" case. We do NOT loop — a persistently wedged account (a tx stuck
+ * in the mempool indefinitely) surfaces the error so it isn't silently masked.
+ *
+ * Gameplay actions must NOT use this — they're unordered and never carry a
+ * sequence, so they can't hit a sequence mismatch. Use withSigningClientRetry.
+ */
+const SEQUENCE_RETRY_DELAY_MS = 1500;
+
+export async function withMoneyMoverRetry<T>(
+    network: NetworkEndpoints,
+    fn: (client: SigningClientResult) => Promise<T>
+): Promise<T> {
+    const client = await getSigningClient(network);
+    try {
+        return await fn(client);
+    } catch (err) {
+        const sequenceMismatch = isSequenceMismatchError(err);
+        if (!isTransportError(err) && !sequenceMismatch) {
+            throw err;
+        }
+        // Force a fresh client so the retry re-queries the account sequence.
+        clearSigningClientCache();
+        if (sequenceMismatch) {
+            // Give the pending money-mover a chance to commit so the re-query
+            // returns the advanced sequence instead of the same stale value.
+            await new Promise(resolve => setTimeout(resolve, SEQUENCE_RETRY_DELAY_MS));
+        }
+        const fresh = await getSigningClient(network);
+        return fn(fresh);
+    }
+}
+
+/**
  * Heuristic: does this error look like a dead RPC connection rather than
  * a chain-level rejection? We err on the side of NOT retrying — a false
  * negative here just means we don't retry a recoverable failure; a false

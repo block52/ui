@@ -1,4 +1,4 @@
-import { getSigningClient } from "../../utils/cosmos/client";
+import { withMoneyMoverRetry } from "../../utils/cosmos/client";
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { LeaveTableResult } from "../../types";
@@ -16,8 +16,9 @@ import type { LeaveTableResult } from "../../types";
  * @throws Error if Cosmos wallet is not initialized or if the chain rejects the leave
  */
 export async function leaveTable(tableId: string, network: NetworkEndpoints): Promise<LeaveTableResult> {
-    // Broadcast MsgLeaveGame chain-direct.
-    const { signingClient } = await getSigningClient(network);
-    const hash = await signingClient.leaveGame(tableId);
+    // Broadcast MsgLeaveGame chain-direct. LEAVE is an ordered money-mover, so
+    // retry once on a sequence mismatch from a still-pending prior money-mover
+    // (ui#530 follow-up).
+    const hash = await withMoneyMoverRetry(network, ({ signingClient }) => signingClient.leaveGame(tableId));
     return { hash, gameId: tableId, action: NonPlayerActionType.LEAVE };
 }

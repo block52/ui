@@ -1,5 +1,5 @@
 import { COSMOS_CONSTANTS, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { getSigningClient } from "../../utils/cosmos/client";
+import { withMoneyMoverRetry } from "../../utils/cosmos/client";
 import { getLatestGameState } from "./transportAction";
 import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
@@ -50,8 +50,6 @@ export async function joinTable(tableId: string, options: JoinTableOptions, netw
         throw new Error("Table ID is required to join a table");
     }
 
-    const { signingClient } = await getSigningClient(network);
-
     // Convert buy-in amount from USDC to micro-USDC (b52usdc)
     // options.amount is in USDC (e.g., "5.00"), need to convert to micro-units (e.g., 5000000)
     const amountInUsdc = parseFloat(options.amount);
@@ -61,11 +59,12 @@ export async function joinTable(tableId: string, options: JoinTableOptions, netw
     // the SNG/tournament engine mis-seats). See resolveJoinSeat.
     const seat = resolveJoinSeat(options.seatNumber, getLatestGameState());
 
-    // Broadcast MsgJoinGame chain-direct.
-    const transactionHash = await signingClient.joinGame(
-        tableId,
-        seat,
-        buyInAmount
+    // Broadcast MsgJoinGame chain-direct. JOIN is an ordered money-mover (it
+    // carries the account sequence), so retry once on a sequence mismatch caused
+    // by a still-pending prior money-mover (ui#530 follow-up) — otherwise a
+    // wedged sequence blocks every join.
+    const transactionHash = await withMoneyMoverRetry(network, ({ signingClient }) =>
+        signingClient.joinGame(tableId, seat, buyInAmount)
     );
 
     return {
