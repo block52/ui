@@ -1,12 +1,19 @@
-import { getSigningClient } from "../../utils/cosmos/client";
+import { getSigningClient, withMoneyMoverRetry } from "../../utils/cosmos/client";
 import { getLatestGameState } from "./transportAction";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { claimWinnings } from "./claimWinnings";
 
-jest.mock("../../utils/cosmos/client");
+// withMoneyMoverRetry gets a passthrough implementation (resolve the mocked
+// signing client, run the callback) so these tests exercise claimWinnings'
+// record→settle flow without the real retry/backoff internals (see client.test.ts).
+jest.mock("../../utils/cosmos/client", () => ({
+    getSigningClient: jest.fn(),
+    withMoneyMoverRetry: jest.fn()
+}));
 jest.mock("./transportAction");
 
 const mockGetSigningClient = getSigningClient as jest.MockedFunction<typeof getSigningClient>;
+const mockWithMoneyMoverRetry = withMoneyMoverRetry as jest.MockedFunction<typeof withMoneyMoverRetry>;
 const mockGetLatestGameState = getLatestGameState as jest.MockedFunction<typeof getLatestGameState>;
 
 type SigningClient = Awaited<ReturnType<typeof getSigningClient>>["signingClient"];
@@ -25,6 +32,9 @@ describe("claimWinnings", () => {
         jest.clearAllMocks();
         jest.spyOn(console, "warn").mockImplementation(() => {});
         mockGetLatestGameState.mockReturnValue(fakeState as ReturnType<typeof getLatestGameState>);
+        // Passthrough: resolve the (mocked) signing client and run the callback,
+        // matching withMoneyMoverRetry's happy-path behavior.
+        mockWithMoneyMoverRetry.mockImplementation(async (network, fn) => fn(await mockGetSigningClient(network)));
     });
 
     afterEach(() => {

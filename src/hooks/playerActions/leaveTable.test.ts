@@ -1,11 +1,19 @@
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
-import { getSigningClient } from "../../utils/cosmos/client";
+import { getSigningClient, withMoneyMoverRetry } from "../../utils/cosmos/client";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { leaveTable } from "./leaveTable";
 
-jest.mock("../../utils/cosmos/client");
+// Mock the client module. withMoneyMoverRetry gets a passthrough implementation
+// that resolves the (mocked) signing client and runs the callback — so these
+// tests exercise leaveTable's happy path + error propagation without depending
+// on the real retry/backoff internals (covered in client.test.ts).
+jest.mock("../../utils/cosmos/client", () => ({
+    getSigningClient: jest.fn(),
+    withMoneyMoverRetry: jest.fn()
+}));
 
 const mockGetSigningClient = getSigningClient as jest.MockedFunction<typeof getSigningClient>;
+const mockWithMoneyMoverRetry = withMoneyMoverRetry as jest.MockedFunction<typeof withMoneyMoverRetry>;
 
 type SigningClient = Awaited<ReturnType<typeof getSigningClient>>["signingClient"];
 
@@ -14,6 +22,9 @@ describe("leaveTable", () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
+        // Passthrough: resolve the (mocked) signing client and run the callback,
+        // matching withMoneyMoverRetry's happy-path behavior.
+        mockWithMoneyMoverRetry.mockImplementation(async (network, fn) => fn(await mockGetSigningClient(network)));
     });
 
     it("broadcasts MsgLeaveGame via signingClient.leaveGame with the tableId only", async () => {
