@@ -11,7 +11,7 @@ import React, { useState, useEffect, useRef } from "react";
 import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
 // Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
 // wrappers) so the ActionSubmitController can classify + surface the error.
-import { SIT_IN_METHOD_POST_NOW, sitIn, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
+import { SIT_IN_METHOD_POST_NOW, sitIn, sitInAndWait, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { getPlayerActionDisplay } from "../../../../utils/playerActionDisplayUtils";
 import { toast } from "react-toastify";
@@ -153,6 +153,16 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
     };
 
+    // "Sit In And Wait for BB": submit the engine's distinct SIT_IN_AND_WAIT
+    // action (not sit-in method=next-bb, which is deferred). Only offered when the
+    // chain surfaces it as a legal action. Shares the "sit-in" submit key so it
+    // serializes with the post-now button and can't double-fire.
+    const canSitInAndWait = legalActions.some(a => a.action === NonPlayerActionType.SIT_IN_AND_WAIT);
+    const handleSitInWaitClick = () => {
+        if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
+        submit({ actionName: "sit-in", run: () => sitInAndWait(tableId, currentNetwork) });
+    };
+
     // Top-Up Chips button: always visible while the user is seated (#401),
     // but completely hidden in SNG games where top-ups are not allowed (#2172).
     // Disabled state is driven by `canTopUp` so the chain rejection (e.g. ACTIVE
@@ -247,6 +257,26 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                 "Sit In Next Hand"
                             )}
                         </button>
+                        {canSitInAndWait && (
+                            <button
+                                onClick={handleSitInWaitClick}
+                                disabled={sittingIn}
+                                className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                                    sittingIn
+                                        ? "bg-blue-700 border-blue-600 text-blue-200 cursor-wait"
+                                        : "bg-blue-600 border-blue-400 text-white hover:bg-blue-500 hover:border-blue-300 hover:scale-105 active:scale-95"
+                                } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
+                            >
+                                {sittingIn ? (
+                                    <>
+                                        <div className="w-3 h-3 border-2 border-blue-200 border-t-transparent rounded-full animate-spin" />
+                                        Sitting in...
+                                    </>
+                                ) : (
+                                    "Sit In And Wait for BB"
+                                )}
+                            </button>
+                        )}
                     </div>
                 </>
             );

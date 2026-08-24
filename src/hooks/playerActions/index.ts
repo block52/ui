@@ -13,6 +13,7 @@ import { raiseHand } from "./raiseHand";
 import { showCards } from "./showCards";
 import { sitIn, SIT_IN_METHOD_NEXT_BB, SIT_IN_METHOD_POST_NOW } from "./sitIn";
 import type { SitInMethod } from "./sitIn";
+import { sitInAndWait } from "./sitInAndWait";
 import { sitOut, SIT_OUT_METHOD_NEXT_HAND, SIT_OUT_METHOD_NEXT_BB } from "./sitOut";
 import type { SitOutMethod } from "./sitOut";
 import { startNewHand } from "./startNewHand";
@@ -40,6 +41,7 @@ export {
     raiseHand,
     showCards,
     sitIn,
+    sitInAndWait,
     SIT_IN_METHOD_NEXT_BB,
     SIT_IN_METHOD_POST_NOW,
     sitOut,
