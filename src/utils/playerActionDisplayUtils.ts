@@ -4,7 +4,7 @@ import { SIT_IN_METHOD_POST_NOW } from "../hooks/playerActions";
 export type PlayerActionDisplay =
     | { kind: "pending"; waitingMessage: string; showSeatOption?: boolean }
     | { kind: "sit-in-options" }
-    | { kind: "auto-sit-in" }
+    | { kind: "sit-in-bootstrap" }
     | { kind: "sit-out-button" }
     | { kind: "waiting-for-players" }
     | { kind: "none" };
@@ -19,13 +19,13 @@ export interface PlayerActionDisplayInput {
 }
 
 /**
- * Determines whether a SIT_IN action should be auto-sent (bootstrap)
- * or shown as method selection (mid-orbit join).
+ * Distinguishes the empty-table first-fill ("bootstrap") from a mid-orbit join.
  *
- * Mirrors PVM's checkBootstrap() logic: bootstrap only applies when
- * NO players are ACTIVE/ALL_IN (game hasn't started yet) and it's
- * the first hand. Once any player is ACTIVE, new joiners must use
- * sit-in method selection instead.
+ * Mirrors PVM's checkBootstrap() logic: bootstrap only applies when NO players
+ * are ACTIVE/ALL_IN (game hasn't started yet) and it's the first hand. On
+ * bootstrap the next-BB vs post-now choice is meaningless (no orbit yet), so the
+ * UI shows a single "Sit In" button; once a hand is running, a new joiner gets
+ * the full method selection instead.
  */
 export function isBootstrap(hasActivePlayers: boolean, handNumber: number): boolean {
     return !hasActivePlayers && handNumber === 1;
@@ -72,10 +72,12 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
         return { kind: "waiting-for-players" };
     }
 
-    // 3. Sit-in: bootstrap vs mid-orbit join
+    // 3. Sit-in: bootstrap (single explicit "Sit In") vs mid-orbit join (method choice)
     if (hasSitInAction) {
         if (isBootstrap(hasActivePlayers, handNumber)) {
-            return { kind: "auto-sit-in" };
+            // Empty table (ui#50): an explicit single "Sit In" — no auto-fire, no
+            // next-BB/post-now choice (no orbit exists yet).
+            return { kind: "sit-in-bootstrap" };
         }
         // Mid-orbit join or returning from SITTING_OUT — show method selection
         return { kind: "sit-in-options" };

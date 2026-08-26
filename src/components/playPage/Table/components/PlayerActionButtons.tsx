@@ -6,7 +6,7 @@
  * Responsive design for mobile, tablet, and desktop viewports.
  */
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 
 import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
 // Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
@@ -130,23 +130,9 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // Bottom-right position for buy chips button (opposite side from action buttons)
     const buyChipsPositionClass = isMobileLandscape ? "bottom-2 right-2" : isMobile ? "bottom-[260px] left-4" : "bottom-20 right-4";
 
-    // Auto-sit-in for bootstrap: fire SIT_IN automatically, method is irrelevant
-    const hasTriggeredAutoSitIn = useRef(false);
-
-    useEffect(() => {
-        if (display.kind === "auto-sit-in" && !hasTriggeredAutoSitIn.current && tableId) {
-            hasTriggeredAutoSitIn.current = true;
-            console.log("🚀 Bootstrap: auto-sending SIT_IN for table:", tableId);
-            // Bootstrap: method is irrelevant, use post-now (next-bb deferred, poker-vm#1895).
-            // Shares the "sit-in" key with the manual button so the controller
-            // never double-fires if both trigger.
-            submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
-        }
-        // Reset when no longer in auto-sit-in state
-        if (display.kind !== "auto-sit-in") {
-            hasTriggeredAutoSitIn.current = false;
-        }
-    }, [display.kind, tableId, currentNetwork, submit]);
+    // Bootstrap (empty table) no longer auto-sends SIT_IN (ui#50): a joiner lands
+    // SEATED and must explicitly click Sit In — see the "sit-in-bootstrap" case,
+    // which renders a single "Sit In" button wired to handleSitInClick below.
 
     const handleSitInClick = () => {
         if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
@@ -291,17 +277,34 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 </>
             );
 
-        case "auto-sit-in":
+        case "sit-in-bootstrap":
+            // Empty table (ui#50): a joiner lands SEATED and must explicitly sit in
+            // before the first hand starts. Next-BB vs Post-Now is meaningless with
+            // no orbit yet, so offer a single "Sit In" button (posts on the first
+            // hand once both seats have sat in).
             return (
                 <>
                     {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass}`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                            <div className="flex items-center gap-2">
-                                <div className="animate-spin w-3 h-3 border-2 border-green-400 border-t-transparent rounded-full" />
-                                <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Starting game...</span>
-                            </div>
-                        </div>
+                    <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
+                        {seatAtBottomToggle}
+                        <button
+                            onClick={handleSitInClick}
+                            disabled={sittingIn}
+                            className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                                sittingIn
+                                    ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
+                                    : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95 animate-pulse"
+                            } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
+                        >
+                            {sittingIn ? (
+                                <>
+                                    <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                                    Sitting in...
+                                </>
+                            ) : (
+                                "Sit In"
+                            )}
+                        </button>
                     </div>
                 </>
             );

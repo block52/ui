@@ -210,4 +210,69 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("Sit Out Next Hand")).toBeInTheDocument();
         expect(screen.getByText("Sit Out Next Big Blind")).toBeInTheDocument();
     });
+
+    // ui#50: empty-table bootstrap shows a single explicit "Sit In" button and
+    // must NOT auto-fire the action (the old auto-sit-in behavior is gone).
+    it("renders a single explicit Sit In button on bootstrap and does NOT auto-submit", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={2}
+                handNumber={1}
+                hasActivePlayers={false}
+            />
+        );
+        expect(screen.getByRole("button", { name: "Sit In" })).toBeInTheDocument();
+        // The two-option labels are NOT used on bootstrap.
+        expect(screen.queryByRole("button", { name: "Sit In Next Hand" })).not.toBeInTheDocument();
+        expect(screen.queryByText("Starting game...")).not.toBeInTheDocument();
+        // Crucially, nothing is submitted on mount — the player must click.
+        expect(mockSubmit).not.toHaveBeenCalled();
+    });
+
+    it("bootstrap Sit In button submits a post-now sit-in when clicked", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={2}
+                handNumber={1}
+                hasActivePlayers={false}
+            />
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Sit In" }));
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
+        );
+    });
+
+    // ui#50: a SEATED joiner on a running table gets BOTH options when the chain
+    // surfaces SIT_IN and SIT_IN_AND_WAIT.
+    it("renders the Sit In And Wait for BB button when SIT_IN_AND_WAIT is legal", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        expect(screen.getByRole("button", { name: "Sit In Next Hand" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Sit In And Wait for BB" })).toBeInTheDocument();
+    });
+
+    it("does NOT render the Sit In And Wait for BB button when SIT_IN_AND_WAIT is absent", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        expect(screen.queryByRole("button", { name: "Sit In And Wait for BB" })).not.toBeInTheDocument();
+    });
 });
