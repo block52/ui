@@ -333,6 +333,31 @@ describe("getPlayerActionDisplay", () => {
         expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Big Blind..." });
     });
 
+    // --- Waiting for big blind (#2139/#545) ---
+
+    it("returns pending with next-bb message for WAITING_FOR_BIG_BLIND status", () => {
+        const result = getPlayerActionDisplay({
+            ...base,
+            playerStatus: PlayerStatus.WAITING_FOR_BIG_BLIND,
+            totalSeatedPlayers: 5,
+            handNumber: 3,
+        });
+        expect(result).toEqual({ kind: "pending", waitingMessage: "Waiting For Next Big Blind...", showSeatOption: true });
+    });
+
+    it("returns pending for WAITING_FOR_BIG_BLIND regardless of legalActions", () => {
+        // A waiting entrant only ever gets TOP_UP/LEAVE, but even if SIT_IN/SIT_OUT
+        // leaked in, the waiting status must still win — never the sit-in options.
+        const result = getPlayerActionDisplay({
+            ...base,
+            playerStatus: PlayerStatus.WAITING_FOR_BIG_BLIND,
+            legalActions: [action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_OUT)],
+            totalSeatedPlayers: 5,
+            handNumber: 3,
+        });
+        expect(result.kind).toBe("pending");
+    });
+
     // --- No actions ---
 
     it("returns waiting-for-players when no actions and no players", () => {

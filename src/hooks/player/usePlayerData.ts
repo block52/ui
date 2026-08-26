@@ -85,6 +85,14 @@ export const usePlayerData = (seatIndex?: number): PlayerDataReturn => {
   }, [playerData]);
   
   const holeCards = React.useMemo((): string[] => {
+    // A waiting-for-BB entrant (#2139) is seated but NOT dealt into the current
+    // hand, so it must never render hole cards even if a stale/residual pair is
+    // still present in state. Card visibility elsewhere keys on holeCards.length,
+    // so zero it here at the source. (See useHoleCardWatchdog: WAITING_FOR_BIG_BLIND
+    // is deliberately excluded from STATUSES_WITH_HOLE_CARDS.)
+    if (playerData?.status === PlayerStatus.WAITING_FOR_BIG_BLIND) {
+      return [];
+    }
     return playerData?.holeCards || [];
   }, [playerData]);
   

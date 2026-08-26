@@ -182,6 +182,27 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             </div>
         ) : null;
 
+    // Seat-orientation toggle (#392): a pure local view preference that rotates
+    // the table so the local player sits at 6 o'clock. Surfaced both while
+    // choosing to sit in AND while waiting for the big blind (#2139) — these are
+    // the only places a just-seated player can reach it (no settings-sidebar
+    // equivalent exists), so the waiting state must keep offering it.
+    const seatAtBottomToggle = (
+        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+            <label className="flex items-center cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={seatAtBottom}
+                    onChange={toggleSeatAtBottom}
+                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                />
+                <span className={`ml-2 ${seatAtBottom ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                    Seat me at 6 o'clock
+                </span>
+            </label>
+        </div>
+    );
+
     if (!isCurrentUserSeated) {
         return (
             <>
@@ -210,13 +231,14 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             return (
                 <>
                     {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass}`}>
+                    <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
                         <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
                             <div className="flex items-center gap-2">
                                 <div className="animate-pulse w-2 h-2 rounded-full bg-yellow-400" />
                                 <span className={`text-yellow-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{display.waitingMessage}</span>
                             </div>
                         </div>
+                        {display.showSeatOption && seatAtBottomToggle}
                     </div>
                 </>
             );
@@ -226,19 +248,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <>
                     {buyChipsElement}
                     <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                            <label className="flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={seatAtBottom}
-                                    onChange={toggleSeatAtBottom}
-                                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
-                                />
-                                <span className={`ml-2 ${seatAtBottom ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
-                                    Seat me at 6 o'clock
-                                </span>
-                            </label>
-                        </div>
+                        {seatAtBottomToggle}
                         <button
                             onClick={handleSitInClick}
                             disabled={sittingIn}
