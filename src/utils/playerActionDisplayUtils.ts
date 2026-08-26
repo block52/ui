@@ -2,7 +2,7 @@ import { LegalActionDTO, NonPlayerActionType, PlayerStatus } from "@block52/poke
 import { SIT_IN_METHOD_POST_NOW } from "../hooks/playerActions";
 
 export type PlayerActionDisplay =
-    | { kind: "pending"; waitingMessage: string }
+    | { kind: "pending"; waitingMessage: string; showSeatOption?: boolean }
     | { kind: "sit-in-options" }
     | { kind: "auto-sit-in" }
     | { kind: "sit-out-button" }
@@ -53,6 +53,18 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
             ? "Waiting to sit in..."
             : "Waiting For Next Big Blind...";
         return { kind: "pending", waitingMessage };
+    }
+
+    // 1b. Waiting for the big blind (#2139/#545): a cash joiner is auto-queued to
+    // enter on their next big blind — parked in WAITING_FOR_BIG_BLIND, not dealt
+    // into the current hand. The engine allows only TOP_UP/LEAVE from this status
+    // (SIT_IN / SIT_IN_AND_WAIT / SIT_OUT all require SEATED/SITTING_OUT), so there
+    // is no post-now affordance to offer here — show a passive waiting indicator.
+    if (playerStatus === PlayerStatus.WAITING_FOR_BIG_BLIND) {
+        // Keep the "Seat me at 6 o'clock" toggle available: a joiner used to reach
+        // it via the sit-in-options panel, which they no longer see once parked
+        // here, and there is no settings-sidebar equivalent.
+        return { kind: "pending", waitingMessage: "Waiting For Next Big Blind...", showSeatOption: true };
     }
 
     // 2. Solo player — show "Waiting for players to join..." instead of action buttons.
