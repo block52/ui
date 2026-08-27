@@ -79,7 +79,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // escape-hatch, and toasts failures — replacing the hand-rolled dirty-state
     // this component used to carry.
     const { gameState, gameFormat } = useGameStateContext();
-    const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
+    const { seatAtBottom, toggleSeatAtBottom, sitInOptions } = useGameSettings();
     const { submit, loadingAction } = useActionSubmit();
     const sittingIn = loadingAction === "sit-in";
 
@@ -114,8 +114,24 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         legalActions,
         totalSeatedPlayers,
         handNumber,
-        hasActivePlayers
+        hasActivePlayers,
+        sitInOptions
     });
+
+    // Auto-drive (ui#550, sitInOptions OFF by default): when the panel resolves to
+    // "auto-sit-in", sit the player in automatically (post-now → dealt in next hand)
+    // instead of showing the method UI. Rising-edge latch so it fires once; reset
+    // when we leave the auto-sit-in state.
+    const autoSitInFired = React.useRef(false);
+    useEffect(() => {
+        if (display.kind === "auto-sit-in" && !autoSitInFired.current && tableId) {
+            autoSitInFired.current = true;
+            submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
+        }
+        if (display.kind !== "auto-sit-in") {
+            autoSitInFired.current = false;
+        }
+    }, [display.kind, tableId, currentNetwork, submit]);
 
     // Top-up: never available in SNG games
     const isSNG = gameFormat === GameFormat.SIT_AND_GO;
@@ -297,6 +313,23 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                 "Sit In"
                             )}
                         </button>
+                    </div>
+                </>
+            );
+
+        case "auto-sit-in":
+            // Default flow (ui#550): sitting in happens automatically (see the
+            // effect above) — show a brief indicator, no method UI.
+            return (
+                <>
+                    {buyChipsElement}
+                    <div className={`fixed z-30 ${positionClass}`}>
+                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                            <div className="flex items-center gap-2">
+                                <div className="w-3 h-3 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
+                                <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
+                            </div>
+                        </div>
                     </div>
                 </>
             );

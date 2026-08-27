@@ -34,11 +34,12 @@ jest.mock("../../../../context/GameStateContext", () => ({
 // block52/ui#392 reads from this context. Static stub keeps these
 // render/click tests focused on the existing behaviour.
 const mockToggleSeatAtBottom = jest.fn();
+// Mutable so a test can flip sitInOptions. Defaults ON so the method-UI (radio /
+// bootstrap) tests below exercise the panel; the auto-drive (OFF) is tested
+// explicitly. Product default is OFF (auto).
+const mockGameSettings = { seatAtBottom: true, toggleSeatAtBottom: mockToggleSeatAtBottom, sitInOptions: true };
 jest.mock("../../../../context/GameSettingsContext", () => ({
-    useGameSettings: () => ({
-        seatAtBottom: true,
-        toggleSeatAtBottom: mockToggleSeatAtBottom,
-    }),
+    useGameSettings: () => mockGameSettings,
 }));
 
 // Mock getPlayerActionDisplay — import the real module so we can spy on it
@@ -87,6 +88,7 @@ const baseProps: PlayerActionButtonsProps = {
 
 beforeEach(() => {
     mockSubmit.mockClear();
+    mockGameSettings.sitInOptions = true; // method-UI tests; auto-drive test sets false
 });
 
 describe("PlayerActionButtons", () => {
@@ -267,5 +269,27 @@ describe("PlayerActionButtons", () => {
         expect(mockSubmit).toHaveBeenCalledWith(
             expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
         );
+    });
+
+    // ui#550: with sitInOptions OFF (product default), taking a seat auto-sits-in —
+    // no radios/buttons, and the sit-in fires automatically on mount.
+    it("auto-sits-in and shows an indicator when sitInOptions is off", () => {
+        mockGameSettings.sitInOptions = false;
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        // Fires the sit-in automatically (post-now), no user interaction.
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
+        );
+        // No method UI shown.
+        expect(screen.queryByRole("radio", { name: "Sit In Next Big Blind" })).not.toBeInTheDocument();
+        expect(screen.getByText("Sitting in...")).toBeInTheDocument();
     });
 });

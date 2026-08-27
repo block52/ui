@@ -48,9 +48,11 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
         turnNotificationSound,
         playerActionSounds,
         autoMuck,
+        sitInOptions,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
-        toggleAutoMuck
+        toggleAutoMuck,
+        toggleSitInOptions
     } = useGameSettings();
 
     return (
@@ -80,6 +82,12 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                         description="Automatically muck losing cards at showdown without prompting."
                         checked={autoMuck}
                         onToggle={toggleAutoMuck}
+                    />
+                    <ToggleRow
+                        label="Sit-In Options"
+                        description="Choose how to enter (Sit In Next Hand vs Next Big Blind) when you take a seat. When off, you're sat in automatically and dealt in next hand."
+                        checked={sitInOptions}
+                        onToggle={toggleSitInOptions}
                     />
                 </div>
             </div>
