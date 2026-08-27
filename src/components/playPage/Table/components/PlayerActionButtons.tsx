@@ -22,6 +22,7 @@ import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { useActionSubmit } from "../../../../context/ActionSubmitContext";
 import { findUserSeat } from "../../../../utils/playerSeatUtils";
 import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
+import { viteEnv } from "../../../../utils/viteEnv";
 
 export interface PlayerActionButtonsProps {
     isMobile: boolean;
@@ -82,6 +83,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
     const { submit, loadingAction } = useActionSubmit();
     const sittingIn = loadingAction === "sit-in";
+    const showSitOutNextBigBlind = viteEnv.VITE_SHOW_SIT_OUT_NEXT_BIG_BLIND === "true";
 
     // Sync optimistic state with server state when it arrives
     const serverChecked = pendingSitOut === "next-hand";
@@ -318,17 +320,19 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                                     Sit Out Next Hand
                                 </span>
                             </label>
-                            <label className="flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={sitOutNextBbQueued}
-                                    onChange={() => setSitOutNextBbQueued(prev => !prev)}
-                                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
-                                />
-                                <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
-                                    Sit Out Next Big Blind
-                                </span>
-                            </label>
+                            {showSitOutNextBigBlind && (
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={sitOutNextBbQueued}
+                                        onChange={() => setSitOutNextBbQueued(prev => !prev)}
+                                        className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                                    />
+                                    <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                                        Sit Out Next Big Blind
+                                    </span>
+                                </label>
+                            )}
                         </div>
                     </div>
                 </>
