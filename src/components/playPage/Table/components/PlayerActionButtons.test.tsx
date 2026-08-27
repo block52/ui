@@ -84,9 +84,11 @@ const baseProps: PlayerActionButtonsProps = {
     isCurrentUserSeated: true,
     isTableFull: false,
 };
+const sitOutNextBigBlindFlag = "VITE_SHOW_SIT_OUT_NEXT_BIG_BLIND";
 
 beforeEach(() => {
     mockSubmit.mockClear();
+    delete process.env[sitOutNextBigBlindFlag];
 });
 
 describe("PlayerActionButtons", () => {
@@ -219,7 +221,22 @@ describe("PlayerActionButtons", () => {
         mockGameStateContext.gameFormat = undefined;
     });
 
-    it("renders both sit-out checkboxes when SIT_OUT action available", () => {
+    it("renders only next-hand sit-out checkbox by default when SIT_OUT action available", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_OUT)]}
+                totalSeatedPlayers={3}
+                handNumber={2}
+            />
+        );
+        expect(screen.getAllByRole("checkbox")).toHaveLength(1);
+        expect(screen.getByText("Sit Out Next Hand")).toBeInTheDocument();
+        expect(screen.queryByText("Sit Out Next Big Blind")).not.toBeInTheDocument();
+    });
+
+    it("renders next-big-blind sit-out checkbox when feature flag is enabled", () => {
+        process.env[sitOutNextBigBlindFlag] = "true";
         render(
             <PlayerActionButtons
                 {...baseProps}
