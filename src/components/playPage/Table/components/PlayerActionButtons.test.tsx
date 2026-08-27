@@ -116,36 +116,57 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("Waiting for players to join...")).toBeInTheDocument();
     });
 
-    it("renders sit-in button for sit-in-options", () => {
+    it("renders the two sit-in radios (commit-on-select), no confirm button", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
                 totalSeatedPlayers={3}
                 handNumber={5}
                 hasActivePlayers={true}
             />
         );
-        expect(screen.getByRole("button", { name: "Sit In Next Hand" })).toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: "Sit In Next Big Blind" })).toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: "Sit In Next Hand" })).toBeInTheDocument();
+        // No action/confirm buttons in the sit-in panel anymore.
+        expect(screen.queryByRole("button", { name: "Sit In" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Sit In Next Hand" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Sit In And Wait for BB" })).not.toBeInTheDocument();
     });
 
-    it("sit-in button submits a sit-in action through the controller", () => {
+    it("selecting Sit In Next Big Blind submits under the sit-in key", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
                 totalSeatedPlayers={3}
                 handNumber={5}
                 hasActivePlayers={true}
             />
         );
-        fireEvent.click(screen.getByRole("button", { name: "Sit In Next Hand" }));
+        fireEvent.click(screen.getByRole("radio", { name: "Sit In Next Big Blind" }));
         expect(mockSubmit).toHaveBeenCalledWith(
             expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
         );
     });
 
-    it("does NOT render Sit In Next Big Blind text anywhere", () => {
+    it("selecting Sit In Next Hand submits under the sit-in key", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        fireEvent.click(screen.getByRole("radio", { name: "Sit In Next Hand" }));
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
+        );
+    });
+
+    it("hides Sit In Next Big Blind when SIT_IN_AND_WAIT is not legal", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -155,7 +176,8 @@ describe("PlayerActionButtons", () => {
                 hasActivePlayers={true}
             />
         );
-        expect(screen.queryByText(/Sit In Next Big Blind/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole("radio", { name: "Sit In Next Big Blind" })).not.toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: "Sit In Next Hand" })).toBeInTheDocument();
     });
 
     it("renders pending state with waiting message", () => {
@@ -245,34 +267,5 @@ describe("PlayerActionButtons", () => {
         expect(mockSubmit).toHaveBeenCalledWith(
             expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
         );
-    });
-
-    // ui#50: a SEATED joiner on a running table gets BOTH options when the chain
-    // surfaces SIT_IN and SIT_IN_AND_WAIT.
-    it("renders the Sit In And Wait for BB button when SIT_IN_AND_WAIT is legal", () => {
-        render(
-            <PlayerActionButtons
-                {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
-                totalSeatedPlayers={3}
-                handNumber={5}
-                hasActivePlayers={true}
-            />
-        );
-        expect(screen.getByRole("button", { name: "Sit In Next Hand" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Sit In And Wait for BB" })).toBeInTheDocument();
-    });
-
-    it("does NOT render the Sit In And Wait for BB button when SIT_IN_AND_WAIT is absent", () => {
-        render(
-            <PlayerActionButtons
-                {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN)]}
-                totalSeatedPlayers={3}
-                handNumber={5}
-                hasActivePlayers={true}
-            />
-        );
-        expect(screen.queryByRole("button", { name: "Sit In And Wait for BB" })).not.toBeInTheDocument();
     });
 });

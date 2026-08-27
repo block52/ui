@@ -134,17 +134,18 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // SEATED and must explicitly click Sit In — see the "sit-in-bootstrap" case,
     // which renders a single "Sit In" button wired to handleSitInClick below.
 
+    // Post Required Blinds Now (post-now): enter on the next legal hand posting the
+    // blind. Fired on selecting the radio (or the single bootstrap button).
     const handleSitInClick = () => {
         if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
         submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
     };
 
-    // "Sit In And Wait for BB": submit the engine's distinct SIT_IN_AND_WAIT
-    // action (not sit-in method=next-bb, which is deferred). Only offered when the
-    // chain surfaces it as a legal action. Shares the "sit-in" submit key so it
-    // serializes with the post-now button and can't double-fire.
+    // Sit In Next Big Blind (wait-for-BB): the engine's distinct SIT_IN_AND_WAIT
+    // action (the live Go engine treats plain SIT_IN as post-now-only). Only offered
+    // when the chain surfaces it as a legal action.
     const canSitInAndWait = legalActions.some(a => a.action === NonPlayerActionType.SIT_IN_AND_WAIT);
-    const handleSitInWaitClick = () => {
+    const handleSitInWait = () => {
         if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
         submit({ actionName: "sit-in", run: () => sitInAndWait(tableId, currentNetwork) });
     };
@@ -230,49 +231,44 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             );
 
         case "sit-in-options":
+            // Original design (ui#112): a radio group inside the opaque panel that
+            // commits on selection — no confirm button. "Sit In Next Big Blind"
+            // (wait-for-BB) shows only when the chain offers SIT_IN_AND_WAIT.
             return (
                 <>
                     {buyChipsElement}
                     <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
                         {seatAtBottomToggle}
-                        <button
-                            onClick={handleSitInClick}
-                            disabled={sittingIn}
-                            className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
-                                sittingIn
-                                    ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
-                                    : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95 animate-pulse"
-                            } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
-                        >
-                            {sittingIn ? (
-                                <>
-                                    <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
-                                    Sitting in...
-                                </>
-                            ) : (
-                                "Sit In Next Hand"
+                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 flex flex-col gap-2 ${isCompact ? "p-2" : "p-3"}`}>
+                            {canSitInAndWait && (
+                                <label className="flex items-center cursor-pointer">
+                                    <input
+                                        type="radio"
+                                        name="sit-in-method"
+                                        disabled={sittingIn}
+                                        onChange={handleSitInWait}
+                                        className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
+                                    />
+                                    <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Big Blind</span>
+                                </label>
                             )}
-                        </button>
-                        {canSitInAndWait && (
-                            <button
-                                onClick={handleSitInWaitClick}
-                                disabled={sittingIn}
-                                className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
-                                    sittingIn
-                                        ? "bg-blue-700 border-blue-600 text-blue-200 cursor-wait"
-                                        : "bg-blue-600 border-blue-400 text-white hover:bg-blue-500 hover:border-blue-300 hover:scale-105 active:scale-95"
-                                } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
-                            >
-                                {sittingIn ? (
-                                    <>
-                                        <div className="w-3 h-3 border-2 border-blue-200 border-t-transparent rounded-full animate-spin" />
-                                        Sitting in...
-                                    </>
-                                ) : (
-                                    "Sit In And Wait for BB"
-                                )}
-                            </button>
-                        )}
+                            <label className="flex items-center cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="sit-in-method"
+                                    disabled={sittingIn}
+                                    onChange={handleSitInClick}
+                                    className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
+                                />
+                                <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Hand</span>
+                            </label>
+                            {sittingIn && (
+                                <div className="flex items-center gap-2">
+                                    <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                                    <span className={`text-green-300 ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </>
             );
