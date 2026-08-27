@@ -117,10 +117,8 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         hasActivePlayers
     });
 
-    // Top-up: check if TOP_UP is in legal actions (never available in SNG)
-    const topUpAction = legalActions.find(a => a.action === NonPlayerActionType.TOP_UP);
+    // Top-up: never available in SNG games
     const isSNG = gameFormat === GameFormat.SIT_AND_GO;
-    const canTopUp = !!topUpAction && !!tableId && !isSNG;
     const { topUp } = useTableTopUp(tableId || "", currentNetwork);
 
     const handleTopUp = async (amount: string) => {
@@ -150,10 +148,9 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         submit({ actionName: "sit-in", run: () => sitInAndWait(tableId, currentNetwork) });
     };
 
-    // Top-Up Chips button: always visible while the user is seated (#401),
+    // Top-Up Chips button: always visible and clickable while the user is seated (#401),
     // but completely hidden in SNG games where top-ups are not allowed (#2172).
-    // Disabled state is driven by `canTopUp` so the chain rejection (e.g. ACTIVE
-    // status with current PVM verify rules) shows greyed-out rather than hidden.
+    // Mid-hand top-ups are accepted by the chain and applied at the start of the next hand.
     const buyChipsElement =
         isCurrentUserSeated && tableId && !isSNG ? (
             <div className={`fixed z-30 ${buyChipsPositionClass}`}>
@@ -163,7 +160,6 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     minBuyIn={minBuyIn}
                     maxBuyIn={maxBuyIn}
                     walletBalance={walletBalance}
-                    canTopUp={canTopUp}
                     onTopUp={handleTopUp}
                 />
             </div>
