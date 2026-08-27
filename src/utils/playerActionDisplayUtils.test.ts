@@ -22,6 +22,9 @@ const base: PlayerActionDisplayInput = {
     totalSeatedPlayers: 0,
     handNumber: 1,
     hasActivePlayers: false,
+    // These tests exercise the sit-in method UI, which shows when the toggle is ON.
+    // The auto-drive (toggle OFF) default is covered in its own describe block.
+    sitInOptions: true,
 };
 
 // ===== isBootstrap =====
@@ -183,6 +186,44 @@ describe("getPlayerActionDisplay", () => {
             hasActivePlayers: false,
         });
         expect(result).toEqual({ kind: "sit-in-bootstrap" });
+    });
+
+    // --- Auto-drive: sitInOptions OFF (default) → auto-sit-in instead of a panel ---
+
+    it("returns auto-sit-in when sitInOptions is off (default), running table", () => {
+        const result = getPlayerActionDisplay({
+            ...base,
+            sitInOptions: false,
+            legalActions: [action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)],
+            totalSeatedPlayers: 3,
+            handNumber: 5,
+            hasActivePlayers: true,
+        });
+        expect(result).toEqual({ kind: "auto-sit-in" });
+    });
+
+    it("returns auto-sit-in when sitInOptions is off on an empty table (bootstrap)", () => {
+        const result = getPlayerActionDisplay({
+            ...base,
+            sitInOptions: false,
+            legalActions: [action(NonPlayerActionType.SIT_IN)],
+            totalSeatedPlayers: 2,
+            handNumber: 1,
+            hasActivePlayers: false,
+        });
+        expect(result).toEqual({ kind: "auto-sit-in" });
+    });
+
+    it("defaults to auto-sit-in when sitInOptions is omitted", () => {
+        const result = getPlayerActionDisplay({
+            playerStatus: null,
+            sitInMethod: null,
+            legalActions: [action(NonPlayerActionType.SIT_IN)],
+            totalSeatedPlayers: 3,
+            handNumber: 5,
+            hasActivePlayers: true,
+        });
+        expect(result).toEqual({ kind: "auto-sit-in" });
     });
 
     it("returns sit-in-options (NOT auto) when hand > 1", () => {

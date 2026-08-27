@@ -5,6 +5,9 @@ export type PlayerActionDisplay =
     | { kind: "pending"; waitingMessage: string; showSeatOption?: boolean }
     | { kind: "sit-in-options" }
     | { kind: "sit-in-bootstrap" }
+    // Auto-drive: seat-select sits the player in automatically (dealt in next hand).
+    // Returned instead of the sit-in panels when sitInOptions is OFF (ui#550 default).
+    | { kind: "auto-sit-in" }
     | { kind: "sit-out-button" }
     | { kind: "waiting-for-players" }
     | { kind: "none" };
@@ -16,6 +19,9 @@ export interface PlayerActionDisplayInput {
     totalSeatedPlayers: number;
     handNumber: number;
     hasActivePlayers: boolean;
+    // When false (default), a would-be sit-in panel becomes "auto-sit-in" — the UI
+    // sits the player in on seat-select. When true, the sit-in method radios show.
+    sitInOptions?: boolean;
 }
 
 /**
@@ -40,7 +46,7 @@ export function shouldShowPlayerActionPanel(input: PlayerActionDisplayInput): bo
 }
 
 export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerActionDisplay {
-    const { playerStatus, sitInMethod, legalActions, totalSeatedPlayers, handNumber, hasActivePlayers } = input;
+    const { playerStatus, sitInMethod, legalActions, totalSeatedPlayers, handNumber, hasActivePlayers, sitInOptions = false } = input;
 
     // Derive sit-in / sit-out from legalActions, filtering out JOIN, LEAVE, DEAL, etc.
     const hasSitInAction = legalActions.some(a => a.action === NonPlayerActionType.SIT_IN);
@@ -72,14 +78,17 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
         return { kind: "waiting-for-players" };
     }
 
-    // 3. Sit-in: bootstrap (single explicit "Sit In") vs mid-orbit join (method choice)
+    // 3. Sit-in. Default (sitInOptions OFF): auto-drive — the UI sits the player in
+    // on seat-select so they're dealt in next hand, no panel. When the toggle is ON,
+    // show the method UI: a single explicit "Sit In" on an empty table (no orbit yet)
+    // or the next-BB/post-now radios mid-orbit.
     if (hasSitInAction) {
+        if (!sitInOptions) {
+            return { kind: "auto-sit-in" };
+        }
         if (isBootstrap(hasActivePlayers, handNumber)) {
-            // Empty table (ui#50): an explicit single "Sit In" — no auto-fire, no
-            // next-BB/post-now choice (no orbit exists yet).
             return { kind: "sit-in-bootstrap" };
         }
-        // Mid-orbit join or returning from SITTING_OUT — show method selection
         return { kind: "sit-in-options" };
     }
 

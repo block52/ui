@@ -19,6 +19,7 @@ const LS_KEY_AUTO_MUCK = "setting_automuck";
 const LS_KEY_TURN_SOUND = "setting_turnsound";
 const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
 const LS_KEY_SEAT_AT_BOTTOM = "setting_seatatbottom";
+const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -35,6 +36,9 @@ export interface GameSettings {
     turnNotificationSound: boolean;
     playerActionSounds: boolean;
     seatAtBottom: boolean;
+    // When OFF (default), taking a seat auto-sits-in (dealt in next hand). When ON,
+    // the sit-in method radios are shown so the player chooses (ui#550/#551).
+    sitInOptions: boolean;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -46,6 +50,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleTurnNotificationSound: () => void;
     togglePlayerActionSounds: () => void;
     toggleSeatAtBottom: () => void;
+    toggleSitInOptions: () => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue | null>(null);
@@ -74,6 +79,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [seatAtBottom, setSeatAtBottom] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_SEAT_AT_BOTTOM, true)
+    );
+    const [sitInOptions, setSitInOptions] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_SITIN_OPTIONS, false)
     );
 
     const toggleAutoDeal = useCallback(() => {
@@ -140,6 +148,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleSitInOptions = useCallback(() => {
+        setSitInOptions(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_SITIN_OPTIONS, String(next));
+            return next;
+        });
+    }, []);
+
     const value = useMemo<GameSettingsContextValue>(
         () => ({
             autoDeal,
@@ -150,6 +166,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             turnNotificationSound,
             playerActionSounds,
             seatAtBottom,
+            sitInOptions,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -157,7 +174,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleAutoMuck,
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
-            toggleSeatAtBottom
+            toggleSeatAtBottom,
+            toggleSitInOptions
         }),
         [
             autoDeal,
@@ -168,6 +186,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             turnNotificationSound,
             playerActionSounds,
             seatAtBottom,
+            sitInOptions,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -175,7 +194,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleAutoMuck,
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
-            toggleSeatAtBottom
+            toggleSeatAtBottom,
+            toggleSitInOptions
         ]
     );
 
