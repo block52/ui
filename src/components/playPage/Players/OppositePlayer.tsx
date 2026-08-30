@@ -26,6 +26,7 @@ import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import { hasElements } from "../../../utils/guards";
+import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 
 type OppositePlayerProps = {
@@ -41,7 +42,7 @@ type OppositePlayerProps = {
 
 const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
     const { id } = useParams<{ id: string }>();
-    const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
+    const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
     const { winnerInfo, winnerBySeat } = useWinnerInfo();
     const winnerCards = useWinnerCards();
     const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
@@ -72,8 +73,9 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     // Check if this player is a winner via the shared seat index (#2455)
     const isWinner = React.useMemo(() => winnerBySeat.has(index), [winnerBySeat, index]);
 
-    // 2) dim non-winners when someone has won, also dim busted players like sitting out
-    const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
+    // 2) dim the seat based on how involved this player is in the hand
+    //    (see getSeatOpacityClass — dims seated/sitting-out/sitting-in/busted/folded).
+    const opacityClass = getSeatOpacityClass({ status: playerData?.status, hasWinner, isWinner });
 
     // Get winner amount if this player is a winner
     const winnerAmount = React.useMemo(() => {
