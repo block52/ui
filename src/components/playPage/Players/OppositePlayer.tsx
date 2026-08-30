@@ -41,7 +41,7 @@ type OppositePlayerProps = {
 
 const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
     const { id } = useParams<{ id: string }>();
-    const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isBusted, holeCards, round } = usePlayerData(index);
+    const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isSittingIn, isBusted, holeCards, round } = usePlayerData(index);
     const { winnerInfo, winnerBySeat } = useWinnerInfo();
     const winnerCards = useWinnerCards();
     const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
@@ -72,8 +72,10 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     // Check if this player is a winner via the shared seat index (#2455)
     const isWinner = React.useMemo(() => winnerBySeat.has(index), [winnerBySeat, index]);
 
-    // 2) dim non-winners when someone has won, also dim busted players like sitting out
-    const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
+    // 2) dim non-winners when someone has won; also dim players who are not in the
+    //    current hand — seated, sitting out, sitting in (joined, waiting to be dealt
+    //    in next hand), or busted — so they don't read as active.
+    const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isSittingIn || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
 
     // Get winner amount if this player is a winner
     const winnerAmount = React.useMemo(() => {
