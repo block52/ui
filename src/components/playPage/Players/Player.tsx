@@ -18,12 +18,13 @@ import { useNetwork } from "../../../context/NetworkContext";
 import { useActionSubmit } from "../../../context/ActionSubmitContext";
 import { SIT_IN_METHOD_POST_NOW, sitIn } from "../../../hooks/playerActions";
 import { hasElements } from "../../../utils/guards";
+import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 
 const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
         const { id } = useParams<{ id: string }>();
-        const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, isSittingIn, isBusted, holeCards, round } = usePlayerData(index);
+        const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
         const { winnerInfo, winnerBySeat } = useWinnerInfo();
         const winnerCards = useWinnerCards();
         const { extendTime, canExtend, isCurrentUserTurn, isActive: isTurnTimerActive } = usePlayerTimer(id, index);
@@ -94,10 +95,9 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         // 2) memoize winner check via the shared seat index (#2455)
         const isWinner = useMemo(() => winnerBySeat.has(index), [winnerBySeat, index]);
 
-        // 3) dim non-winners when someone has won; also dim players who are not in
-        //    the current hand — seated, sitting out, sitting in (joined, waiting to
-        //    be dealt in next hand), or busted — so they don't read as active.
-        const opacityClass = hasWinner ? (isWinner ? "opacity-100" : "opacity-40") : (isSeated || isSittingOut || isSittingIn || isBusted) ? "opacity-50" : isFolded ? "opacity-60" : "opacity-100";
+        // 3) dim the seat based on how involved this player is in the hand
+        //    (see getSeatOpacityClass — dims seated/sitting-out/sitting-in/busted/folded).
+        const opacityClass = getSeatOpacityClass({ status: playerData?.status, hasWinner, isWinner });
 
         // 4) memoize winner amount
         const winnerAmount = useMemo(() => {
