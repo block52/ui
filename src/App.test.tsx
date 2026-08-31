@@ -29,6 +29,6 @@ describe("App", () => {
 
     it("should auto-close toast notifications after 3 seconds", () => {
         const appSource = fs.readFileSync(path.resolve(__dirname, "App.tsx"), "utf8");
-        expect(appSource).toContain("autoClose={3000}");
+        expect(appSource).toMatch(/<ToastContainer[\s\S]*?autoClose=\{3000\}/m);
     });
 });
