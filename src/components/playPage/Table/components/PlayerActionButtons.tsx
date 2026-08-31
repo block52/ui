@@ -6,7 +6,7 @@
  * Responsive design for mobile, tablet, and desktop viewports.
  */
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 
 import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
 // Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
@@ -98,14 +98,23 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         }
     };
 
+    // When the BB rotates onto our seat, fire the standard SIT_OUT(next-hand)
+    // through the ActionSubmitController — same path as the manual toggle above,
+    // so the two dedupe/serialize instead of racing into a sequence mismatch
+    // (ui#567). Clear the box optimistically once fired; controller toasts any
+    // failure and the user can re-check.
+    const handleAutoSitOutNextBb = useCallback(() => {
+        if (tableId) {
+            submit({ actionName: "sit-out", run: () => sitOut(tableId, currentNetwork) });
+        }
+        setSitOutNextBbQueued(false);
+    }, [tableId, currentNetwork, submit]);
+
     useAutoSitOutNextBB(
-        tableId,
-        currentNetwork,
         findUserSeat(gameState, getCosmosAddressSync()),
         gameState?.bigBlindPosition,
         sitOutNextBbQueued,
-        () => setSitOutNextBbQueued(false), // clear box after fire
-        () => setSitOutNextBbQueued(false)  // also clear on error so user can retry
+        handleAutoSitOutNextBb
     );
 
     const display = getPlayerActionDisplay({
