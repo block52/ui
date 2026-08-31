@@ -12,6 +12,8 @@
  */
 
 import * as React from "react";
+import fs from "fs";
+import path from "path";
 
 describe("App", () => {
     it("should have test infrastructure configured correctly", () => {
@@ -23,5 +25,10 @@ describe("App", () => {
         // Validates React is properly imported and available
         expect(React).toBeDefined();
         expect(React.createElement).toBeDefined();
+    });
+
+    it("should auto-close toast notifications after 3 seconds", () => {
+        const appSource = fs.readFileSync(path.resolve(__dirname, "App.tsx"), "utf8");
+        expect(appSource).toMatch(/<ToastContainer[\s\S]*?autoClose=\{3000\}/m);
     });
 });
