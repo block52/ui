@@ -55,6 +55,42 @@ export const getTotalTimeoutMs = (baseTimeoutMs: number, hasUsedExtension: boole
 };
 
 /**
+ * Stable identifier for the "current turn": the seat to act plus how many actions
+ * have been committed so far. It changes exactly when a new turn begins (someone
+ * acts, so the action count moves, or the seat-to-act changes) and NOT when a
+ * snapshot merely re-stamps or re-broadcasts the same action.
+ */
+export const makeTurnId = (nextToAct: number | undefined | null, actionCount: number): string => {
+    return `${nextToAct ?? "none"}:${actionCount}`;
+};
+
+export interface TurnAnchor {
+    turnId: string;
+    anchorMs: number;
+}
+
+/**
+ * Resolve the countdown anchor for the current turn, keeping it MONOTONIC within a
+ * turn.
+ *
+ * While the turn id is unchanged the previous anchor is preserved, so the elapsed
+ * measurement (now − anchor) can only grow and the countdown can never jump back
+ * up mid-turn. This fixes:
+ *  - #561: a re-broadcast/reordered snapshot re-stamping the last action forward,
+ *    which made the timer run backwards.
+ *  - #560 (reset-to-full path): a snapshot momentarily lacking previousActions,
+ *    where getLatestActionTimestampMs falls back to Date.now() and reset the bar.
+ *
+ * A new turn id re-anchors to that turn's latest action timestamp.
+ */
+export const resolveTurnAnchor = (prev: TurnAnchor, turnId: string, lastActionMs: number): TurnAnchor => {
+    if (prev.turnId === turnId) {
+        return prev;
+    }
+    return { turnId, anchorMs: lastActionMs };
+};
+
+/**
  * Calculate how many whole seconds remain on a player's turn timer.
  *
  * @param currentTimeMs   Current wall-clock time (Date.now())
