@@ -242,13 +242,16 @@ export async function withSigningClientRetry<T>(
  * Does this error look like a Cosmos account-sequence mismatch (SDK code 32,
  * "account sequence mismatch, expected N, got M")?
  *
- * Money-movers (join / leave / top-up) are ORDERED — they carry the account
- * sequence. When a prior money-mover is still pending in the mempool (accepted
- * by CheckTx but not yet committed), a fresh `getSequence` query still returns
- * the pre-increment value, so the next money-mover signs a sequence that
- * collides and the chain rejects it with this error. Repeatable while the
- * pending tx sits uncommitted — which is why "no one can join" (ui#530
- * follow-up). Gameplay actions are UNORDERED and never hit this.
+ * Every tx from an account carries an account sequence (performActionSync uses
+ * standard signAndBroadcastSync). When a prior tx is still pending in the mempool
+ * (accepted by CheckTx but not yet committed), a fresh `getSequence` query still
+ * returns the pre-increment value, so the next tx signs a sequence that collides
+ * and the chain rejects it with this error. Repeatable while the pending tx sits
+ * uncommitted — which is why "no one can join" (ui#530 follow-up).
+ *
+ * This is NOT limited to money-movers: any gameplay / non-player action (e.g.
+ * sit-out) that races a still-pending tx from the same account hits it too, which
+ * is why executeTransportAction now recovers from it as well.
  */
 export function isSequenceMismatchError(err: unknown): boolean {
     const message = err instanceof Error ? err.message : String(err ?? "");
@@ -273,7 +276,7 @@ export function isSequenceMismatchError(err: unknown): boolean {
  * Gameplay actions must NOT use this — they're unordered and never carry a
  * sequence, so they can't hit a sequence mismatch. Use withSigningClientRetry.
  */
-const SEQUENCE_RETRY_DELAY_MS = 1500;
+export const SEQUENCE_RETRY_DELAY_MS = 1500;
 
 export async function withMoneyMoverRetry<T>(
     network: NetworkEndpoints,
