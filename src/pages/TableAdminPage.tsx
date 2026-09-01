@@ -801,17 +801,16 @@ export default function TableAdminPage() {
                                     </div>
                                     <div>
                                         <label className="text-gray-300 text-xs mb-1 block">Rake Percentage (%)</label>
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            min="0"
-                                            max="100"
+                                        <select
                                             value={rakePercentage}
                                             onChange={e => setRakePercentage(e.target.value)}
                                             className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
-                                            placeholder="e.g., 5"
-                                        />
-                                        <p className="text-gray-500 text-xs mt-1">Typically 2.5% - 5%</p>
+                                        >
+                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                                <option key={n} value={String(n)}>{n}%</option>
+                                            ))}
+                                        </select>
+                                        <p className="text-gray-500 text-xs mt-1">Typically 2% - 5%</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
