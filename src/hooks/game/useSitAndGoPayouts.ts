@@ -1,10 +1,11 @@
 import { useMemo } from "react";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { hasElements } from "../../utils/guards";
+import { hasElements, hasValue } from "../../utils/guards";
 
 export interface SitAndGoPayoutPlace {
     place: number;
+    percent: number;
     payout: string;
 }
 
@@ -16,36 +17,44 @@ export interface SitAndGoPayoutsReturn {
 
 const EMPTY: SitAndGoPayoutsReturn = { isSitAndGo: false, prizePool: null, places: [] };
 
-/**
- * SNG payout structure for the Payouts panel.
- *
- * Reads the PVM-authored `payouts[]` straight from the game state — the PVM is
- * the single payout authority (poker-vm#2411) and resolves the exact per-place
- * amounts (correct curve + frozen entrant count + rounding drift). The UI must
- * NOT recompute the split from its own curve table; that third source of truth
- * drifted from what actually pays (poker-vm#2405, ui#497 — a 6-max paid top 3
- * while the panel showed top 2). The PVM sends only absolute amounts, so the
- * panel shows those verbatim — no percentage is derived or displayed.
- */
+const getPercentStructure = (maxPlayers: number): number[] => {
+    if (maxPlayers <= 2) return [100];
+    if (maxPlayers <= 7) return [60, 40];
+    return [50, 30, 20];
+};
+
 export const useSitAndGoPayouts = (): SitAndGoPayoutsReturn => {
     const { gameState, gameFormat } = useGameStateContext();
 
     return useMemo(() => {
         if (gameFormat !== GameFormat.SIT_AND_GO) return EMPTY;
 
-        const payouts = gameState?.payouts;
-        if (!hasElements(payouts)) {
+        const gameOptions = gameState?.gameOptions;
+        if (!gameOptions || !hasValue(gameOptions.minBuyIn) || !hasValue(gameOptions.maxPlayers)) {
             return { isSitAndGo: true, prizePool: null, places: [] };
         }
 
-        const prizePool = payouts.reduce((sum, p) => sum + BigInt(p.amount), 0n);
-        if (prizePool <= 0n) {
+        const buyIn = BigInt(gameOptions.minBuyIn);
+        const maxPlayers = gameOptions.maxPlayers;
+        const prizePool = BigInt(maxPlayers) * buyIn;
+        if (prizePool <= 0n || maxPlayers <= 0) {
             return { isSitAndGo: true, prizePool: null, places: [] };
         }
 
-        const places: SitAndGoPayoutPlace[] = payouts.map(p => ({
-            place: p.place,
-            payout: p.amount
+        const percentages = getPercentStructure(maxPlayers);
+        if (!hasElements(percentages)) return { isSitAndGo: true, prizePool: null, places: [] };
+
+        const payouts = percentages.map(percent => (prizePool * BigInt(percent)) / 100n);
+        const distributed = payouts.reduce((sum, amount) => sum + amount, 0n);
+        const remainder = prizePool - distributed;
+        if (remainder > 0n) {
+            payouts[0] += remainder;
+        }
+
+        const places: SitAndGoPayoutPlace[] = percentages.map((percent, index) => ({
+            place: index + 1,
+            percent,
+            payout: payouts[index].toString()
         }));
 
         return {
@@ -53,5 +62,5 @@ export const useSitAndGoPayouts = (): SitAndGoPayoutsReturn => {
             prizePool: prizePool.toString(),
             places
         };
-    }, [gameFormat, gameState?.payouts]);
+    }, [gameFormat, gameState?.gameOptions]);
 };

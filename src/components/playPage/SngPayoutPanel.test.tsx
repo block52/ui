@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import SngPayoutPanel from "./SngPayoutPanel";
 
 const mockUseSitAndGoPayouts = jest.fn();
@@ -8,36 +8,38 @@ jest.mock("../../hooks/game/useSitAndGoPayouts", () => ({
     useSitAndGoPayouts: () => mockUseSitAndGoPayouts()
 }));
 
-jest.mock("../common/Modal", () => ({
-    Modal: ({ isOpen, children }: { isOpen: boolean; children: React.ReactNode }) => (isOpen ? <div>{children}</div> : null)
-}));
-
 describe("SngPayoutPanel", () => {
     beforeEach(() => {
         jest.clearAllMocks();
     });
 
-    it("shows payout amounts per finishing position without helper copy", () => {
+    it("shows inline payout structure with percentages and amounts", () => {
         mockUseSitAndGoPayouts.mockReturnValue({
             isSitAndGo: true,
-            prizePool: "400000",
+            prizePool: "100000000",
             places: [
-                { place: 1, payout: "280000" },
-                { place: 2, payout: "120000" }
+                { place: 1, percent: 60, payout: "60000000" },
+                { place: 2, percent: 40, payout: "40000000" }
             ]
         });
 
         render(<SngPayoutPanel />);
-        fireEvent.click(screen.getByTestId("sng-payouts-button"));
 
-        expect(screen.getByText("♣")).toBeInTheDocument();
-        expect(screen.getByText("♦")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
-        expect(screen.getByText("Prize Pool")).toBeInTheDocument();
-        expect(screen.getByTestId("sng-payout-place-1")).toHaveTextContent("$0.28");
-        expect(screen.getByTestId("sng-payout-place-2")).toHaveTextContent("$0.12");
-        expect(screen.queryByText(/Payout structure is fixed/i)).not.toBeInTheDocument();
-        // Absolute amounts only — no derived percentage label. (block52/ui#513)
-        expect(screen.queryByText(/%/)).not.toBeInTheDocument();
+        expect(screen.getByTestId("sng-payout-structure")).toBeInTheDocument();
+        expect(screen.getByText("Payout Structure")).toBeInTheDocument();
+        expect(screen.getByText("Prize Pool: $100.00")).toBeInTheDocument();
+        expect(screen.getByTestId("sng-payout-place-1")).toHaveTextContent("1st 60%: $60.00");
+        expect(screen.getByTestId("sng-payout-place-2")).toHaveTextContent("2nd 40%: $40.00");
+    });
+
+    it("renders nothing when not sit and go", () => {
+        mockUseSitAndGoPayouts.mockReturnValue({
+            isSitAndGo: false,
+            prizePool: null,
+            places: []
+        });
+
+        const { container } = render(<SngPayoutPanel />);
+        expect(container.firstChild).toBeNull();
     });
 });

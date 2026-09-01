@@ -116,6 +116,7 @@ import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
 import NoWalletOverlay from "./NoWalletOverlay";
+import SngPayoutPanel from "./SngPayoutPanel";
 
 // Table Error Page
 import TableErrorPage from "./TableErrorPage";
@@ -1469,6 +1470,9 @@ const Table = React.memo(() => {
 
             {/*//! SETTINGS OVERLAY */}
             <TableSettingsSidebar isOpen={openSettings} />
+
+            {/* Sit & Go payout structure */}
+            {gameFormat && isSitAndGoFormat(gameFormat) && <SngPayoutPanel />}
 
 
             {/* Layout Debug Panel */}

@@ -1,5 +1,5 @@
 import { renderHook } from "@testing-library/react";
-import { GameFormat, GameOptionsDTO, PayoutPlaceDTO, TexasHoldemStateDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { GameFormat, GameOptionsDTO, TexasHoldemStateDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { useSitAndGoPayouts } from "./useSitAndGoPayouts";
 
 const mockUseGameStateContext = jest.fn();
@@ -18,8 +18,8 @@ const buildOptions = (overrides: Partial<GameOptionsDTO> = {}): GameOptionsDTO =
     ...overrides
 });
 
-const buildState = (payouts?: PayoutPlaceDTO[]): TexasHoldemStateDTO => ({
-    gameOptions: buildOptions(),
+const buildState = (gameOptions?: GameOptionsDTO): TexasHoldemStateDTO => ({
+    gameOptions,
     smallBlindPosition: 1,
     bigBlindPosition: 2,
     dealer: 1,
@@ -37,7 +37,6 @@ const buildState = (payouts?: PayoutPlaceDTO[]): TexasHoldemStateDTO => ({
     results: [],
     legalActions: [],
     availableSeats: [],
-    payouts,
     signature: "sig"
 });
 
@@ -48,11 +47,11 @@ const setContext = (
     mockUseGameStateContext.mockReturnValue({ gameState, gameFormat });
 };
 
-describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)", () => {
+describe("useSitAndGoPayouts", () => {
     beforeEach(() => jest.clearAllMocks());
 
     it("returns empty struct when format is cash", () => {
-        setContext(buildState([{ place: 1, amount: "20000000" }]), GameFormat.CASH);
+        setContext(buildState(buildOptions()), GameFormat.CASH);
         const { result } = renderHook(() => useSitAndGoPayouts());
         expect(result.current.isSitAndGo).toBe(false);
         expect(result.current.places).toEqual([]);
@@ -67,70 +66,55 @@ describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)",
         expect(result.current.prizePool).toBeNull();
     });
 
-    it("returns empty places when payouts[] is absent (not yet resolved)", () => {
-        setContext(buildState(undefined));
+    it("returns empty places when minBuyIn is missing", () => {
+        setContext(buildState(buildOptions({ minBuyIn: undefined })));
         const { result } = renderHook(() => useSitAndGoPayouts());
         expect(result.current.isSitAndGo).toBe(true);
         expect(result.current.places).toEqual([]);
         expect(result.current.prizePool).toBeNull();
     });
 
-    it("heads-up (single 100% payout) — reads state.payouts", () => {
-        setContext(buildState([{ place: 1, amount: "20000000" }]));
+    it("heads-up uses 100% for first", () => {
+        setContext(buildState(buildOptions({ minBuyIn: "1000000", maxPlayers: 2 })));
         const { result } = renderHook(() => useSitAndGoPayouts());
 
-        expect(result.current.prizePool).toBe("20000000");
+        expect(result.current.prizePool).toBe("2000000");
         expect(result.current.places).toEqual([
-            { place: 1, payout: "20000000" }
+            { place: 1, percent: 100, payout: "2000000" }
         ]);
     });
 
-    it("top-2 structure — passes through absolute amounts, derives the prize pool", () => {
-        setContext(buildState([
-            { place: 1, amount: "39000000" },
-            { place: 2, amount: "21000000" }
-        ]));
+    it("3-7 players uses 60/40 split", () => {
+        setContext(buildState(buildOptions({ minBuyIn: "10000000", maxPlayers: 4 })));
         const { result } = renderHook(() => useSitAndGoPayouts());
 
-        expect(result.current.prizePool).toBe("60000000");
-        expect(result.current.places.map(p => p.payout)).toEqual(["39000000", "21000000"]);
+        expect(result.current.prizePool).toBe("40000000");
+        expect(result.current.places).toEqual([
+            { place: 1, percent: 60, payout: "24000000" },
+            { place: 2, percent: 40, payout: "16000000" }
+        ]);
     });
 
-    it("top-3 structure — the reported 6-max bug now shows all three places", () => {
-        setContext(buildState([
-            { place: 1, amount: "36000000" },
-            { place: 2, amount: "18000000" },
-            { place: 3, amount: "6000000" }
-        ]));
-        const { result } = renderHook(() => useSitAndGoPayouts());
-
-        expect(result.current.prizePool).toBe("60000000");
-        expect(result.current.places.map(p => p.place)).toEqual([1, 2, 3]);
-        expect(result.current.places.map(p => p.payout)).toEqual(["36000000", "18000000", "6000000"]);
-    });
-
-    it("9 players: passes through the absolute amounts from the PVM", () => {
-        setContext(buildState([
-            { place: 1, amount: "45000000" },
-            { place: 2, amount: "27000000" },
-            { place: 3, amount: "18000000" }
-        ]));
+    it("8-10 players uses 50/30/20 split", () => {
+        setContext(buildState(buildOptions({ minBuyIn: "10000000", maxPlayers: 9 })));
         const { result } = renderHook(() => useSitAndGoPayouts());
 
         expect(result.current.prizePool).toBe("90000000");
-        expect(result.current.places.map(p => p.payout)).toEqual(["45000000", "27000000", "18000000"]);
+        expect(result.current.places).toEqual([
+            { place: 1, percent: 50, payout: "45000000" },
+            { place: 2, percent: 30, payout: "27000000" },
+            { place: 3, percent: 20, payout: "18000000" }
+        ]);
     });
 
-    it("does not recompute a curve — it shows exactly what the PVM emitted (drift-to-first)", () => {
-        // A pool that doesn't divide evenly: the PVM already credited the drift to
-        // 1st place. The hook must surface those exact amounts, not re-split.
-        setContext(buildState([
-            { place: 1, amount: "4" }, // 3 base + 1 drift
-            { place: 2, amount: "2" }
-        ]));
+    it("adds integer rounding remainder to first place", () => {
+        setContext(buildState(buildOptions({ minBuyIn: "1", maxPlayers: 3 })));
         const { result } = renderHook(() => useSitAndGoPayouts());
 
-        expect(result.current.prizePool).toBe("6");
-        expect(result.current.places.map(p => p.payout)).toEqual(["4", "2"]);
+        expect(result.current.prizePool).toBe("3");
+        expect(result.current.places).toEqual([
+            { place: 1, percent: 60, payout: "2" },
+            { place: 2, percent: 40, payout: "1" }
+        ]);
     });
 });

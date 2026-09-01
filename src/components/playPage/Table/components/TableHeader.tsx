@@ -17,7 +17,6 @@ import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
-import SngPayoutPanel from "../../SngPayoutPanel";
 import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { BlindLevelInfo } from "../../../../hooks/game/useBlindLevel";
@@ -313,8 +312,6 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     >
                         {openSidebar ? <LuPanelLeftOpen size={14} /> : <LuPanelLeftClose size={14} />}
                     </span>
-                    {gameFormat && isSitAndGoFormat(gameFormat) && <SngPayoutPanel />}
-
                     {/* Only show Leave Table button if user is seated — and never
                         for SNG, where the roster is frozen once play starts
                         (poker-vm#2343) and leave/claim is handled by the SNG
