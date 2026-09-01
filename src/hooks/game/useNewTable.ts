@@ -19,6 +19,7 @@ export interface RakeOptions {
 export interface SNGOptions {
     startingStack: number;       // Starting chips for each player (in chips, not dollars)
     blindLevelDuration?: number; // Minutes per blind level (default: 10)
+    entryFee?: number;           // Flat entry fee in USDC dollars (2dp), skimmed to the creator; omitted/0 = no fee (poker-vm#2118)
 }
 
 // Type for creating new table options
@@ -99,7 +100,10 @@ export const useNewTable = (): UseNewTableReturn => {
             if (gameOptions.sng) {
                 sngConfig = {
                     startingStack: BigInt(gameOptions.sng.startingStack),
-                    blindLevelDuration: gameOptions.sng.blindLevelDuration ?? 0
+                    blindLevelDuration: gameOptions.sng.blindLevelDuration ?? 0,
+                    // Entry fee is quoted in USDC dollars (like the buy-in) and
+                    // converted to micro-units for the chain. Omitted/0 = no fee.
+                    entryFee: hasValue(gameOptions.sng.entryFee) ? usdcToMicroBigInt(gameOptions.sng.entryFee) : 0n
                 };
             }
 
