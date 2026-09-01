@@ -27,7 +27,7 @@ describe("SngPayoutPanel", () => {
 
         expect(screen.getByTestId("sng-payout-structure")).toBeInTheDocument();
         expect(screen.getByText("Payout Structure")).toBeInTheDocument();
-        expect(screen.getByText("Prize Pool: $100.00")).toBeInTheDocument();
+        expect(screen.queryByText("Prize Pool: $100.00")).not.toBeInTheDocument();
         expect(screen.getByTestId("sng-payout-place-1")).toHaveTextContent("1st 60%: $60.00");
         expect(screen.getByTestId("sng-payout-place-2")).toHaveTextContent("2nd 40%: $40.00");
     });

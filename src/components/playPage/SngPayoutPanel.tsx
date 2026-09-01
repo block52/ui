@@ -16,15 +16,11 @@ const SngPayoutPanel: React.FC = () => {
 
     return (
         <div
-            className="fixed right-4 z-20 rounded-xl border border-white/15 bg-black/55 px-3 py-2 backdrop-blur-sm shadow-xl"
-            style={{ bottom: "172px" }}
+            className="w-fit rounded-xl border border-white/15 bg-black/55 px-3 py-2 backdrop-blur-sm shadow-xl"
             data-testid="sng-payout-structure"
         >
             <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wide text-yellow-300 mb-1">
                 Payout Structure
-            </div>
-            <div className="text-[10px] sm:text-xs text-gray-300 mb-1.5">
-                Prize Pool: {formatForCashGame(convertUSDCToNumber(prizePool))}
             </div>
             <ul className="space-y-1">
                 {places.map(({ place, percent, payout }) => (

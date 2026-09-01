@@ -1455,13 +1455,18 @@ const Table = React.memo(() => {
                 <div
                     className={`w-full flex justify-center items-center z-[10] ${
                         isMobileLandscape
-                            ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                            : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                            ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm relative"
+                            : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm relative"
                     }`}
                 >
                     <div className={`w-full flex justify-center items-center h-full ${isMobileLandscape ? "max-w-[500px] px-2" : "max-w-[700px]"}`}>
                         <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                     </div>
+                    {gameFormat && isSitAndGoFormat(gameFormat) && (
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
+                            <SngPayoutPanel />
+                        </div>
+                    )}
                 </div>
             )}
 
@@ -1470,10 +1475,6 @@ const Table = React.memo(() => {
 
             {/*//! SETTINGS OVERLAY */}
             <TableSettingsSidebar isOpen={openSettings} />
-
-            {/* Sit & Go payout structure */}
-            {gameFormat && isSitAndGoFormat(gameFormat) && <SngPayoutPanel />}
-
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
