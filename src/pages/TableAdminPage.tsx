@@ -832,9 +832,9 @@ export default function TableAdminPage() {
                                         <input
                                             type="text"
                                             value={rakeOwner}
-                                            onChange={e => setRakeOwner(e.target.value)}
+                                            readOnly
                                             placeholder={cosmosWallet.address || "b52..."}
-                                            className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm font-mono"
+                                            className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm font-mono cursor-not-allowed opacity-70"
                                         />
                                         <p className="text-gray-500 text-xs mt-1">Defaults to your address</p>
                                     </div>
