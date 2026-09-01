@@ -25,6 +25,7 @@ import { useAutoNewHand } from "./useAutoNewHand";
 import { useAutoFold } from "./useAutoFold";
 import { useAutoMuck } from "./useAutoMuck";
 import { useAutoSitOutNextBB } from "./useAutoSitOutNextBB";
+import { usePreCheck } from "./usePreCheck";
 
 export {
     betHand,
@@ -55,7 +56,8 @@ export {
     useAutoNewHand,
     useAutoFold,
     useAutoMuck,
-    useAutoSitOutNextBB
+    useAutoSitOutNextBB,
+    usePreCheck
 };
 
 export type { OptimisticActionType, SitInMethod, SitOutMethod };

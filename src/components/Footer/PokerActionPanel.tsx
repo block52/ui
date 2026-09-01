@@ -28,6 +28,7 @@ import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
 import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
+import { usePreCheck } from "../../hooks/playerActions/usePreCheck";
 import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
 import { useAutoShowCards } from "../../hooks/playerActions/useAutoShowCards";
 import { useAutoMuck } from "../../hooks/playerActions/useAutoMuck";
@@ -59,6 +60,8 @@ import { ShowdownButtons } from "./ShowdownButtons";
 import { BlindButtonGroup } from "./BlindButtonGroup";
 import { MainActionButtons } from "./MainActionButtons";
 import { RaiseBetControls } from "./RaiseBetControls";
+import { PreCheckControl } from "./PreCheckControl";
+import { isCheckFreeForPlayer } from "../../utils/chipUtils";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
@@ -204,6 +207,52 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         }, // onAutoActionComplete
         () => setAutoLoadingAction(null), // onAutoActionError
         autoFoldEnabled
+    );
+
+    // Pre-select "Check" (ui#388): before it's the player's turn, if checking
+    // would be free, offer a box that auto-checks the instant action reaches them.
+    // Ephemeral per-round intent — NOT a persisted setting.
+    const [preCheckQueued, setPreCheckQueued] = useState(false);
+
+    // "Checking is free for me right now": no one has out-committed me this round
+    // (blind-aware — the preflop BB stays check-free until a raise).
+    const facingNoBet = useMemo(
+        () => isCheckFreeForPlayer(players, userAddress, gameState?.round, gameState?.previousActions ?? []),
+        [players, userAddress, gameState?.round, gameState?.previousActions]
+    );
+
+    // Offer the control only while seated in the hand, not to act, and check-free.
+    const showPreCheck = !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
+
+    // Clear the queued intent when the box should hide for a reason OTHER than it
+    // becoming the player's turn (a bet landed, or they left ACTIVE). When the turn
+    // arrives we intentionally leave it set so usePreCheck can consume it.
+    useEffect(() => {
+        if (preCheckQueued && !isUsersTurn && (!facingNoBet || playerStatus !== PlayerStatus.ACTIVE)) {
+            setPreCheckQueued(false);
+        }
+    }, [preCheckQueued, isUsersTurn, facingNoBet, playerStatus]);
+
+    // A queued pre-check is scoped to the current betting round only.
+    useEffect(() => {
+        setPreCheckQueued(false);
+    }, [gameState?.round]);
+
+    usePreCheck(
+        tableId,
+        network,
+        preCheckQueued,
+        hasCheckAction,
+        isUsersTurn,
+        () => setAutoLoadingAction("check"), // onStarted
+        txHash => {
+            setAutoLoadingAction(null);
+            if (onTransactionSubmitted) {
+                onTransactionSubmitted(txHash);
+            }
+        }, // onComplete
+        () => setAutoLoadingAction(null), // onError
+        () => setPreCheckQueued(false) // onResolved
     );
 
     // Auto-show-cards hook - automatically shows cards when the action timer expires
@@ -449,6 +498,17 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                     isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : "lg:w-[570px] mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full"
                 }`}
             >
+                {/* Pre-select "Check" (ui#388) — offered when it's not your turn
+                    and checking is currently free; auto-checks on your turn, and
+                    clears itself the moment a bet lands. */}
+                {showPreCheck && (
+                    <PreCheckControl
+                        checked={preCheckQueued}
+                        onChange={setPreCheckQueued}
+                        isMobileLandscape={isMobileLandscape}
+                    />
+                )}
+
                 {/* Deal Button Group */}
                 {shouldShowDealButton && (
                     <DealButtonGroup
