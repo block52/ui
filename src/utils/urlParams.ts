@@ -83,3 +83,23 @@ export const getAutoFoldEnabled = (): boolean => {
     // Default to true if param is missing or any value other than "false"
     return autofold !== "false";
 };
+
+/**
+ * Check if the pre-check control is enabled via query string parameter.
+ *
+ * Pre-check (ui#388) is ENABLED by default. It can only be disabled by
+ * explicitly setting ?precheck=false in the URL.
+ *
+ * @returns true if pre-check is enabled, false if explicitly disabled
+ *
+ * @example
+ * // URL: /table/123 -> returns true (default)
+ * // URL: /table/123?precheck=true -> returns true
+ * // URL: /table/123?precheck=false -> returns false
+ */
+export const getPreCheckEnabled = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    const precheck = params.get("precheck");
+    // Default to true if param is missing or any value other than "false"
+    return precheck !== "false";
+};

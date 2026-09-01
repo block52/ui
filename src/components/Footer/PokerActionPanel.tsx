@@ -114,6 +114,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoPostBlinds: autoPostBlindsEnabled,
         autoNewHand: autoNewHandEnabled,
         autoFold: autoFoldEnabled,
+        preCheck: preCheckEnabled,
         autoMuck: autoMuckEnabled,
         playerActionSounds
     } = useGameSettings();
@@ -221,8 +222,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         [players, userAddress, gameState?.round, gameState?.previousActions]
     );
 
-    // Offer the control only while seated in the hand, not to act, and check-free.
-    const showPreCheck = !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
+    // Offer the control only while the feature is enabled (URL/settings toggle,
+    // default on), seated in the hand, not to act, and check-free.
+    const showPreCheck = preCheckEnabled && !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
 
     // Clear the queued intent only when the player genuinely leaves the hand
     // (folded / busted / sat out). We deliberately do NOT clear on a transient
@@ -247,7 +249,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     usePreCheck(
         tableId,
         network,
-        preCheckQueued,
+        preCheckQueued && preCheckEnabled,
         hasCheckAction,
         isUsersTurn,
         () => setAutoLoadingAction("check"), // onStarted

@@ -48,10 +48,12 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
         turnNotificationSound,
         playerActionSounds,
         autoMuck,
+        preCheck,
         sitInOptions,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
+        togglePreCheck,
         toggleSitInOptions
     } = useGameSettings();
 
@@ -82,6 +84,12 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                         description="Automatically muck losing cards at showdown without prompting."
                         checked={autoMuck}
                         onToggle={toggleAutoMuck}
+                    />
+                    <ToggleRow
+                        label="Pre-Select Check"
+                        description="Show a Check box before your turn that auto-checks the moment action reaches you (only ever checks, never folds)."
+                        checked={preCheck}
+                        onToggle={togglePreCheck}
                     />
                     <ToggleRow
                         label="Sit-In Options"
