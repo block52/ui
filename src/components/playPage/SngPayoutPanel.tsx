@@ -6,6 +6,11 @@ import { hasContent, isEmpty } from "../../utils/guards";
 const PLACE_LABELS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
 const ordinal = (place: number): string => PLACE_LABELS[place - 1] ?? `${place}th`;
+const calcPercent = (payout: string, prizePool: string): number => {
+    const pool = BigInt(prizePool);
+    if (pool <= 0n) return 0;
+    return Number((BigInt(payout) * 10000n) / pool) / 100;
+};
 
 const SngPayoutPanel: React.FC = () => {
     const { isSitAndGo, prizePool, places } = useSitAndGoPayouts();
@@ -23,13 +28,13 @@ const SngPayoutPanel: React.FC = () => {
                 Payout Structure
             </div>
             <ul className="space-y-1">
-                {places.map(({ place, percent, payout }) => (
+                {places.map(({ place, payout }) => (
                     <li
                         key={place}
                         className="text-[10px] sm:text-xs text-white font-medium font-mono whitespace-nowrap"
                         data-testid={`sng-payout-place-${place}`}
                     >
-                        {ordinal(place)} {percent}%: {formatForCashGame(convertUSDCToNumber(payout))}
+                        {ordinal(place)} {calcPercent(payout, prizePool)}%: {formatForCashGame(convertUSDCToNumber(payout))}
                     </li>
                 ))}
             </ul>
