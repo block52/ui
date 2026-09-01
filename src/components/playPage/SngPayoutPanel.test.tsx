@@ -30,6 +30,9 @@ describe("SngPayoutPanel", () => {
         render(<SngPayoutPanel />);
         fireEvent.click(screen.getByTestId("sng-payouts-button"));
 
+        expect(screen.getByText("♣")).toBeInTheDocument();
+        expect(screen.getByText("♦")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
         expect(screen.getByText("Prize Pool")).toBeInTheDocument();
         expect(screen.getByTestId("sng-payout-place-1")).toHaveTextContent("$0.28");
         expect(screen.getByTestId("sng-payout-place-2")).toHaveTextContent("$0.12");

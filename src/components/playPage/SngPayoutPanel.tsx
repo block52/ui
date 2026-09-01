@@ -4,6 +4,7 @@ import { Modal } from "../common/Modal";
 import { useSitAndGoPayouts } from "../../hooks/game/useSitAndGoPayouts";
 import { convertUSDCToNumber, formatForCashGame } from "../../utils/numberUtils";
 import { hasContent, isEmpty } from "../../utils/guards";
+import buyInStyles from "../modals/BuyInModal.module.css";
 
 const PLACE_LABELS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 
@@ -21,23 +22,29 @@ const SngPayoutPanel: React.FC = () => {
         <>
             <button
                 onClick={() => setIsOpen(true)}
-                className="flex items-center gap-1 text-[10px] sm:text-[15px] font-semibold transition-colors duration-200 hover:opacity-80 text-yellow-300"
+                className="flex items-center gap-1 text-[10px] sm:text-[15px] font-semibold transition-colors duration-200 hover:opacity-80 px-1 sm:px-2 py-0.5 sm:py-1 rounded text-yellow-300"
                 title="Show payout positions"
                 data-testid="sng-payouts-button"
             >
                 <FaTrophy size={10} />
-                <span className="hidden sm:inline">Payouts</span>
+                <span>Payouts</span>
             </button>
 
             <Modal
                 isOpen={isOpen}
                 onClose={() => setIsOpen(false)}
-                title="Payouts"
-                titleIcon={<FaTrophy size={16} />}
                 widthClass="w-96"
                 patternId="hexagons-sng-payouts"
                 scrollable={false}
+                className={buyInStyles.modalContainer}
             >
+                <h2 className="text-2xl font-bold mb-4 text-white flex items-center">
+                    <span className={`mr-2 ${buyInStyles.suitClub}`}>♣</span>
+                    Payouts
+                    <span className={`ml-2 ${buyInStyles.suitDiamond}`}>♦</span>
+                </h2>
+                <div className={`w-full h-0.5 mb-4 opacity-50 ${buyInStyles.dividerPrimary}`}></div>
+
                 <div className="mb-4 flex items-baseline justify-between rounded-lg bg-black/30 px-3 py-2 border border-white/10">
                     <span className="text-xs font-semibold uppercase tracking-wide text-gray-300">Prize Pool</span>
                     <span className="text-lg font-bold text-white font-mono tabular-nums">
@@ -62,6 +69,12 @@ const SngPayoutPanel: React.FC = () => {
                     ))}
                 </ul>
 
+                <button
+                    onClick={() => setIsOpen(false)}
+                    className={`w-full py-3 rounded-lg text-white font-medium transition-all duration-200 ${buyInStyles.cancelButton}`}
+                >
+                    Close
+                </button>
             </Modal>
         </>
     );

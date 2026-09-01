@@ -281,7 +281,6 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                 <FaShare size={10} />
                                 <span className="hidden sm:inline">Share</span>
                             </button>
-                            <SngPayoutPanel />
                             <a
                                 href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(`${window.location.origin}/explorer/hand/${tableId}/${handNumber}`)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
                                 target="_blank"
@@ -314,6 +313,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     >
                         {openSidebar ? <LuPanelLeftOpen size={14} /> : <LuPanelLeftClose size={14} />}
                     </span>
+                    {gameFormat && isSitAndGoFormat(gameFormat) && <SngPayoutPanel />}
 
                     {/* Only show Leave Table button if user is seated — and never
                         for SNG, where the roster is frozen once play starts
