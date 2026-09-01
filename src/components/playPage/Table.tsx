@@ -1463,7 +1463,7 @@ const Table = React.memo(() => {
                         <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                     </div>
                     {gameFormat && isSitAndGoFormat(gameFormat) && (
-                        <div className="absolute right-4 top-1/2 -translate-y-1/2 z-20">
+                        <div className="absolute right-4 bottom-3 z-20">
                             <SngPayoutPanel />
                         </div>
                     )}
