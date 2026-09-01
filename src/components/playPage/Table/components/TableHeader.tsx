@@ -157,7 +157,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         title="Show QR code for table link"
                     >
                         <FaQrcode size={12} />
-                        <span className="hidden sm:inline">QR Code</span>
+                        <span className="hidden sm:inline">Share via QR Code</span>
                     </button>
                     {/* Game Format & Variant Display - Desktop Only */}
                     {gameOptions && (

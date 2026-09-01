@@ -34,11 +34,12 @@ jest.mock("../../../../context/GameStateContext", () => ({
 // block52/ui#392 reads from this context. Static stub keeps these
 // render/click tests focused on the existing behaviour.
 const mockToggleSeatAtBottom = jest.fn();
+// Mutable so a test can flip sitInOptions. Defaults ON so the method-UI (radio /
+// bootstrap) tests below exercise the panel; the auto-drive (OFF) is tested
+// explicitly. Product default is OFF (auto).
+const mockGameSettings = { seatAtBottom: true, toggleSeatAtBottom: mockToggleSeatAtBottom, sitInOptions: true };
 jest.mock("../../../../context/GameSettingsContext", () => ({
-    useGameSettings: () => ({
-        seatAtBottom: true,
-        toggleSeatAtBottom: mockToggleSeatAtBottom,
-    }),
+    useGameSettings: () => mockGameSettings,
 }));
 
 // Mock getPlayerActionDisplay — import the real module so we can spy on it
@@ -87,6 +88,7 @@ const baseProps: PlayerActionButtonsProps = {
 
 beforeEach(() => {
     mockSubmit.mockClear();
+    mockGameSettings.sitInOptions = true; // method-UI tests; auto-drive test sets false
 });
 
 describe("PlayerActionButtons", () => {
@@ -116,36 +118,57 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("Waiting for players to join...")).toBeInTheDocument();
     });
 
-    it("renders sit-in button for sit-in-options", () => {
+    it("renders the two sit-in radios (commit-on-select), no confirm button", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
                 totalSeatedPlayers={3}
                 handNumber={5}
                 hasActivePlayers={true}
             />
         );
-        expect(screen.getByRole("button", { name: "Sit In Next Hand" })).toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: "Sit In Next Big Blind" })).toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: "Sit In Next Hand" })).toBeInTheDocument();
+        // No action/confirm buttons in the sit-in panel anymore.
+        expect(screen.queryByRole("button", { name: "Sit In" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Sit In Next Hand" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Sit In And Wait for BB" })).not.toBeInTheDocument();
     });
 
-    it("sit-in button submits a sit-in action through the controller", () => {
+    it("selecting Sit In Next Big Blind submits under the sit-in key", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
                 totalSeatedPlayers={3}
                 handNumber={5}
                 hasActivePlayers={true}
             />
         );
-        fireEvent.click(screen.getByRole("button", { name: "Sit In Next Hand" }));
+        fireEvent.click(screen.getByRole("radio", { name: "Sit In Next Big Blind" }));
         expect(mockSubmit).toHaveBeenCalledWith(
             expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
         );
     });
 
-    it("does NOT render Sit In Next Big Blind text anywhere", () => {
+    it("selecting Sit In Next Hand submits under the sit-in key", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        fireEvent.click(screen.getByRole("radio", { name: "Sit In Next Hand" }));
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
+        );
+    });
+
+    it("hides Sit In Next Big Blind when SIT_IN_AND_WAIT is not legal", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -155,7 +178,8 @@ describe("PlayerActionButtons", () => {
                 hasActivePlayers={true}
             />
         );
-        expect(screen.queryByText(/Sit In Next Big Blind/i)).not.toBeInTheDocument();
+        expect(screen.queryByRole("radio", { name: "Sit In Next Big Blind" })).not.toBeInTheDocument();
+        expect(screen.getByRole("radio", { name: "Sit In Next Hand" })).toBeInTheDocument();
     });
 
     it("renders pending state with waiting message", () => {
@@ -209,5 +233,63 @@ describe("PlayerActionButtons", () => {
         expect(screen.getAllByRole("checkbox")).toHaveLength(2);
         expect(screen.getByText("Sit Out Next Hand")).toBeInTheDocument();
         expect(screen.getByText("Sit Out Next Big Blind")).toBeInTheDocument();
+    });
+
+    // ui#50: empty-table bootstrap shows a single explicit "Sit In" button and
+    // must NOT auto-fire the action (the old auto-sit-in behavior is gone).
+    it("renders a single explicit Sit In button on bootstrap and does NOT auto-submit", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={2}
+                handNumber={1}
+                hasActivePlayers={false}
+            />
+        );
+        expect(screen.getByRole("button", { name: "Sit In" })).toBeInTheDocument();
+        // The two-option labels are NOT used on bootstrap.
+        expect(screen.queryByRole("button", { name: "Sit In Next Hand" })).not.toBeInTheDocument();
+        expect(screen.queryByText("Starting game...")).not.toBeInTheDocument();
+        // Crucially, nothing is submitted on mount — the player must click.
+        expect(mockSubmit).not.toHaveBeenCalled();
+    });
+
+    it("bootstrap Sit In button submits a post-now sit-in when clicked", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN)]}
+                totalSeatedPlayers={2}
+                handNumber={1}
+                hasActivePlayers={false}
+            />
+        );
+        fireEvent.click(screen.getByRole("button", { name: "Sit In" }));
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
+        );
+    });
+
+    // ui#550: with sitInOptions OFF (product default), taking a seat auto-sits-in —
+    // no radios/buttons, and the sit-in fires automatically on mount.
+    it("auto-sits-in and shows an indicator when sitInOptions is off", () => {
+        mockGameSettings.sitInOptions = false;
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        // Fires the sit-in automatically (post-now), no user interaction.
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
+        );
+        // No method UI shown.
+        expect(screen.queryByRole("radio", { name: "Sit In Next Big Blind" })).not.toBeInTheDocument();
+        expect(screen.getByText("Sitting in...")).toBeInTheDocument();
     });
 });

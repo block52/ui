@@ -8,9 +8,9 @@ import { foldHand } from "../playerActions/foldHand";
 import { checkHand } from "../playerActions/checkHand";
 import { usePlayerLegalActions } from "../playerActions/usePlayerLegalActions";
 import { useGameOptions } from "../game/useGameOptions";
-import { isEmpty, isNullish } from "../../utils/guards";
+import { isEmpty, isNullish, safeLength } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
-import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent } from "../../utils/timerUtils";
+import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
 
 // Global state to track time extensions per seat
 const timeExtensions = new Map<string, { extensionTime: number; hasUsedExtension: boolean }>();
@@ -63,6 +63,21 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
         [gameState?.previousActions]
     );
 
+    // Keep the countdown anchor monotonic WITHIN a turn. The raw lastActionTimestamp
+    // is re-derived on every snapshot, so a re-broadcast that re-stamps the last
+    // action (#561) or a snapshot momentarily missing previousActions — where the
+    // util falls back to Date.now() (#560 reset-to-full) — would move the anchor
+    // forward and make the timer jump back up. We re-anchor only when the turn
+    // identity (seat-to-act + action count) actually changes.
+    const actionCount = safeLength(gameState?.previousActions);
+    const turnId = useMemo(
+        () => makeTurnId(gameState?.nextToAct, actionCount),
+        [gameState?.nextToAct, actionCount]
+    );
+    const turnAnchorRef = useRef<TurnAnchor>({ turnId: "", anchorMs: lastActionTimestamp });
+    turnAnchorRef.current = resolveTurnAnchor(turnAnchorRef.current, turnId, lastActionTimestamp);
+    const anchoredActionTimestamp = turnAnchorRef.current.anchorMs;
+
     // Check if this player is next to act
     const isNextToAct = useMemo((): boolean => {
         return gameState?.nextToAct === playerSeat;
@@ -108,8 +123,8 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
     // Calculate time remaining via shared util
     const timeRemaining = useMemo((): number => {
         if (!isNextToAct) return 0;
-        return calcTimeRemaining(currentTime, lastActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
-    }, [currentTime, lastActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
+        return calcTimeRemaining(currentTime, anchoredActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
+    }, [currentTime, anchoredActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
 
     // Function to extend time
     const extendTime = useCallback(() => {
@@ -210,8 +225,8 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
     // Calculate progress (0-100) via shared util
     const _progress = useMemo(() => {
         if (!isNextToAct) return 0;
-        return calcProgressPercent(currentTime, lastActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
-    }, [currentTime, lastActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
+        return calcProgressPercent(currentTime, anchoredActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
+    }, [currentTime, anchoredActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
 
     // Debug logging (only in development)
     useEffect(() => {

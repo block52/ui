@@ -49,6 +49,7 @@ export const useGameOptions = (): GameOptionsReturn => {
                 rake: options.rake,
                 startingStack: options.startingStack,
                 blindLevelDuration: options.blindLevelDuration,
+                entryFee: options.entryFee,
                 otherOptions: options.otherOptions || {}
             } as Required<GameOptionsDTO>;
         } catch (err) {

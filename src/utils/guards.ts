@@ -43,6 +43,17 @@ export function hasElements<T>(arr: T[] | null | undefined): arr is T[] {
 }
 
 /**
+ * Get the length of an array, treating null/undefined as 0.
+ * Use when you need the actual count (not just empty/non-empty), e.g. to detect
+ * that a new element landed.
+ * @example
+ * const actionCount = safeLength(previousActions); // 0 when null/undefined
+ */
+export function safeLength<T>(arr: T[] | null | undefined): number {
+    return arr?.length ?? 0;
+}
+
+/**
  * Check if string is empty, null, or undefined.
  * @example
  * if (isBlank(data)) { throw new Error("Data required"); }

@@ -103,6 +103,9 @@ export default function TableAdminPage() {
     // SNG/Tournament specific settings
     const [startingStack, setStartingStack] = useState(1500);
     const [blindLevelDuration, setBlindLevelDuration] = useState(10);
+    // Flat entry fee in USDC dollars (2dp), skimmed to the creator on top of the
+    // buy-in. "0" = no fee. (poker-vm#2118)
+    const [entryFee, setEntryFee] = useState("0");
     const [showStructure, setShowStructure] = useState(false);
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
 
@@ -197,7 +200,8 @@ export default function TableAdminPage() {
         // Build SNG config if this is a tournament/SNG
         const sngConfig = isTournament ? {
             startingStack,
-            blindLevelDuration
+            blindLevelDuration,
+            entryFee: parseFloat(entryFee) || 0
         } : undefined;
 
         // Store the table count before creating to verify a new table was added
@@ -452,6 +456,21 @@ export default function TableAdminPage() {
                                         placeholder="e.g., 10.00"
                                     />
                                     <p className="text-gray-500 text-xs mt-1">All players pay the same buy in</p>
+                                </div>
+
+                                {/* Entry Fee */}
+                                <div>
+                                    <label className="text-gray-300 text-xs mb-1 block">Entry Fee ($)</label>
+                                    <input
+                                        type="number"
+                                        step="0.01"
+                                        min="0"
+                                        value={entryFee}
+                                        onChange={e => setEntryFee(e.target.value)}
+                                        className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                                        placeholder="e.g., 0.50"
+                                    />
+                                    <p className="text-gray-500 text-xs mt-1">Flat fee to the creator on top of the buy in — 0 for none</p>
                                 </div>
 
                                 {/* Starting Stack */}
@@ -782,17 +801,16 @@ export default function TableAdminPage() {
                                     </div>
                                     <div>
                                         <label className="text-gray-300 text-xs mb-1 block">Rake Percentage (%)</label>
-                                        <input
-                                            type="number"
-                                            step="0.1"
-                                            min="0"
-                                            max="100"
+                                        <select
                                             value={rakePercentage}
                                             onChange={e => setRakePercentage(e.target.value)}
                                             className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
-                                            placeholder="e.g., 5"
-                                        />
-                                        <p className="text-gray-500 text-xs mt-1">Typically 2.5% - 5%</p>
+                                        >
+                                            {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
+                                                <option key={n} value={String(n)}>{n}%</option>
+                                            ))}
+                                        </select>
+                                        <p className="text-gray-500 text-xs mt-1">Typically 2% - 5%</p>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">

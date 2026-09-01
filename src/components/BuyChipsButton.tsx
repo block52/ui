@@ -8,7 +8,6 @@ interface BuyChipsButtonProps {
     minBuyIn: string; // USDC micro-units
     maxBuyIn: string; // USDC micro-units
     walletBalance: string; // USDC micro-units
-    canTopUp: boolean; // Whether player can currently top up
     onTopUp: (amount: string) => Promise<void>; // Callback for top-up action
 }
 
@@ -16,8 +15,8 @@ interface BuyChipsButtonProps {
  * BuyChipsButton component
  *
  * Displays a Top-Up Chips button at the bottom-right of the table UI.
- * Visible whenever the user is seated (#401); the disabled state reflects
- * whether the chain currently accepts a top-up request.
+ * Visible and always clickable whenever the user is seated (#401).
+ * Top-up requests submitted mid-hand are applied at the start of the next hand.
  *
  * Location: Bottom-right of table screen (as per issue #774).
  */
@@ -27,7 +26,6 @@ const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
     minBuyIn,
     maxBuyIn,
     walletBalance,
-    canTopUp,
     onTopUp
 }) => {
     const [showModal, setShowModal] = useState(false);
@@ -46,11 +44,8 @@ const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
         <>
             <button
                 onClick={() => setShowModal(true)}
-                disabled={!canTopUp}
-                className={`px-4 py-2 rounded-lg font-medium text-white shadow-md transition-all duration-200 ${
-                    canTopUp ? styles.topUpEnabled : styles.topUpDisabled
-                }`}
-                title={canTopUp ? "Add chips for the next hand" : "Top-up not available right now"}
+                className={`px-4 py-2 rounded-lg font-medium text-white shadow-md transition-all duration-200 ${styles.topUpEnabled}`}
+                title="Add chips for the next hand"
             >
                 💰 TOP-UP CHIPS
             </button>

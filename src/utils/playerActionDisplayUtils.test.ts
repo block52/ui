@@ -22,6 +22,9 @@ const base: PlayerActionDisplayInput = {
     totalSeatedPlayers: 0,
     handNumber: 1,
     hasActivePlayers: false,
+    // These tests exercise the sit-in method UI, which shows when the toggle is ON.
+    // The auto-drive (toggle OFF) default is covered in its own describe block.
+    sitInOptions: true,
 };
 
 // ===== isBootstrap =====
@@ -75,7 +78,7 @@ describe("shouldShowPlayerActionPanel", () => {
         })).toBe(true);
     });
 
-    it("returns true when auto-sit-in (bootstrap)", () => {
+    it("returns true when sit-in-bootstrap (bootstrap)", () => {
         expect(shouldShowPlayerActionPanel({
             ...base,
             legalActions: [action(NonPlayerActionType.SIT_IN)],
@@ -157,9 +160,9 @@ describe("getPlayerActionDisplay", () => {
         expect(result).toEqual({ kind: "waiting-for-players" });
     });
 
-    // --- AC-2: Bootstrap — auto-sit-in when no active players, handNumber 1 ---
+    // --- AC-2: Bootstrap — single explicit "Sit In" when no active players, handNumber 1 ---
 
-    it("returns auto-sit-in for bootstrap: no active players, hand 1, has SIT_IN", () => {
+    it("returns sit-in-bootstrap for bootstrap: no active players, hand 1, has SIT_IN", () => {
         const result = getPlayerActionDisplay({
             ...base,
             legalActions: [action(NonPlayerActionType.SIT_IN)],
@@ -167,10 +170,10 @@ describe("getPlayerActionDisplay", () => {
             handNumber: 1,
             hasActivePlayers: false,
         });
-        expect(result).toEqual({ kind: "auto-sit-in" });
+        expect(result).toEqual({ kind: "sit-in-bootstrap" });
     });
 
-    it("returns auto-sit-in for bootstrap with mixed actions (SIT_IN + LEAVE)", () => {
+    it("returns sit-in-bootstrap for bootstrap with mixed actions (SIT_IN + LEAVE)", () => {
         const result = getPlayerActionDisplay({
             ...base,
             legalActions: [
@@ -181,6 +184,44 @@ describe("getPlayerActionDisplay", () => {
             totalSeatedPlayers: 2,
             handNumber: 1,
             hasActivePlayers: false,
+        });
+        expect(result).toEqual({ kind: "sit-in-bootstrap" });
+    });
+
+    // --- Auto-drive: sitInOptions OFF (default) → auto-sit-in instead of a panel ---
+
+    it("returns auto-sit-in when sitInOptions is off (default), running table", () => {
+        const result = getPlayerActionDisplay({
+            ...base,
+            sitInOptions: false,
+            legalActions: [action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)],
+            totalSeatedPlayers: 3,
+            handNumber: 5,
+            hasActivePlayers: true,
+        });
+        expect(result).toEqual({ kind: "auto-sit-in" });
+    });
+
+    it("returns auto-sit-in when sitInOptions is off on an empty table (bootstrap)", () => {
+        const result = getPlayerActionDisplay({
+            ...base,
+            sitInOptions: false,
+            legalActions: [action(NonPlayerActionType.SIT_IN)],
+            totalSeatedPlayers: 2,
+            handNumber: 1,
+            hasActivePlayers: false,
+        });
+        expect(result).toEqual({ kind: "auto-sit-in" });
+    });
+
+    it("defaults to auto-sit-in when sitInOptions is omitted", () => {
+        const result = getPlayerActionDisplay({
+            playerStatus: null,
+            sitInMethod: null,
+            legalActions: [action(NonPlayerActionType.SIT_IN)],
+            totalSeatedPlayers: 3,
+            handNumber: 5,
+            hasActivePlayers: true,
         });
         expect(result).toEqual({ kind: "auto-sit-in" });
     });

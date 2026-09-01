@@ -41,14 +41,15 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const publicKey = useMemo(() => localStorage.getItem(STORAGE_KEYS.cosmosAddress) || undefined, []);
 
     // Calculate formatted values
-    const { maxBuyInFormatted, balanceFormatted, smallBlindFormatted, bigBlindFormatted, startingStackFormatted } = useMemo(() => {
+    const { maxBuyInFormatted, balanceFormatted, smallBlindFormatted, bigBlindFormatted, startingStackFormatted, entryFeeFormatted } = useMemo(() => {
         if (!gameOptions) {
             return {
                 maxBuyInFormatted: "0",
                 balanceFormatted: 0,
                 smallBlindFormatted: "0",
                 bigBlindFormatted: "0",
-                startingStackFormatted: "0"
+                startingStackFormatted: "0",
+                entryFeeFormatted: "0.00"
             };
         }
 
@@ -59,7 +60,8 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 balanceFormatted: 0,
                 smallBlindFormatted: "0.00",
                 bigBlindFormatted: "0.00",
-                startingStackFormatted: "0"
+                startingStackFormatted: "0",
+                entryFeeFormatted: "0.00"
             };
         }
 
@@ -85,12 +87,18 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             ? formatForSitAndGo(Number(gameOptions.startingStack))
             : "0";
 
+        // Entry fee is USDC microunits (like the buy-in); "0"/absent = no fee
+        const entryFee = gameOptions.entryFee && gameOptions.entryFee !== "0"
+            ? formatUSDCToSimpleDollars(gameOptions.entryFee)
+            : "0.00";
+
         return {
             maxBuyInFormatted: maxFormatted,
             balanceFormatted: balance,
             smallBlindFormatted: smallBlind,
             bigBlindFormatted: bigBlind,
-            startingStackFormatted: startingStack
+            startingStackFormatted: startingStack,
+            entryFeeFormatted: entryFee
         };
     }, [gameOptions, accountBalance]);
 
@@ -290,6 +298,15 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                                         <span className="text-white font-semibold">${maxBuyInFormatted}</span>
                                     </div>
                                 </div>
+
+                                {entryFeeFormatted !== "0.00" && (
+                                    <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-400 text-sm">Entry Fee:</span>
+                                            <span className="text-white font-semibold">${entryFeeFormatted}</span>
+                                        </div>
+                                    </div>
+                                )}
 
                                 <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
                                     <div className="flex justify-between items-center">

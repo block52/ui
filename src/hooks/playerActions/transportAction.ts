@@ -15,7 +15,7 @@ import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
-import { getSigningClient } from "../../utils/cosmos/client";
+import { getSigningClient, isSequenceMismatchError, clearSigningClientCache, SEQUENCE_RETRY_DELAY_MS } from "../../utils/cosmos/client";
 import { hasElements } from "../../utils/guards";
 
 let latestGameState: TexasHoldemStateDTO | undefined;
@@ -91,6 +91,23 @@ export function isStaleIndexError(err: unknown): boolean {
 // state that has since advanced. Kept short so the action-error toast reads well.
 export const STALE_INDEX_MESSAGE = "Your turn advanced while you were acting — please try again.";
 
+async function broadcastAction(
+    tableId: string,
+    action: string,
+    amount: bigint,
+    network: NetworkEndpoints,
+    data?: string
+): Promise<PlayerActionResult> {
+    const { signingClient } = await getSigningClient(network);
+    const transactionHash = await signingClient.performActionSync(tableId, action, amount, data);
+    return {
+        hash: transactionHash,
+        gameId: tableId,
+        action,
+        amount: amount.toString()
+    };
+}
+
 export async function executeTransportAction(
     tableId: string,
     action: string,
@@ -99,15 +116,28 @@ export async function executeTransportAction(
     data?: string
 ): Promise<PlayerActionResult> {
     try {
-        const { signingClient } = await getSigningClient(network);
-        const transactionHash = await signingClient.performActionSync(tableId, action, amount, data);
-        return {
-            hash: transactionHash,
-            gameId: tableId,
-            action,
-            amount: amount.toString()
-        };
+        return await broadcastAction(tableId, action, amount, network, data);
     } catch (err) {
+        // Account sequence mismatch (Cosmos code 32): a prior tx from this account
+        // is still pending in the mempool, so getSequence returned a stale
+        // (already-consumed) value and this action signed a colliding sequence.
+        // code-32 is a CheckTx rejection — the action was NOT applied — so clear
+        // the cached client, wait a beat for the pending tx to commit and bump the
+        // on-chain sequence, then retry once. Every gameplay / non-player action
+        // (e.g. sit-out) can hit this when it races a still-pending tx. See ui#530
+        // follow-up / withMoneyMoverRetry, which recovers the same way for joins.
+        if (isSequenceMismatchError(err)) {
+            clearSigningClientCache();
+            await new Promise(resolve => setTimeout(resolve, SEQUENCE_RETRY_DELAY_MS));
+            try {
+                return await broadcastAction(tableId, action, amount, network, data);
+            } catch (retryErr) {
+                if (isStaleIndexError(retryErr)) {
+                    throw new Error(STALE_INDEX_MESSAGE);
+                }
+                throw retryErr;
+            }
+        }
         // Rewrite the raw "Invalid action index" into a clear, retryable prompt
         // (ui#530). A rejected action was NOT applied, so re-submitting is safe.
         // Every other error propagates unchanged.
