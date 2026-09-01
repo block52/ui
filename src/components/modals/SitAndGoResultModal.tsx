@@ -3,7 +3,7 @@
  *
  * One-shot modal shown to the current user once they've finished a
  * Sit-and-Go tournament. Surfaces the place + payout (or a "thanks
- * for playing" message for unpaid finishes), with a "Leave Table"
+ * for playing" message for unpaid finishes), with a "Spectate Table"
  * CTA that fires the chain leave so the table can be reaped.
  *
  * Triggering logic lives inside this component (rather than the
@@ -44,7 +44,7 @@ const dismissKey = (tableId: string, userAddress: string) =>
 interface SitAndGoResultModalProps {
     tableId: string | undefined;
     /**
-     * Invoked when the user clicks "Leave Table". Should fire the
+     * Invoked when the user clicks "Spectate Table". Should fire the
      * chain leave action so the finished table can be reaped (see
      * acceptance criteria in block52/ui#371). The parent passes
      * `handleLeaveTableConfirm` here.
@@ -293,7 +293,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
                             data-testid="sng-result-leave-btn"
                             className="w-full py-3 px-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-semibold hover:bg-red-500/20 hover:border-red-500/60 transition-colors duration-200"
                         >
-                            Leave Table
+                            Spectate Table
                         </button>
                     )}
 
