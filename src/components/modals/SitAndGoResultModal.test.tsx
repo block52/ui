@@ -113,7 +113,7 @@ describe("SitAndGoResultModal", () => {
         expect(screen.queryByTestId("sng-result-payout")).toBeNull();
     });
 
-    it("unpaid finisher: Leave Table button fires onLeave and persists dismissal", async () => {
+    it("unpaid finisher: Spectate Table button fires onLeave and persists dismissal", async () => {
         const onLeave = jest.fn();
         mockGetPlayerResult.mockReturnValue({ place: 4, payout: "0", isWinner: false });
         render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={jest.fn()} />);
