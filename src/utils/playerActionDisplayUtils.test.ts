@@ -226,6 +226,22 @@ describe("getPlayerActionDisplay", () => {
         expect(result).toEqual({ kind: "auto-sit-in" });
     });
 
+    it("does NOT auto-sit-in a deliberately sat-out player (default toggle) — ui#51", () => {
+        // Regression: a SITTING_OUT player keeps a legal SIT_IN so they can return.
+        // Auto-driving it would immediately undo their sit-out ("sat me out, then
+        // dealt me in"). They must opt back in explicitly → manual sit-in panel.
+        const result = getPlayerActionDisplay({
+            ...base,
+            sitInOptions: false,
+            playerStatus: PlayerStatus.SITTING_OUT,
+            legalActions: [action(NonPlayerActionType.SIT_IN)],
+            totalSeatedPlayers: 2,
+            handNumber: 5,
+            hasActivePlayers: true,
+        });
+        expect(result).toEqual({ kind: "sit-in-options" });
+    });
+
     it("returns sit-in-options (NOT auto) when hand > 1", () => {
         const result = getPlayerActionDisplay({
             ...base,

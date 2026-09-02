@@ -83,7 +83,12 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
     // show the method UI: a single explicit "Sit In" on an empty table (no orbit yet)
     // or the next-BB/post-now radios mid-orbit.
     if (hasSitInAction) {
-        if (!sitInOptions) {
+        // A player who DELIBERATELY sat out is SITTING_OUT and still gets a legal
+        // SIT_IN (so they can return). Auto-driving that would immediately undo the
+        // sit-out — "sat me out, then dealt me in" (ui#51). Auto-sit-in is only for
+        // a fresh joiner (SEATED/null); a sat-out player must opt back in explicitly.
+        const deliberatelySatOut = playerStatus === PlayerStatus.SITTING_OUT;
+        if (!sitInOptions && !deliberatelySatOut) {
             return { kind: "auto-sit-in" };
         }
         if (isBootstrap(hasActivePlayers, handNumber)) {
