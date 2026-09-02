@@ -98,6 +98,26 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         }
     };
 
+    // Sit-out intent is a mutually-exclusive choice (#763): a player queues AT
+    // MOST one of Next-Hand / Next-Big-Blind, so the three options below are
+    // radios, not checkboxes. Selecting one clears the other; "Play On" clears
+    // both. Next-Hand is chain-backed (pendingSitOut) and toggled via sitOut();
+    // Next-BB is a browser-only queued intent (useAutoSitOutNextBB).
+    const selectSitOutNextHand = () => {
+        setSitOutNextBbQueued(false); // clear the local BB intent
+        if (!isChecked) handleToggleSitOutNextHand(); // fire chain toggle only off→on
+    };
+
+    const selectSitOutNextBb = () => {
+        if (isChecked) handleToggleSitOutNextHand(); // cancel the chain Next-Hand first
+        setSitOutNextBbQueued(true);
+    };
+
+    const selectPlayOn = () => {
+        setSitOutNextBbQueued(false); // clear local BB intent
+        if (isChecked) handleToggleSitOutNextHand(); // cancel chain Next-Hand
+    };
+
     // When the BB rotates onto our seat, fire the standard SIT_OUT(next-hand)
     // through the ActionSubmitController — same path as the manual toggle above,
     // so the two dedupe/serialize instead of racing into a sequence mismatch
@@ -334,15 +354,32 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 </div>
             );
 
-        case "sit-out-button":
+        case "sit-out-button": {
+            // Mutually-exclusive sit-out intent (#763): radios, not checkboxes.
+            // "Play On" (neither queued) is the default so the player can back
+            // out of a queued sit-out.
+            const playOnSelected = !isChecked && !sitOutNextBbQueued;
             return seatedFrame(
                 <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
                     <label className="flex items-center cursor-pointer">
                         <input
-                            type="checkbox"
+                            type="radio"
+                            name="sit-out-intent"
+                            checked={playOnSelected}
+                            onChange={selectPlayOn}
+                            className="form-radio h-4 w-4 text-amber-500 border-gray-500 focus:ring-0"
+                        />
+                        <span className={`ml-2 ${playOnSelected ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                            Play On
+                        </span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                        <input
+                            type="radio"
+                            name="sit-out-intent"
                             checked={isChecked}
-                            onChange={handleToggleSitOutNextHand}
-                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                            onChange={selectSitOutNextHand}
+                            className="form-radio h-4 w-4 text-amber-500 border-gray-500 focus:ring-0"
                         />
                         <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
                             Sit Out Next Hand
@@ -350,10 +387,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     </label>
                     <label className="flex items-center cursor-pointer">
                         <input
-                            type="checkbox"
+                            type="radio"
+                            name="sit-out-intent"
                             checked={sitOutNextBbQueued}
-                            onChange={() => setSitOutNextBbQueued(prev => !prev)}
-                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                            onChange={selectSitOutNextBb}
+                            className="form-radio h-4 w-4 text-amber-500 border-gray-500 focus:ring-0"
                         />
                         <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
                             Sit Out Next Big Blind
@@ -361,6 +399,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     </label>
                 </div>
             );
+        }
 
         case "waiting-for-players":
             return seatedFrame(
