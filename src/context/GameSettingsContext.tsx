@@ -9,12 +9,13 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
-import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled } from "../utils/urlParams";
+import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled, getPreCheckEnabled } from "../utils/urlParams";
 
 const LS_KEY_AUTO_DEAL = "setting_autodeal";
 const LS_KEY_AUTO_POST_BLINDS = "setting_autoblinds";
 const LS_KEY_AUTO_NEW_HAND = "setting_autonewhand";
 const LS_KEY_AUTO_FOLD = "setting_autofold";
+const LS_KEY_PRE_CHECK = "setting_precheck";
 const LS_KEY_AUTO_MUCK = "setting_automuck";
 const LS_KEY_TURN_SOUND = "setting_turnsound";
 const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
@@ -32,6 +33,10 @@ export interface GameSettings {
     autoPostBlinds: boolean;
     autoNewHand: boolean;
     autoFold: boolean;
+    // Master toggle for the pre-select "Check" control (ui#388). The per-round
+    // tick itself is ephemeral local state in PokerActionPanel; this only gates
+    // whether the control is offered at all.
+    preCheck: boolean;
     autoMuck: boolean;
     turnNotificationSound: boolean;
     playerActionSounds: boolean;
@@ -46,6 +51,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleAutoPostBlinds: () => void;
     toggleAutoNewHand: () => void;
     toggleAutoFold: () => void;
+    togglePreCheck: () => void;
     toggleAutoMuck: () => void;
     toggleTurnNotificationSound: () => void;
     togglePlayerActionSounds: () => void;
@@ -67,6 +73,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [autoFold, setAutoFold] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_AUTO_FOLD, getAutoFoldEnabled())
+    );
+    const [preCheck, setPreCheck] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_PRE_CHECK, getPreCheckEnabled())
     );
     const [autoMuck, setAutoMuck] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_AUTO_MUCK, false)
@@ -112,6 +121,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setAutoFold(prev => {
             const next = !prev;
             localStorage.setItem(LS_KEY_AUTO_FOLD, String(next));
+            return next;
+        });
+    }, []);
+
+    const togglePreCheck = useCallback(() => {
+        setPreCheck(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_PRE_CHECK, String(next));
             return next;
         });
     }, []);
@@ -162,6 +179,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             autoPostBlinds,
             autoNewHand,
             autoFold,
+            preCheck,
             autoMuck,
             turnNotificationSound,
             playerActionSounds,
@@ -171,6 +189,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleAutoPostBlinds,
             toggleAutoNewHand,
             toggleAutoFold,
+            togglePreCheck,
             toggleAutoMuck,
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
@@ -182,6 +201,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             autoPostBlinds,
             autoNewHand,
             autoFold,
+            preCheck,
             autoMuck,
             turnNotificationSound,
             playerActionSounds,
@@ -191,6 +211,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleAutoPostBlinds,
             toggleAutoNewHand,
             toggleAutoFold,
+            togglePreCheck,
             toggleAutoMuck,
             toggleTurnNotificationSound,
             togglePlayerActionSounds,

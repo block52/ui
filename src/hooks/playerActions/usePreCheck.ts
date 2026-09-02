@@ -1,6 +1,15 @@
 import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { checkHand } from "./checkHand";
+import { viteEnv } from "../../utils/viteEnv";
+
+// DEV-only trace so manual testers can see exactly if/why the pre-check fires.
+// Gated through viteEnv (Jest maps it to process.env, so it stays silent in tests).
+const preCheckLog = (msg: string, data?: unknown): void => {
+    if (viteEnv.DEV) {
+        console.log(`[PRECHECK] ${msg}`, data ?? "");
+    }
+};
 
 /**
  * Pre-select "Check" (ui#388).
@@ -56,15 +65,18 @@ export function usePreCheck(
         // A bet slipped in on the same tick → CHECK is no longer free. Resolve
         // without acting; the player gets their normal turn.
         if (!hasCheckRef.current) {
+            preCheckLog("abort — CHECK no longer legal at fire time, taking manual turn");
             onResolved?.();
             return;
         }
 
         isProcessingRef.current = true;
         onStarted?.();
+        preCheckLog("submitting CHECK", { tableId });
 
         try {
             const result = await checkHand(tableId, network);
+            preCheckLog("CHECK submitted ok", result.hash);
             onComplete?.(result.hash);
         } catch (error) {
             console.error("Pre-check failed:", error);
@@ -81,6 +93,7 @@ export function usePreCheck(
 
         if (shouldFire) {
             hasTriggeredRef.current = true;
+            preCheckLog("turn reached with pre-check queued — scheduling CHECK in 500ms");
             // Small delay so state settles before we read legality (mirrors useAutoFold).
             const timeoutId = setTimeout(() => {
                 fire();

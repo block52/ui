@@ -114,6 +114,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoPostBlinds: autoPostBlindsEnabled,
         autoNewHand: autoNewHandEnabled,
         autoFold: autoFoldEnabled,
+        preCheck: preCheckEnabled,
         autoMuck: autoMuckEnabled,
         playerActionSounds
     } = useGameSettings();
@@ -221,19 +222,26 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         [players, userAddress, gameState?.round, gameState?.previousActions]
     );
 
-    // Offer the control only while seated in the hand, not to act, and check-free.
-    const showPreCheck = !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
+    // Offer the control only while the feature is enabled (URL/settings toggle,
+    // default on), seated in the hand, not to act, and check-free.
+    const showPreCheck = preCheckEnabled && !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
 
-    // Clear the queued intent when the box should hide for a reason OTHER than it
-    // becoming the player's turn (a bet landed, or they left ACTIVE). When the turn
-    // arrives we intentionally leave it set so usePreCheck can consume it.
+    // Clear the queued intent only when the player genuinely leaves the hand
+    // (folded / busted / sat out). We deliberately do NOT clear on a transient
+    // `facingNoBet` dip: the paced rendered track churns between snapshots as the
+    // opponent acts, and clearing on those transients was unticking the box
+    // mid-street before the player's turn arrived (heads-up #388 flicker). If a
+    // real bet lands, `showPreCheck` already hides the box (facingNoBet=false) and
+    // usePreCheck re-checks CHECK legality at fire time, so it can never fold — no
+    // clear needed here for the bet case.
     useEffect(() => {
-        if (preCheckQueued && !isUsersTurn && (!facingNoBet || playerStatus !== PlayerStatus.ACTIVE)) {
+        if (preCheckQueued && playerStatus !== PlayerStatus.ACTIVE) {
             setPreCheckQueued(false);
         }
-    }, [preCheckQueued, isUsersTurn, facingNoBet, playerStatus]);
+    }, [preCheckQueued, playerStatus]);
 
-    // A queued pre-check is scoped to the current betting round only.
+    // A queued pre-check is scoped to the current betting round only: it resets at
+    // the start of each street (the user re-ticks per street — the agreed UX).
     useEffect(() => {
         setPreCheckQueued(false);
     }, [gameState?.round]);
@@ -241,7 +249,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     usePreCheck(
         tableId,
         network,
-        preCheckQueued,
+        preCheckQueued && preCheckEnabled,
         hasCheckAction,
         isUsersTurn,
         () => setAutoLoadingAction("check"), // onStarted
