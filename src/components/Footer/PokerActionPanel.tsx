@@ -115,7 +115,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoNewHand: autoNewHandEnabled,
         autoFold: autoFoldEnabled,
         autoMuck: autoMuckEnabled,
-        playerActionSounds
+        playerActionSounds,
+        preSelectCheck
     } = useGameSettings();
 
     // Get user address
@@ -221,8 +222,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         [players, userAddress, gameState?.round, gameState?.previousActions]
     );
 
-    // Offer the control only while seated in the hand, not to act, and check-free.
-    const showPreCheck = !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
+    // Offer the control only while the opt-in setting is ON (default OFF, ui#388),
+    // and then only while seated in the hand, not to act, and check-free.
+    const showPreCheck = preSelectCheck && !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
 
     // Clear the queued intent when the box should hide for a reason OTHER than it
     // becoming the player's turn (a bet landed, or they left ACTIVE). When the turn

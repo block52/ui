@@ -191,10 +191,10 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         ) : null;
 
     // Seat-orientation toggle (#392): a pure local view preference that rotates
-    // the table so the local player sits at 6 o'clock. Surfaced both while
-    // choosing to sit in AND while waiting for the big blind (#2139) — these are
-    // the only places a just-seated player can reach it (no settings-sidebar
-    // equivalent exists), so the waiting state must keep offering it.
+    // the table so the local player sits at 6 o'clock. It is a persistent view
+    // setting with no settings-sidebar equivalent, so it is rendered ALWAYS while
+    // the local player is seated — above every panel (sit-in, waiting, sit-out) —
+    // via `seatedFrame` below, rather than only in the sit-in states (#392/#2139).
     const seatAtBottomToggle = (
         <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
             <label className="flex items-center cursor-pointer">
@@ -209,6 +209,20 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 </span>
             </label>
         </div>
+    );
+
+    // Every seated-state panel shares the same anchored column: the 6-o'clock
+    // toggle pinned at the top, the state-specific panel(s) stacked beneath it.
+    // Each switch case now returns just its own panel content via this wrapper,
+    // so the toggle is guaranteed to render regardless of sit-in/out/waiting.
+    const seatedFrame = (panel: React.ReactNode) => (
+        <>
+            {buyChipsElement}
+            <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
+                {seatAtBottomToggle}
+                {panel}
+            </div>
+        </>
     );
 
     if (!isCurrentUserSeated) {
@@ -236,62 +250,50 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     }
     switch (display.kind) {
         case "pending":
-            return (
-                <>
-                    {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                            <div className="flex items-center gap-2">
-                                <div className="animate-pulse w-2 h-2 rounded-full bg-yellow-400" />
-                                <span className={`text-yellow-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{display.waitingMessage}</span>
-                            </div>
-                        </div>
-                        {display.showSeatOption && seatAtBottomToggle}
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                    <div className="flex items-center gap-2">
+                        <div className="animate-pulse w-2 h-2 rounded-full bg-yellow-400" />
+                        <span className={`text-yellow-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{display.waitingMessage}</span>
                     </div>
-                </>
+                </div>
             );
 
         case "sit-in-options":
             // Original design (ui#112): a radio group inside the opaque panel that
             // commits on selection — no confirm button. "Sit In Next Big Blind"
             // (wait-for-BB) shows only when the chain offers SIT_IN_AND_WAIT.
-            return (
-                <>
-                    {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
-                        {seatAtBottomToggle}
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 flex flex-col gap-2 ${isCompact ? "p-2" : "p-3"}`}>
-                            {canSitInAndWait && (
-                                <label className="flex items-center cursor-pointer">
-                                    <input
-                                        type="radio"
-                                        name="sit-in-method"
-                                        disabled={sittingIn}
-                                        onChange={handleSitInWait}
-                                        className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
-                                    />
-                                    <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Big Blind</span>
-                                </label>
-                            )}
-                            <label className="flex items-center cursor-pointer">
-                                <input
-                                    type="radio"
-                                    name="sit-in-method"
-                                    disabled={sittingIn}
-                                    onChange={handleSitInClick}
-                                    className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
-                                />
-                                <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Hand</span>
-                            </label>
-                            {sittingIn && (
-                                <div className="flex items-center gap-2">
-                                    <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
-                                    <span className={`text-green-300 ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
-                                </div>
-                            )}
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 flex flex-col gap-2 ${isCompact ? "p-2" : "p-3"}`}>
+                    {canSitInAndWait && (
+                        <label className="flex items-center cursor-pointer">
+                            <input
+                                type="radio"
+                                name="sit-in-method"
+                                disabled={sittingIn}
+                                onChange={handleSitInWait}
+                                className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
+                            />
+                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Big Blind</span>
+                        </label>
+                    )}
+                    <label className="flex items-center cursor-pointer">
+                        <input
+                            type="radio"
+                            name="sit-in-method"
+                            disabled={sittingIn}
+                            onChange={handleSitInClick}
+                            className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
+                        />
+                        <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Hand</span>
+                    </label>
+                    {sittingIn && (
+                        <div className="flex items-center gap-2">
+                            <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                            <span className={`text-green-300 ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
                         </div>
-                    </div>
-                </>
+                    )}
+                </div>
             );
 
         case "sit-in-bootstrap":
@@ -299,99 +301,80 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             // before the first hand starts. Next-BB vs Post-Now is meaningless with
             // no orbit yet, so offer a single "Sit In" button (posts on the first
             // hand once both seats have sat in).
-            return (
-                <>
-                    {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
-                        {seatAtBottomToggle}
-                        <button
-                            onClick={handleSitInClick}
-                            disabled={sittingIn}
-                            className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
-                                sittingIn
-                                    ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
-                                    : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95 animate-pulse"
-                            } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
-                        >
-                            {sittingIn ? (
-                                <>
-                                    <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
-                                    Sitting in...
-                                </>
-                            ) : (
-                                "Sit In"
-                            )}
-                        </button>
-                    </div>
-                </>
+            return seatedFrame(
+                <button
+                    onClick={handleSitInClick}
+                    disabled={sittingIn}
+                    className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                        sittingIn
+                            ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
+                            : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95 animate-pulse"
+                    } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
+                >
+                    {sittingIn ? (
+                        <>
+                            <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                            Sitting in...
+                        </>
+                    ) : (
+                        "Sit In"
+                    )}
+                </button>
             );
 
         case "auto-sit-in":
             // Default flow (ui#550): sitting in happens automatically (see the
             // effect above) — show a brief indicator, no method UI.
-            return (
-                <>
-                    {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass}`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                            <div className="flex items-center gap-2">
-                                <div className="w-3 h-3 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
-                                <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
-                            </div>
-                        </div>
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                    <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
+                        <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
                     </div>
-                </>
+                </div>
             );
 
         case "sit-out-button":
-            return (
-                <>
-                    {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass}`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
-                            <label className="flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={isChecked}
-                                    onChange={handleToggleSitOutNextHand}
-                                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
-                                />
-                                <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
-                                    Sit Out Next Hand
-                                </span>
-                            </label>
-                            <label className="flex items-center cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={sitOutNextBbQueued}
-                                    onChange={() => setSitOutNextBbQueued(prev => !prev)}
-                                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
-                                />
-                                <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
-                                    Sit Out Next Big Blind
-                                </span>
-                            </label>
-                        </div>
-                    </div>
-                </>
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
+                    <label className="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={handleToggleSitOutNextHand}
+                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                        />
+                        <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                            Sit Out Next Hand
+                        </span>
+                    </label>
+                    <label className="flex items-center cursor-pointer">
+                        <input
+                            type="checkbox"
+                            checked={sitOutNextBbQueued}
+                            onChange={() => setSitOutNextBbQueued(prev => !prev)}
+                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                        />
+                        <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                            Sit Out Next Big Blind
+                        </span>
+                    </label>
+                </div>
             );
 
         case "waiting-for-players":
-            return (
-                <>
-                    {buyChipsElement}
-                    <div className={`fixed z-30 ${positionClass}`}>
-                        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
-                            <div className="flex items-center gap-2">
-                                <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
-                                <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Waiting for players to join...</span>
-                            </div>
-                        </div>
+            return seatedFrame(
+                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                    <div className="flex items-center gap-2">
+                        <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
+                        <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Waiting for players to join...</span>
                     </div>
-                </>
+                </div>
             );
 
         case "none":
-            return buyChipsElement;
+            // Seated but no panel to show (e.g. mid-hand): still surface the
+            // 6-o'clock toggle so it is always reachable while seated.
+            return seatedFrame(null);
     }
 };

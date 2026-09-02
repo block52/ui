@@ -20,6 +20,7 @@ const LS_KEY_TURN_SOUND = "setting_turnsound";
 const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
 const LS_KEY_SEAT_AT_BOTTOM = "setting_seatatbottom";
 const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
+const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -39,6 +40,11 @@ export interface GameSettings {
     // When OFF (default), taking a seat auto-sits-in (dealt in next hand). When ON,
     // the sit-in method radios are shown so the player chooses (ui#550/#551).
     sitInOptions: boolean;
+    // When OFF (default), the pre-emptive "Check" box (ui#388) is hidden. When ON,
+    // it appears before your turn while checking would be free, so you can queue
+    // an auto-check. Pure view/opt-in preference — the queued intent itself stays
+    // ephemeral per-round.
+    preSelectCheck: boolean;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -51,6 +57,7 @@ export interface GameSettingsContextValue extends GameSettings {
     togglePlayerActionSounds: () => void;
     toggleSeatAtBottom: () => void;
     toggleSitInOptions: () => void;
+    togglePreSelectCheck: () => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue | null>(null);
@@ -82,6 +89,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [sitInOptions, setSitInOptions] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_SITIN_OPTIONS, false)
+    );
+    const [preSelectCheck, setPreSelectCheck] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_PRE_SELECT_CHECK, false)
     );
 
     const toggleAutoDeal = useCallback(() => {
@@ -156,6 +166,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const togglePreSelectCheck = useCallback(() => {
+        setPreSelectCheck(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_PRE_SELECT_CHECK, String(next));
+            return next;
+        });
+    }, []);
+
     const value = useMemo<GameSettingsContextValue>(
         () => ({
             autoDeal,
@@ -167,6 +185,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             playerActionSounds,
             seatAtBottom,
             sitInOptions,
+            preSelectCheck,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -175,7 +194,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
             toggleSeatAtBottom,
-            toggleSitInOptions
+            toggleSitInOptions,
+            togglePreSelectCheck
         }),
         [
             autoDeal,
@@ -187,6 +207,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             playerActionSounds,
             seatAtBottom,
             sitInOptions,
+            preSelectCheck,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -195,7 +216,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
             toggleSeatAtBottom,
-            toggleSitInOptions
+            toggleSitInOptions,
+            togglePreSelectCheck
         ]
     );
 

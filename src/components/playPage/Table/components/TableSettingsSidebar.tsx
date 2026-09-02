@@ -49,10 +49,12 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
         playerActionSounds,
         autoMuck,
         sitInOptions,
+        preSelectCheck,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
-        toggleSitInOptions
+        toggleSitInOptions,
+        togglePreSelectCheck
     } = useGameSettings();
 
     return (
@@ -88,6 +90,12 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                         description="Choose how to enter (Sit In Next Hand vs Next Big Blind) when you take a seat. When off, you're sat in automatically and dealt in next hand."
                         checked={sitInOptions}
                         onToggle={toggleSitInOptions}
+                    />
+                    <ToggleRow
+                        label="Pre-Select Check"
+                        description="Show a Check box before your turn when checking is free, so you can queue an auto-check. Clears if a bet lands — it can only ever check, never fold."
+                        checked={preSelectCheck}
+                        onToggle={togglePreSelectCheck}
                     />
                 </div>
             </div>
