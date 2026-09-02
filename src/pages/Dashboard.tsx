@@ -349,7 +349,7 @@ const Dashboard: React.FC = () => {
     // Removed: Game selection button handlers - no longer needed
 
     return (
-        <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
+        <div className="min-h-screen flex flex-col justify-start items-center relative overflow-hidden pt-20">
             {/* Animated background with hexagon pattern */}
             <AnimatedBackground />
 
@@ -952,7 +952,7 @@ const Dashboard: React.FC = () => {
                     )}
 
                     {/* Two-column layout: Wallet (fixed width) on left, Tables (flex) on right */}
-                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-8 sm:mt-12 lg:mt-16">
+                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-4">
                         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                             {/* Left column: Wallet and Transactions (fixed width) */}
                             <div className="w-full lg:w-[400px] flex-shrink-0 space-y-4">
