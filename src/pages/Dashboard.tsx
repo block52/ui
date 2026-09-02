@@ -952,7 +952,7 @@ const Dashboard: React.FC = () => {
                     )}
 
                     {/* Two-column layout: Wallet (fixed width) on left, Tables (flex) on right */}
-                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-8 sm:mt-12 lg:mt-16">
+                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-2 sm:mt-4 lg:mt-6">
                         <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                             {/* Left column: Wallet and Transactions (fixed width) */}
                             <div className="w-full lg:w-[400px] flex-shrink-0 space-y-4">
