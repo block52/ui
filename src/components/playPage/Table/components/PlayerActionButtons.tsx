@@ -8,10 +8,10 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 
-import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
+import { GameFormat, LegalActionDTO } from "@block52/poker-vm-sdk";
 // Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
 // wrappers) so the ActionSubmitController can classify + surface the error.
-import { SIT_IN_METHOD_POST_NOW, sitIn, sitInAndWait, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
+import { SIT_IN_METHOD_POST_NOW, sitIn, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { getPlayerActionDisplay } from "../../../../utils/playerActionDisplayUtils";
 import { toast } from "react-toastify";
@@ -164,15 +164,6 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
     };
 
-    // Sit In Next Big Blind (wait-for-BB): the engine's distinct SIT_IN_AND_WAIT
-    // action (the live Go engine treats plain SIT_IN as post-now-only). Only offered
-    // when the chain surfaces it as a legal action.
-    const canSitInAndWait = legalActions.some(a => a.action === NonPlayerActionType.SIT_IN_AND_WAIT);
-    const handleSitInWait = () => {
-        if (!tableId) return toast.error("Table ID is missing. Cannot sit in.");
-        submit({ actionName: "sit-in", run: () => sitInAndWait(tableId, currentNetwork) });
-    };
-
     // Top-Up Chips button: always visible and clickable while the user is seated (#401),
     // but completely hidden in SNG games where top-ups are not allowed (#2172).
     // Mid-hand top-ups are accepted by the chain and applied at the start of the next hand.
@@ -260,40 +251,29 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             );
 
         case "sit-in-options":
-            // Original design (ui#112): a radio group inside the opaque panel that
-            // commits on selection — no confirm button. "Sit In Next Big Blind"
-            // (wait-for-BB) shows only when the chain offers SIT_IN_AND_WAIT.
+            // Ignition model: a sat-out player returns with a single "I am back"
+            // button — one intent, no method choice (the two-radio Next-Hand/Next-BB
+            // picker is gone). Sits in post-now; the engine decides re-entry (posts
+            // the BB on entry, dead-SB on the SB seat — no deadlock, #2553/#2556).
             return seatedFrame(
-                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 flex flex-col gap-2 ${isCompact ? "p-2" : "p-3"}`}>
-                    {canSitInAndWait && (
-                        <label className="flex items-center cursor-pointer">
-                            <input
-                                type="radio"
-                                name="sit-in-method"
-                                disabled={sittingIn}
-                                onChange={handleSitInWait}
-                                className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
-                            />
-                            <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Big Blind</span>
-                        </label>
-                    )}
-                    <label className="flex items-center cursor-pointer">
-                        <input
-                            type="radio"
-                            name="sit-in-method"
-                            disabled={sittingIn}
-                            onChange={handleSitInClick}
-                            className="form-radio h-4 w-4 text-green-500 border-gray-500 focus:ring-0"
-                        />
-                        <span className={`ml-2 text-white ${isCompact ? "text-xs" : "text-sm"}`}>Sit In Next Hand</span>
-                    </label>
-                    {sittingIn && (
-                        <div className="flex items-center gap-2">
+                <button
+                    onClick={handleSitInClick}
+                    disabled={sittingIn}
+                    className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                        sittingIn
+                            ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
+                            : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95"
+                    } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
+                >
+                    {sittingIn ? (
+                        <>
                             <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
-                            <span className={`text-green-300 ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
-                        </div>
+                            Sitting in...
+                        </>
+                    ) : (
+                        "I am back"
                     )}
-                </div>
+                </button>
             );
 
         case "sit-in-bootstrap":
