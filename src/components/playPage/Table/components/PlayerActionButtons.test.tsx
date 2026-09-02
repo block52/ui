@@ -227,7 +227,7 @@ describe("PlayerActionButtons", () => {
         mockGameStateContext.gameFormat = undefined;
     });
 
-    it("renders the mutually-exclusive sit-out radios when SIT_OUT action available", () => {
+    it("renders both independent sit-out checkboxes when SIT_OUT action available", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -236,16 +236,15 @@ describe("PlayerActionButtons", () => {
                 handNumber={2}
             />
         );
-        // #763: sit-out intent is a single mutually-exclusive choice — radios, not
-        // checkboxes. "Play On" is the default (neither sit-out queued).
-        const radios = screen.getAllByRole("radio");
-        expect(radios).toHaveLength(3);
-        expect(screen.getByRole("radio", { name: "Play On" })).toBeChecked();
-        expect(screen.getByRole("radio", { name: "Sit Out Next Hand" })).not.toBeChecked();
-        expect(screen.getByRole("radio", { name: "Sit Out Next Big Blind" })).not.toBeChecked();
+        // #763 / Ignition: two INDEPENDENT queued conditions — both can be checked;
+        // the first applicable one triggers. Checkboxes, not radios. (The always-
+        // shown "Seat me at 6 o'clock" toggle is also a checkbox, so assert by name
+        // rather than raw count.)
+        expect(screen.getByRole("checkbox", { name: "Sit Out Next Hand" })).toBeInTheDocument();
+        expect(screen.getByRole("checkbox", { name: "Sit Out Next Big Blind" })).toBeInTheDocument();
     });
 
-    it("selecting 'Sit Out Next Hand' submits a sit-out action", () => {
+    it("checking 'Sit Out Next Hand' submits a sit-out action", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -254,11 +253,11 @@ describe("PlayerActionButtons", () => {
                 handNumber={2}
             />
         );
-        fireEvent.click(screen.getByRole("radio", { name: "Sit Out Next Hand" }));
+        fireEvent.click(screen.getByRole("checkbox", { name: "Sit Out Next Hand" }));
         expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ actionName: "sit-out" }));
     });
 
-    it("selecting 'Sit Out Next Big Blind' queues locally without submitting", () => {
+    it("checking 'Sit Out Next Big Blind' queues locally without submitting", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -267,10 +266,10 @@ describe("PlayerActionButtons", () => {
                 handNumber={2}
             />
         );
-        // Browser-only intent (#114): no transaction at click time.
-        fireEvent.click(screen.getByRole("radio", { name: "Sit Out Next Big Blind" }));
-        expect(screen.getByRole("radio", { name: "Sit Out Next Big Blind" })).toBeChecked();
-        expect(screen.getByRole("radio", { name: "Play On" })).not.toBeChecked();
+        // Browser-only intent (#114): no transaction at click time. Independent of
+        // "Sit Out Next Hand" — both boxes can be checked at once.
+        fireEvent.click(screen.getByRole("checkbox", { name: "Sit Out Next Big Blind" }));
+        expect(screen.getByRole("checkbox", { name: "Sit Out Next Big Blind" })).toBeChecked();
         expect(mockSubmit).not.toHaveBeenCalled();
     });
 
