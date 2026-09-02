@@ -1455,8 +1455,8 @@ const Table = React.memo(() => {
                 <div
                     className={`w-full flex justify-center items-center z-[10] ${
                         isMobileLandscape
-                            ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm relative"
-                            : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm relative"
+                            ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                            : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
                     }`}
                 >
                     <div className={`w-full flex justify-center items-center h-full ${isMobileLandscape ? "max-w-[500px] px-2" : "max-w-[700px]"}`}>

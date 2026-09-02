@@ -5,9 +5,13 @@ import { PlayerActionButtons, PlayerActionButtonsProps } from "./PlayerActionBut
 import { SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 
-// Mock BuyChipsButton to avoid import.meta.env issues
+// Mock BuyChipsButton to avoid import.meta.env issues. Emit a testid so tests
+// can assert its presence/absence directly (the wrapper's .fixed.z-30 class is
+// now also used by the always-shown 6-o'clock toggle frame).
 jest.mock("../../../BuyChipsButton", () => {
-    return function MockBuyChipsButton() { return null; };
+    return function MockBuyChipsButton() {
+        return <div data-testid="buy-chips-button" />;
+    };
 });
 
 // Mock useTableTopUp hook
@@ -103,9 +107,10 @@ describe("PlayerActionButtons", () => {
         );
         // Per #401 AC-1 the Top-Up Chips button slot is always present while seated;
         // its inner BuyChipsButton (mocked here) renders disabled when chain rejects.
-        // Confirm: a single wrapper div, no other action panels.
-        expect(container.children).toHaveLength(1);
-        expect(container.firstChild).toHaveClass("fixed", "z-30");
+        // The 6-o'clock toggle (#392) is also always shown while seated, so the
+        // `none` display renders it too — no other action panels beyond these.
+        expect(container.querySelector(".fixed.z-30")).not.toBeNull();
+        expect(screen.getByText("Seat me at 6 o'clock")).toBeInTheDocument();
     });
 
     it("renders waiting for players message for solo player", () => {
@@ -118,7 +123,7 @@ describe("PlayerActionButtons", () => {
         expect(screen.getByText("Waiting for players to join...")).toBeInTheDocument();
     });
 
-    it("renders the two sit-in radios (commit-on-select), no confirm button", () => {
+    it("renders a single 'I am back' button (Ignition model), no method radios", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -128,58 +133,26 @@ describe("PlayerActionButtons", () => {
                 hasActivePlayers={true}
             />
         );
-        expect(screen.getByRole("radio", { name: "Sit In Next Big Blind" })).toBeInTheDocument();
-        expect(screen.getByRole("radio", { name: "Sit In Next Hand" })).toBeInTheDocument();
-        // No action/confirm buttons in the sit-in panel anymore.
-        expect(screen.queryByRole("button", { name: "Sit In" })).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Sit In Next Hand" })).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Sit In And Wait for BB" })).not.toBeInTheDocument();
-    });
-
-    it("selecting Sit In Next Big Blind submits under the sit-in key", () => {
-        render(
-            <PlayerActionButtons
-                {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
-                totalSeatedPlayers={3}
-                handNumber={5}
-                hasActivePlayers={true}
-            />
-        );
-        fireEvent.click(screen.getByRole("radio", { name: "Sit In Next Big Blind" }));
-        expect(mockSubmit).toHaveBeenCalledWith(
-            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
-        );
-    });
-
-    it("selecting Sit In Next Hand submits under the sit-in key", () => {
-        render(
-            <PlayerActionButtons
-                {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
-                totalSeatedPlayers={3}
-                handNumber={5}
-                hasActivePlayers={true}
-            />
-        );
-        fireEvent.click(screen.getByRole("radio", { name: "Sit In Next Hand" }));
-        expect(mockSubmit).toHaveBeenCalledWith(
-            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
-        );
-    });
-
-    it("hides Sit In Next Big Blind when SIT_IN_AND_WAIT is not legal", () => {
-        render(
-            <PlayerActionButtons
-                {...baseProps}
-                legalActions={[action(NonPlayerActionType.SIT_IN)]}
-                totalSeatedPlayers={3}
-                handNumber={5}
-                hasActivePlayers={true}
-            />
-        );
+        expect(screen.getByRole("button", { name: "I am back" })).toBeInTheDocument();
+        // The old Next-Hand / Next-BB method picker is gone.
         expect(screen.queryByRole("radio", { name: "Sit In Next Big Blind" })).not.toBeInTheDocument();
-        expect(screen.getByRole("radio", { name: "Sit In Next Hand" })).toBeInTheDocument();
+        expect(screen.queryByRole("radio", { name: "Sit In Next Hand" })).not.toBeInTheDocument();
+    });
+
+    it("clicking 'I am back' submits a post-now sit-in", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_IN), action(NonPlayerActionType.SIT_IN_AND_WAIT)]}
+                totalSeatedPlayers={3}
+                handNumber={5}
+                hasActivePlayers={true}
+            />
+        );
+        fireEvent.click(screen.getByRole("button", { name: "I am back" }));
+        expect(mockSubmit).toHaveBeenCalledWith(
+            expect.objectContaining({ actionName: "sit-in", run: expect.any(Function) })
+        );
     });
 
     it("renders pending state with waiting message", () => {
@@ -216,12 +189,13 @@ describe("PlayerActionButtons", () => {
                 handNumber={2}
             />
         );
-        // The wrapping div for BuyChipsButton should not be rendered in SNG
-        expect(container.querySelector(".fixed.z-30")).toBeNull();
+        // BuyChipsButton must not render in SNG (top-ups disallowed), even with
+        // TOP_UP legal. The always-shown 6-o'clock toggle may still render.
+        expect(screen.queryByTestId("buy-chips-button")).toBeNull();
         mockGameStateContext.gameFormat = undefined;
     });
 
-    it("renders both sit-out checkboxes when SIT_OUT action available", () => {
+    it("renders both independent sit-out checkboxes when SIT_OUT action available", () => {
         render(
             <PlayerActionButtons
                 {...baseProps}
@@ -230,9 +204,41 @@ describe("PlayerActionButtons", () => {
                 handNumber={2}
             />
         );
-        expect(screen.getAllByRole("checkbox")).toHaveLength(2);
-        expect(screen.getByText("Sit Out Next Hand")).toBeInTheDocument();
-        expect(screen.getByText("Sit Out Next Big Blind")).toBeInTheDocument();
+        // #763 / Ignition: two INDEPENDENT queued conditions — both can be checked;
+        // the first applicable one triggers. Checkboxes, not radios. (The always-
+        // shown "Seat me at 6 o'clock" toggle is also a checkbox, so assert by name
+        // rather than raw count.)
+        expect(screen.getByRole("checkbox", { name: "Sit Out Next Hand" })).toBeInTheDocument();
+        expect(screen.getByRole("checkbox", { name: "Sit Out Next Big Blind" })).toBeInTheDocument();
+    });
+
+    it("checking 'Sit Out Next Hand' submits a sit-out action", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_OUT)]}
+                totalSeatedPlayers={3}
+                handNumber={2}
+            />
+        );
+        fireEvent.click(screen.getByRole("checkbox", { name: "Sit Out Next Hand" }));
+        expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({ actionName: "sit-out" }));
+    });
+
+    it("checking 'Sit Out Next Big Blind' queues locally without submitting", () => {
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_OUT)]}
+                totalSeatedPlayers={3}
+                handNumber={2}
+            />
+        );
+        // Browser-only intent (#114): no transaction at click time. Independent of
+        // "Sit Out Next Hand" — both boxes can be checked at once.
+        fireEvent.click(screen.getByRole("checkbox", { name: "Sit Out Next Big Blind" }));
+        expect(screen.getByRole("checkbox", { name: "Sit Out Next Big Blind" })).toBeChecked();
+        expect(mockSubmit).not.toHaveBeenCalled();
     });
 
     // ui#50: empty-table bootstrap shows a single explicit "Sit In" button and

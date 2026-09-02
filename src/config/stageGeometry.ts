@@ -650,9 +650,6 @@ export function calculateZoom(
 
     const result = Math.max(MIN_SCALE, Math.min(fitScale, MAX_GLOBAL_SCALE));
 
-    // DEBUG: remove once positioning is dialled in
-    console.log(`[zoom] mode=${mode} tableSize=${tableSize} container=${containerWidth}x${containerHeight} usable=${usableWidth.toFixed(0)}x${usableHeight.toFixed(0)} bounds=${bounds.width.toFixed(0)}x${bounds.height.toFixed(0)} scaleW=${scaleByWidth.toFixed(3)} scaleH=${scaleByHeight.toFixed(3)} → zoom=${result.toFixed(3)}`);
-
     return result;
 }
 
@@ -721,8 +718,6 @@ export function getTableTransform(
         const tx = usableCenterX + offsetX + zoom * cy;
         const ty = usableCenterY - zoom * cx;
 
-        console.log(`[transform:portrait] center=(${cx},${cy}) usableCenter=${usableCenterX.toFixed(0)},${usableCenterY.toFixed(0)} tx=${tx.toFixed(1)} ty=${ty.toFixed(1)} zoom=${zoom.toFixed(3)}`);
-
         // Using matrix: scale(z) * rotate(90deg) = matrix(0, z, -z, 0, tx, ty)
         return `matrix(0, ${zoom}, ${-zoom}, 0, ${tx.toFixed(1)}, ${ty.toFixed(1)})`;
     }
@@ -730,8 +725,6 @@ export function getTableTransform(
     // Normal (non-rotated) modes
     const tx = usableCenterX - scaledCenterX;
     const ty = usableCenterY - scaledCenterY;
-
-    console.log(`[transform] container=${containerWidth}x${containerHeight} usableCenter=${usableCenterX.toFixed(0)},${usableCenterY.toFixed(0)} tx=${tx.toFixed(1)} ty=${ty.toFixed(1)} zoom=${zoom.toFixed(3)}`);
 
     return `translate(${tx.toFixed(1)}px, ${ty.toFixed(1)}px) scale(${zoom})`;
 }

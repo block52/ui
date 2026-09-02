@@ -86,6 +86,20 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
         return seats;
     }, [winnerInfo]);
 
+    // Seat colour is bound to the SEAT NUMBER, not the physical UI position.
+    // The layout config lists colours in seat order (index i → seat i+1), so we
+    // map them once here and look up by seatNumber below. Previously the render
+    // read `position.color` (the colour of the physical slot), which meant a
+    // player's colour changed whenever the table rotated (6 o'clock toggle). Now
+    // seat 3 is always its colour, wherever it renders on screen.
+    const seatColorByNumber = React.useMemo(() => {
+        const bySeat = new Map<number, string>();
+        tableLayout.positions.players.forEach((pos, i) => {
+            if (pos.color) bySeat.set(i + 1, pos.color);
+        });
+        return bySeat;
+    }, [tableLayout.positions.players]);
+
     // ================================================================
     // CRITICAL ROTATION LOGIC - THIS IS WHERE THE ROTATION HAPPENS
     // ================================================================
@@ -126,7 +140,9 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 currentIndex,
                 left: position.left,
                 top: position.top,
-                color: position.color || "#6b7280", // Default gray if no color
+                // Colour keyed to seatNumber (stable across rotation), NOT the
+                // physical slot's colour. Default gray if the seat has no colour.
+                color: seatColorByNumber.get(seatNumber) || "#6b7280",
                 status: dataPlayerBySeat.get(seatNumber)?.status,
                 onJoin: updateBalanceOnPlayerJoin
             };
@@ -152,7 +168,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle]
+        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
     );
 
     // Render all player positions
