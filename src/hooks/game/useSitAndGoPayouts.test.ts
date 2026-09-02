@@ -48,7 +48,7 @@ const setContext = (
     mockUseGameStateContext.mockReturnValue({ gameState, gameFormat });
 };
 
-describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)", () => {
+describe("useSitAndGoPayouts", () => {
     beforeEach(() => jest.clearAllMocks());
 
     it("returns empty struct when format is cash", () => {
@@ -67,7 +67,7 @@ describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)",
         expect(result.current.prizePool).toBeNull();
     });
 
-    it("returns empty places when payouts[] is absent (not yet resolved)", () => {
+    it("returns empty places when payouts[] is absent", () => {
         setContext(buildState(undefined));
         const { result } = renderHook(() => useSitAndGoPayouts());
         expect(result.current.isSitAndGo).toBe(true);
@@ -75,7 +75,7 @@ describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)",
         expect(result.current.prizePool).toBeNull();
     });
 
-    it("heads-up (single 100% payout) — reads state.payouts", () => {
+    it("heads-up payout from state.payouts", () => {
         setContext(buildState([{ place: 1, amount: "20000000" }]));
         const { result } = renderHook(() => useSitAndGoPayouts());
 
@@ -85,7 +85,7 @@ describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)",
         ]);
     });
 
-    it("top-2 structure — passes through absolute amounts, derives the prize pool", () => {
+    it("top-2 payouts from state.payouts", () => {
         setContext(buildState([
             { place: 1, amount: "39000000" },
             { place: 2, amount: "21000000" }
@@ -96,7 +96,7 @@ describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)",
         expect(result.current.places.map(p => p.payout)).toEqual(["39000000", "21000000"]);
     });
 
-    it("top-3 structure — the reported 6-max bug now shows all three places", () => {
+    it("top-3 payouts from state.payouts", () => {
         setContext(buildState([
             { place: 1, amount: "36000000" },
             { place: 2, amount: "18000000" },
@@ -109,23 +109,9 @@ describe("useSitAndGoPayouts — reads PVM-authored payouts[] (block52/ui#513)",
         expect(result.current.places.map(p => p.payout)).toEqual(["36000000", "18000000", "6000000"]);
     });
 
-    it("9 players: passes through the absolute amounts from the PVM", () => {
+    it("passes through exact payouts when pool has drift", () => {
         setContext(buildState([
-            { place: 1, amount: "45000000" },
-            { place: 2, amount: "27000000" },
-            { place: 3, amount: "18000000" }
-        ]));
-        const { result } = renderHook(() => useSitAndGoPayouts());
-
-        expect(result.current.prizePool).toBe("90000000");
-        expect(result.current.places.map(p => p.payout)).toEqual(["45000000", "27000000", "18000000"]);
-    });
-
-    it("does not recompute a curve — it shows exactly what the PVM emitted (drift-to-first)", () => {
-        // A pool that doesn't divide evenly: the PVM already credited the drift to
-        // 1st place. The hook must surface those exact amounts, not re-split.
-        setContext(buildState([
-            { place: 1, amount: "4" }, // 3 base + 1 drift
+            { place: 1, amount: "4" },
             { place: 2, amount: "2" }
         ]));
         const { result } = renderHook(() => useSitAndGoPayouts());

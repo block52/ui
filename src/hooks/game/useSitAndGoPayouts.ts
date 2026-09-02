@@ -16,17 +16,6 @@ export interface SitAndGoPayoutsReturn {
 
 const EMPTY: SitAndGoPayoutsReturn = { isSitAndGo: false, prizePool: null, places: [] };
 
-/**
- * SNG payout structure for the Payouts panel.
- *
- * Reads the PVM-authored `payouts[]` straight from the game state — the PVM is
- * the single payout authority (poker-vm#2411) and resolves the exact per-place
- * amounts (correct curve + frozen entrant count + rounding drift). The UI must
- * NOT recompute the split from its own curve table; that third source of truth
- * drifted from what actually pays (poker-vm#2405, ui#497 — a 6-max paid top 3
- * while the panel showed top 2). The PVM sends only absolute amounts, so the
- * panel shows those verbatim — no percentage is derived or displayed.
- */
 export const useSitAndGoPayouts = (): SitAndGoPayoutsReturn => {
     const { gameState, gameFormat } = useGameStateContext();
 
