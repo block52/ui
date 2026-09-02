@@ -94,12 +94,6 @@ export const useTableLayout = (
     const cw = el?.offsetWidth ?? window.innerWidth;
     const ch = el?.offsetHeight ?? window.innerHeight;
 
-    // DEBUG: log container measurement
-    if (el) {
-        const rect = el.getBoundingClientRect();
-        console.log(`[container] ${cw}x${ch} rect: top=${rect.top.toFixed(0)} left=${rect.left.toFixed(0)} right=${rect.right.toFixed(0)} bottom=${rect.bottom.toFixed(0)}`);
-    }
-
     const zoom = calculateZoom(tableSize, cw, ch);
     const tableTransform = getTableTransform(zoom, tableSize, cw, ch);
 
