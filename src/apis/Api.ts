@@ -1,4 +1,11 @@
 import HTTPClient from "./HTTPClient";
+import { hasContent, hasValue } from "../utils/guards";
+import type {
+    PlayerSearchParams,
+    PlayersListResponse,
+    PlayerProfile,
+    PlayerSessionsResponse
+} from "../types/players";
 
 export class PaymentApi extends HTTPClient {
     public createCryptoPayment = (data: { amount: number; currency: string; cosmosAddress: string }) => this.post("/api/nowpayments/create", data);
@@ -51,4 +58,23 @@ export class IndexerApi extends HTTPClient {
     public getHands = (gameId: string) => this.get(`/api/v1/hands?game_id=${gameId}&limit=100`);
     /** Returns the single most recent indexed hand across all games. Used as a live test fixture. */
     public getRecentHand = () => this.get("/api/v1/hands?limit=1");
+
+    // Player directory (ui#589). Money fields are raw USDC micro-units; percentage
+    // fields are integers scaled x100. See indexer API.md.
+    public getPlayers = (params: PlayerSearchParams = {}) => this.get<PlayersListResponse>(`/api/v1/players${buildPlayerQuery(params)}`);
+    public getPlayerProfile = (address: string) => this.get<PlayerProfile>(`/api/v1/players/${encodeURIComponent(address)}/stats`);
+    public getPlayerSessions = (address: string, limit = 20, offset = 0) =>
+        this.get<PlayerSessionsResponse>(`/api/v1/players/${encodeURIComponent(address)}/sessions?limit=${limit}&offset=${offset}`);
+}
+
+// Serialize player-directory query params, omitting empty values.
+function buildPlayerQuery(params: PlayerSearchParams): string {
+    const q = new URLSearchParams();
+    if (hasContent(params.search)) q.set("search", params.search!.trim());
+    if (hasContent(params.sort)) q.set("sort", params.sort!);
+    if (hasContent(params.order)) q.set("order", params.order!);
+    if (hasValue(params.limit)) q.set("limit", String(params.limit));
+    if (hasValue(params.offset)) q.set("offset", String(params.offset));
+    const s = q.toString();
+    return s ? `?${s}` : "";
 }
