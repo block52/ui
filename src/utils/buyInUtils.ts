@@ -5,6 +5,73 @@
  * dynamically based on the table's stake level.
  */
 
+import { parseMicroToBigInt } from "../constants/currency";
+
+/** Basis-points denominator (10000 = 100%). protocolFeeBps of 1000 = 10%. */
+export const BPS_DENOMINATOR = 10000n;
+
+/**
+ * Sit & Go entry-cost breakdown, all amounts in USDC micro-units (bigint).
+ *
+ * The protocol fee is skimmed OUT OF the buy-in (it is NOT added on top): the
+ * prize-pool portion is `buyIn - protocolCut`. The owner fee (`entryFee`) is an
+ * additional charge that goes to the game creator. Total entry cost is
+ * `buyIn + ownerFee` — the protocol cut lives inside the buy-in.
+ *
+ * Mirrors the on-chain math (poker-vm#2592): `protocolCut = buyIn * bps / 10000`
+ * with floor division; dust stays in the prize-pool portion.
+ */
+export interface SngEntryBreakdown {
+    /** Buy-in portion that reaches the prize pool: buyIn - protocolCut. */
+    prizePoolPortion: bigint;
+    /** Protocol fee skimmed from the buy-in to validators: buyIn * bps / 10000 (floor). */
+    protocolCut: bigint;
+    /** Owner/creator fee (entryFee), charged on top of the buy-in. Unchanged path. */
+    ownerFee: bigint;
+    /** Total entry cost the player pays: buyIn + ownerFee. */
+    total: bigint;
+    /** Whether a non-zero protocol fee applies (bps present and > 0). */
+    hasProtocolFee: boolean;
+}
+
+/**
+ * Compute the Sit & Go entry-cost breakdown in micro-USDC bigint discipline.
+ *
+ * @param buyIn - Fixed SNG buy-in in micro-USDC (string DTO / number / bigint).
+ * @param entryFee - Owner fee in micro-USDC (string DTO / number / bigint); absent/0 = no owner fee.
+ * @param protocolFeeBps - Protocol fee rate in basis points (1000 = 10%); absent/0 = no protocol fee.
+ * @returns Breakdown with prize-pool portion, protocol cut, owner fee, and total.
+ *
+ * @example
+ * // $9 buy-in, 10% protocol fee, $1 owner fee (micro-USDC)
+ * computeSngEntryBreakdown("9000000", "1000000", 1000)
+ * // => { prizePoolPortion: 8100000n, protocolCut: 900000n, ownerFee: 1000000n, total: 10000000n, hasProtocolFee: true }
+ */
+export function computeSngEntryBreakdown(
+    buyIn: string | number | bigint | undefined,
+    entryFee: string | number | bigint | undefined,
+    protocolFeeBps: number | undefined
+): SngEntryBreakdown {
+    const buyInMicro = parseMicroToBigInt(buyIn);
+    const ownerFee = parseMicroToBigInt(entryFee);
+
+    // bps is a small safe integer (Commandment #10). Guard absent/0/negative.
+    const bps = protocolFeeBps && protocolFeeBps > 0 ? BigInt(protocolFeeBps) : 0n;
+    const hasProtocolFee = bps > 0n;
+
+    // Floor division mirrors the chain: dust stays in the prize-pool portion.
+    const protocolCut = hasProtocolFee ? (buyInMicro * bps) / BPS_DENOMINATOR : 0n;
+    const prizePoolPortion = buyInMicro - protocolCut;
+
+    return {
+        prizePoolPortion,
+        protocolCut,
+        ownerFee,
+        total: buyInMicro + ownerFee,
+        hasProtocolFee
+    };
+}
+
 export interface BuyInConfig {
     minBuyInBB: number;  // Minimum buy-in in Big Blinds
     maxBuyInBB: number;  // Maximum buy-in in Big Blinds
