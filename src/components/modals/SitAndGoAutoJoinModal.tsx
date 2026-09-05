@@ -11,6 +11,7 @@ import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { joinTable } from "../../hooks/playerActions/joinTable";
 import { formatUSDCToSimpleDollars, formatForSitAndGo } from "../../utils/numberUtils";
+import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
 import { getCosmosBalance } from "../../utils/cosmosAccountUtils";
 import { useNetwork } from "../../context/NetworkContext";
 import { colors as _colors, hexToRgba as _hexToRgba } from "../../utils/colorConfig";
@@ -35,7 +36,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const { emptySeatIndexes, isUserAlreadyPlaying } = useVacantSeatData();
 
     // Get the game state context to force refresh after joining
-    const { subscribeToTable, gameState: _gameState } = useGameStateContext();
+    const { subscribeToTable, gameState } = useGameStateContext();
 
     // Get Cosmos address once
     const publicKey = useMemo(() => localStorage.getItem(STORAGE_KEYS.cosmosAddress) || undefined, []);
@@ -101,6 +102,27 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             entryFeeFormatted: entryFee
         };
     }, [gameOptions, accountBalance]);
+
+    // Protocol-fee breakdown (poker-vm#2592). The fee is skimmed OUT OF the
+    // buy-in, so the prize-pool portion is buyIn - protocolCut. When no protocol
+    // fee is configured (bps absent/0) the breakdown is hidden and behaviour is
+    // unchanged. Computed in micro-USDC bigint via the shared, tested util.
+    const feeBreakdown = useMemo(() => {
+        const buyIn = gameOptions?.maxBuyIn;
+        const entryFee = gameOptions?.entryFee;
+        // protocolFeeBps is optional and not surfaced by useGameOptions' Required<>
+        // mapping — read it from the raw DTO (single source: the chain).
+        const protocolFeeBps = gameState?.gameOptions?.protocolFeeBps;
+        const breakdown = computeSngEntryBreakdown(buyIn, entryFee, protocolFeeBps);
+
+        return {
+            show: breakdown.hasProtocolFee,
+            prizePoolPortionFormatted: formatUSDCToSimpleDollars(breakdown.prizePoolPortion),
+            protocolCutFormatted: formatUSDCToSimpleDollars(breakdown.protocolCut),
+            ownerFeeFormatted: formatUSDCToSimpleDollars(breakdown.ownerFee),
+            totalFormatted: formatUSDCToSimpleDollars(breakdown.total)
+        };
+    }, [gameOptions?.maxBuyIn, gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
 
     // Fetch balance on mount
     useEffect(() => {
@@ -299,11 +321,38 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                                     </div>
                                 </div>
 
-                                {entryFeeFormatted !== "0.00" && (
+                                {entryFeeFormatted !== "0.00" && !feeBreakdown.show && (
                                     <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
                                         <div className="flex justify-between items-center">
                                             <span className="text-gray-400 text-sm">Entry Fee:</span>
                                             <span className="text-white font-semibold">${entryFeeFormatted}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Protocol-fee breakdown (poker-vm#2592). Shown only when a
+                                    protocol fee is configured; the fee comes OUT OF the buy-in,
+                                    so prize pool = buyIn - protocolCut, and total = buyIn + owner fee. */}
+                                {feeBreakdown.show && (
+                                    <div
+                                        className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-purple-500/30 space-y-1.5"
+                                        data-testid="sng-fee-breakdown"
+                                    >
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-400 text-sm">Buy-in (to prize pool):</span>
+                                            <span className="text-white font-semibold">${feeBreakdown.prizePoolPortionFormatted}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-400 text-sm">Protocol fee:</span>
+                                            <span className="text-purple-300 font-semibold">${feeBreakdown.protocolCutFormatted}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-400 text-sm">Owner fee:</span>
+                                            <span className="text-white font-semibold">${feeBreakdown.ownerFeeFormatted}</span>
+                                        </div>
+                                        <div className="border-t border-white/10 pt-1.5 flex justify-between items-center">
+                                            <span className="text-gray-300 text-sm font-semibold">Total:</span>
+                                            <span className="text-green-400 font-bold">${feeBreakdown.totalFormatted}</span>
                                         </div>
                                     </div>
                                 )}

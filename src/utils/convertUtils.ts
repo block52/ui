@@ -21,6 +21,10 @@ export interface GameWithFormat {
     timeout?: number;
     createdAt?: string;
     updatedAt?: string;
+    /** Owner/creator fee in micro-USDC (SNG/Tournament); absent/"0" = none (poker-vm#2118). */
+    entryFee?: string;
+    /** Protocol fee rate in basis points (1000 = 10%); absent/0 = none (poker-vm#2592). */
+    protocolFeeBps?: number;
 }
 
 /**
@@ -52,7 +56,9 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         creator: game.creator,
         timeout: opts.timeout,
         createdAt: game.createdAt,
-        updatedAt: game.updatedAt
+        updatedAt: game.updatedAt,
+        entryFee: opts.entryFee,
+        protocolFeeBps: opts.protocolFeeBps
     };
 };
 

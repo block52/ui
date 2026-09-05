@@ -2,6 +2,7 @@ import React, { useState, useMemo, useCallback } from "react";
 import { useMinAndMaxBuyIns } from "../../hooks/game/useMinAndMaxBuyIns";
 import { useNavigate } from "react-router-dom";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { HexagonPattern } from "../common/Modal";
 import { joinTable } from "../../hooks/playerActions/joinTable";
@@ -82,6 +83,26 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
             bigBlindValue: bigBlind
         };
     }, [minBuyInValue, maxBuyInValue, cosmosWallet.balance, isSitAndGo, gameState?.gameOptions?.bigBlind, gameState?.gameOptions?.smallBlind]);
+
+    // Protocol-fee breakdown for Sit & Go (poker-vm#2592). The protocol fee is
+    // skimmed OUT OF the fixed buy-in (prize-pool portion = buyIn - protocolCut);
+    // the owner fee (entryFee) is charged on top. Hidden unless a protocol fee is
+    // configured (bps absent/0). Computed in micro-USDC bigint via the shared util.
+    const feeBreakdown = useMemo(() => {
+        const breakdown = computeSngEntryBreakdown(
+            maxBuyInValue,
+            gameState?.gameOptions?.entryFee,
+            gameState?.gameOptions?.protocolFeeBps
+        );
+
+        return {
+            show: isSitAndGo && breakdown.hasProtocolFee,
+            prizePoolPortionFormatted: formatUSDCToSimpleDollars(breakdown.prizePoolPortion),
+            protocolCutFormatted: formatUSDCToSimpleDollars(breakdown.protocolCut),
+            ownerFeeFormatted: formatUSDCToSimpleDollars(breakdown.ownerFee),
+            totalFormatted: formatUSDCToSimpleDollars(breakdown.total)
+        };
+    }, [isSitAndGo, maxBuyInValue, gameState?.gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
 
     // Initialize buyInAmount with maxBuyInFormatted
     const [buyInAmount, setBuyInAmount] = useState(() => maxBuyInFormatted);
@@ -343,6 +364,30 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                                 <div className="text-3xl font-bold text-white">${maxBuyInFormatted}</div>
                                 <div className="text-xs text-gray-400 mt-1">This is a fixed buy-in tournament</div>
                             </div>
+
+                            {/* Protocol-fee breakdown (poker-vm#2592). The protocol fee comes
+                                OUT OF the buy-in, so prize pool = buyIn - protocolCut, and the
+                                total entry = buyIn + owner fee. Hidden when no protocol fee. */}
+                            {feeBreakdown.show && (
+                                <div className="mt-3 pt-3 border-t border-white/15 space-y-1 text-left" data-testid="sng-fee-breakdown">
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-400">Buy-in (to prize pool)</span>
+                                        <span className="text-white font-medium">${feeBreakdown.prizePoolPortionFormatted}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-400">Protocol fee</span>
+                                        <span className="text-purple-300 font-medium">${feeBreakdown.protocolCutFormatted}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs">
+                                        <span className="text-gray-400">Owner fee</span>
+                                        <span className="text-white font-medium">${feeBreakdown.ownerFeeFormatted}</span>
+                                    </div>
+                                    <div className="flex justify-between text-xs pt-1 border-t border-white/10">
+                                        <span className="text-gray-300 font-semibold">Total</span>
+                                        <span className="text-green-400 font-bold">${feeBreakdown.totalFormatted}</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
                         // Cash Game: Allow user to choose buy-in amount with slider

@@ -2,6 +2,7 @@ import {
     calculateBuyIn,
     validateBuyInBB,
     formatBuyInRange,
+    computeSngEntryBreakdown,
     BUY_IN_PRESETS,
     BuyInConfig
 } from "./buyInUtils";
@@ -165,6 +166,65 @@ describe("buyInUtils", () => {
         it("should have correct deep stack preset values", () => {
             expect(BUY_IN_PRESETS.DEEP_STACK.minBuyInBB).toBe(100);
             expect(BUY_IN_PRESETS.DEEP_STACK.maxBuyInBB).toBe(300);
+        });
+    });
+
+    describe("computeSngEntryBreakdown", () => {
+        it("should split the issue #2592 example: $9 buy-in, 10% fee, $1 owner fee", () => {
+            // buyIn $9 = 9_000_000 micro, entryFee $1 = 1_000_000 micro, bps 1000 = 10%
+            const result = computeSngEntryBreakdown("9000000", "1000000", 1000);
+
+            expect(result.protocolCut).toBe(900000n); // $0.90
+            expect(result.prizePoolPortion).toBe(8100000n); // $8.10
+            expect(result.ownerFee).toBe(1000000n); // $1.00
+            expect(result.total).toBe(10000000n); // $10.00 = buyIn + ownerFee
+            expect(result.hasProtocolFee).toBe(true);
+        });
+
+        it("should treat absent protocolFeeBps as no protocol fee", () => {
+            const result = computeSngEntryBreakdown("9000000", "1000000", undefined);
+
+            expect(result.protocolCut).toBe(0n);
+            expect(result.prizePoolPortion).toBe(9000000n); // full buy-in
+            expect(result.ownerFee).toBe(1000000n);
+            expect(result.total).toBe(10000000n);
+            expect(result.hasProtocolFee).toBe(false);
+        });
+
+        it("should treat zero protocolFeeBps as no protocol fee", () => {
+            const result = computeSngEntryBreakdown("9000000", "0", 0);
+
+            expect(result.protocolCut).toBe(0n);
+            expect(result.prizePoolPortion).toBe(9000000n);
+            expect(result.hasProtocolFee).toBe(false);
+        });
+
+        it("should floor the protocol cut and keep dust in the prize-pool portion", () => {
+            // $0.99 buy-in at 10% => 99000000... actually 990000 micro * 1000 / 10000 = 99000
+            // Use an amount that produces a fractional micro to prove flooring.
+            // 1_000_001 micro * 1000 / 10000 = 100_000.1 -> floor 100_000
+            const result = computeSngEntryBreakdown("1000001", "0", 1000);
+
+            expect(result.protocolCut).toBe(100000n); // floored
+            expect(result.prizePoolPortion).toBe(900001n); // dust (the extra 1 micro) stays in pool
+            expect(result.protocolCut + result.prizePoolPortion).toBe(1000001n);
+        });
+
+        it("should handle missing buy-in and owner fee as zero", () => {
+            const result = computeSngEntryBreakdown(undefined, undefined, 1000);
+
+            expect(result.protocolCut).toBe(0n);
+            expect(result.prizePoolPortion).toBe(0n);
+            expect(result.ownerFee).toBe(0n);
+            expect(result.total).toBe(0n);
+        });
+
+        it("should accept bigint and number inputs", () => {
+            const result = computeSngEntryBreakdown(9000000n, 1000000, 1000);
+
+            expect(result.protocolCut).toBe(900000n);
+            expect(result.prizePoolPortion).toBe(8100000n);
+            expect(result.total).toBe(10000000n);
         });
     });
 

@@ -7,6 +7,8 @@ import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { DiscoveredNode, discoverNodes, probeNodes, getCachedNodes, cacheNodes, clearNodeCache } from "../services/nodeDiscovery";
 import { isEmpty, hasElements } from "../utils/guards";
+import ValidatorEarningsPanel from "../components/explorer/ValidatorEarningsPanel";
+import { useValidatorBonds } from "../hooks/game/useValidatorBonds";
 
 // Filter out localhost for production view
 const productionNodes = NETWORK_PRESETS.filter(n => n.name !== "Localhost");
@@ -30,6 +32,11 @@ export default function NodesPage() {
     const [isProbing, setIsProbing] = useState(false);
     const [nodeInfo, setNodeInfo] = useState<Record<string, NodeInfo>>({});
     const [validators, setValidators] = useState<ValidatorInfo[]>([]);
+    // Validator bonded-USDC weights + protocol-fee earnings (poker-vm#2592).
+    // Bonded USDC per validator comes from the standard Cosmos staking `tokens`
+    // field (bond denom is USDC), so no custom poker-module query is needed. See
+    // useValidatorBonds. Accrued fee earnings over time remain a separate concern.
+    const { bonds: validatorBonds, hasQuery: hasValidatorBondQuery, isLoading: isValidatorBondsLoading } = useValidatorBonds();
     // Fetch validators from the network
     const fetchValidators = useCallback(async () => {
         // Try fetching from the first online preset node
@@ -327,6 +334,10 @@ export default function NodesPage() {
                         </div>
                     </div>
                 </div>
+
+                {/* Validator Earnings Section (poker-vm#2592) — bonded USDC is the
+                    SNG protocol-fee split weight; earnings await a backend query. */}
+                <ValidatorEarningsPanel bonds={validatorBonds} hasQuery={hasValidatorBondQuery} isLoading={isValidatorBondsLoading} />
 
                 {/* Discovered Nodes Section */}
                 <div>

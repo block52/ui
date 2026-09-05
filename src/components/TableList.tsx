@@ -5,6 +5,7 @@ import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import { useForceCloseGame } from "../hooks/game/useForceCloseGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { formatMicroAsUsdc } from "../constants/currency";
+import { computeSngEntryBreakdown } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
 import DeleteTableModal from "./modals/DeleteTableModal";
@@ -16,20 +17,28 @@ import { isNullish, isEmpty } from "../utils/guards";
 const PAGE_SIZE = 20;
 
 /**
- * Format buy-in display based on game format
- * SNG/Tournament: Shows buy-in breakdown (e.g., "$10.00 (9.00 + 1.00)")
- * Cash Game: Shows min-max range
+ * Format buy-in display based on game format.
+ *
+ * SNG/Tournament with a protocol fee configured: shows the buy-in split into its
+ * prize-pool portion and protocol cut, e.g. "$9.00 (8.10 + 0.90)". The split uses
+ * the governable `protocolFeeBps` from the game config via the shared, tested util
+ * — NOT a hardcoded 10% (poker-vm#2592, Commandment #7). When no protocol fee is
+ * configured, no split is shown.
+ *
+ * Cash Game: shows the min-max range.
  */
 const formatBuyIn = (game: GameWithFormat) => {
     const isTournament = isTournamentFormat(game.gameFormat);
     const minBuyIn = formatMicroAsUsdc(game.minBuyIn, 2);
 
     if (isTournament) {
-        // Calculate tournament fee as 10% of total buy-in
-        const totalBuyIn = parseFloat(minBuyIn);
-        const fee = totalBuyIn * 0.1;
-        const prizePool = totalBuyIn - fee;
-        return `$${minBuyIn} (${prizePool.toFixed(2)} + ${fee.toFixed(2)})`;
+        const breakdown = computeSngEntryBreakdown(game.minBuyIn, game.entryFee, game.protocolFeeBps);
+        if (breakdown.hasProtocolFee) {
+            const prizePool = formatMicroAsUsdc(breakdown.prizePoolPortion, 2);
+            const fee = formatMicroAsUsdc(breakdown.protocolCut, 2);
+            return `$${minBuyIn} (${prizePool} + ${fee})`;
+        }
+        return `$${minBuyIn}`;
     }
 
     const maxBuyIn = formatMicroAsUsdc(game.maxBuyIn, 2);
