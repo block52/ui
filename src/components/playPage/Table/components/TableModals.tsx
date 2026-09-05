@@ -11,6 +11,7 @@
 
 import React from "react";
 import { isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { hasElements } from "../../../../utils/guards";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
@@ -68,6 +69,18 @@ export const TableModals: React.FC<TableModalsProps> = ({
     currentPlayerStack,
     isInActiveHand
 }) => {
+    // A Sit & Go freezes its roster once it starts (poker-vm#2343): no player may
+    // join a tournament already in progress. "Started" = past the pre-deal
+    // bootstrap window — hand > 1, or any finishing result already recorded.
+    // Without this guard the auto-join modal pops for any non-seated viewer of a
+    // running SNG (e.g. a spectator, or after a bustout evicts a seat —
+    // poker-vm#2404), inviting a join the chain will reject. block52/ui#511.
+    const state = gameState as { handNumber?: number; results?: unknown[] } | null;
+    const isStartedSitAndGo =
+        !!gameFormat &&
+        isSitAndGoFormat(gameFormat) &&
+        ((state?.handNumber ?? 0) > 1 || hasElements(state?.results ?? []));
+
     return (
         <>
             {/* Game Start Countdown Modal */}
@@ -75,8 +88,10 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 <GameStartCountdown gameStartTime={gameStartTime} onCountdownComplete={handleCountdownComplete} onSkip={handleSkipCountdown} />
             )}
 
-            {/* Sit & Go Auto-Join Modal - Shows for Sit & Go games when user is not playing */}
-            {gameState && gameFormat && isSitAndGoFormat(gameFormat) && !isUserAlreadyPlaying && tableId && (
+            {/* Sit & Go Auto-Join Modal - Shows for Sit & Go games when the user is
+                not playing AND the tournament has not yet started (frozen roster —
+                see isStartedSitAndGo). */}
+            {gameState && gameFormat && isSitAndGoFormat(gameFormat) && !isUserAlreadyPlaying && !isStartedSitAndGo && tableId && (
                 <SitAndGoAutoJoinModal tableId={tableId} onJoinSuccess={onAutoJoinSuccess} />
             )}
 
