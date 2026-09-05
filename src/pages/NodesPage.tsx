@@ -33,8 +33,9 @@ export default function NodesPage() {
     const [nodeInfo, setNodeInfo] = useState<Record<string, NodeInfo>>({});
     const [validators, setValidators] = useState<ValidatorInfo[]>([]);
     // Validator bonded-USDC weights + protocol-fee earnings (poker-vm#2592).
-    // See useValidatorBonds: the backend query for this is not yet exposed, so
-    // bonds is currently empty and the panel shows a "coming soon" state.
+    // Bonded USDC per validator comes from the standard Cosmos staking `tokens`
+    // field (bond denom is USDC), so no custom poker-module query is needed. See
+    // useValidatorBonds. Accrued fee earnings over time remain a separate concern.
     const { bonds: validatorBonds, hasQuery: hasValidatorBondQuery, isLoading: isValidatorBondsLoading } = useValidatorBonds();
     // Fetch validators from the network
     const fetchValidators = useCallback(async () => {

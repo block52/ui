@@ -8,9 +8,9 @@ interface ValidatorEarningsPanelProps {
     /** Bonded-USDC weights per validator (SDK single source, poker-vm#2592). */
     bonds: ValidatorBond[];
     /**
-     * Whether a real backend query backs `bonds`. When false, the state exists on
-     * chain but is not yet queryable (no ValidatorBonds REST endpoint), so we show
-     * a "coming soon" placeholder instead of fabricating numbers (Commandment #7).
+     * Whether bonded-USDC data has been fetched (from the standard Cosmos staking
+     * endpoint). When false (no node reachable) we show an empty state rather than
+     * fabricating numbers (Commandment #7).
      */
     hasQuery: boolean;
     isLoading: boolean;
@@ -18,12 +18,13 @@ interface ValidatorEarningsPanelProps {
 
 /**
  * ValidatorEarningsPanel — shows each validator's bonded USDC (the weight the SNG
- * protocol fee is split by) and their accrued protocol-fee earnings.
+ * protocol fee is split by).
  *
  * Bonded USDC drives the split at join: share_i = protocolCut * bondedUsdc_i / Σ
- * bondedUsdc (poker-vm#2592). Earnings ("coming soon") await a backend query — the
- * poker module accrues fees per validator but does not yet expose a read endpoint,
- * so we omit a number rather than invent one.
+ * bondedUsdc (poker-vm#2592), sourced from the validator's staking `tokens` (bond
+ * denom is USDC). Accrued fee earnings over time are intentionally NOT shown:
+ * protocol fees are paid-and-emitted per distribution with no per-validator
+ * accumulator state, so a running total would need new state or event indexing.
  */
 const ValidatorEarningsPanel: React.FC<ValidatorEarningsPanelProps> = ({ bonds, hasQuery, isLoading }) => {
     return (
