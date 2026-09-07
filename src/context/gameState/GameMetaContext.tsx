@@ -10,6 +10,8 @@ import type { GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 interface GameMetaContextValue {
     gameFormat: GameFormat | undefined;
     gameVariant: GameVariant | undefined;
+    /** Optional ENS-style table name (poker-vm#337); undefined for unnamed tables. */
+    gameName: string | undefined;
 }
 
 const GameMetaContext = createContext<GameMetaContextValue | null>(null);
@@ -17,13 +19,14 @@ const GameMetaContext = createContext<GameMetaContextValue | null>(null);
 interface GameMetaProviderProps {
     gameFormat: GameFormat | undefined;
     gameVariant: GameVariant | undefined;
+    gameName: string | undefined;
     children: React.ReactNode;
 }
 
-export const GameMetaProvider: React.FC<GameMetaProviderProps> = ({ gameFormat, gameVariant, children }) => {
+export const GameMetaProvider: React.FC<GameMetaProviderProps> = ({ gameFormat, gameVariant, gameName, children }) => {
     const value = useMemo<GameMetaContextValue>(
-        () => ({ gameFormat, gameVariant }),
-        [gameFormat, gameVariant]
+        () => ({ gameFormat, gameVariant, gameName }),
+        [gameFormat, gameVariant, gameName]
     );
     return <GameMetaContext.Provider value={value}>{children}</GameMetaContext.Provider>;
 };

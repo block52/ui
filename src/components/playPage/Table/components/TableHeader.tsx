@@ -35,6 +35,8 @@ const formatBlindCountdown = (secondsRemaining: number): string => {
 export interface TableHeaderProps {
     // Table info
     tableId: string;
+    /** Optional ENS-style table name (poker-vm#337); falls back to the truncated tableId when absent. */
+    tableName?: string;
     isMobileLandscape: boolean;
 
     // Game data
@@ -82,6 +84,7 @@ export interface TableHeaderProps {
 
 export const TableHeader: React.FC<TableHeaderProps> = ({
     tableId,
+    tableName,
     isMobileLandscape,
     gameFormat,
     gameOptions,
@@ -136,7 +139,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         className="text-white text-sm sm:text-[24px] cursor-pointer hover:text-[#ffffff] transition-colors duration-300 font-bold"
                         onClick={handleLobbyClick}
                     >
-                        Table {tableId ? tableId.slice(-5) : ""}
+                        {/* Named tables (poker-vm#337) show their name; unnamed fall back to the truncated id. */}
+                        {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
                     </span>
                     <NetworkSelector />
                     {/* Copy Table Link Button */}

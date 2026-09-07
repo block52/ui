@@ -54,6 +54,7 @@ export interface RawWsMessage {
         gameState?: TexasHoldemStateDTO;
         format?: string;
         variant?: string;
+        name?: string;
     };
     state?: {
         gameId?: string;
@@ -76,6 +77,8 @@ export type ClassifiedMessage =
           snapshot: TexasHoldemStateDTO;
           format: GameFormat | undefined;
           variant: GameVariant | undefined;
+          /** Optional ENS-style table name (poker-vm#337); undefined for unnamed tables. */
+          name: string | undefined;
           /** null = valid; non-null = invalid but still committed. */
           validationError: ValidationError | null;
       }
@@ -113,7 +116,7 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
         (message.event !== undefined && COSMOS_STATE_EVENTS.includes(message.event) && message.gameId === tableId);
 
     if (isStateUpdate) {
-        const { gameState: gameStateData, format: rawFormat, variant: rawVariant } = extractGameDataFromMessage(message);
+        const { gameState: gameStateData, format: rawFormat, variant: rawVariant, name } = extractGameDataFromMessage(message);
 
         if (!gameStateData) {
             return {
@@ -136,6 +139,7 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
                 snapshot: gameStateData,
                 format: toGameFormat(rawFormat),
                 variant: toGameVariant(rawVariant),
+                name,
                 validationError: {
                     missingFields: validation.missingFields,
                     message: validation.message,
@@ -149,6 +153,7 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
             snapshot: gameStateData,
             format: toGameFormat(rawFormat),
             variant: toGameVariant(rawVariant),
+            name,
             validationError: null
         };
     }

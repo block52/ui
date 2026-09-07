@@ -50,6 +50,8 @@ export interface ExtractedGameData {
     gameState: TexasHoldemStateDTO | undefined;
     format: string | undefined;
     variant: string | undefined;
+    // Optional ENS-style table name (poker-vm#337); root-level, absent for unnamed tables.
+    name: string | undefined;
 }
 
 /**
@@ -76,6 +78,7 @@ interface CosmosGameStateMessage {
         gameState?: TexasHoldemStateDTO;
         format?: string;
         variant?: string;
+        name?: string;
     };
 }
 
@@ -92,8 +95,9 @@ export const extractGameDataFromMessage = (message: CosmosGameStateMessage): Ext
     const gameState = message.data?.gameState;
     const format = message.data?.format;
     const variant = message.data?.variant;
+    const name = message.data?.name;
 
-    return { gameState, format, variant };
+    return { gameState, format, variant, name };
 };
 
 /**

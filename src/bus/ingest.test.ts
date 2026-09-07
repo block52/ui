@@ -70,6 +70,18 @@ describe("classifyMessage", () => {
             const snapshot = makeSnapshot();
             expect(classifyMessage(cosmosMessage("state", OTHER_TABLE, snapshot), TABLE_ID)).toEqual({ kind: "ignore" });
         });
+
+        it("carries the table name when present, undefined when not (poker-vm#337)", () => {
+            const snapshot = makeSnapshot();
+            const named = classifyMessage({ event: "state", gameId: TABLE_ID, data: { format: "cash", variant: "texas-holdem", gameState: snapshot, name: "Friday Degens" } }, TABLE_ID);
+            expect(named.kind).toBe("state");
+            if (named.kind !== "state") throw new Error("unreachable");
+            expect(named.name).toBe("Friday Degens");
+
+            const unnamed = classifyMessage(cosmosMessage("state", TABLE_ID, snapshot), TABLE_ID);
+            if (unnamed.kind !== "state") throw new Error("unreachable");
+            expect(unnamed.name).toBeUndefined();
+        });
     });
 
     describe("old PVM gameStateUpdate", () => {

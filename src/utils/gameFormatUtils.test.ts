@@ -47,6 +47,18 @@ describe("gameFormatUtils", () => {
                 expect(result.variant).toBe("texas-holdem");
             });
 
+            it("should extract name from message.data.name (poker-vm#337)", () => {
+                const message = { data: { name: "Friday Degens" } };
+                const result = extractGameDataFromMessage(message);
+                expect(result.name).toBe("Friday Degens");
+            });
+
+            it("should return undefined name for an unnamed table", () => {
+                const message = { data: { gameState: mockGameState } };
+                const result = extractGameDataFromMessage(message);
+                expect(result.name).toBeUndefined();
+            });
+
             it("should extract all fields from a complete Cosmos message", () => {
                 const message = {
                     gameId: "0x123",

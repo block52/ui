@@ -43,6 +43,8 @@ export interface GameStateContextType {
     gameState: TexasHoldemStateDTO | undefined;
     gameFormat: GameFormat | undefined;
     gameVariant: GameVariant | undefined;
+    /** Optional ENS-style table name (poker-vm#337); undefined for unnamed tables. Display-only (rendered track). */
+    gameName: string | undefined;
     isLoading: boolean;
     error: Error | null;
     validationError: ValidationError | null;
@@ -64,6 +66,9 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const [gameState, setGameState] = useState<TexasHoldemStateDTO | undefined>(undefined);
     const [gameFormat, setGameFormat] = useState<GameFormat | undefined>(undefined);
     const [gameVariant, setGameVariant] = useState<GameVariant | undefined>(undefined);
+    // Table name is display-only, so it lives on the RENDER track alongside
+    // format/variant — never read for submission decisions (logical track).
+    const [gameName, setGameName] = useState<string | undefined>(undefined);
     const [isLoading, setIsLoading] = useState<boolean>(false);
     const [error, setError] = useState<Error | null>(null);
     const [validationError, setValidationError] = useState<ValidationError | null>(null);
@@ -121,6 +126,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 setGameState(classified.snapshot);
                 setGameFormat(classified.format);
                 setGameVariant(classified.variant);
+                setGameName(classified.name);
                 setPendingAction(null);
 
                 if (classified.validationError) {
@@ -323,6 +329,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                             setLatestGameState(undefined);
         setGameFormat(undefined);
         setGameVariant(undefined);
+        setGameName(undefined);
         setIsLoading(false);
         setError(null);
         setValidationError(null);
@@ -403,6 +410,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 setGameState(gameStateData as TexasHoldemStateDTO);
                 setGameFormat(toGameFormat(rawFormat));
                 setGameVariant(toGameVariant(rawVariant));
+                setGameName(parsed.name);
                 setPendingAction(null);
             } catch (err) {
                 console.error("[GameStateContext] Failed to load historical state:", err);
@@ -433,7 +441,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             sendAction={sendAction}
             loadHistoricalState={loadHistoricalState}
         >
-            <GameMetaProvider gameFormat={gameFormat} gameVariant={gameVariant}>
+            <GameMetaProvider gameFormat={gameFormat} gameVariant={gameVariant} gameName={gameName}>
                 <ReplayProvider
                     isReplayMode={isReplayMode}
                     replayHandNumber={replayHandNumber}
@@ -464,7 +472,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
  */
 export const useGameStateContext = (): GameStateContextType => {
     const { gameState } = useGameData();
-    const { gameFormat, gameVariant } = useGameMeta();
+    const { gameFormat, gameVariant, gameName } = useGameMeta();
     const { isLoading, error, validationError, pendingAction } = useGameUI();
     const { isReplayMode, replayHandNumber, replayActionIndex } = useReplay();
     const { subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState } = useGameActions();
@@ -474,6 +482,7 @@ export const useGameStateContext = (): GameStateContextType => {
             gameState,
             gameFormat,
             gameVariant,
+            gameName,
             isLoading,
             error,
             validationError,
@@ -490,6 +499,7 @@ export const useGameStateContext = (): GameStateContextType => {
             gameState,
             gameFormat,
             gameVariant,
+            gameName,
             isLoading,
             error,
             validationError,

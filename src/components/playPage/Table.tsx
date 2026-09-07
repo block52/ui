@@ -629,7 +629,7 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, replayActionIndex } =
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, replayActionIndex } =
         useGameStateContext();
     const { currentNetwork } = useNetwork();
 
@@ -1268,6 +1268,7 @@ const Table = React.memo(() => {
             {/*//! HEADER - CASINO STYLE - Hidden in mobile landscape */}
             <TableHeader
                 tableId={id || ""}
+                tableName={gameName}
                 isMobileLandscape={isMobileLandscape}
                 gameFormat={gameFormat || null}
                 gameOptions={gameOptions}
