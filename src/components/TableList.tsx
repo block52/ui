@@ -110,7 +110,8 @@ const TableList: React.FC = () => {
         }
         if (gameIdSearch.trim()) {
             const q = gameIdSearch.trim().toLowerCase();
-            filtered = filtered.filter(g => g.gameId.toLowerCase().includes(q) || (g.name?.toLowerCase().includes(q) ?? false));
+            // Match on either the table name or the gameId.
+            filtered = filtered.filter(g => `${g.name ?? ""} ${g.gameId}`.toLowerCase().includes(q));
         }
         if (!isNullish(playersSortDir)) {
             return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
