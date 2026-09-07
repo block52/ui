@@ -109,7 +109,8 @@ const TableList: React.FC = () => {
             filtered = filtered.filter(g => g.creator === treasuryAddress);
         }
         if (gameIdSearch.trim()) {
-            filtered = filtered.filter(g => g.gameId.toLowerCase().includes(gameIdSearch.trim().toLowerCase()));
+            const q = gameIdSearch.trim().toLowerCase();
+            filtered = filtered.filter(g => g.gameId.toLowerCase().includes(q) || (g.name?.toLowerCase().includes(q) ?? false));
         }
         if (!isNullish(playersSortDir)) {
             return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
@@ -279,7 +280,7 @@ const TableList: React.FC = () => {
                         type="text"
                         value={gameIdSearch}
                         onChange={handleGameIdSearch}
-                        placeholder="Search by table ID..."
+                        placeholder="Search by table name or ID..."
                         className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
@@ -349,9 +350,17 @@ const TableList: React.FC = () => {
                                         </td>
                                         <td className="px-4 py-4">
                                             <div className="flex items-center justify-center gap-2">
-                                                <span className="text-gray-300 font-mono text-sm">
-                                                    {truncateMiddle(game.gameId, 4, 4)}
-                                                </span>
+                                                {/* Named tables (poker-vm#337) show their name; unnamed fall
+                                                    back to the truncated gameId (name stays undefined in data). */}
+                                                {game.name ? (
+                                                    <span className="text-white text-sm font-semibold" title={game.gameId}>
+                                                        {game.name}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-300 font-mono text-sm">
+                                                        {truncateMiddle(game.gameId, 4, 4)}
+                                                    </span>
+                                                )}
                                                 <button
                                                     onClick={() => copyToClipboard(game.gameId)}
                                                     className="text-gray-400 hover:text-white hover:opacity-90 transition-colors"

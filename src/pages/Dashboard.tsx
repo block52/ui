@@ -20,7 +20,8 @@ import { AnimatedBackground } from "../components/common";
 
 // Game wallet and SDK imports
 // ...existing code...
-import { GameFormat, generateWallet as generateWalletSDK } from "@block52/poker-vm-sdk";
+import { GameFormat, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
+import { validateTableName, tableNameCharCount } from "../utils/tableName";
 
 // Hook imports from barrel file
 import { useUserWalletConnect, useNewTable, useCosmosWallet } from "../hooks";
@@ -76,6 +77,7 @@ const Dashboard: React.FC = () => {
 
     // Modal game options
     const [modalGameFormat, setModalGameFormat] = useState<GameFormat>(GameFormat.SIT_AND_GO);
+    const [modalTableName, setModalTableName] = useState(""); // Optional paid table name (poker-vm#337)
     const [modalSitAndGoBuyIn, setModalSitAndGoBuyIn] = useState(1); // Single buy-in for Sit & Go
     const [modalPlayerCount, setModalPlayerCount] = useState(4);
     // For Cash Game: min/max players
@@ -141,6 +143,13 @@ const Dashboard: React.FC = () => {
     const DEFAULT_GAME_CONTRACT = "0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7"; // Example address
 
     // Function to handle creating a new game using Cosmos blockchain
+    // Paid table name (poker-vm#337): live cost preview + validation. The SDK's
+    // computeGameNameFee is the single source of truth for the per-character
+    // charge, so the preview matches the chain debit exactly.
+    const trimmedTableName = modalTableName.trim();
+    const tableNameError = useMemo(() => validateTableName(modalTableName), [modalTableName]);
+    const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(trimmedTableName)), [trimmedTableName]);
+
     const handleCreateNewGame = async () => {
         // Check for Cosmos wallet
         if (!cosmosWallet.address) {
@@ -164,7 +173,8 @@ const Dashboard: React.FC = () => {
                 minPlayers: modalGameFormat === GameFormat.CASH ? modalMinPlayers : modalPlayerCount,
                 maxPlayers: modalGameFormat === GameFormat.CASH ? modalMaxPlayers : modalPlayerCount,
                 smallBlind: modalSmallBlind,
-                bigBlind: modalBigBlind
+                bigBlind: modalBigBlind,
+                name: trimmedTableName || undefined
             };
 
             // Use the createTable function from the hook (Cosmos SDK)
@@ -172,6 +182,7 @@ const Dashboard: React.FC = () => {
 
             if (txHash) {
                 setShowCreateGameModal(false);
+                setModalTableName("");
             }
         } catch (error: any) {
             console.error("Error creating game:", error);
@@ -304,6 +315,11 @@ const Dashboard: React.FC = () => {
         const balance = cosmosWallet.balance.find(b => b.denom === "usdc");
         return balance ? microToUsdc(balance.amount) : 0;
     }, [cosmosWallet.balance]);
+
+    // Block table creation if the name is invalid, or the creator can't cover the
+    // naming fee (the definite creation-time debit, poker-vm#337).
+    const insufficientForName = tableNameFeeUsd > numericUsdcBalance;
+    const createDisabled = isCreatingTable || !!tableNameError || insufficientForName;
 
     // Check if transfer amount exceeds available balance
     const isAmountExceedingBalance = useMemo(() => {
@@ -719,6 +735,33 @@ const Dashboard: React.FC = () => {
                                         </select>
                                     </div>
 
+                                    {/* Optional paid table name (poker-vm#337): $0.10/char, live preview */}
+                                    <div>
+                                        <label className="block text-white text-sm mb-1">
+                                            Table Name <span className="text-gray-400">(optional)</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={modalTableName}
+                                            onChange={e => setModalTableName(e.target.value)}
+                                            placeholder="e.g. Friday Degens"
+                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                        />
+                                        {tableNameError ? (
+                                            <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
+                                        ) : trimmedTableName.length > 0 ? (
+                                            <p className="text-xs text-gray-400 mt-1">
+                                                {tableNameCharCount(trimmedTableName)} characters × $0.10 ={" "}
+                                                <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
+                                                {insufficientForName && (
+                                                    <span className="text-red-400"> — exceeds your ${numericUsdcBalance.toFixed(2)} balance</span>
+                                                )}
+                                            </p>
+                                        ) : (
+                                            <p className="text-xs text-gray-400 mt-1">Free if left blank. $0.10 per character otherwise.</p>
+                                        )}
+                                    </div>
+
                                     {modalGameFormat === GameFormat.CASH ? (
                                         <div className="flex gap-4">
                                             <div className="flex-1">
@@ -912,6 +955,7 @@ const Dashboard: React.FC = () => {
                                             onClick={() => {
                                                 setShowCreateGameModal(false);
                                                 setCreateGameError("");
+                                                setModalTableName("");
                                             }}
                                             className="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-700 hover:opacity-90 text-white rounded-lg transition duration-300 shadow-inner"
                                         >
@@ -919,9 +963,9 @@ const Dashboard: React.FC = () => {
                                         </button>
                                         <button
                                             onClick={handleCreateNewGame}
-                                            disabled={isCreatingTable}
+                                            disabled={createDisabled}
                                             className={`px-4 py-2 text-sm text-white rounded-lg transition duration-300 shadow-md flex items-center ${
-                                                isCreatingTable ? "bg-gray-500" : `${styles.brandPrimaryBg} hover:opacity-90`
+                                                createDisabled ? "bg-gray-500" : `${styles.brandPrimaryBg} hover:opacity-90`
                                             }`}
                                         >
                                             {isCreatingTable ? (

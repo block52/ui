@@ -33,6 +33,7 @@ export interface CreateTableOptions {
     bigBlind: number;
     rake?: RakeOptions;         // Optional rake configuration
     sng?: SNGOptions;           // Optional SNG/Tournament configuration
+    name?: string;              // Optional paid ENS-style table name ($0.10/char); empty = unnamed, free (poker-vm#337)
 }
 
 // Type for useNewTable hook return
@@ -115,6 +116,12 @@ export const useNewTable = (): UseNewTableReturn => {
             // Timeout in seconds from centralised timer config
             const timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
 
+            // Optional paid table name (poker-vm#337). Trim and pass through;
+            // empty/omitted = unnamed table, no charge. The chain computes the
+            // per-character fee and debits the creator (SDK computeGameNameFee is
+            // the shared cost formula for the UI preview).
+            const gameName = gameOptions.name?.trim() || undefined;
+
             // Call SigningCosmosClient.createGame()
             const txHash = await signingClient.createGame(
                 gameFormat,
@@ -127,7 +134,8 @@ export const useNewTable = (): UseNewTableReturn => {
                 bigBlindB52USDC,
                 timeoutSeconds,
                 rakeConfig,
-                sngConfig
+                sngConfig,
+                gameName
             );
 
             if (txHash) {
