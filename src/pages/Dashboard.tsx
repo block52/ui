@@ -21,7 +21,7 @@ import { AnimatedBackground } from "../components/common";
 // Game wallet and SDK imports
 // ...existing code...
 import { GameFormat, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
-import { validateTableName, tableNameCharCount } from "../utils/tableName";
+import { validateTableName, tableNameCharCount, normalizeTableName } from "../utils/tableName";
 
 // Hook imports from barrel file
 import { useUserWalletConnect, useNewTable, useCosmosWallet } from "../hooks";
@@ -143,12 +143,12 @@ const Dashboard: React.FC = () => {
     const DEFAULT_GAME_CONTRACT = "0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7"; // Example address
 
     // Function to handle creating a new game using Cosmos blockchain
-    // Paid table name (poker-vm#337): live cost preview + validation. The SDK's
-    // computeGameNameFee is the single source of truth for the per-character
-    // charge, so the preview matches the chain debit exactly.
-    const trimmedTableName = modalTableName.trim();
+    // Paid table name (poker-vm#337): live cost preview + validation. We normalize
+    // to the chain's canonical form (trim + lowercase, ENS-style) so the preview,
+    // fee, and submitted value all match what the chain validates/charges/stores.
+    const normalizedTableName = useMemo(() => normalizeTableName(modalTableName), [modalTableName]);
     const tableNameError = useMemo(() => validateTableName(modalTableName), [modalTableName]);
-    const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(trimmedTableName)), [trimmedTableName]);
+    const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
 
     const handleCreateNewGame = async () => {
         // Check for Cosmos wallet
@@ -174,7 +174,7 @@ const Dashboard: React.FC = () => {
                 maxPlayers: modalGameFormat === GameFormat.CASH ? modalMaxPlayers : modalPlayerCount,
                 smallBlind: modalSmallBlind,
                 bigBlind: modalBigBlind,
-                name: trimmedTableName || undefined
+                name: normalizedTableName || undefined
             };
 
             // Use the createTable function from the hook (Cosmos SDK)
@@ -744,21 +744,25 @@ const Dashboard: React.FC = () => {
                                             type="text"
                                             value={modalTableName}
                                             onChange={e => setModalTableName(e.target.value)}
-                                            placeholder="e.g. Friday Degens"
+                                            placeholder="e.g. friday-degens"
                                             className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
                                         />
                                         {tableNameError ? (
                                             <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
-                                        ) : trimmedTableName.length > 0 ? (
+                                        ) : normalizedTableName.length > 0 ? (
                                             <p className="text-xs text-gray-400 mt-1">
-                                                {tableNameCharCount(trimmedTableName)} characters × $0.10 ={" "}
+                                                {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
                                                 <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
+                                                {/* Show the canonical form the chain stores when it differs from the raw input. */}
+                                                {normalizedTableName !== modalTableName && (
+                                                    <span className="text-gray-500"> — saved as “{normalizedTableName}”</span>
+                                                )}
                                                 {insufficientForName && (
                                                     <span className="text-red-400"> — exceeds your ${numericUsdcBalance.toFixed(2)} balance</span>
                                                 )}
                                             </p>
                                         ) : (
-                                            <p className="text-xs text-gray-400 mt-1">Free if left blank. $0.10 per character otherwise.</p>
+                                            <p className="text-xs text-gray-400 mt-1">Free if left blank. Lowercase a–z, 0–9 and hyphens; $0.10 per character.</p>
                                         )}
                                     </div>
 
