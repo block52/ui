@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { GameFormat, CosmosClient, getDefaultCosmosConfig, PlayerDTO } from "@block52/poker-vm-sdk";
+import { GameFormat, CosmosClient, getDefaultCosmosConfig, PlayerDTO, computeGameNameFee } from "@block52/poker-vm-sdk";
 import { Link, useNavigate } from "react-router-dom";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { isValidPlayerAddress } from "../utils/addressUtils";
@@ -8,7 +8,8 @@ import { useNewTable } from "../hooks/game/useNewTable";
 import { useFindGames } from "../hooks/game/useFindGames";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
-import { formatMicroAsUsdc, USDC_DECIMALS } from "../constants/currency";
+import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
+import { validateTableName, normalizeTableName, tableNameCharCount } from "../utils/tableName";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
@@ -56,6 +57,7 @@ export default function TableAdminPage() {
 
     // Default table settings for Cash Game, 9 players, Texas Hold'em
     const [gameFormat, setGameFormat] = useState<GameFormat>(GameFormat.CASH);
+    const [tableName, setTableName] = useState(""); // Optional paid table name (poker-vm#337)
     const [minPlayers] = useState(2);
     const [maxPlayers, setMaxPlayers] = useState(9);
     
@@ -154,6 +156,13 @@ export default function TableAdminPage() {
     const hasEnoughUsdc = usdcBalance >= GAME_CREATION_FEE_BASE;
     const usdcBalanceFormatted = (usdcBalance / Math.pow(10, USDC_DECIMALS)).toFixed(6);
 
+    // Paid table name (poker-vm#337): normalize to the chain's canonical form so the
+    // preview, fee, validation and submitted value all match the chain.
+    const normalizedTableName = useMemo(() => normalizeTableName(tableName), [tableName]);
+    const tableNameError = useMemo(() => validateTableName(tableName), [tableName]);
+    const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
+    const insufficientForName = tableNameFeeUsd > usdcBalance / Math.pow(10, USDC_DECIMALS);
+
     // Transform fetched games to TableData format - memoized to prevent infinite loops
     const tables: TableData[] = useMemo(() => {
         const mappedTables = fetchedGames.map((game) => ({
@@ -219,6 +228,7 @@ export default function TableAdminPage() {
                 maxPlayers,
                 smallBlind: parseFloat(smallBlind),
                 bigBlind: parseFloat(bigBlind),
+                name: normalizedTableName || undefined,
                 ...(rakeConfig && { rake: rakeConfig }),
                 ...(sngConfig && { sng: sngConfig })
             });
@@ -230,6 +240,7 @@ export default function TableAdminPage() {
                 // Set the game address immediately if we got it from the transaction
                 setCreatedGameAddress(result.gameId);
                 setShowSuccessModal(true);
+                setTableName("");
 
                 // Wait a moment then reload tables
                 setTimeout(() => {
@@ -357,6 +368,36 @@ export default function TableAdminPage() {
                             <span className="text-gray-400 text-sm">Table Creation Fee:</span>
                             <span className="text-white font-mono text-sm">{GAME_CREATION_FEE_USDC.toFixed(6)} USDC</span>
                         </div>
+                    </div>
+
+                    {/* Optional paid table name (poker-vm#337): $0.10/char, live preview */}
+                    <div className="mb-4">
+                        <label className="text-gray-300 text-xs mb-1 block">
+                            Table Name <span className="text-gray-500">(optional)</span>
+                        </label>
+                        <input
+                            type="text"
+                            value={tableName}
+                            onChange={e => setTableName(e.target.value)}
+                            placeholder="e.g. friday-degens"
+                            className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                        />
+                        {tableNameError ? (
+                            <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
+                        ) : normalizedTableName.length > 0 ? (
+                            <p className="text-xs text-gray-400 mt-1">
+                                {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
+                                <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
+                                {normalizedTableName !== tableName && (
+                                    <span className="text-gray-500"> — saved as “{normalizedTableName}”</span>
+                                )}
+                                {insufficientForName && (
+                                    <span className="text-red-400"> — exceeds your ${usdcBalanceFormatted} balance</span>
+                                )}
+                            </p>
+                        ) : (
+                            <p className="text-xs text-gray-500 mt-1">Free if left blank. Lowercase a–z, 0–9 and hyphens; $0.10 per character.</p>
+                        )}
                     </div>
 
                     {/* Insufficient USDC Warning */}
@@ -846,10 +887,10 @@ export default function TableAdminPage() {
                     <div className="flex gap-3">
                         <button
                             onClick={handleCreateTable}
-                            disabled={isCreating || !cosmosWallet.address || !hasEnoughUsdc}
+                            disabled={isCreating || !cosmosWallet.address || !hasEnoughUsdc || !!tableNameError || insufficientForName}
                             className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-sm"
                         >
-                            {isCreating ? "Creating..." : !hasEnoughUsdc ? "Insufficient USDC" : "Create Table"}
+                            {isCreating ? "Creating..." : !hasEnoughUsdc ? "Insufficient USDC" : tableNameError ? "Invalid table name" : "Create Table"}
                         </button>
                         <button
                             onClick={refetch}
