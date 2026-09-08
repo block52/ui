@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 
-import { GameFormat, LegalActionDTO } from "@block52/poker-vm-sdk";
+import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
 // Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
 // wrappers) so the ActionSubmitController can classify + surface the error.
 import { SIT_IN_METHOD_POST_NOW, sitIn, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
@@ -164,9 +164,12 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         submit({ actionName: "sit-in", run: () => sitIn(tableId, currentNetwork, SIT_IN_METHOD_POST_NOW) });
     };
 
-    // Top-Up Chips button: always visible and clickable while the user is seated (#401),
-    // but completely hidden in SNG games where top-ups are not allowed (#2172).
-    // Mid-hand top-ups are accepted by the chain and applied at the start of the next hand.
+    // Top-Up Chips button: always VISIBLE while the user is seated (#401), hidden
+    // only in SNG games where top-ups aren't allowed (#2172). It's ENABLED exactly
+    // when the backend offers TOP_UP as a legal action — the engine omits it while
+    // the player is in the hand (ACTIVE/ALL_IN), so we read that rather than
+    // re-deriving "in the hand" client-side (#597). Applied at the next hand.
+    const canTopUp = legalActions.some(a => a.action === NonPlayerActionType.TOP_UP);
     const buyChipsElement =
         isCurrentUserSeated && tableId && !isSNG ? (
             <div className={`fixed z-30 ${buyChipsPositionClass}`}>
@@ -177,6 +180,8 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     maxBuyIn={maxBuyIn}
                     walletBalance={walletBalance}
                     onTopUp={handleTopUp}
+                    disabled={!canTopUp}
+                    disabledReason="You can top up between hands — not while you're in the current hand."
                 />
             </div>
         ) : null;
