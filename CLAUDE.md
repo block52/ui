@@ -198,7 +198,7 @@ Each API domain gets three pieces in `src/context/`:
 const PaymentApiContext = createContext<PaymentApi>(null as any);
 
 export const PaymentApiProvider: FC<{ children: ReactNode }> = ({ children }) => {
-    const api = new PaymentApi({ baseUrl: PROXY_URL!, secure: true, timeout: 5000 });
+    const api = useMemo(() => new PaymentApi({ baseUrl: PROXY_URL!, secure: true, timeout: 5000 }), []);
     return <PaymentApiContext.Provider value={api}>{children}</PaymentApiContext.Provider>;
 };
 
@@ -206,7 +206,11 @@ export const usePaymentApi = (): PaymentApi => useContext(PaymentApiContext);
 ```
 
 **Rules:**
-- Use `useMemo` when the API instance depends on dynamic values (e.g., `currentNetwork`)
+- **Always** `useMemo` the instance (or lazy-init it in a `useRef`). Without it
+  every provider render constructs a new API object, which changes the context
+  value and invalidates the dep array of every consumer downstream. List the
+  dynamic values it depends on (e.g. `currentNetwork.rest`) as the deps, or `[]`
+  when it depends on nothing
 - Providers are composed in `App.tsx`
 - Components consume APIs only via hooks, never by constructing API classes directly
 
@@ -487,9 +491,20 @@ a time, honoring the decorations.
   *visual* code reads this track via `GameDataContext`.
 
 **File map (`src/bus/`):** `ingest.ts` (pure message classifier),
-`deriveEvents.ts` (pure prev→next transition diff), `GameMessageBus.ts` (seq,
-drain, coalescing, animation acks), `decorators/*` (one pure decorator per
-file), `types.ts` (`GameStreamItem`, `GameEvent`, `Decoration`, hints).
+`deriveEvents.ts` (pure prev→next transition diff), `expandFrames.ts` (pure
+multi-street splitter), `GameMessageBus.ts` (seq, drain, coalescing, animation
+acks), `decorators/*` (one pure decorator per file), `types.ts`
+(`GameStreamItem`, `GameEvent`, `Decoration`, hints).
+
+**Runout expansion:** the engine deals a whole all-in runout inside one
+`performAction`, so flop+turn+river+winner arrive as ONE snapshot. Since the bus
+queues snapshots, and one snapshot is one atomic commit, nothing could space
+those apart. `expandFrames(prev, next)` splits such a frame into one sub-frame
+per street — each a projection of two REAL snapshots, never invented state — and
+the existing drain paces them. Sub-frames are `synthetic: true`, are excluded
+from the backpressure depth count (they are planned choreography, not backlog),
+and stay coalescible so a lagging client snaps to truth. They NEVER reach the
+logical track. See `docs/plans/2026_09_09_runout_frame_expansion.md`.
 
 **Extension points:**
 
@@ -512,8 +527,8 @@ indirection (never `import.meta.env` directly — it breaks under Jest); all
 snapshot types come from the SDK (Commandment 1).
 
 **Testing:** in dev builds the bus exposes `window.__B52_BUS__`
-(`committed`, `coalesced`, `pendingAcks`, `ackTimeouts`, `queueDepth`,
-`commitLog`) so e2e can assert serialization/pacing numerically instead of by
+(`committed`, `coalesced`, `expanded`, `pendingAcks`, `ackTimeouts`,
+`queueDepth`, `commitLog`) so e2e can assert serialization/pacing numerically instead of by
 screenshot timing. Stub controls (`__control/config` frame pacing,
 `__control/inject`, `__control/script`, `__control/disconnect`) drive the
 bus's paths in Playwright.

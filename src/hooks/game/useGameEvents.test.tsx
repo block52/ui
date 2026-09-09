@@ -27,7 +27,8 @@ function makeItem(events: GameEvent[]): GameStreamItem {
         classified: { kind: "actionAccepted" },
         events,
         decoration: { ...DEFAULT_DECORATION },
-        raw: {}
+        raw: {},
+        synthetic: false
     };
 }
 
