@@ -278,7 +278,7 @@ describe("HTTPClient", () => {
 ### Tech Stack
 
 - **React 19** - UI framework
-- **TypeScript 5** - Type safety
+- **TypeScript 7** - Type safety (native/Go compiler; note it drops the programmatic Compiler API — see [#601](https://github.com/block52/ui/issues/601))
 - **Vite** - Build tool and dev server
 - **TailwindCSS** - Styling
 - **@block52/poker-vm-sdk** - Blockchain integration
@@ -369,16 +369,17 @@ const callback = (_event: Event, data: Data) => {
 
 ### Running Linting
 
-```bash
-# Check for lint errors
-yarn lint
-
-# Auto-fix lint errors
-yarn lint:fix
-
-# Fix with warnings allowed (up to 100)
-yarn lint:warn
-```
+> ⚠️ **Linting is currently unavailable** — see
+> [#601](https://github.com/block52/ui/issues/601). TypeScript 7 removed the
+> programmatic Compiler API that `typescript-eslint` is built on, and no
+> published version of typescript-eslint supports TS 7. `yarn lint`,
+> `lint:fix` and `lint:warn` now print an explanation and exit non-zero
+> instead of crashing with a stack trace; `dev:lint` was removed (use
+> `yarn dev`).
+>
+> **The style rules below still apply** — they are just not machine-checked
+> right now, so match them by hand. Tests (`yarn test`, on babel-jest) and the
+> build (`yarn build`, native `tsc` CLI) are unaffected.
 
 ### Reuse `utils/` Helpers
 
@@ -712,7 +713,7 @@ VITE_WALLETCONNECT_PROJECT_ID=your_project_id
 When making changes:
 
 1. Follow code style (double quotes, semicolons)
-2. Run linting before commit: `yarn lint:fix`
+2. Match the code style by hand — linting is unavailable, see [#601](https://github.com/block52/ui/issues/601)
 3. Add JSDoc comments to new hooks
 4. Update relevant documentation
 5. Test changes thoroughly
