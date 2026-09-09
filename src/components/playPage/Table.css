@@ -16,6 +16,32 @@
     100% { background-position: 200% 0; }
 }
 
+/*
+ * Composited replacements for the two `background-position` animations above.
+ *
+ * `background-position` is a PAINT property — the compositor cannot run it, so
+ * animating it re-rasterizes the element every frame on the main thread. On the
+ * full-viewport table backgrounds that was the single most expensive thing on
+ * the page. These move an oversized child with `transform` instead, which the
+ * compositor handles off-thread, and are geometrically equivalent (see the
+ * arithmetic on each rule below).
+ *
+ * Deliberately NOT named `shimmer`/`gradient`: @keyframes names are GLOBAL, and
+ * Dashboard.css defines its own `shimmer` and `gradient` with the old
+ * background-position semantics. Reusing the names would let whichever
+ * stylesheet loads last silently redefine the other's animation.
+ */
+@keyframes table-shimmer-slide {
+    0% { transform: translate3d(0, 0, 0); }
+    100% { transform: translate3d(-50%, 0, 0); }
+}
+
+@keyframes table-gradient-drift {
+    0% { transform: translate3d(0, 0, 0); }
+    50% { transform: translate3d(-75%, 0, 0); }
+    100% { transform: translate3d(0, 0, 0); }
+}
+
 @keyframes float {
     0% { transform: translateY(0px); }
     50% { transform: translateY(-10px); }
@@ -80,8 +106,35 @@
 
 
 /* Animation classes */
+/*
+ * The shimmer host. The gradient and the motion live on ::before, which is 4x
+ * the host's width and slides left by exactly one tile per cycle.
+ *
+ * Equivalence: the old rule put a 200%-wide (2W) repeating gradient on the host
+ * and swept background-position 0% -> 200%, which offsets the image by -2W. Here
+ * ::before is 4W carrying two 2W tiles (background-size: 50%), translated -50%
+ * = -2W. Same distance, same direction, and the seam lands on a tile boundary so
+ * the loop is still invisible.
+ *
+ * The host must be positioned (both users are `position: absolute`) so ::before
+ * anchors to it.
+ */
 .shimmer-animation {
-    animation: shimmer 3s infinite linear;
+    overflow: hidden;
+}
+
+.shimmer-animation::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 400%;
+    background-image: linear-gradient(90deg, transparent 0%, var(--brand-primary-10) 25%, transparent 50%, var(--brand-primary-10) 75%, transparent 100%);
+    background-size: 50% 100%;
+    background-repeat: repeat-x;
+    animation: table-shimmer-slide 3s infinite linear;
+    will-change: transform;
 }
 
 .text-gradient {
@@ -130,8 +183,7 @@
     inset: 0;
     z-index: 0;
     opacity: 0.3;
-    background-image: linear-gradient(90deg, transparent 0%, var(--brand-primary-10) 25%, transparent 50%, var(--brand-primary-10) 75%, transparent 100%);
-    background-size: 200% 100%;
+    /* Gradient + motion live on .shimmer-animation::before. */
 }
 
 .sub-header-shadow {
@@ -153,18 +205,7 @@
     inset: 0;
     z-index: 0;
     opacity: 0.3;
-    background-image: linear-gradient(90deg, transparent 0%, var(--brand-primary-10) 25%, transparent 50%, var(--brand-primary-10) 75%, transparent 100%);
-    background-size: 200% 100%;
-}
-
-.background-animated {
-    position: absolute;
-    inset: 0;
-    z-index: 0;
-    opacity: 0.2;
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
-    transition: background 0.5s ease;
+    /* Gradient + motion live on .shimmer-animation::before. */
 }
 
 .background-base {
@@ -340,11 +381,28 @@
 }
 
 /* Optimized background animations - reduce CPU load */
+/*
+ * Equivalence: the old rule painted a 400% x 400% gradient (4W x 4H) on the host
+ * and ping-ponged background-position-x 0% -> 100% -> 0%, which offsets the
+ * image by -3W and back, with background-position-y pinned at 50% (a constant
+ * -1.5H offset). Here ::before IS that 4W x 4H image, offset `top: -150%` to
+ * reproduce the vertical centering, translated -75% (= -3W) and back.
+ */
 .background-animated-static {
     position: absolute;
     inset: 0;
     z-index: 0;
     opacity: 0.2;
+    overflow: hidden;
+}
+
+.background-animated-static::before {
+    content: "";
+    position: absolute;
+    top: -150%;
+    left: 0;
+    width: 400%;
+    height: 400%;
     background: linear-gradient(
         45deg,
         var(--anim-color-2-10) 0%,
@@ -353,8 +411,8 @@
         var(--anim-color-5-10) 75%,
         var(--anim-color-2-10) 100%
     );
-    background-size: 400% 400%;
-    animation: gradient 15s ease infinite;
+    animation: table-gradient-drift 15s ease infinite;
+    will-change: transform;
 }
 
 /* Static radial gradient - reduce calculations */
@@ -506,11 +564,11 @@
 
 /* Performance mode - disable expensive animations */
 @media (prefers-reduced-motion: reduce) {
-    .background-animated-static {
+    .background-animated-static::before {
         animation: none;
     }
     
-    .shimmer-animation {
+    .shimmer-animation::before {
         animation: none;
     }
     
@@ -550,7 +608,9 @@
 /* Mobile-specific optimizations */
 @media (max-width: 414px) {
     /* Reduce animation complexity on mobile */
-    .background-shimmer {
+    /* The animation is on ::before, not the host — this previously matched an
+       element with no animation and did nothing. */
+    .shimmer-animation::before {
         animation-duration: 6s; /* Slower = less CPU */
     }
     

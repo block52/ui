@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useShowingCardsByAddress } from "./useShowingCardsByAddress";
 import { hasValue } from "../../utils/guards";
@@ -9,6 +9,58 @@ import {
     PokerSolver,
     Deck
 } from "@block52/poker-vm-sdk";
+
+/**
+ * Monte Carlo iterations per simulation. Each iteration copies and shuffles the
+ * remaining deck and evaluates every live hand, so this number multiplies
+ * directly into main-thread time.
+ */
+const EQUITY_ITERATIONS = 5000;
+
+/**
+ * How many distinct (hands, board) results to retain across all hook instances.
+ * A hand's board only moves forward — preflop, flop, turn, river — and is never
+ * revisited, so a handful of entries is enough to deduplicate the simultaneous
+ * per-seat calls without growing over a session.
+ */
+const EQUITY_CACHE_LIMIT = 4;
+
+/**
+ * Simulation results shared across every hook instance, keyed by the full input.
+ *
+ * This hook is mounted once per SEAT (Player + OppositePlayer), but the
+ * simulation it runs is GLOBAL — the same hands and the same board produce the
+ * same answer for every seat. Without sharing, a 9-seat table runs nine
+ * independent 5000-iteration simulations (~210k five-card evaluations each,
+ * synchronously on the main thread) to arrive at one identical result.
+ *
+ * Runout frame expansion makes sharing essential rather than merely nice: the
+ * board now advances in three separate commits (flop, turn, river) instead of
+ * one, so an unshared cache would mean 27 full simulations per all-in hand.
+ *
+ * Cached Maps are handed out by reference and MUST be treated as immutable.
+ */
+const equityCache = new Map<string, Map<number, number>>();
+
+/**
+ * Clear the shared cache. Exported for tests only — it is module-level state,
+ * so without this a cached result leaks from one test case into the next.
+ */
+export function resetEquityCache(): void {
+    equityCache.clear();
+}
+
+function writeEquityCache(key: string, equities: Map<number, number>): void {
+    equityCache.set(key, equities);
+    // Map iterates in insertion order, so the first key is the oldest.
+    while (equityCache.size > EQUITY_CACHE_LIMIT) {
+        const oldest = equityCache.keys().next().value;
+        if (oldest === undefined) {
+            break;
+        }
+        equityCache.delete(oldest);
+    }
+}
 
 /**
  * Return type for useAllInEquity hook
@@ -155,20 +207,42 @@ export function useAllInEquity(): AllInEquityResult {
     }, [gameState?.communityCards]);
 
     /**
+     * The complete input to the simulation, as a stable string.
+     *
+     * This is both the cache key and the effect's trigger. It has to be a value,
+     * not an array identity: `playersWithVisibleCards` and `communityCards` are
+     * rebuilt from a fresh `gameState` on every WS frame, so depending on them
+     * re-armed the 300ms debounce several times a second, in all nine instances,
+     * for the entire duration of a showdown.
+     */
+    const equityKey = useMemo(() => {
+        if (!shouldShow || playersWithVisibleCards.length < 2) {
+            return "";
+        }
+        return JSON.stringify({
+            hands: playersWithVisibleCards.map(p => p.cards),
+            board: communityCards
+        });
+    }, [shouldShow, playersWithVisibleCards, communityCards]);
+
+    /**
      * Calculate equity client-side via SDK Monte Carlo.
      */
-    const calculateEquity = useCallback(() => {
+    const calculateEquity = () => {
         if (!shouldShow || playersWithVisibleCards.length < 2) {
             setEquities(new Map());
             return;
         }
 
-        const cacheKey = JSON.stringify({
-            hands: playersWithVisibleCards.map(p => p.cards),
-            board: communityCards
-        });
+        if (equityKey === lastCalculationRef.current) {
+            return;
+        }
 
-        if (cacheKey === lastCalculationRef.current) {
+        // Another seat's instance may already have run this exact simulation.
+        const shared = equityCache.get(equityKey);
+        if (shared) {
+            setEquities(shared);
+            lastCalculationRef.current = equityKey;
             return;
         }
 
@@ -184,7 +258,7 @@ export function useAllInEquity(): AllInEquityResult {
             const { winPercentages } = PokerSolver.calculateMultiPlayerEquity(
                 handsAsCards,
                 boardAsCards,
-                5000
+                EQUITY_ITERATIONS
             );
 
             const newEquities = new Map<number, number>();
@@ -195,8 +269,9 @@ export function useAllInEquity(): AllInEquityResult {
                 }
             });
 
+            writeEquityCache(equityKey, newEquities);
             setEquities(newEquities);
-            lastCalculationRef.current = cacheKey;
+            lastCalculationRef.current = equityKey;
         } catch (err) {
             console.error("Equity calculation error:", err);
             setError(err as Error);
@@ -204,16 +279,23 @@ export function useAllInEquity(): AllInEquityResult {
         } finally {
             setIsLoading(false);
         }
-    }, [shouldShow, playersWithVisibleCards, communityCards]);
+    };
+
+    // Held in a ref so the debounce effect below can depend on the INPUT rather
+    // than on this function's identity, which changes every render.
+    const calculateEquityRef = useRef(calculateEquity);
+    useEffect(() => {
+        calculateEquityRef.current = calculateEquity;
+    });
 
     /**
-     * Recalculate equity when conditions change
+     * Recalculate equity when the inputs actually change.
      */
     useEffect(() => {
         if (shouldShow) {
             // Debounce the calculation slightly to avoid rapid re-calls
             const timeout = setTimeout(() => {
-                calculateEquity();
+                calculateEquityRef.current();
             }, 300);
             return () => clearTimeout(timeout);
         } else {
@@ -221,7 +303,7 @@ export function useAllInEquity(): AllInEquityResult {
             setEquities(new Map());
             lastCalculationRef.current = "";
         }
-    }, [shouldShow, calculateEquity]);
+    }, [shouldShow, equityKey]);
 
     return {
         equities,
