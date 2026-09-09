@@ -61,6 +61,20 @@ export function useAutoFold(
         }
     }, [enabled]);
 
+    /**
+     * Callbacks live in a ref so this hook is immune to callers that pass fresh
+     * arrow functions on every render — PokerActionPanel does exactly that.
+     *
+     * Without it, triggerAutoAction's identity changed every render, the effect below
+     * re-ran, and its cleanup cancelled the pending 500ms submit before it could
+     * fire. The guard is latched synchronously, so nothing re-armed it and the
+     * action silently never happened (#605).
+     */
+    const callbacksRef = useRef({ onAutoActionStarted, onAutoActionComplete, onAutoActionError });
+    useEffect(() => {
+        callbacksRef.current = { onAutoActionStarted, onAutoActionComplete, onAutoActionError };
+    });
+
     const triggerAutoAction = useCallback(async () => {
         if (!tableId || isProcessingRef.current) {
             return;
@@ -70,20 +84,20 @@ export function useAutoFold(
         const action = hasCheckAction ? PlayerActionType.CHECK : PlayerActionType.FOLD;
 
         isProcessingRef.current = true;
-        onAutoActionStarted?.(action);
+        callbacksRef.current.onAutoActionStarted?.(action);
 
         try {
             const result = action === PlayerActionType.CHECK
                 ? await checkHand(tableId, network)
                 : await foldHand(tableId, network);
-            onAutoActionComplete?.(action, result.hash);
+            callbacksRef.current.onAutoActionComplete?.(action, result.hash);
         } catch (error) {
             console.error(`Auto-${action} failed:`, error);
-            onAutoActionError?.(error instanceof Error ? error : new Error(String(error)));
+            callbacksRef.current.onAutoActionError?.(error instanceof Error ? error : new Error(String(error)));
         } finally {
             isProcessingRef.current = false;
         }
-    }, [tableId, network, hasCheckAction, onAutoActionStarted, onAutoActionComplete, onAutoActionError]);
+    }, [tableId, network, hasCheckAction]);
 
     useEffect(() => {
         // Check all conditions for auto-fold
@@ -110,5 +124,5 @@ export function useAutoFold(
         if (!isUsersTurn || timeRemaining > 0) {
             hasTriggeredRef.current = false;
         }
-    }, [hasFoldAction, hasCheckAction, isUsersTurn, timeRemaining, triggerAutoAction]);
+    }, [hasFoldAction, hasCheckAction, isUsersTurn, timeRemaining, enabled, triggerAutoAction]);
 }

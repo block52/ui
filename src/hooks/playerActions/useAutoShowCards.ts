@@ -33,24 +33,38 @@ export function useAutoShowCards(
     const hasTriggeredRef = useRef<boolean>(false);
     const isProcessingRef = useRef<boolean>(false);
 
+    /**
+     * Callbacks live in a ref so this hook is immune to callers that pass fresh
+     * arrow functions on every render — PokerActionPanel does exactly that.
+     *
+     * Without it, triggerAutoShow's identity changed every render, the effect below
+     * re-ran, and its cleanup cancelled the pending 500ms submit before it could
+     * fire. The guard is latched synchronously, so nothing re-armed it and the
+     * action silently never happened (#605).
+     */
+    const callbacksRef = useRef({ onAutoShowStarted, onAutoShowComplete, onAutoShowError });
+    useEffect(() => {
+        callbacksRef.current = { onAutoShowStarted, onAutoShowComplete, onAutoShowError };
+    });
+
     const triggerAutoShow = useCallback(async () => {
         if (!tableId || isProcessingRef.current) {
             return;
         }
 
         isProcessingRef.current = true;
-        onAutoShowStarted?.();
+        callbacksRef.current.onAutoShowStarted?.();
 
         try {
             const result = await showCards(tableId, network);
-            onAutoShowComplete?.(result.hash);
+            callbacksRef.current.onAutoShowComplete?.(result.hash);
         } catch (error) {
             console.error("Auto-show cards failed:", error);
-            onAutoShowError?.(error instanceof Error ? error : new Error(String(error)));
+            callbacksRef.current.onAutoShowError?.(error instanceof Error ? error : new Error(String(error)));
         } finally {
             isProcessingRef.current = false;
         }
-    }, [tableId, network, onAutoShowStarted, onAutoShowComplete, onAutoShowError]);
+    }, [tableId, network]);
 
     useEffect(() => {
         const shouldAutoShow = hasShowAction && isUsersTurn && timeRemaining === 0 && !hasTriggeredRef.current && !isProcessingRef.current;

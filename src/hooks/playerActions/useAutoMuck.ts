@@ -43,24 +43,38 @@ export function useAutoMuck(
         }
     }, [enabled]);
 
+    /**
+     * Callbacks live in a ref so this hook is immune to callers that pass fresh
+     * arrow functions on every render — PokerActionPanel does exactly that.
+     *
+     * Without it, triggerAutoMuck's identity changed every render, the effect below
+     * re-ran, and its cleanup cancelled the pending 500ms submit before it could
+     * fire. The guard is latched synchronously, so nothing re-armed it and the
+     * action silently never happened (#605).
+     */
+    const callbacksRef = useRef({ onAutoMuckStarted, onAutoMuckComplete, onAutoMuckError });
+    useEffect(() => {
+        callbacksRef.current = { onAutoMuckStarted, onAutoMuckComplete, onAutoMuckError };
+    });
+
     const triggerAutoMuck = useCallback(async () => {
         if (!tableId || isProcessingRef.current) {
             return;
         }
 
         isProcessingRef.current = true;
-        onAutoMuckStarted?.();
+        callbacksRef.current.onAutoMuckStarted?.();
 
         try {
             const result = await muckCards(tableId, network);
-            onAutoMuckComplete?.(result.hash);
+            callbacksRef.current.onAutoMuckComplete?.(result.hash);
         } catch (error) {
             console.error("Auto-muck failed:", error);
-            onAutoMuckError?.(error instanceof Error ? error : new Error(String(error)));
+            callbacksRef.current.onAutoMuckError?.(error instanceof Error ? error : new Error(String(error)));
         } finally {
             isProcessingRef.current = false;
         }
-    }, [tableId, network, onAutoMuckStarted, onAutoMuckComplete, onAutoMuckError]);
+    }, [tableId, network]);
 
     useEffect(() => {
         const shouldAutoMuck =
@@ -81,5 +95,5 @@ export function useAutoMuck(
         if (!isUsersTurn) {
             hasTriggeredRef.current = false;
         }
-    }, [hasMuckAction, isUsersTurn, triggerAutoMuck]);
+    }, [hasMuckAction, isUsersTurn, enabled, triggerAutoMuck]);
 }

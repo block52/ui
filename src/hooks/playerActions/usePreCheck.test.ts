@@ -35,6 +35,62 @@ describe("usePreCheck", () => {
         jest.useRealTimers();
     });
 
+    describe("re-renders during the settle window (#605)", () => {
+        it("still fires when the caller passes fresh callbacks every render", async () => {
+            // PokerActionPanel passes inline arrows, so every render gave `fire`
+            // a new identity — the effect re-ran and its cleanup cancelled the
+            // pending submit, with the latch already set.
+            const submitted: string[] = [];
+            const { rerender } = renderHook(() =>
+                usePreCheck(
+                    TABLE_ID,
+                    NETWORK,
+                    true,
+                    true,
+                    true,
+                    () => {},
+                    (hash: string) => {
+                        submitted.push(hash);
+                    },
+                    () => {},
+                    () => {}
+                )
+            );
+
+            act(() => {
+                jest.advanceTimersByTime(200);
+            });
+            rerender();
+            act(() => {
+                jest.advanceTimersByTime(100);
+            });
+            rerender();
+
+            await fireAndSettle();
+
+            expect(mockCheckHand).toHaveBeenCalledTimes(1);
+            expect(submitted).toEqual(["0xhash"]);
+        });
+
+        it("resolves the queued state so the checkbox does not stay stuck", async () => {
+            // onResolved is only ever called from inside fire(). If the timer is
+            // cancelled it never runs, and preCheckQueued stays true.
+            const onResolved = jest.fn();
+            const { rerender } = renderHook(() =>
+                usePreCheck(TABLE_ID, NETWORK, true, true, true, () => {}, () => {}, () => {}, onResolved)
+            );
+
+            act(() => {
+                jest.advanceTimersByTime(250);
+            });
+            rerender();
+
+            await fireAndSettle();
+
+            expect(onResolved).toHaveBeenCalledTimes(1);
+        });
+    });
+
     it("does not fire when the pre-check is not queued", async () => {
         const onResolved = jest.fn();
         renderHook(() => usePreCheck(TABLE_ID, NETWORK, false, true, true, undefined, undefined, undefined, onResolved));

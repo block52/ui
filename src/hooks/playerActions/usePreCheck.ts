@@ -48,6 +48,21 @@ export function usePreCheck(
         hasCheckRef.current = hasCheckAction;
     }, [hasCheckAction]);
 
+    /**
+     * Callbacks live in a ref so this hook is immune to callers that pass fresh
+     * arrow functions on every render — PokerActionPanel does exactly that.
+     *
+     * Without it, `fire`'s identity changed every render, the effect below
+     * re-ran, and its cleanup cancelled the pending 500ms submit. The latch is
+     * set synchronously, so nothing re-armed it: the pre-check never fired AND
+     * `onResolved` never ran, leaving the checkbox stuck ticked until the round
+     * changed (#605).
+     */
+    const callbacksRef = useRef({ onStarted, onComplete, onError, onResolved });
+    useEffect(() => {
+        callbacksRef.current = { onStarted, onComplete, onError, onResolved };
+    });
+
     const fire = useCallback(async () => {
         if (!tableId || isProcessingRef.current) {
             return;
@@ -56,24 +71,24 @@ export function usePreCheck(
         // A bet slipped in on the same tick → CHECK is no longer free. Resolve
         // without acting; the player gets their normal turn.
         if (!hasCheckRef.current) {
-            onResolved?.();
+            callbacksRef.current.onResolved?.();
             return;
         }
 
         isProcessingRef.current = true;
-        onStarted?.();
+        callbacksRef.current.onStarted?.();
 
         try {
             const result = await checkHand(tableId, network);
-            onComplete?.(result.hash);
+            callbacksRef.current.onComplete?.(result.hash);
         } catch (error) {
             console.error("Pre-check failed:", error);
-            onError?.(error instanceof Error ? error : new Error(String(error)));
+            callbacksRef.current.onError?.(error instanceof Error ? error : new Error(String(error)));
         } finally {
             isProcessingRef.current = false;
-            onResolved?.();
+            callbacksRef.current.onResolved?.();
         }
-    }, [tableId, network, onStarted, onComplete, onError, onResolved]);
+    }, [tableId, network]);
 
     useEffect(() => {
         const shouldFire =
