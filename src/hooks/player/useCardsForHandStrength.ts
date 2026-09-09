@@ -15,6 +15,19 @@ export const useCardsForHandStrength = (seatIndex?: number): HandStrength | null
   const { holeCards } = usePlayerData(seatIndex);
   const { tableDataCommunityCards } = useTableData();
 
+  // Key the evaluation on the CARDS, not on the arrays holding them. Both inputs
+  // are rebuilt from a fresh `gameState` on every WS frame -- `holeCards` is
+  // memoized on `playerData`, itself a new PlayerDTO per snapshot, and
+  // `tableDataCommunityCards` is `gameState.communityCards` -- so keying on
+  // identity re-ran Deck.fromString x7 plus a full hand evaluation several times
+  // a second, on a component that is always mounted. The cards themselves only
+  // change when a street is dealt.
+  const holeKey = holeCards?.join(",") ?? "";
+  const boardKey = tableDataCommunityCards?.join(",") ?? "";
+
+  // holeCards/tableDataCommunityCards are deliberately not dependencies: the two
+  // keys above encode their contents completely.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   return useMemo(() => {
     // Need at least hole cards to evaluate
     if (!holeCards || holeCards.length < 2) {
@@ -48,5 +61,5 @@ export const useCardsForHandStrength = (seatIndex?: number): HandStrength | null
       console.error("Error calculating hand strength:", error);
       return null;
     }
-  }, [holeCards, tableDataCommunityCards]);
+  }, [holeKey, boardKey]);
 };
