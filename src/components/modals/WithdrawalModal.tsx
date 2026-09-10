@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
 import useCosmosWallet from "../../hooks/wallet/useCosmosWallet";
-import { microToUsdc, usdcToMicroBigInt, formatMicroAsUsdc } from "../../constants/currency";
+import { microToUsdc, usdcToMicroBigInt, formatMicroAsUsdc, parseUsdcToMicro } from "../../constants/currency";
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { useNetwork } from "../../context/NetworkContext";
 import { getSigningClient } from "../../utils/cosmos/client";
@@ -176,7 +176,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
 
         try {
             const { signingClient } = await getSigningClient(currentNetwork);
-            const microAmount = usdcToMicroBigInt(parseFloat(amount));
+            const microAmount = parseUsdcToMicro(amount);
             initiatedAmountRef.current = microAmount.toString();
 
             // Send MsgInitiateWithdrawal signed by cosmos key, eth address in message

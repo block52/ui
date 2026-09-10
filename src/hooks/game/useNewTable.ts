@@ -81,8 +81,8 @@ export const useNewTable = (): UseNewTableReturn => {
             // Convert rake options if provided
             let rakeConfig = undefined;
             if (gameOptions.rake) {
-                const rakeFreeThresholdB52USDC = BigInt(Math.floor(gameOptions.rake.rakeFreeThreshold * Math.pow(10, COSMOS_CONSTANTS.USDC_DECIMALS)));
-                const rakeCapB52USDC = BigInt(Math.floor(gameOptions.rake.rakeCap * Math.pow(10, COSMOS_CONSTANTS.USDC_DECIMALS)));
+                const rakeFreeThresholdB52USDC = usdcToMicroBigInt(gameOptions.rake.rakeFreeThreshold);
+                const rakeCapB52USDC = usdcToMicroBigInt(gameOptions.rake.rakeCap);
 
                 rakeConfig = {
                     rakeFreeThreshold: rakeFreeThresholdB52USDC,

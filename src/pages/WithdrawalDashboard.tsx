@@ -6,7 +6,7 @@ import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { ethers } from "ethers";
-import { formatMicroAsUsdc, usdcToMicroBigInt } from "../constants/currency";
+import { formatMicroAsUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
 import { base64ToHex } from "../utils/encodingUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
@@ -132,7 +132,7 @@ export default function WithdrawalDashboard() {
             const { signingClient } = await getSigningClient(currentNetwork);
 
             // Convert USDC to micro (6 decimals)
-            const microAmount = usdcToMicroBigInt(parseFloat(withdrawalAmount));
+            const microAmount = parseUsdcToMicro(withdrawalAmount);
 
             // Initiate the withdrawal
             const hash = await signingClient.initiateWithdrawal(withdrawalBaseAddress, microAmount);

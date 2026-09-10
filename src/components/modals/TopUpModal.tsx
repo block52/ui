@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { microToUsdc, usdcToMicroBigInt } from "../../constants/currency";
+import { microToUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../../constants/currency";
 import { calculateMinTopUp, calculateMaxTopUp } from "../../utils/topUpUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { Modal, LoadingSpinner } from "../common";
@@ -72,7 +72,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
             setTopUpError("");
             setIsProcessing(true);
 
-            const topUpMicrounits = usdcToMicroBigInt(parseFloat(topUpAmount));
+            const topUpMicrounits = parseUsdcToMicro(topUpAmount);
 
             if (topUpMicrounits <= 0n) {
                 setTopUpError("Top-up amount must be positive");

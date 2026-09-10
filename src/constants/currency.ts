@@ -23,13 +23,77 @@ export const USDC_TO_MICRO_BIGINT = 1_000_000n;
 export const MICRO_TO_USDC = 1 / 1_000_000;
 
 /**
- * Convert USDC dollars to micro-units (bigint)
+ * Parse a decimal USDC string to micro-units, exactly.
+ *
+ * PREFER THIS over {@link usdcToMicroBigInt} wherever the amount originates as
+ * text — user input, form state, an API field. It never constructs a float, so
+ * there is no precision to lose: the digits are moved and the result is built
+ * from them.
+ *
+ * The float route cannot do this. `2.01` is not representable in binary; the
+ * nearest double times 10^6 is 2009999.9999999998, and flooring that yields
+ * 2009999. Converting to bigint afterwards is too late (#610).
+ *
+ * @param value Decimal USDC as text, e.g. "2.01". Up to 6 decimal places.
+ * @returns Amount in micro-units, e.g. 2010000n
+ * @throws If the value is not a plain non-negative decimal, or carries more
+ *         precision than USDC has. It refuses rather than truncating, because
+ *         silently dropping a digit is silently taking money.
+ */
+export function parseUsdcToMicro(value: string): bigint {
+    const text = (value ?? "").trim().replace(/^\+/, "");
+    if (text === "") {
+        throw new Error("parseUsdcToMicro: amount is empty");
+    }
+    if (text.startsWith("-")) {
+        throw new Error(`parseUsdcToMicro: amount cannot be negative (got "${value}")`);
+    }
+    // Deliberately strict: no exponents, no thousands separators, no currency
+    // symbols. Callers should validate and normalise their own input rather
+    // than have this quietly reinterpret it.
+    if (!/^\d*\.?\d*$/.test(text) || text === ".") {
+        throw new Error(`parseUsdcToMicro: "${value}" is not a valid decimal amount`);
+    }
+
+    const [whole = "", fraction = ""] = text.split(".");
+    if (fraction.length > USDC_DECIMALS) {
+        throw new Error(
+            `parseUsdcToMicro: "${value}" has more than ${USDC_DECIMALS} decimal places, which USDC cannot represent`
+        );
+    }
+
+    // Right-pad the fraction to exactly 6 digits and concatenate: no arithmetic
+    // on anything that could round.
+    return BigInt(`${whole || "0"}${fraction.padEnd(USDC_DECIMALS, "0")}`);
+}
+
+/**
+ * Convert USDC dollars to micro-units (bigint).
+ *
+ * Use {@link parseUsdcToMicro} instead when the amount is available as a string
+ * — this entry point exists for values that are genuinely numeric (a slider
+ * position, a computed limit) and it cannot be exact for those by construction.
+ *
+ * Rounds to the nearest micro-unit. It previously floored, which turned the
+ * float representation error into a systematic one-unit shortfall on 1.2% of
+ * ordinary cent amounts (#610). Rounding recovers the intended value for any
+ * decimal within USDC precision, because the representation error is many
+ * orders of magnitude below half a micro-unit.
+ *
  * @param usdcAmount Amount in USDC (e.g., 1.50)
  * @returns Amount in micro-units as bigint (e.g., 1500000n)
+ * @throws If the value is not finite, or is too large to convert without losing
+ *         precision — better a loud failure than a wrong amount.
  */
 export function usdcToMicroBigInt(usdcAmount: number): bigint {
-    // Multiply by 10^6, then convert to bigint to avoid floating point issues
-    return BigInt(Math.floor(usdcAmount * USDC_TO_MICRO));
+    if (!Number.isFinite(usdcAmount)) {
+        throw new Error(`usdcToMicroBigInt: expected a finite number, got ${usdcAmount}`);
+    }
+    const micro = Math.round(usdcAmount * USDC_TO_MICRO);
+    if (!Number.isSafeInteger(micro)) {
+        throw new Error(`usdcToMicroBigInt: ${usdcAmount} USDC exceeds the precision a number can carry`);
+    }
+    return BigInt(micro);
 }
 
 /**
@@ -39,7 +103,8 @@ export function usdcToMicroBigInt(usdcAmount: number): bigint {
  * @deprecated Use usdcToMicroBigInt for internal calculations
  */
 export function usdcToMicro(usdcAmount: number): number {
-    return Math.floor(usdcAmount * USDC_TO_MICRO);
+    // Rounds, for the same reason as usdcToMicroBigInt (#610).
+    return Math.round(usdcAmount * USDC_TO_MICRO);
 }
 
 /**

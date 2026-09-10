@@ -8,7 +8,7 @@ import { HexagonPattern } from "../common/Modal";
 import { joinTable } from "../../hooks/playerActions/joinTable";
 import { JoinTableOptions } from "../../hooks/playerActions/types";
 import { useCosmosWallet } from "../../hooks";
-import { usdcToMicroBigInt, microToUsdc } from "../../constants/currency";
+import { usdcToMicroBigInt, microToUsdc, parseUsdcToMicro } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useNetwork } from "../../context/NetworkContext";
 import { useGameStateContext } from "../../context/GameStateContext";
@@ -143,7 +143,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     const handleJoinClick = useCallback(() => {
         try {
             // Convert dollar amount to USDC microunits (6 decimals)
-            const buyInMicrounits = usdcToMicroBigInt(parseFloat(buyInAmount));
+            const buyInMicrounits = parseUsdcToMicro(buyInAmount);
 
             if (buyInMicrounits < BigInt(minBuyInValue!)) {
                 setBuyInError(`Minimum buy-in is $${minBuyInFormatted}`);
@@ -175,7 +175,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
             setIsJoiningRandomSeat(true);
 
             // Validate buy-in amount first - convert to USDC microunits (6 decimals)
-            const buyInMicrounits = usdcToMicroBigInt(parseFloat(buyInAmount));
+            const buyInMicrounits = parseUsdcToMicro(buyInAmount);
 
             if (buyInMicrounits < BigInt(minBuyInValue!)) {
                 setBuyInError(`Minimum buy-in is ${minBuyInFormatted}`);

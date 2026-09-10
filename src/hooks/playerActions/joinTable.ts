@@ -5,6 +5,7 @@ import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { JoinTableResult } from "../../types";
 import { hasValue, isNullish } from "../../utils/guards";
+import { parseUsdcToMicro } from "../../constants/currency";
 
 /**
  * Resolves the concrete seat a join should claim.
@@ -50,10 +51,11 @@ export async function joinTable(tableId: string, options: JoinTableOptions, netw
         throw new Error("Table ID is required to join a table");
     }
 
-    // Convert buy-in amount from USDC to micro-USDC (b52usdc)
-    // options.amount is in USDC (e.g., "5.00"), need to convert to micro-units (e.g., 5000000)
-    const amountInUsdc = parseFloat(options.amount);
-    const buyInAmount = BigInt(Math.floor(amountInUsdc * Math.pow(10, COSMOS_CONSTANTS.USDC_DECIMALS)));
+    // Convert buy-in amount from USDC to micro-USDC (b52usdc).
+    // options.amount is already text (e.g. "5.00"), so parse it directly rather
+    // than routing it through a float — parseFloat + multiply was short by one
+    // micro-unit on 1.2% of cent amounts (#610).
+    const buyInAmount = parseUsdcToMicro(options.amount);
 
     // Resolve a real seat — never the broken seat-0 "random" sentinel (which
     // the SNG/tournament engine mis-seats). See resolveJoinSeat.
