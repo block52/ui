@@ -28,7 +28,8 @@ function makeItem(events: GameEvent[], animations: AnimationHint[] = []): GameSt
         classified: { kind: "actionAccepted" } as GameStreamItem["classified"],
         events,
         decoration: { ...DEFAULT_DECORATION, animations },
-        raw: {}
+        raw: {},
+        synthetic: false
     };
 }
 

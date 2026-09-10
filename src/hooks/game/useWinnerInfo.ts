@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
@@ -51,40 +52,69 @@ export const useWinnerInfo = (): WinnerInfoReturn => {
     // Get game state directly from Context - no additional WebSocket connections
     const { gameState, isLoading, error } = useGameStateContext();
 
-    // Default values in case of error or loading
-    const defaultState: WinnerInfoReturn = {
-        winnerInfo: null as WinnerInfo[] | null,
-        winnerBySeat: new Map<number, WinnerInfo>(),
-        error
-    };
-
-    // If still loading or error occurred, return default values
-    if (isLoading || error || !gameState) {
-        return defaultState;
-    }
-
-    try {
-        // Process winner information
-        const winners = getWinnerInfo(gameState);
-        // Build the seat index once so per-seat consumers do O(1) lookups
-        // instead of each re-scanning winnerInfo by seat (#2455).
-        const winnerBySeat = new Map<number, WinnerInfo>();
-        if (winners) {
-            for (const winner of winners) {
-                winnerBySeat.set(winner.seat, winner);
-            }
+    // Content fingerprint of everything getWinnerInfo actually reads, so the
+    // result is recomputed when the WINNERS change rather than on every render.
+    //
+    // Two reasons this matters. This hook is instantiated ~20 times per render
+    // pass (Table, all 9 seats, ActionsLog, plus useWinnerCards doubling each of
+    // them), and it allocates two Maps and runs ethers formatUnits per winner.
+    // And `gameState` is a fresh object on every WS frame, so keying the memo on
+    // it directly would miss every time — while winners in fact change once per
+    // hand. Same approach as usePlayerChipData's actionsFingerprint (#2455).
+    //
+    // The leading "s" distinguishes "no game state" ("") from a loaded state
+    // with no winners and no players.
+    const fingerprint = useMemo(() => {
+        if (!gameState) {
+            return "";
         }
-        const result: WinnerInfoReturn = {
-            winnerInfo: winners,
-            winnerBySeat,
-            error: null
+        const winners = gameState.winners
+            .map(w => `${w.seat ?? ""}:${w.address}:${w.amount}:${w.name ?? ""}:${w.description ?? ""}:${(w.cards ?? []).join(",")}`)
+            .join("|");
+        // getWinnerInfo falls back to a players[] lookup when winner.seat is
+        // absent, so the address->seat mapping is part of the input too.
+        const seats = gameState.players.map(p => `${p.seat}:${p.address}`).join("|");
+        return `s${winners}#${seats}`;
+    }, [gameState]);
+
+    // `gameState` is deliberately NOT a dependency: `fingerprint` encodes every
+    // field read below, so an unchanged fingerprint means an unchanged result.
+    return useMemo<WinnerInfoReturn>(() => {
+        const defaultState: WinnerInfoReturn = {
+            winnerInfo: null as WinnerInfo[] | null,
+            winnerBySeat: new Map<number, WinnerInfo>(),
+            error
         };
 
-        return result;
-    } catch (err) {
-        console.error("Error parsing winner information:", err);
-        return {
-            ...defaultState,
-        };
-    }
+        // If still loading or error occurred, return default values
+        if (isLoading || error || !gameState) {
+            return defaultState;
+        }
+
+        try {
+            // Process winner information
+            const winners = getWinnerInfo(gameState);
+            // Build the seat index once so per-seat consumers do O(1) lookups
+            // instead of each re-scanning winnerInfo by seat (#2455).
+            const winnerBySeat = new Map<number, WinnerInfo>();
+            if (winners) {
+                for (const winner of winners) {
+                    winnerBySeat.set(winner.seat, winner);
+                }
+            }
+            const result: WinnerInfoReturn = {
+                winnerInfo: winners,
+                winnerBySeat,
+                error: null
+            };
+
+            return result;
+        } catch (err) {
+            console.error("Error parsing winner information:", err);
+            return {
+                ...defaultState,
+            };
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fingerprint, isLoading, error]);
 };

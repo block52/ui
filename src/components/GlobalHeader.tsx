@@ -70,8 +70,20 @@ export const GlobalHeader: React.FC = () => {
     const [latestBlockHeight, setLatestBlockHeight] = useState<string | null>(null);
     const [hasError, setHasError] = useState(false);
 
+    // Don't show header on game table pages (they have their own layout)
+    // But DO show it on /table/admin
+    const hideOnPaths = ["/table/"];
+    const shouldHide = hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin";
+
     // Fetch latest block height
     useEffect(() => {
+        // Hidden on this route — the poll would fetch, setState and re-render for
+        // a header that renders null. The early `return null` below is AFTER this
+        // effect, so without this guard /table/:id polls RPC for the whole session.
+        if (shouldHide) {
+            return;
+        }
+
         const fetchBlockHeight = async () => {
             try {
                 const cosmosClient = getCosmosClient({
@@ -95,12 +107,7 @@ export const GlobalHeader: React.FC = () => {
         const interval = setInterval(fetchBlockHeight, 10000); // Update every 10 seconds
 
         return () => clearInterval(interval);
-    }, [currentNetwork]);
-
-    // Don't show header on game table pages (they have their own layout)
-    // But DO show it on /table/admin
-    const hideOnPaths = ["/table/"];
-    const shouldHide = hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin";
+    }, [currentNetwork, shouldHide]);
 
     if (shouldHide) {
         return null;

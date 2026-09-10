@@ -96,12 +96,12 @@ function isMaskedCard(card: string): boolean {
 }
 
 /** A hand that has cards, every one of them masked (e.g. ["X","X"]). */
-function isMaskedHand(cards: string[] | undefined): boolean {
+export function isMaskedHand(cards: string[] | undefined): boolean {
     return hasElements(cards) && cards.every(isMaskedCard);
 }
 
 /** A hand that has cards, none of them masked (real, viewable cards). */
-function isRevealedHand(cards: string[] | undefined): boolean {
+export function isRevealedHand(cards: string[] | undefined): boolean {
     return hasElements(cards) && cards.every(card => !isMaskedCard(card));
 }
 

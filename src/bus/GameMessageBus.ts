@@ -62,6 +62,7 @@ import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { classifyMessage, ClassifiedMessage, RawWsMessage } from "./ingest";
 import { GameStreamItem, BusIntrospection, DEFAULT_DECORATION, Decoration, GameEvent, Decorator } from "./types";
 import { deriveEvents } from "./deriveEvents";
+import { expandFrames } from "./expandFrames";
 import { buildDefaultDecorators } from "./decorators";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 import { isEmpty } from "../utils/guards";
@@ -125,6 +126,7 @@ export class GameMessageBus {
         ingested: 0,
         committed: 0,
         coalesced: 0,
+        expanded: 0,
         queueDepth: 0,
         lastEventCount: 0,
         totalEvents: 0,
@@ -160,37 +162,81 @@ export class GameMessageBus {
             return;
         }
 
-        this.seq += 1;
-
         // Snapshot the previous ingested state BEFORE the logical-track update
         // below overwrites it — decorators and derivation both diff against it.
         const prevSnapshot = this.lastSnapshot;
-        const events = this.deriveEventsForItem(classified, prevSnapshot);
+
+        // Logical track — the REAL snapshot, committed immediately and EXACTLY
+        // ONCE, before any queueing/pacing/expansion. Synthetic frames must never
+        // reach it: action submission reads this track, and a projected frame's
+        // stale action indices would be rejected by the chain.
+        this.updateLogicalTrack(classified);
+
+        this.introspection.ingested += 1;
+
+        // Non-state kinds carry no snapshot, so there is nothing to expand.
+        if (classified.kind !== "state") {
+            this.enqueue(this.buildItem(classified, prevSnapshot, raw, false));
+            this.introspection.lastSeq = this.seq;
+            return;
+        }
+
+        // One arriving snapshot may have collapsed several streets — the engine
+        // runs an all-in runout inside a single performAction with no yield point.
+        // Expanding it gives the drain the commit boundaries it needs to pace the
+        // board, and to keep the winner from painting before the river.
+        const frames = expandFrames(prevSnapshot, classified.snapshot);
+        const finalIndex = frames.length - 1;
+
+        let previous = prevSnapshot;
+        for (let index = 0; index < frames.length; index++) {
+            const isFinal = index === finalIndex;
+            // Each sub-frame is derived and decorated against its PREDECESSOR, so
+            // every decorator sees exactly one street's worth of change and needs
+            // no knowledge of expansion.
+            const frameClassified = isFinal ? classified : { ...classified, snapshot: frames[index] };
+            this.enqueue(this.buildItem(frameClassified, previous, raw, !isFinal));
+            if (!isFinal) {
+                this.introspection.expanded += 1;
+            }
+            previous = frames[index];
+        }
+
+        this.introspection.lastSeq = this.seq;
+    }
+
+    /**
+     * Build one fully-derived, decorated, ack-stamped stream item against `prev`.
+     * Assigns the next `seq` — every sub-frame of an expansion gets its own,
+     * because `ackId` is `${seq}:${hintIndex}` and must stay globally unique.
+     */
+    private buildItem(
+        classified: ClassifiedMessage,
+        prev: TexasHoldemStateDTO | undefined,
+        raw: RawWsMessage,
+        synthetic: boolean
+    ): GameStreamItem {
+        this.seq += 1;
 
         const item: GameStreamItem = {
             seq: this.seq,
             receivedAt: this.now(),
             kind: classified.kind,
             classified,
-            events,
+            events: this.deriveEventsForItem(classified, prev),
             decoration: { ...DEFAULT_DECORATION },
-            raw
+            raw,
+            synthetic
         };
 
         // Run decorators to accumulate the item's decoration (Phase 3).
-        this.applyDecorators(item, prevSnapshot);
+        this.applyDecorators(item, prev);
 
         // Stamp ack ids onto opted-in hints (Phase 5) — done by the bus, never by
         // decorators, so ids are globally unique (`${seq}:${hintIndex}`).
         this.assignAckIds(item);
 
-        // Logical track — commit immediately, before any queueing/pacing.
-        this.updateLogicalTrack(classified);
-
-        this.introspection.ingested += 1;
-        this.introspection.lastSeq = this.seq;
-
-        this.enqueue(item);
+        return item;
     }
 
     /**
@@ -304,7 +350,7 @@ export class GameMessageBus {
         // Backpressure abandons an in-flight ack wait the same way it compresses
         // holds (§2.6): if the newly-queued item pushes us over a cap while the
         // drain is gated on acks, stop waiting so the queue can catch up.
-        if (this.pendingAcks.size > 0 && (this.queue.length > DEPTH_CAP || this.accumulatedHoldMs() > HOLD_CAP_MS)) {
+        if (this.pendingAcks.size > 0 && (this.backlogDepth() > DEPTH_CAP || this.accumulatedHoldMs() > HOLD_CAP_MS)) {
             this.abandonAcks();
         }
         this.scheduleDrain();
@@ -347,7 +393,7 @@ export class GameMessageBus {
         }
 
         const head = this.queue[0];
-        const underPressure = this.queue.length > DEPTH_CAP || this.accumulatedHoldMs() > HOLD_CAP_MS;
+        const underPressure = this.backlogDepth() > DEPTH_CAP || this.accumulatedHoldMs() > HOLD_CAP_MS;
         const holdPreviousMs = head.decoration.holdPreviousMs ?? 0;
         const preDelay = this.carryDelayMs + holdPreviousMs;
         this.carryDelayMs = 0;
@@ -461,7 +507,7 @@ export class GameMessageBus {
      * showdown is missed (§2.6). Increments the `coalesced` introspection counter.
      */
     private coalesce(): void {
-        const overDepth = this.queue.length > DEPTH_CAP;
+        const overDepth = this.backlogDepth() > DEPTH_CAP;
         const overHold = this.accumulatedHoldMs() > HOLD_CAP_MS;
         if (!overDepth && !overHold) {
             return;
@@ -480,6 +526,27 @@ export class GameMessageBus {
         }
         this.queue = kept;
         this.introspection.queueDepth = this.queue.length;
+    }
+
+    /**
+     * Queue depth counting only frames that actually ARRIVED, ignoring the ones
+     * expandFrames synthesized.
+     *
+     * A runout enqueues up to five sub-frames in a single ingest. Counting those
+     * as backlog would trip DEPTH_CAP the moment one more real frame lands — and
+     * the 250ms optimistic poller guarantees one will — which sets `underPressure`,
+     * drops every animation ack in `afterCommit`, and collapses the runout to
+     * nothing. Backlog is what the client has fallen BEHIND on; planned
+     * choreography is not backlog (plan §2.6).
+     */
+    private backlogDepth(): number {
+        let depth = 0;
+        for (const item of this.queue) {
+            if (!item.synthetic) {
+                depth += 1;
+            }
+        }
+        return depth;
     }
 
     private accumulatedHoldMs(): number {

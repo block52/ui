@@ -19,7 +19,7 @@ import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
-import { BlindLevelInfo } from "../../../../hooks/game/useBlindLevel";
+import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import styles from "./TableHeader.module.css";
 
 const formatBlindCountdown = (secondsRemaining: number): string => {
@@ -56,7 +56,6 @@ export interface TableHeaderProps {
         bigBlindFormatted: string;
         isTournamentStyle: boolean;
     };
-    blindLevel: BlindLevelInfo;
     handNumber: number;
     actionCount: number;
     nextToAct: number;
@@ -94,7 +93,6 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     isBalanceLoading,
     balanceFormatted,
     formattedValues,
-    blindLevel,
     handNumber,
     actionCount,
     nextToAct,
@@ -111,6 +109,13 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     handleLeaveTableClick,
     handleShareHand,
 }) => {
+    // Owned here rather than passed down from Table. The hook ticks once a
+    // second to drive the blind countdown, and TableHeader is its only consumer
+    // — calling it in Table meant that tick re-rendered the entire play-page
+    // tree (9 seats, the board, the action panel) once a second on every
+    // SNG/tournament table. Now it re-renders the header only.
+    const blindLevel = useBlindLevel();
+
     const [showQR, setShowQR] = useState(false);
     const tableUrl = `${window.location.origin}/table/${tableId}`;
 

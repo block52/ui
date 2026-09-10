@@ -18,7 +18,8 @@ function makeItem(sounds: SoundHint[], events: GameEvent[] = []): GameStreamItem
         classified: { kind: "actionAccepted" } as GameStreamItem["classified"],
         events,
         decoration: { ...DEFAULT_DECORATION, sounds },
-        raw: {}
+        raw: {},
+        synthetic: false
     };
 }
 

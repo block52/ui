@@ -25,17 +25,27 @@ const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
         return null;
     }
 
-    // Calculate progress percentage (100% when full time, 0% when time's up)
-    const progressPercentage = (timeRemaining / timeoutValue) * 100;
+    // Calculate remaining fraction (1 when full time, 0 when time's up).
+    // Clamped because this drives a transform: an out-of-range scale would render
+    // a flipped or overflowing bar, where an out-of-range width simply clipped.
+    const progressFraction = Math.max(0, Math.min(1, timeRemaining / timeoutValue));
 
     return (
         <div className="animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 relative">
             <span className="ml-2 text-white text-sm w-[15px]">{timeRemaining}</span>
             <div className="relative flex-1 mr-[10px] h-full w-[calc(100%-25px)] bg-[#f0f0f030] rounded-md overflow-hidden">
+                {/*
+                    Scaled, not resized. `timeRemaining` updates once a second, and
+                    a 1s transition makes the browser interpolate continuously for
+                    the whole second — so animating `width` meant a 60fps layout +
+                    paint on the most frequently-updated element on the table, for
+                    the entire duration of every turn. `transform` composites, and
+                    the bar is a solid color so scaling is visually identical.
+                */}
                 <div
-                    className={`absolute top-0 left-0 h-full transition-all duration-1000 ease-linear ${hasUsedExtension ? "bg-red-500" : "bg-white"}`}
+                    className={`absolute top-0 left-0 h-full w-full origin-left transition-transform duration-1000 ease-linear ${hasUsedExtension ? "bg-red-500" : "bg-white"}`}
                     style={{
-                        width: `${progressPercentage}%`
+                        transform: `scaleX(${progressFraction})`
                     }}
                 ></div>
             </div>

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
@@ -19,6 +19,16 @@ const ActionsLog: React.FC = () => {
     const { gameState, gameFormat } = useGameStateContext();
     const { winnerInfo } = useWinnerInfo();
     const showWinnerSummary = shouldShowWinnerSummary(gameState, winnerInfo);
+
+    // Monotonic fingerprint of the action log — changes only when a new action
+    // lands, not on every gameState identity flip (same approach as
+    // usePlayerChipData). `previousActions` is a fresh array on every WS frame,
+    // so without this the rows below were rebuilt several times a second —
+    // formatAmount runs ethers formatting PER ROW, across 40-80 rows — and the
+    // sidebar hides with a CSS class rather than unmounting, so it happened even
+    // while nobody could see it.
+    const lastActionIndex = hasElements(previousActions) ? previousActions[previousActions.length - 1].index : -1;
+    const actionsFingerprint = `${previousActions.length}:${lastActionIndex}`;
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
     const [copiedShare, setCopiedShare] = useState(false);
@@ -141,6 +151,48 @@ const ActionsLog: React.FC = () => {
         );
     };
 
+    // previousActions deliberately omitted — actionsFingerprint covers it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const actionRows = useMemo(
+        () =>
+            previousActions.map((action: ActionDTO, index: number) => (
+                <div key={index} className={`text-xs py-1 border-b ${styles.actionRow}`}>
+                    <div className="flex justify-between">
+                        <span className={styles.actionText}>
+                            {formatActionName(action.action)}
+                            {action.amount && ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}`}
+                        </span>
+                        <span className={`text-[10px] ${styles.secondaryText}`}>
+                            Seat {action.seat} · {formatRoundName(action.round)}
+                        </span>
+                    </div>
+                </div>
+            )),
+        [actionsFingerprint, gameFormat]
+    );
+
+    // winnerInfo now has a stable identity across frames that do not change the
+    // winners (see useWinnerInfo), so this memo actually holds.
+    const winnerRows = useMemo(
+        () =>
+            showWinnerSummary
+                ? winnerInfo?.map((w, i) => (
+                      <div key={`winner-${i}`} className={`text-xs py-1 border-b ${styles.actionRow} ${styles.winnerRow}`}>
+                          <div className="flex justify-between">
+                              <span className={styles.winnerText}>
+                                  WINS {w.formattedAmount}
+                                  {w.description && ` — ${w.description}`}
+                              </span>
+                              <span className={`text-[10px] ${styles.secondaryText}`}>
+                                  Seat {w.seat} · {w.winType === "showdown" ? "Showdown" : "Uncontested"}
+                              </span>
+                          </div>
+                      </div>
+                  ))
+                : null,
+        [showWinnerSummary, winnerInfo]
+    );
+
     return (
         <div
             className={`rounded w-full h-full overflow-y-auto scrollbar-hide backdrop-blur-sm ${styles.container}`}
@@ -176,40 +228,8 @@ const ActionsLog: React.FC = () => {
             
             {hasElements(previousActions) ? (
                 <div className="space-y-0.5 p-2">
-                    {previousActions.map((action: ActionDTO, index: number) => (
-                        <div
-                            key={index}
-                            className={`text-xs py-1 border-b ${styles.actionRow}`}
-                        >
-                            <div className="flex justify-between">
-                                <span className={styles.actionText}>
-                                    {formatActionName(action.action)}
-                                    {action.amount && ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}`}
-                                </span>
-                                <span
-                                    className={`text-[10px] ${styles.secondaryText}`}
-                                >
-                                    Seat {action.seat} · {formatRoundName(action.round)}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
-                    {showWinnerSummary && winnerInfo?.map((w, i) => (
-                        <div
-                            key={`winner-${i}`}
-                            className={`text-xs py-1 border-b ${styles.actionRow} ${styles.winnerRow}`}
-                        >
-                            <div className="flex justify-between">
-                                <span className={styles.winnerText}>
-                                    WINS {w.formattedAmount}
-                                    {w.description && ` — ${w.description}`}
-                                </span>
-                                <span className={`text-[10px] ${styles.secondaryText}`}>
-                                    Seat {w.seat} · {w.winType === "showdown" ? "Showdown" : "Uncontested"}
-                                </span>
-                            </div>
-                        </div>
-                    ))}
+                    {actionRows}
+                    {winnerRows}
                 </div>
             ) : (
                 <p 

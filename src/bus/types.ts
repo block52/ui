@@ -135,6 +135,18 @@ export interface GameStreamItem {
     decoration: Decoration;
     /** Original parsed message, for error surfaces / debugging. */
     raw: unknown;
+    /**
+     * True for a frame SYNTHESIZED by {@link expandFrames} (one street of a
+     * collapsed all-in runout), false for one that actually arrived on the wire.
+     *
+     * The drain excludes synthetic frames from its backpressure depth count:
+     * they are planned choreography enqueued all at once, not backlog, and
+     * counting them would trip DEPTH_CAP mid-runout — which suppresses the
+     * animation acks (`afterCommit`) and abandons the very card reveal the
+     * expansion exists to pace. They stay `coalescible`, so a genuinely lagging
+     * client still drops them and snaps to truth.
+     */
+    synthetic: boolean;
 }
 
 /** Dev-only introspection snapshot exposed on window.__B52_BUS__ (§5.4). */
@@ -143,6 +155,8 @@ export interface BusIntrospection {
     ingested: number;
     committed: number;
     coalesced: number;
+    /** Frames synthesized by expandFrames (runout streets), cumulative. */
+    expanded: number;
     queueDepth: number;
     /** Number of derived events on the most recently committed item. */
     lastEventCount: number;

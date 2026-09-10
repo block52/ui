@@ -32,15 +32,33 @@ export const useTableLayout = (
     containerRef?: RefObject<HTMLDivElement | null>
 ): UseTableLayoutReturn => {
     const [viewportMode, setViewportMode] = useState(getViewportMode());
-    // State only used to trigger re-renders on resize — actual values read from ref
-    const [, setResizeTick] = useState(0);
     const [isLandscape, setIsLandscape] = useState(window.innerWidth > window.innerHeight);
+    // Container dimensions are held in STATE, measured by refreshLayout, rather
+    // than read from the ref during render. Reading offsetWidth/offsetHeight in a
+    // render body forces the browser to flush pending layout, and this hook
+    // renders on every WS frame and every blind-level tick — so an unrelated
+    // state change was costing a synchronous reflow.
+    //
+    // Nothing is lost by not reading during render: every source of a size change
+    // already calls refreshLayout — the ResizeObserver on the container below
+    // (which covers CSS-driven and parent-driven resizes, soft keyboard, foldable
+    // posture), plus window resize, orientationchange and visualViewport.
+    const [containerSize, setContainerSize] = useState(() => ({
+        width: window.innerWidth,
+        height: window.innerHeight
+    }));
 
     const refreshLayout = useCallback(() => {
         setViewportMode(getViewportMode());
         setIsLandscape(window.innerWidth > window.innerHeight);
-        setResizeTick(t => t + 1); // Force re-render so zoom/transform recalculate from ref
-    }, []);
+
+        const el = containerRef?.current;
+        const width = el?.offsetWidth ?? window.innerWidth;
+        const height = el?.offsetHeight ?? window.innerHeight;
+        // Keep the previous object when the size is unchanged, so a resize event
+        // that does not actually change the container re-renders nothing.
+        setContainerSize(prev => (prev.width === width && prev.height === height ? prev : { width, height }));
+    }, [containerRef]);
 
     // useLayoutEffect fires synchronously BEFORE the browser paints.
     // This ensures the first visible frame uses the real container dimensions.
@@ -88,23 +106,25 @@ export const useTableLayout = (
 
     const positions = useMemo(() => getAllPositions(tableSize), [tableSize]);
 
-    // Read container dimensions DIRECTLY from the ref on every render.
-    // This avoids stale state — the ref always has the current DOM value.
-    const el = containerRef?.current;
-    const cw = el?.offsetWidth ?? window.innerWidth;
-    const ch = el?.offsetHeight ?? window.innerHeight;
+    const { width: cw, height: ch } = containerSize;
 
-    const zoom = calculateZoom(tableSize, cw, ch);
-    const tableTransform = getTableTransform(zoom, tableSize, cw, ch);
+    const zoom = useMemo(() => calculateZoom(tableSize, cw, ch), [tableSize, cw, ch]);
+    const tableTransform = useMemo(() => getTableTransform(zoom, tableSize, cw, ch), [zoom, tableSize, cw, ch]);
 
-    return {
-        viewportMode,
-        positions,
-        zoom,
-        tableTransform,
-        isLandscape,
-        refreshLayout,
-        containerWidth: cw,
-        containerHeight: ch
-    };
+    // Memoized so the returned object keeps a stable identity: PlayerSeating puts
+    // it in a useCallback dep array, and a fresh object per render invalidated
+    // that on every frame.
+    return useMemo(
+        () => ({
+            viewportMode,
+            positions,
+            zoom,
+            tableTransform,
+            isLandscape,
+            refreshLayout,
+            containerWidth: cw,
+            containerHeight: ch
+        }),
+        [viewportMode, positions, zoom, tableTransform, isLandscape, refreshLayout, cw, ch]
+    );
 };

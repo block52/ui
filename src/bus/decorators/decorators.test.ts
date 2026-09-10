@@ -23,6 +23,7 @@ function makeItem(events: GameEvent[], kind: GameStreamItem["kind"] = "state"): 
         classified: { kind: "actionAccepted" } as GameStreamItem["classified"],
         events,
         decoration: { ...DEFAULT_DECORATION },
+        synthetic: false,
         raw: {}
     };
 }
