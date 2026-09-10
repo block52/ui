@@ -48,6 +48,16 @@ export function shouldShowPlayerActionPanel(input: PlayerActionDisplayInput): bo
 export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerActionDisplay {
     const { playerStatus, sitInMethod, legalActions, totalSeatedPlayers, handNumber, hasActivePlayers, sitInOptions = false } = input;
 
+    // 0. Eliminated player — they are out of the (frozen-roster) tournament and
+    // own no seat in the action flow. Returning "none" hands their screen to the
+    // SNG result experience (SitAndGoResultModal) rather than falling through to
+    // the solo-player "Waiting for players to join..." branch below, which would
+    // otherwise fire as the field shrinks and strand a busted finisher on a lobby
+    // message they can't act on (they can't LEAVE post-start). See block52/ui#511.
+    if (playerStatus === PlayerStatus.BUSTED) {
+        return { kind: "none" };
+    }
+
     // Derive sit-in / sit-out from legalActions, filtering out JOIN, LEAVE, DEAL, etc.
     const hasSitInAction = legalActions.some(a => a.action === NonPlayerActionType.SIT_IN);
     const hasSitOutAction = legalActions.some(a => a.action === NonPlayerActionType.SIT_OUT);
