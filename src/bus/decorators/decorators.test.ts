@@ -12,7 +12,7 @@ import { makeRemoteActionSound } from "./remoteActionSound";
 import { coalesceCatchUp } from "./coalesceCatchUp";
 import { holeCardDeal, dealingOrder, DEAL_HOLE_CARDS_KIND } from "./holeCardDeal";
 import { buildDefaultDecorators } from "./index";
-import { HOLE_CARD_STAGGER_MS } from "../timing";
+import { HOLE_CARD_STAGGER_MS, holeCardDealAckTimeoutMs } from "../timing";
 import { DEFAULT_DECORATION, GameEvent, GameStreamItem } from "../types";
 import { ActionDTO, PlayerActionType, TexasHoldemRound, WinnerDTO } from "@block52/poker-vm-sdk";
 
@@ -70,19 +70,25 @@ describe("holeCardDeal (ui#21)", () => {
         expect(dealingOrder([7, 1, 3], null)).toEqual([1, 3, 7]);
     });
 
-    it("attaches a dealHoleCards hint carrying the seats in dealing order", () => {
+    it("attaches an ack-gated dealHoleCards hint carrying the seats in dealing order", () => {
         const patch = holeCardDeal(makeItem([{ type: "cardsDealt", seats: [1, 3, 5, 7], dealerSeat: 5 }]), undefined);
         expect(patch.animations).toHaveLength(1);
         const hint = patch.animations![0];
         expect(hint.kind).toBe(DEAL_HOLE_CARDS_KIND);
         expect(hint.seats).toEqual([7, 1, 3, 5]);
         expect(hint.staggerMs).toBe(HOLE_CARD_STAGGER_MS);
-        // The drain-gating ack opt-in ships with the consumer (phase 2): an
-        // ack-gated hint nobody consumes would hold the drain for its budget.
-        expect(hint.ackTimeoutMs).toBeUndefined();
+        expect(hint.ackTimeoutMs).toBe(holeCardDealAckTimeoutMs(4));
         expect(hint.ackId).toBeUndefined(); // stamped by the bus, never by a decorator
         expect(patch.minDisplayMs).toBeUndefined();
         expect(patch.holdPreviousMs).toBeUndefined();
+    });
+
+    it("budgets the ack from the actual seat count (heads-up is cheaper than 9-max)", () => {
+        const headsUp = holeCardDeal(makeItem([{ type: "cardsDealt", seats: [1, 2], dealerSeat: 1 }]), undefined).animations![0];
+        const nineMax = holeCardDeal(makeItem([{ type: "cardsDealt", seats: [1, 2, 3, 4, 5, 6, 7, 8, 9], dealerSeat: 1 }]), undefined).animations![0];
+        expect(headsUp.ackTimeoutMs).toBe(holeCardDealAckTimeoutMs(2));
+        expect(nineMax.ackTimeoutMs).toBe(holeCardDealAckTimeoutMs(9));
+        expect(headsUp.ackTimeoutMs!).toBeLessThan(nineMax.ackTimeoutMs!);
     });
 
     it("does nothing without a cardsDealt event", () => {

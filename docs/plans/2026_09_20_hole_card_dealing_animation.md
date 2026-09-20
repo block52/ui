@@ -290,7 +290,11 @@ Four PRs, each independently mergeable and behaviour-preserving until the last.
   decorator (clockwise order from button+1 with wrap, heads-up, seats without
   cards skipped, ack budget formula); `decorators.test.ts` merge with the other
   hints on the engine-start frame.
-- Hints are inert until Phase 2 consumes them — safe to ship alone.
+- Hints are inert until Phase 2 consumes them — safe to ship alone. The ack
+  opt-in (`ackTimeoutMs`) ships WITH the consumer in Phase 2: an ack-gated
+  hint nobody consumes holds the drain for its budget on every deal and
+  counts as an ack timeout (the acks e2e caught exactly this on the
+  phase-1 PR).
 
 ### Phase 2 — Render
 
