@@ -79,6 +79,8 @@ import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
+import { HoleCardDealProvider } from "../../context/HoleCardDealContext";
+import DealingLayer from "./Animations/DealingLayer";
 
 import "./Table.css"; // Import the Table CSS file
 
@@ -1381,6 +1383,7 @@ const Table = React.memo(() => {
                 <div className={`${isMobile ? "zoom-wrapper-mobile" : "zoom-wrapper-desktop"}`} style={{ transform: tableLayout.tableTransform }}>
                     {/*//! 1000x500 table coordinate space — positioned at TABLE_ORIGIN (300,285) in the 1600x850 stage.
                         Also the root for the card-animation durations (src/bus/timing.ts → CSS custom properties). */}
+                    <HoleCardDealProvider>
                     <div ref={tableDivRef} className="w-[1000px] h-[500px] absolute" style={{ left: "300px", top: "285px", ...cssVars(ANIMATION_CSS_VARS) }}>
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
                         {(tableStyle === "modern" || tableStyle === "nouns") && (
@@ -1453,6 +1456,9 @@ const Table = React.memo(() => {
                             );
                         })()}
 
+                        {/* Hole cards in flight (ui#21) — card backs flying from the deck to each seat's slot */}
+                        <DealingLayer positions={tableLayout.positions} tableSize={tableSize} startIndex={startIndex} cardBackStyle={cardBackStyle} />
+
                         {/* Player seats */}
                         <PlayerSeating
                             tableLayout={tableLayout}
@@ -1479,6 +1485,7 @@ const Table = React.memo(() => {
                             tableDivRef={tableDivRef}
                         />
                     </div>
+                    </HoleCardDealProvider>
                 </div>
 
                 {/* Live Hand Strength Display */}

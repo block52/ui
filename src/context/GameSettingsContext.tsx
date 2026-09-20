@@ -21,6 +21,7 @@ const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
 const LS_KEY_SEAT_AT_BOTTOM = "setting_seatatbottom";
 const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
 const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
+const LS_KEY_DEALING_ANIMATION = "setting_dealanimation";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -45,6 +46,10 @@ export interface GameSettings {
     // an auto-check. Pure view/opt-in preference — the queued intent itself stays
     // ephemeral per-round.
     preSelectCheck: boolean;
+    // When ON (default), hole cards are dealt with the flying-card choreography
+    // (ui#21). When OFF — or when the OS asks for reduced motion — the deal
+    // frame renders at once. Pure view preference; the bus ack fires either way.
+    dealingAnimation: boolean;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -58,6 +63,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleSeatAtBottom: () => void;
     toggleSitInOptions: () => void;
     togglePreSelectCheck: () => void;
+    toggleDealingAnimation: () => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue | null>(null);
@@ -92,6 +98,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [preSelectCheck, setPreSelectCheck] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_PRE_SELECT_CHECK, false)
+    );
+    const [dealingAnimation, setDealingAnimation] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_DEALING_ANIMATION, true)
     );
 
     const toggleAutoDeal = useCallback(() => {
@@ -174,6 +183,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleDealingAnimation = useCallback(() => {
+        setDealingAnimation(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_DEALING_ANIMATION, String(next));
+            return next;
+        });
+    }, []);
+
     const value = useMemo<GameSettingsContextValue>(
         () => ({
             autoDeal,
@@ -186,6 +203,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             seatAtBottom,
             sitInOptions,
             preSelectCheck,
+            dealingAnimation,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -195,7 +213,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePlayerActionSounds,
             toggleSeatAtBottom,
             toggleSitInOptions,
-            togglePreSelectCheck
+            togglePreSelectCheck,
+            toggleDealingAnimation
         }),
         [
             autoDeal,
@@ -208,6 +227,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             seatAtBottom,
             sitInOptions,
             preSelectCheck,
+            dealingAnimation,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -217,7 +237,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePlayerActionSounds,
             toggleSeatAtBottom,
             toggleSitInOptions,
-            togglePreSelectCheck
+            togglePreSelectCheck,
+            toggleDealingAnimation
         ]
     );
 

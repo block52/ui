@@ -163,7 +163,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
             // CASE 2: Current user's seat or CASE 3: Another player's seat
             // Pass the positionIndex so components can show the correct UI position
             return isCurrentUser ? (
-                <Player {...playerProps} uiPosition={positionIndex} />
+                <Player {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             ) : (
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
