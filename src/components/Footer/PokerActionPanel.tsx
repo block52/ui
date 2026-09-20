@@ -66,6 +66,9 @@ import { isCheckFreeForPlayer } from "../../utils/chipUtils";
 // Import types
 import type { PokerActionPanelProps } from "./types";
 
+// Query-string flags to reveal the (normally hidden) manual deal / blind buttons (#368)
+import { getManualDealEnabled, getManualBlindsEnabled } from "../../utils/urlParams";
+
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
     // Manual button submission goes through the ActionSubmitController, which
     // owns dedupe, serialization, the safe transport retry, the confirmation
@@ -310,8 +313,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoNewHandEnabled
     );
 
-    // Show deal button if player has the deal action
-    const shouldShowDealButton = hasDealAction && isUsersTurn;
+    // Manual deal / blind buttons are redundant once the auto-* hooks handle
+    // both paths, so they're HIDDEN by default (#368). Reveal them when the
+    // power-user flag is set, OR when the matching auto action is disabled — so
+    // ?autodeal=false / ?autoblinds=false never bricks the table with no way to
+    // proceed. The auto hooks above still fire regardless of button visibility.
+    const manualDealVisible = getManualDealEnabled() || !autoDealEnabled;
+    const manualBlindsVisible = getManualBlindsEnabled() || !autoPostBlindsEnabled;
+
+    // Show deal button if player has the deal action (and manual deal is visible)
+    const shouldShowDealButton = hasDealAction && isUsersTurn && manualDealVisible;
     const hideOtherButtons = shouldShowDealButton;
 
     // Get action details
@@ -431,8 +442,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // Calculate button visibility flags
     const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {
         const showButtons = !!userPlayer;
-        const shouldShowSmallBlindButton = hasSmallBlindAction && isUsersTurn;
-        const shouldShowBigBlindButton = hasBigBlindAction && isUsersTurn;
+        // Manual blind buttons hidden by default (#368) — gated on manualBlindsVisible.
+        const shouldShowSmallBlindButton = hasSmallBlindAction && isUsersTurn && manualBlindsVisible;
+        const shouldShowBigBlindButton = hasBigBlindAction && isUsersTurn && manualBlindsVisible;
 
         return {
             canFoldAnytime: hasFoldAction && playerStatus !== PlayerStatus.FOLDED && showButtons,
@@ -440,7 +452,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
             showSmallBlindButton: shouldShowSmallBlindButton && showButtons,
             showBigBlindButton: shouldShowBigBlindButton && showButtons
         };
-    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions]);
+    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions, manualBlindsVisible]);
 
     // Increment/decrement handlers - always step by big blind amount
     const getStep = (): number => {

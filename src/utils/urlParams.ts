@@ -83,3 +83,42 @@ export const getAutoFoldEnabled = (): boolean => {
     // Default to true if param is missing or any value other than "false"
     return autofold !== "false";
 };
+
+/**
+ * Check if the manual "Deal" button should be shown via query string parameter.
+ *
+ * Auto-deal makes this button redundant in normal play, so it is HIDDEN by
+ * default. It is only revealed by explicitly setting ?manualdeal=true. Note the
+ * caller also reveals it whenever auto-deal is disabled, so a table is never
+ * left with no way to deal (see #368).
+ *
+ * @returns true only if ?manualdeal=true is present
+ *
+ * @example
+ * // URL: /table/123 -> returns false (default: hidden)
+ * // URL: /table/123?manualdeal=true -> returns true
+ */
+export const getManualDealEnabled = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("manualdeal") === "true";
+};
+
+/**
+ * Check if the manual "Post Small/Big Blind" buttons should be shown via query
+ * string parameter.
+ *
+ * Auto-post-blinds makes these buttons redundant in normal play, so they are
+ * HIDDEN by default. They are only revealed by explicitly setting
+ * ?manualblinds=true. Note the caller also reveals them whenever auto-post
+ * blinds is disabled, so a table is never left with no way to post (see #368).
+ *
+ * @returns true only if ?manualblinds=true is present
+ *
+ * @example
+ * // URL: /table/123 -> returns false (default: hidden)
+ * // URL: /table/123?manualblinds=true -> returns true
+ */
+export const getManualBlindsEnabled = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("manualblinds") === "true";
+};
