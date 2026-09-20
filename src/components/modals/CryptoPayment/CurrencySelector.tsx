@@ -1,70 +1,51 @@
 import { useState, useEffect } from "react";
 import { usePaymentApi } from "../../../context/PaymentApiContext";
 import spinner from "../../../assets/spinning-circles.svg";
-import btcLogo from "../../../assets/crypto/btc.svg";
-import usdcLogo from "../../../assets/crypto/usdc.svg";
-import usdtLogo from "../../../assets/crypto/usdt.svg";
+import { DEPOSIT_CURRENCIES } from "../../../config/depositCurrencies";
 import styles from "./CurrencySelector.module.css";
-
-interface Currency {
-    symbol: string;
-    displaySymbol: string;
-    name: string;
-    network: string;
-    logo: string;
-    logoType: "image" | "text";
-}
 
 import type { CurrencySelectorProps } from "../types";
 
-const POPULAR_CURRENCIES: Currency[] = [
-    { symbol: "btc", displaySymbol: "BTC", name: "Bitcoin", network: "Bitcoin Network", logo: btcLogo, logoType: "image" },
-    { symbol: "usdterc20", displaySymbol: "USDT", name: "Tether", network: "Ethereum (ERC-20)", logo: usdtLogo, logoType: "image" },
-];
-
-const MORE_CURRENCIES: Currency[] = [
-    { symbol: "eth", displaySymbol: "ETH", name: "Ethereum", network: "Ethereum Network", logo: "Ξ", logoType: "text" },
-    { symbol: "usdterc20", displaySymbol: "USDT", name: "Tether", network: "Ethereum (ERC-20)", logo: usdtLogo, logoType: "image" },
-    { symbol: "usdttrc20", displaySymbol: "USDT", name: "Tether", network: "Tron (TRC-20)", logo: usdtLogo, logoType: "image" },
-    { symbol: "sol", displaySymbol: "SOL", name: "Solana", network: "Solana Network", logo: "SOL", logoType: "text" },
-    { symbol: "trx", displaySymbol: "TRX", name: "Tron", network: "Tron Network", logo: "TRX", logoType: "text" },
-    { symbol: "maticpolygon", displaySymbol: "MATIC", name: "Polygon", network: "Polygon Network", logo: "MATIC", logoType: "text" },
-    { symbol: "ltc", displaySymbol: "LTC", name: "Litecoin", network: "Litecoin Network", logo: "Ł", logoType: "text" },
-    { symbol: "doge", displaySymbol: "DOGE", name: "Dogecoin", network: "Dogecoin Network", logo: "Ð", logoType: "text" },
-    { symbol: "bnbbsc", displaySymbol: "BNB", name: "BNB", network: "BNB Smart Chain (BSC)", logo: "BNB", logoType: "text" },
-    { symbol: "ada", displaySymbol: "ADA", name: "Cardano", network: "Cardano Network", logo: "₳", logoType: "text" },
-    { symbol: "xrp", displaySymbol: "XRP", name: "XRP", network: "XRP Ledger", logo: "XRP", logoType: "text" },
-];
-
+/**
+ * The crypto-deposit currency picker: exactly the options in
+ * {@link DEPOSIT_CURRENCIES} (BTC, ETH, USDT, USDC), no "more options" list.
+ *
+ * The proxy is pinged once on mount purely as a reachability check so a dead
+ * payment service is surfaced before the user types an amount; the list it
+ * returns is not used (it is empty in production today).
+ */
 const CurrencySelector: React.FC<CurrencySelectorProps> = ({ selectedCurrency, onCurrencySelect }) => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [showMore, setShowMore] = useState(false);
     const paymentApi = usePaymentApi();
 
     useEffect(() => {
-        const fetchCurrencies = async () => {
+        let cancelled = false;
+        const checkPaymentService = async () => {
             try {
                 setLoading(true);
-                const response = await paymentApi.getCurrencies() as { success?: boolean };
+                const response = (await paymentApi.getCurrencies()) as { success?: boolean };
 
-                if (!response.success) {
+                if (!cancelled && !response.success) {
                     setError("Failed to load currencies");
                 }
             } catch (err) {
                 console.error("Error fetching currencies:", err);
-                setError("Could not connect to payment service");
+                if (!cancelled) {
+                    setError("Could not connect to payment service");
+                }
             } finally {
-                setLoading(false);
+                if (!cancelled) {
+                    setLoading(false);
+                }
             }
         };
 
-        fetchCurrencies();
+        checkPaymentService();
+        return () => {
+            cancelled = true;
+        };
     }, [paymentApi]);
-
-    const displayCurrencies = showMore
-        ? [...POPULAR_CURRENCIES, ...MORE_CURRENCIES]
-        : POPULAR_CURRENCIES;
 
     if (loading) {
         return (
@@ -89,41 +70,32 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({ selectedCurrency, o
             </label>
 
             {/* Currency Grid */}
-            <div className="grid grid-cols-2 gap-3">
-                {displayCurrencies.map((currency) => (
-                    <button
-                        key={currency.symbol}
-                        onClick={() => onCurrencySelect(currency.symbol)}
-                        className={`p-3 rounded-lg border transition-all ${selectedCurrency === currency.symbol
-                                ? `border-blue-500 bg-blue-900/30 ${styles.selectedCurrency}`
-                                : "border-gray-600 bg-gray-900 hover:border-gray-500"
+            <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Deposit currency">
+                {DEPOSIT_CURRENCIES.map(currency => {
+                    const selected = selectedCurrency === currency.code;
+                    return (
+                        <button
+                            key={currency.code}
+                            type="button"
+                            role="radio"
+                            aria-checked={selected}
+                            onClick={() => onCurrencySelect(currency.code)}
+                            className={`p-3 rounded-lg border transition-all ${
+                                selected ? `border-blue-500 bg-blue-900/30 ${styles.selectedCurrency}` : "border-gray-600 bg-gray-900 hover:border-gray-500"
                             }`}
-                    >
-                        <div className="flex items-center gap-2">
-                            {currency.logoType === "image" ? (
-                                <img src={currency.logo} alt={currency.displaySymbol} className="w-8 h-8 rounded-full" />
-                            ) : (
-                                <span className="text-2xl">{currency.logo}</span>
-                            )}
-                            <div className="text-left flex-1 min-w-0">
-                                <div className="text-white font-semibold uppercase text-sm">
-                                    {currency.displaySymbol}
+                        >
+                            <div className="flex items-center gap-2">
+                                <img src={currency.logo} alt="" className="w-8 h-8 rounded-full" />
+                                <div className="text-left flex-1 min-w-0">
+                                    <div className="text-white font-semibold uppercase text-sm">{currency.symbol}</div>
+                                    <div className="text-gray-400 text-xs truncate">{currency.name}</div>
+                                    <div className="text-gray-500 text-[10px] truncate">{currency.network}</div>
                                 </div>
-                                <div className="text-gray-400 text-xs truncate">{currency.name}</div>
-                                <div className="text-gray-500 text-[10px] truncate">{currency.network}</div>
                             </div>
-                        </div>
-                    </button>
-                ))}
+                        </button>
+                    );
+                })}
             </div>
-
-            {/* More Options Toggle */}
-            <button
-                onClick={() => setShowMore(!showMore)}
-                className="w-full text-center text-sm text-blue-400 hover:text-blue-300 transition-colors py-1"
-            >
-                {showMore ? "Show less" : `More options (${MORE_CURRENCIES.length})`}
-            </button>
         </div>
     );
 };

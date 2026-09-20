@@ -4,27 +4,7 @@ import type { PaymentDisplayProps } from "../types";
 import { toSmallestUnit, ethToWei } from "../../../utils/currencyUtils";
 import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import styles from "./PaymentDisplay.module.css";
-
-// USDT ERC-20 contract address on Ethereum mainnet
-const USDT_ERC20_CONTRACT = "0xdAC17F958D2ee523a2206206994597C13D831ec7";
-// USDC ERC-20 contract address on Ethereum mainnet
-const USDC_ERC20_CONTRACT = "0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48";
-
-const CURRENCY_INFO: Record<string, { display: string; network: string }> = {
-    btc: { display: "BTC", network: "Bitcoin Network" },
-    usdterc20: { display: "USDT", network: "Ethereum (ERC-20)" },
-    usdcerc20: { display: "USDC", network: "Ethereum (ERC-20)" },
-    usdttrc20: { display: "USDT", network: "Tron (TRC-20)" },
-    eth: { display: "ETH", network: "Ethereum Network" },
-    sol: { display: "SOL", network: "Solana Network" },
-    trx: { display: "TRX", network: "Tron Network" },
-    maticpolygon: { display: "MATIC", network: "Polygon Network" },
-    ltc: { display: "LTC", network: "Litecoin Network" },
-    doge: { display: "DOGE", network: "Dogecoin Network" },
-    bnbbsc: { display: "BNB", network: "BNB Smart Chain (BSC)" },
-    ada: { display: "ADA", network: "Cardano Network" },
-    xrp: { display: "XRP", network: "XRP Ledger" },
-};
+import { findDepositCurrency } from "../../../config/depositCurrencies";
 
 const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
     paymentAddress,
@@ -35,34 +15,33 @@ const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
 }) => {
     const { copy, copied } = useCopyToClipboard();
 
-    const currencyKey = payCurrency.toLowerCase();
-    const info = CURRENCY_INFO[currencyKey];
-
-    if (!info) {
-        throw new Error(`Unknown currency "${payCurrency}" — add it to CURRENCY_INFO in PaymentDisplay.tsx`);
+    // The offered set (and each option's network + ERC-20 contract) lives in
+    // one place; an unknown ticker is a bug upstream, never a guessed network
+    // warning (Commandment 7).
+    const currency = findDepositCurrency(payCurrency);
+    if (!currency) {
+        throw new Error(`Unknown deposit currency "${payCurrency}" — the offered set lives in src/config/depositCurrencies.ts`);
     }
 
-    const displayName = info.display;
-    const networkName = info.network;
+    const displayName = currency.symbol;
+    const networkName = currency.network;
 
     const qrValue = useMemo(() => {
-        switch (currencyKey) {
+        if (currency.erc20) {
+            // EIP-681 token transfer: ethereum:<contract>@1/transfer?address=<to>&uint256=<smallest_unit>
+            return `ethereum:${currency.erc20.contract}@1/transfer?address=${paymentAddress}&uint256=${toSmallestUnit(payAmount, currency.erc20.decimals)}`;
+        }
+        switch (currency.code) {
             case "btc":
                 // BIP21: bitcoin:<address>?amount=<btc>
                 return `bitcoin:${paymentAddress}?amount=${payAmount}`;
             case "eth":
                 // EIP-681: ethereum:<address>?value=<wei>
                 return `ethereum:${paymentAddress}?value=${ethToWei(payAmount)}`;
-            case "usdterc20":
-                // EIP-681 token transfer: ethereum:<contract>@1/transfer?address=<to>&uint256=<smallest_unit>
-                return `ethereum:${USDT_ERC20_CONTRACT}@1/transfer?address=${paymentAddress}&uint256=${toSmallestUnit(payAmount, 6)}`;
-            case "usdcerc20":
-                // EIP-681 token transfer: ethereum:<contract>@1/transfer?address=<to>&uint256=<smallest_unit>
-                return `ethereum:${USDC_ERC20_CONTRACT}@1/transfer?address=${paymentAddress}&uint256=${toSmallestUnit(payAmount, 6)}`;
             default:
                 return paymentAddress;
         }
-    }, [currencyKey, paymentAddress, payAmount]);
+    }, [currency, paymentAddress, payAmount]);
 
     const formatExpiration = (isoString: string) => {
         const date = new Date(isoString);

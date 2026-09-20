@@ -18,6 +18,7 @@ import type { DepositToken } from "../../utils/tokenUtils";
 import { useCosmosWallet } from "../../hooks";
 import { formatUSDCToSimpleDollars, convertAmountToBigInt } from "../../utils/numberUtils";
 import CurrencySelector from "./CryptoPayment/CurrencySelector";
+import { DEFAULT_DEPOSIT_CURRENCY } from "../../config/depositCurrencies";
 import PaymentDisplay from "./CryptoPayment/PaymentDisplay";
 import PaymentStatusMonitor from "./CryptoPayment/PaymentStatusMonitor";
 import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
@@ -58,7 +59,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
 
     // Crypto payment state
     const [depositMethod, setDepositMethod] = useState<DepositMethod>("crypto");
-    const [selectedCurrency, setSelectedCurrency] = useState<string>("btc");
+    const [selectedCurrency, setSelectedCurrency] = useState<string>(DEFAULT_DEPOSIT_CURRENCY);
     const [paymentData, setPaymentData] = useState<PaymentData | null>(null);
     const [creatingPayment, setCreatingPayment] = useState(false);
     const [paymentStatus, setPaymentStatus] = useState<string>("waiting");
@@ -257,7 +258,7 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
                                     <div className="text-center">
                                         <img src={btcLogo} alt="BTC" className="w-8 h-8 rounded-full mx-auto mb-1" />
                                         <div className="text-sm font-semibold text-white">Pay with Crypto</div>
-                                        <div className="text-xs text-gray-400 mt-1">Many currencies supported (fees apply)</div>
+                                        <div className="text-xs text-gray-400 mt-1">BTC, ETH, USDT or USDC (fees apply)</div>
                                     </div>
                                 </button>
                                 <button
