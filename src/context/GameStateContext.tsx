@@ -326,7 +326,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         busRef.current?.reset();
         setLatestStreamItem(null);
         setGameState(undefined);
-                            setLatestGameState(undefined);
+                            setLatestGameState(undefined, { optimistic: false });
         setGameFormat(undefined);
         setGameVariant(undefined);
         setGameName(undefined);

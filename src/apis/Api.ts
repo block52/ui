@@ -27,6 +27,8 @@ export class CosmosApi extends HTTPClient {
         this.get(`/cosmos/staking/v1beta1/validators?status=${status}&pagination.limit=100`, { signal });
     public getAccounts = (limit?: number) => this.get(`/cosmos/auth/v1beta1/accounts${limit ? `?pagination.limit=${limit}` : ""}`);
     public getBalanceByAddress = (address: string) => this.get(`/cosmos/bank/v1beta1/balances/${address}`);
+    /** A committed tx by hash (404 until it is in a block); `tx_response.code` is its execution result. */
+    public getTx = (hash: string) => this.get(`/cosmos/tx/v1beta1/txs/${hash}`);
     public getGameState = (gameId: string) => this.get(`block52/pokerchain/poker/v1/game_state/${gameId}`);
     public getGameStateAtBlock = (gameId: string, blockHeight: number) =>
         this.get(`block52/pokerchain/poker/v1/game_state/${gameId}`, {

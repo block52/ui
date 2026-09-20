@@ -63,6 +63,8 @@ describe("classifyMessage", () => {
                 expect(result.format).toBe("cash");
                 expect(result.variant).toBe("texas-holdem");
                 expect(result.validationError).toBeNull();
+                // Provenance (ui#609): only the relay's mempool projection is optimistic.
+                expect(result.optimistic).toBe(event === "optimistic");
             }
         );
 

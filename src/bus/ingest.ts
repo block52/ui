@@ -81,6 +81,12 @@ export type ClassifiedMessage =
           name: string | undefined;
           /** null = valid; non-null = invalid but still committed. */
           validationError: ValidationError | null;
+          /**
+           * true for the relay's `optimistic` event — a projection of pending
+           * mempool actions, not committed state (ui#609). Rendered like any
+           * state; the logical track carries it as provenance.
+           */
+          optimistic: boolean;
       }
     | {
           kind: "validationErrorNoState";
@@ -144,7 +150,8 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
                     missingFields: validation.missingFields,
                     message: validation.message,
                     rawData: message
-                }
+                },
+                optimistic: message.event === "optimistic"
             };
         }
 
@@ -154,7 +161,8 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
             format: toGameFormat(rawFormat),
             variant: toGameVariant(rawVariant),
             name,
-            validationError: null
+            validationError: null,
+            optimistic: message.event === "optimistic"
         };
     }
 

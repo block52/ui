@@ -12,6 +12,7 @@
  * resolution, SNG finishing order).
  */
 import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import type { TrackMeta } from "../../bus/types";
 
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
@@ -20,14 +21,23 @@ import { hasElements } from "../../utils/guards";
 
 let latestGameState: TexasHoldemStateDTO | undefined;
 
+/**
+ * Provenance of a logical-track snapshot (ui#609): the relay's `optimistic`
+ * event is a projection of pending mempool actions, not committed state. Index
+ * computation may use either (that is the point of the logical track); a
+ * submission may be *accepted* on a projection but *confirmed* only on
+ * committed state.
+ */
+export type LatestGameStateMeta = TrackMeta;
+
 /** Logical-track observers, notified on every snapshot published below. */
-type LatestGameStateListener = (gameState: TexasHoldemStateDTO | undefined) => void;
+type LatestGameStateListener = (gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta) => void;
 const latestGameStateListeners = new Set<LatestGameStateListener>();
 
-/** Published by GameStateContext on every state update. */
-export function setLatestGameState(gameState: TexasHoldemStateDTO | undefined): void {
+/** Published by the bus at ingest on every state update (and by the provider on reset). */
+export function setLatestGameState(gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta): void {
     latestGameState = gameState;
-    latestGameStateListeners.forEach(listener => listener(gameState));
+    latestGameStateListeners.forEach(listener => listener(gameState, meta));
 }
 
 /**

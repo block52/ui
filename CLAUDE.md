@@ -490,6 +490,16 @@ a time, honoring the decorations.
   decorations dictate (e.g. `showdownHold` holds the winner banner ~2s). All
   *visual* code reads this track via `GameDataContext`.
 
+**Provenance (ui#609):** the logical track carries `TrackMeta { optimistic }`
+— `true` for the relay's `optimistic` event, a projection of pending mempool
+actions. The outbound `ActionSubmitController` (`src/submit/`) confirms a
+submission only by IDENTITY (our address + the recorded action name at/after
+the job's baseline index, or the tx-by-hash verdict): a projection moves a job
+to `accepted` (busy releases), only committed state or `tx_response.code === 0`
+moves it to `committed`, the confirm timer expiring yields `unknown` (the user
+is told — never a silent "confirmed"), and a chain rejection found later is
+still surfaced. Never confirm a submission from table counters advancing.
+
 **File map (`src/bus/`):** `ingest.ts` (pure message classifier),
 `deriveEvents.ts` (pure prev→next transition diff), `expandFrames.ts` (pure
 multi-street splitter), `GameMessageBus.ts` (seq, drain, coalescing, animation

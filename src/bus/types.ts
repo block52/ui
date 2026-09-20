@@ -157,6 +157,16 @@ export interface GameStreamItem {
     synthetic: boolean;
 }
 
+/**
+ * Provenance of a logical-track snapshot (ui#609): the relay's `optimistic`
+ * event is a projection of pending mempool actions, not committed state. The
+ * submission controller may mark a job *accepted* on a projection but
+ * *committed* only on committed state.
+ */
+export interface TrackMeta {
+    optimistic: boolean;
+}
+
 /** Dev-only introspection snapshot exposed on window.__B52_BUS__ (§5.4). */
 export interface BusIntrospection {
     lastSeq: number;

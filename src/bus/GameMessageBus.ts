@@ -58,6 +58,7 @@
  * `reset()` clears the queue, cancels the in-flight hold timer, and clears the
  * last snapshot — but never rewinds `seq` (sequence numbers are never reused).
  */
+import type { TrackMeta } from "./types";
 import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { classifyMessage, ClassifiedMessage, RawWsMessage } from "./ingest";
 import { GameStreamItem, BusIntrospection, DEFAULT_DECORATION, Decoration, GameEvent, Decorator } from "./types";
@@ -82,8 +83,8 @@ export const SHORTENED_HOLD_MS = 500;
 type Listener = (item: GameStreamItem) => void;
 
 export interface GameMessageBusOptions {
-    /** Logical-track mirror — fed at INGEST time (setLatestGameState). */
-    setLatestGameState: (state: TexasHoldemStateDTO | undefined) => void;
+    /** Logical-track mirror — fed at INGEST time (setLatestGameState), with provenance. */
+    setLatestGameState: (state: TexasHoldemStateDTO | undefined, meta: TrackMeta) => void;
     /** Clock for `receivedAt` and commit timestamps; defaults to performance.now(). */
     now?: () => number;
     /** Decorators to run at ingest; defaults to {@link buildDefaultDecorators}. */
@@ -93,7 +94,7 @@ export interface GameMessageBusOptions {
 }
 
 export class GameMessageBus {
-    private readonly setLatestGameState: (state: TexasHoldemStateDTO | undefined) => void;
+    private readonly setLatestGameState: (state: TexasHoldemStateDTO | undefined, meta: TrackMeta) => void;
     private readonly now: () => number;
     private readonly decorators: Decorator[];
 
@@ -329,10 +330,10 @@ export class GameMessageBus {
     private updateLogicalTrack(classified: ClassifiedMessage): void {
         if (classified.kind === "state") {
             this.lastSnapshot = classified.snapshot;
-            this.setLatestGameState(classified.snapshot);
+            this.setLatestGameState(classified.snapshot, { optimistic: classified.optimistic });
         } else if (classified.kind === "error" && classified.clearGameState) {
             this.lastSnapshot = undefined;
-            this.setLatestGameState(undefined);
+            this.setLatestGameState(undefined, { optimistic: false });
         }
     }
 
