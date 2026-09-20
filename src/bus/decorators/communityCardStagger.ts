@@ -20,32 +20,11 @@
  */
 import type { Decorator, Decoration, AnimationHint } from "../types";
 import { hasElements } from "../../utils/guards";
+import { CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "../timing";
 
-/**
- * Per-card reveal stagger (ms) for a newly-dealt street. Wide enough that the
- * flop's three 3D flips read as a clear one-at-a-time deal rather than landing
- * together (the flip transition itself is 1s — see CARD_FLIP_REVEAL_MS).
- */
-export const CARD_STAGGER_MS = 200;
-
-/** Widest street: the flop deals 3 cards; turn/river deal 1. */
-export const MAX_STREET_CARDS = 3;
-
-/**
- * The card's drop-in duration — matches Table.css `.animate-fall` (`fall 1.0s`).
- * Each staggered card takes this long to finish dropping after its slot reveals.
- */
-export const CARD_DROP_MS = 1000;
-
-/** Slack for React render latency + scheduler jitter before the fallback fires. */
-export const ACK_MARGIN_MS = 500;
-
-/**
- * Ack budget = last card drops at (stagger × maxCards) + its drop duration +
- * a render/jitter margin = 200 × 3 + 1000 + 500 = 2100ms. If nobody acks, the
- * drain falls back to this bound — worst case is the old fixed-timer behavior.
- */
-export const DEAL_CARDS_ACK_TIMEOUT_MS = CARD_STAGGER_MS * MAX_STREET_CARDS + CARD_DROP_MS + ACK_MARGIN_MS;
+// The durations live in ../timing (one source for the bus, the hooks and the
+// CSS); re-exported here so existing importers of this decorator keep working.
+export { CARD_STAGGER_MS, MAX_STREET_CARDS, CARD_DROP_MS, ACK_MARGIN_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "../timing";
 
 export const communityCardStagger: Decorator = (item): Partial<Decoration> => {
     const animations: AnimationHint[] = [];

@@ -64,6 +64,19 @@ export interface ChipPosition {
     bottom: string;
 }
 
+/**
+ * Where a seat's two hole cards are drawn, as the CENTRE of each 60×80 card in
+ * table-div coordinates (ui#21). Derived from the seat position exactly the way
+ * `Player` / `OppositePlayer` lay their cards out: a two-card row with a 4px gap
+ * at the top of the 160×140 seat box. The dealing animation flies card backs
+ * from {@link DECK_ORIGIN} to these points, so they must match the components'
+ * static render — tune with the debug markers (key 7), not by guessing.
+ */
+export interface HoleCardSlotPosition {
+    first: Position;
+    second: Position;
+}
+
 // ─── Stage Constants (from spec) ─────────────────────────────────────
 
 export const STAGE_WIDTH = 1600;
@@ -186,6 +199,22 @@ const DEALER_DISTANCE = 0.34;
  *  30px puts it on the badge center (player is 140px tall, centered via translate-y-50%). */
 const TURN_ANIM_Y_OFFSET = 30;
 
+/** Horizontal distance from the seat centre to each hole card's centre: the two
+ *  60px cards sit side by side with a 4px gap, so each is 32px off centre. */
+const HOLE_CARD_DX = 32;
+
+/** Vertical offset from the seat centre to the hole cards' centre. The 140px seat
+ *  box is centred on the seat coordinate and the 80px card row is its first
+ *  child, so the cards' centre sits 30px above the seat coordinate. */
+const HOLE_CARD_DY = -30;
+
+/**
+ * The deck the hole cards are dealt from, in table-div coordinates (ui#21): the
+ * felt centre, nudged above the community-card row so the cards visibly LEAVE
+ * the board area. A single point, not per seat.
+ */
+export const DECK_ORIGIN: Position = { left: "500px", top: "150px" };
+
 // ─── Position Generators ─────────────────────────────────────────────
 
 export type TableSize = 2 | 4 | 6 | 9;
@@ -299,6 +328,30 @@ export function getWinAnimationPositions(tableSize: TableSize): Position[] {
     });
 }
 
+/**
+ * Get hole-card slot positions (ui#21): per seat, the centre of each of the two
+ * cards the seat component draws, derived from the seat position with
+ * HOLE_CARD_DX / HOLE_CARD_DY. Same seat order as {@link getSeatPositions}.
+ */
+export function getHoleCardSlotPositions(tableSize: TableSize): HoleCardSlotPosition[] {
+    const coords = SEAT_COORDS[tableSize];
+    return coords.map(([x, y]) => {
+        const [sx, sy] = applySpread(x, y);
+        return {
+            first: stageToPosition(sx - HOLE_CARD_DX, sy + HOLE_CARD_DY),
+            second: stageToPosition(sx + HOLE_CARD_DX, sy + HOLE_CARD_DY)
+        };
+    });
+}
+
+/** Pixel vector from one table-div position to another (for CSS translate offsets). */
+export function positionDelta(from: Position, to: Position): { dx: number; dy: number } {
+    return {
+        dx: Math.round((parseFloat(to.left) - parseFloat(from.left)) * 10) / 10,
+        dy: Math.round((parseFloat(to.top) - parseFloat(from.top)) * 10) / 10
+    };
+}
+
 // ─── Fine-Tuning Offsets ─────────────────────────────────────────────
 //
 // Add entries here to nudge individual elements by a few pixels after
@@ -321,7 +374,7 @@ export function getWinAnimationPositions(tableSize: TableSize): Position[] {
 interface Offset { dx?: number; dy?: number; }
 
 type ElementType = "players" | "vacantPlayers" | "chips" | "dealers"
-                 | "turnAnimations" | "winAnimations";
+                 | "turnAnimations" | "winAnimations" | "holeCards";
 
 /** Global offsets — apply to all screen sizes */
 const GLOBAL_OFFSETS: Partial<Record<TableSize,
@@ -473,6 +526,16 @@ function applyChipOffsets(
     });
 }
 
+/** Apply global + viewport offsets to hole-card slots (both cards of a seat move together) */
+function applyHoleCardOffsets(
+    slots: HoleCardSlotPosition[],
+    tableSize: TableSize
+): HoleCardSlotPosition[] {
+    const firsts = applyPositionOffsets(slots.map(slot => slot.first), tableSize, "holeCards");
+    const seconds = applyPositionOffsets(slots.map(slot => slot.second), tableSize, "holeCards");
+    return slots.map((_, i) => ({ first: firsts[i], second: seconds[i] }));
+}
+
 // ─── All Positions Bundle ────────────────────────────────────────────
 
 export interface PositionArrays {
@@ -482,6 +545,10 @@ export interface PositionArrays {
     dealers: Position[];
     turnAnimations: Position[];
     winAnimations: Position[];
+    /** Per seat, the two hole-card centres (ui#21 dealing animation targets). */
+    holeCards: HoleCardSlotPosition[];
+    /** The deck the hole cards fly from (a single point). */
+    deck: Position;
 }
 
 /** Get all position arrays for a given table size, with offsets applied */
@@ -492,7 +559,9 @@ export function getAllPositions(tableSize: TableSize): PositionArrays {
         chips: applyChipOffsets(getChipPositions(tableSize), tableSize),
         dealers: applyPositionOffsets(getDealerPositions(tableSize), tableSize, "dealers"),
         turnAnimations: applyPositionOffsets(getTurnAnimationPositions(tableSize), tableSize, "turnAnimations"),
-        winAnimations: applyPositionOffsets(getWinAnimationPositions(tableSize), tableSize, "winAnimations")
+        winAnimations: applyPositionOffsets(getWinAnimationPositions(tableSize), tableSize, "winAnimations"),
+        holeCards: applyHoleCardOffsets(getHoleCardSlotPositions(tableSize), tableSize),
+        deck: DECK_ORIGIN
     };
 }
 

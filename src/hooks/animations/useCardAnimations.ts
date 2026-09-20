@@ -3,17 +3,14 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { useAnimationAck } from "./useAnimationAck";
 import { CardAnimationsReturn } from "../../types/index";
+// The card drop-in duration (Table.css `.animate-fall` runs for the same
+// `--card-drop-ms`). The ack fires this long after the LAST slot is revealed,
+// i.e. when the last staggered drop actually finishes on screen — comfortably
+// inside the decorator's ackTimeoutMs budget, which is built from the same number.
+import { CARD_DROP_MS } from "../../bus/timing";
 
 /** Community-card board slots: flop (0–2), turn (3), river (4). */
 const BOARD_SLOTS = 5;
-
-/**
- * The card drop-in duration (Table.css `.animate-fall` = `fall 1.0s`). The ack
- * fires this long after the LAST slot is revealed, i.e. when the last staggered
- * drop actually finishes on screen — comfortably inside the decorator's
- * ackTimeoutMs budget.
- */
-const CARD_DROP_MS = 1000;
 
 const allHidden = (): boolean[] => new Array<boolean>(BOARD_SLOTS).fill(false);
 

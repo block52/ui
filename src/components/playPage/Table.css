@@ -88,7 +88,9 @@
 }
 
 .animate-fall {
-    animation: fall 1.0s ease-out backwards;
+    /* Duration comes from src/bus/timing.ts (CARD_DROP_MS) via the table root's
+       custom property, so the drop can never drift from the bus's ack budget. */
+    animation: fall var(--card-drop-ms, 1s) ease-out backwards;
 }
 
 /* Winning card highlight — lifts card upward and brightens it */

@@ -77,6 +77,8 @@ import { RxExit } from "react-icons/rx";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
+import { cssVars } from "../../utils/cssVars";
+import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
 import "./Table.css"; // Import the Table CSS file
 
@@ -179,11 +181,13 @@ const NetworkDisplay = memo(({ isMainnet = false }: NetworkDisplayProps) => {
 NetworkDisplay.displayName = "NetworkDisplay";
 
 // Global debug state — shared between LayoutDebugOverlay and Table component
-// Press D = draggable overlay, C = chip markers, B = dealer markers, S = seat markers, G = geometry
+// Keys: 1 = all overlays, 2 = geometry, 3 = seats, 4 = chips, 5 = dealers,
+// 6 = crosshair, 7 = hole-card slots + deck (ui#21 dealing-animation targets)
 let _debugChips = false;
 let _debugDealers = false;
 let _debugSeats = false;
 let _debugGeometry = false;
+let _debugCards = false;
 const debugListeners: Set<() => void> = new Set();
 function useDebugToggle() {
     const [, forceUpdate] = useState(0);
@@ -194,7 +198,7 @@ function useDebugToggle() {
             debugListeners.delete(cb);
         };
     }, []);
-    return { showChips: _debugChips, showDealers: _debugDealers, showSeats: _debugSeats, showGeometry: _debugGeometry };
+    return { showChips: _debugChips, showDealers: _debugDealers, showSeats: _debugSeats, showGeometry: _debugGeometry, showCards: _debugCards };
 }
 
 /** DEBUG OVERLAY: Press 'D' to toggle. Shows draggable marker with coordinates. */
@@ -213,6 +217,7 @@ const LayoutDebugOverlay = () => {
                 _debugChips = s;
                 _debugDealers = s;
                 _debugSeats = s;
+                _debugCards = s;
                 debugListeners.forEach(cb => cb());
             }
             if (e.key === "2") {
@@ -232,6 +237,10 @@ const LayoutDebugOverlay = () => {
                 debugListeners.forEach(cb => cb());
             }
             if (e.key === "6") setVisible(v => !v);
+            if (e.key === "7") {
+                _debugCards = !_debugCards;
+                debugListeners.forEach(cb => cb());
+            }
         };
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
@@ -297,7 +306,7 @@ const LayoutDebugOverlay = () => {
                     minWidth: 220
                 }}
             >
-                <div style={{ color: "#f87171", fontWeight: "bold", marginBottom: 4 }}>DEBUG (1=all 2=geo 3=seats 4=chips 5=dealers 6=crosshair)</div>
+                <div style={{ color: "#f87171", fontWeight: "bold", marginBottom: 4 }}>DEBUG (1=all 2=geo 3=seats 4=chips 5=dealers 6=crosshair 7=cards)</div>
                 <div>
                     Viewport: {window.innerWidth}x{window.innerHeight}
                 </div>
@@ -314,7 +323,8 @@ const LayoutDebugOverlay = () => {
                     <span style={{ color: _debugChips ? "#4ade80" : "#666" }}>C:chips{_debugChips ? " ON" : ""} </span>
                     <span style={{ color: _debugDealers ? "#fbbf24" : "#666" }}>B:dealer{_debugDealers ? " ON" : ""} </span>
                     <span style={{ color: _debugSeats ? "#60a5fa" : "#666" }}>S:seats{_debugSeats ? " ON" : ""} </span>
-                    <span style={{ color: _debugGeometry ? "#f472b6" : "#666" }}>G:geometry{_debugGeometry ? " ON" : ""}</span>
+                    <span style={{ color: _debugGeometry ? "#f472b6" : "#666" }}>G:geometry{_debugGeometry ? " ON" : ""} </span>
+                    <span style={{ color: _debugCards ? "#a78bfa" : "#666" }}>H:cards{_debugCards ? " ON" : ""}</span>
                 </div>
             </div>
         </div>
@@ -370,11 +380,41 @@ const PositionDebugMarkers: React.FC<{ positions: PositionArrays }> = ({ positio
             </div>
         </div>
     );
+    // Hole-card slots + deck (ui#21): 60×80 outlines exactly where the dealing
+    // animation lands each card, so the geometry offsets can be tuned against the
+    // seat components' real card render (key 7).
+    const cardOutline = (pos: { left: string; top: string }, label: string) => (
+        <div
+            key={`${label}-${pos.left}-${pos.top}`}
+            style={{
+                position: "absolute",
+                left: pos.left,
+                top: pos.top,
+                width: 60,
+                height: 80,
+                transform: "translate(-50%, -50%)",
+                border: "2px dashed #a78bfa",
+                borderRadius: 5,
+                color: "#a78bfa",
+                fontSize: 10,
+                fontWeight: "bold",
+                fontFamily: "monospace",
+                textAlign: "center",
+                lineHeight: "80px",
+                zIndex: 99999,
+                pointerEvents: "none"
+            }}
+        >
+            {label}
+        </div>
+    );
     return (
         <>
             {debug.showChips && positions.chips.map((chip, i) => markerStyle(chip.left, chip.bottom, "#4ade80", `C${i + 1}`, true))}
             {debug.showDealers && positions.dealers.map((d, i) => markerStyle(d.left, d.top, "#fbbf24", `D${i + 1}`))}
             {debug.showSeats && positions.players.map((p, i) => markerStyle(p.left, p.top, "#60a5fa", `S${i + 1}`))}
+            {debug.showCards && positions.holeCards.map((slot, i) => [cardOutline(slot.first, `H${i + 1}a`), cardOutline(slot.second, `H${i + 1}b`)])}
+            {debug.showCards && cardOutline(positions.deck, "DECK")}
         </>
     );
 };
@@ -1339,8 +1379,9 @@ const Table = React.memo(() => {
 
                 {/*//! TABLE — zoom-wrapper applies calculated transform */}
                 <div className={`${isMobile ? "zoom-wrapper-mobile" : "zoom-wrapper-desktop"}`} style={{ transform: tableLayout.tableTransform }}>
-                    {/*//! 1000x500 table coordinate space — positioned at TABLE_ORIGIN (300,285) in the 1600x850 stage */}
-                    <div ref={tableDivRef} className="w-[1000px] h-[500px] absolute" style={{ left: "300px", top: "285px" }}>
+                    {/*//! 1000x500 table coordinate space — positioned at TABLE_ORIGIN (300,285) in the 1600x850 stage.
+                        Also the root for the card-animation durations (src/bus/timing.ts → CSS custom properties). */}
+                    <div ref={tableDivRef} className="w-[1000px] h-[500px] absolute" style={{ left: "300px", top: "285px", ...cssVars(ANIMATION_CSS_VARS) }}>
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
                         {(tableStyle === "modern" || tableStyle === "nouns") && (
                             <div
