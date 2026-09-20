@@ -1,9 +1,11 @@
 # Hole-Card Dealing Animation — cards fly from the deck to each seat
 
 **Date:** 2026-09-20
-**Status:** Phases 0–2 implemented on `feat/21-hole-card-dealing` (timing module +
-geometry, bus event + decorator, render hook + `DealingLayer` + seat gating +
-flip + setting). Phase 3 (polish) open. Tracks block52/ui#21.
+**Status:** Phases 0–2 implemented as a stack — PR #616 (timing module +
+geometry) → #617 (bus event + decorator) → #618 (render hook + `DealingLayer` +
+seat gating + flip + setting). Verified against the stub with Playwright (zero
+ack timeouts, cards land 0.0 px from their slots). Phase 3 (polish) open.
+Tracks block52/ui#21.
 **Owner:** TBD
 
 ## Goal
