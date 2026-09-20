@@ -55,8 +55,11 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # Coverage, not plain jest: jest.config.js enforces per-path ratchets on
+      # the money paths (src/submit, src/hooks/playerActions, currency.ts) and
+      # they only bite when coverage is collected (#619).
       - name: Run tests
-        run: yarn test
+        run: yarn test:coverage
 
   e2e:
     name: E2E (stub)

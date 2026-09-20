@@ -43,6 +43,27 @@ module.exports = {
       functions: 10,
       lines: 10,
       statements: 10
+    },
+    // Money-path ratchets (#619): pinned a few points under measured coverage
+    // so a regression fails CI. Raise these as tests are added; never lower
+    // them to make a build pass.
+    './src/submit/': {
+      branches: 80,
+      functions: 75,
+      lines: 85,
+      statements: 85
+    },
+    './src/hooks/playerActions/': {
+      branches: 38,
+      functions: 43,
+      lines: 45,
+      statements: 45
+    },
+    './src/constants/currency.ts': {
+      branches: 85,
+      functions: 70,
+      lines: 88,
+      statements: 88
     }
   }
 };
