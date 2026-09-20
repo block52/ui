@@ -13,17 +13,19 @@ import { communityCardStagger } from "./communityCardStagger";
 import { actionBadge } from "./actionBadge";
 import { makeRemoteActionSound } from "./remoteActionSound";
 import { coalesceCatchUp } from "./coalesceCatchUp";
+import { holeCardDeal } from "./holeCardDeal";
 
 export { showdownHold, SHOWDOWN_HOLD_MS } from "./showdownHold";
 export { communityCardStagger, CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "./communityCardStagger";
 export { actionBadge } from "./actionBadge";
 export { makeRemoteActionSound } from "./remoteActionSound";
 export { coalesceCatchUp } from "./coalesceCatchUp";
+export { holeCardDeal, dealingOrder, DEAL_HOLE_CARDS_KIND } from "./holeCardDeal";
 
 /**
  * @param getLocalAddress accessor for the local player's cosmos address, closed
  *   over by remoteActionSound so it can skip the local player's own echo.
  */
 export function buildDefaultDecorators(getLocalAddress: () => string | null): Decorator[] {
-    return [showdownHold, communityCardStagger, actionBadge, makeRemoteActionSound(getLocalAddress), coalesceCatchUp];
+    return [showdownHold, communityCardStagger, holeCardDeal, actionBadge, makeRemoteActionSound(getLocalAddress), coalesceCatchUp];
 }
