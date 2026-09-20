@@ -22,7 +22,13 @@ export type GameEvent =
     | { type: "playerJoined"; seat: number; address: string }
     | { type: "playerLeft"; seat: number; address: string }
     | { type: "stackChanged"; seat: number; from: string; to: string }
-    | { type: "cardsRevealed"; seat: number; cards: string[] };
+    | { type: "cardsRevealed"; seat: number; cards: string[] }
+    /**
+     * Seats that received their hole cards this commit (ui#21), ascending, plus
+     * the button so a consumer can order them clockwise. `dealerSeat` is null
+     * when the snapshot carries no `dealer` (the DTO field is optional).
+     */
+    | { type: "cardsDealt"; seats: number[]; dealerSeat: number | null };
 
 /** Every discriminant of {@link GameEvent}, for the typed `useGameEvents` filter. */
 export type GameEventType = GameEvent["type"];
@@ -43,6 +49,8 @@ export interface AnimationHint {
     round?: string;
     /** The seat this animation belongs to (for the `actionBadge` hint). */
     seat?: number;
+    /** Seats in DEALING order — clockwise from the button (for the `dealHoleCards` hint). */
+    seats?: number[];
 
     // ---- Animation-ack contract (Phase 5, §2.7) --------------------------------
     //

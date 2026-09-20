@@ -10,6 +10,9 @@ import { communityCardStagger, CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from
 import { actionBadge } from "./actionBadge";
 import { makeRemoteActionSound } from "./remoteActionSound";
 import { coalesceCatchUp } from "./coalesceCatchUp";
+import { holeCardDeal, dealingOrder, DEAL_HOLE_CARDS_KIND } from "./holeCardDeal";
+import { buildDefaultDecorators } from "./index";
+import { HOLE_CARD_STAGGER_MS } from "../timing";
 import { DEFAULT_DECORATION, GameEvent, GameStreamItem } from "../types";
 import { ActionDTO, PlayerActionType, TexasHoldemRound, WinnerDTO } from "@block52/poker-vm-sdk";
 
@@ -52,6 +55,43 @@ describe("showdownHold", () => {
     it("does nothing without a handEnded event", () => {
         const patch = showdownHold(makeItem([{ type: "playerActed", action: action({}) }]), undefined);
         expect(patch).toEqual({});
+    });
+});
+
+describe("holeCardDeal (ui#21)", () => {
+    it("orders dealt seats clockwise from the seat after the button, wrapping", () => {
+        expect(dealingOrder([1, 3, 5, 7], 5)).toEqual([7, 1, 3, 5]);
+        expect(dealingOrder([1, 2, 3, 4, 5, 6, 7, 8, 9], 9)).toEqual([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+        expect(dealingOrder([2, 6], 2)).toEqual([6, 2]);
+        expect(dealingOrder([2, 6], 6)).toEqual([2, 6]);
+    });
+
+    it("falls back to ascending seat order without a button", () => {
+        expect(dealingOrder([7, 1, 3], null)).toEqual([1, 3, 7]);
+    });
+
+    it("attaches a dealHoleCards hint carrying the seats in dealing order", () => {
+        const patch = holeCardDeal(makeItem([{ type: "cardsDealt", seats: [1, 3, 5, 7], dealerSeat: 5 }]), undefined);
+        expect(patch.animations).toHaveLength(1);
+        const hint = patch.animations![0];
+        expect(hint.kind).toBe(DEAL_HOLE_CARDS_KIND);
+        expect(hint.seats).toEqual([7, 1, 3, 5]);
+        expect(hint.staggerMs).toBe(HOLE_CARD_STAGGER_MS);
+        // The drain-gating ack opt-in ships with the consumer (phase 2): an
+        // ack-gated hint nobody consumes would hold the drain for its budget.
+        expect(hint.ackTimeoutMs).toBeUndefined();
+        expect(hint.ackId).toBeUndefined(); // stamped by the bus, never by a decorator
+        expect(patch.minDisplayMs).toBeUndefined();
+        expect(patch.holdPreviousMs).toBeUndefined();
+    });
+
+    it("does nothing without a cardsDealt event", () => {
+        expect(holeCardDeal(makeItem([{ type: "handStarted", handNumber: 2 }]), undefined)).toEqual({});
+        expect(holeCardDeal(makeItem([{ type: "cardsDealt", seats: [], dealerSeat: 1 }]), undefined)).toEqual({});
+    });
+
+    it("is registered in the default decorator set", () => {
+        expect(buildDefaultDecorators(() => null)).toContain(holeCardDeal);
     });
 });
 
