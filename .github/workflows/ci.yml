@@ -4,9 +4,9 @@ on:
   push:
     branches:
       - main
+  # Every pull request, whatever its base: a stacked PR (a feature branch on a
+  # feature branch) must get CI before the bottom of the stack merges.
   pull_request:
-    branches:
-      - main
 
 jobs:
   build:
