@@ -248,6 +248,64 @@ describe("deriveEvents", () => {
         });
     });
 
+    describe("cardsDealt (ui#21)", () => {
+        const undealt = (seat: number, over: Partial<PlayerDTO> = {}) => player(seat, { holeCards: [], ...over });
+
+        it("emits the seats that go from no hole cards to a masked or real hand, ascending", () => {
+            const prev = snapshot({ players: [undealt(4, { address: BOB }), undealt(1)] });
+            const next = snapshot({
+                dealer: 1,
+                players: [player(4, { address: BOB, holeCards: ["X", "X"] }), player(1, { holeCards: ["AH", "KD"] })]
+            });
+            const dealt = ofType(deriveEvents(prev, next), "cardsDealt");
+            expect(dealt).toEqual([{ type: "cardsDealt", seats: [1, 4], dealerSeat: 1 }]);
+        });
+
+        it("also fires on a hand advance when cards were still present from the last hand", () => {
+            // The engine keeps hole cards through END and clears them only at the
+            // next hand's reinit, so the engine-driven hand start shows
+            // "old cards → new cards" on the handStarted frame.
+            const prev = snapshot({ handNumber: 3, round: TexasHoldemRound.END, players: [player(1, { holeCards: ["2C", "7D"] }), player(4, { address: BOB, holeCards: ["X", "X"] })] });
+            const next = snapshot({ handNumber: 4, dealer: 4, players: [player(1, { holeCards: ["AS", "AD"] }), player(4, { address: BOB, holeCards: ["X", "X"] })] });
+            const events = deriveEvents(prev, next);
+            expect(ofType(events, "handStarted")).toHaveLength(1);
+            expect(ofType(events, "cardsDealt")).toEqual([{ type: "cardsDealt", seats: [1, 4], dealerSeat: 4 }]);
+        });
+
+        it("emits nothing when nobody gains cards (a betting action mid-hand)", () => {
+            const prev = snapshot({ previousActions: [action(1)] });
+            const next = snapshot({ previousActions: [action(1), action(2, { playerId: BOB, seat: 4 })] });
+            expect(ofType(deriveEvents(prev, next), "cardsDealt")).toHaveLength(0);
+        });
+
+        it("emits nothing on the first frame (late mount is not a deal)", () => {
+            expect(deriveEvents(undefined, snapshot())).toEqual([]);
+        });
+
+        it("skips a seat parked WAITING_FOR_BIG_BLIND even if the snapshot carries cards for it", () => {
+            const prev = snapshot({ players: [undealt(1), undealt(4, { address: BOB })] });
+            const next = snapshot({
+                players: [player(1, { holeCards: ["AH", "KD"] }), player(4, { address: BOB, holeCards: ["X", "X"], status: PlayerStatus.WAITING_FOR_BIG_BLIND })]
+            });
+            expect(ofType(deriveEvents(prev, next), "cardsDealt")).toEqual([{ type: "cardsDealt", seats: [1], dealerSeat: null }]);
+        });
+
+        it("does not deal in a seat that joined mid-hand carrying cards, but does on a new hand", () => {
+            const prev = snapshot({ players: [player(1, { holeCards: ["AH", "KD"] })] });
+            const joinedMidHand = snapshot({ players: [player(1, { holeCards: ["AH", "KD"] }), player(4, { address: BOB, holeCards: ["X", "X"] })] });
+            expect(ofType(deriveEvents(prev, joinedMidHand), "cardsDealt")).toHaveLength(0);
+
+            const joinedOnNewHand = snapshot({ handNumber: 2, players: [player(1, { holeCards: ["AH", "KD"] }), player(4, { address: BOB, holeCards: ["X", "X"] })] });
+            expect(ofType(deriveEvents(prev, joinedOnNewHand), "cardsDealt")).toEqual([{ type: "cardsDealt", seats: [1, 4], dealerSeat: null }]);
+        });
+
+        it("reports a null dealer when the snapshot has none, and the seat otherwise", () => {
+            const prev = snapshot({ players: [undealt(1)] });
+            expect(ofType(deriveEvents(prev, snapshot({ players: [player(1, { holeCards: ["AH", "KD"] })] })), "cardsDealt")[0].dealerSeat).toBeNull();
+            expect(ofType(deriveEvents(prev, snapshot({ dealer: 1, players: [player(1, { holeCards: ["AH", "KD"] })] })), "cardsDealt")[0].dealerSeat).toBe(1);
+        });
+    });
+
     describe("handEnded", () => {
         it("extracts winners when winners transition from empty to populated", () => {
             const winner: WinnerDTO = { address: ALICE, seat: 1, amount: "100000", cards: ["AH", "KH"], name: "Winner", description: "High Card" };

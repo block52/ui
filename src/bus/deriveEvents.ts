@@ -36,7 +36,7 @@
  *     defaulting").
  */
 import type { TexasHoldemStateDTO, ActionDTO, PlayerDTO } from "@block52/poker-vm-sdk";
-import { TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { TexasHoldemRound, PlayerStatus } from "@block52/poker-vm-sdk";
 import type { GameEvent } from "./types";
 import { hasElements, isEmpty } from "../utils/guards";
 
@@ -105,6 +105,11 @@ export function isRevealedHand(cards: string[] | undefined): boolean {
     return hasElements(cards) && cards.every(card => !isMaskedCard(card));
 }
 
+/** A seat holding a dealt hand — masked (an opponent's) or real (the viewer's). */
+export function isDealtHand(cards: string[] | undefined): boolean {
+    return isMaskedHand(cards) || isRevealedHand(cards);
+}
+
 function playersBySeat(players: readonly PlayerDTO[]): Map<number, PlayerDTO> {
     const map = new Map<number, PlayerDTO>();
     for (const player of players) {
@@ -121,7 +126,7 @@ function playersBySeat(players: readonly PlayerDTO[]): Map<number, PlayerDTO> {
  * @param next - the newly-arrived snapshot.
  * @returns the events that occurred, in a deterministic order (structural
  *   join/leave, then handStarted, playerActed in index order, roundAdvanced,
- *   cardsRevealed, stackChanged, handEnded).
+ *   cardsDealt, cardsRevealed, stackChanged, handEnded).
  * @throws {RegressedSnapshotError} when same-hand action indices regress.
  */
 export function deriveEvents(prev: TexasHoldemStateDTO | undefined, next: TexasHoldemStateDTO): GameEvent[] {
@@ -181,6 +186,31 @@ export function deriveEvents(prev: TexasHoldemStateDTO | undefined, next: TexasH
     if (sameHand && next.round !== prev.round && roundOrder(next.round) > roundOrder(prev.round)) {
         const newCommunityCards = next.communityCards.slice(prev.communityCards.length);
         events.push({ type: "roundAdvanced", from: prev.round, to: next.round, newCommunityCards });
+    }
+
+    // --- cardsDealt: seats that received their hole cards this frame (ui#21) --
+    // A seat is dealt when it now holds a hand (masked or real) and EITHER held
+    // none in prev OR the hand advanced. The second clause is load-bearing: the
+    // engine keeps hole cards through the END round and clears them only at the
+    // next hand's reinit, so on the engine-driven hand start (poker-vm#2525) the
+    // per-seat transition is "last hand's cards → this hand's cards" on the same
+    // frame as handStarted — never "none → cards". A seat that first appears in
+    // this frame (a join) is dealt in only by a new hand; a seat parked
+    // WAITING_FOR_BIG_BLIND is never dealt in (usePlayerData zeroes its cards).
+    const dealtSeats: number[] = [];
+    for (const [seat, nextPlayer] of nextSeats) {
+        if (nextPlayer.status === PlayerStatus.WAITING_FOR_BIG_BLIND || !isDealtHand(nextPlayer.holeCards)) {
+            continue;
+        }
+        const prevPlayer = prevSeats.get(seat);
+        const gained = prevPlayer === undefined ? handAdvanced : handAdvanced || !isDealtHand(prevPlayer.holeCards);
+        if (gained) {
+            dealtSeats.push(seat);
+        }
+    }
+    if (hasElements(dealtSeats)) {
+        dealtSeats.sort((a, b) => a - b);
+        events.push({ type: "cardsDealt", seats: dealtSeats, dealerSeat: next.dealer ?? null });
     }
 
     // --- cardsRevealed: masked ["X","X"] -> real cards, per seat ------------
