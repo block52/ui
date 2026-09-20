@@ -174,6 +174,11 @@ export interface BusIntrospection {
     pendingAcks: number;
     /** Cumulative count of acks that fell back to their `ackTimeoutMs` (Phase 5). */
     ackTimeouts: number;
+    /**
+     * Cumulative count of inbound WebSocket documents that were not JSON and were
+     * dropped (ui#623). Never surfaces as a page error — see `parseFrame`.
+     */
+    parseFailures: number;
     commitLog: Array<{ seq: number; committedAt: number; eventCount: number }>;
 }
 

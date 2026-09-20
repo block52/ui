@@ -528,8 +528,14 @@ snapshot types come from the SDK (Commandment 1).
 
 **Testing:** in dev builds the bus exposes `window.__B52_BUS__`
 (`committed`, `coalesced`, `expanded`, `pendingAcks`, `ackTimeouts`,
-`queueDepth`, `commitLog`) so e2e can assert serialization/pacing numerically instead of by
-screenshot timing. Stub controls (`__control/config` frame pacing,
+`parseFailures`, `queueDepth`, `commitLog`) so e2e can assert serialization/pacing numerically instead of by
+screenshot timing.
+
+**Framing:** the relay sends ONE JSON document per WebSocket frame
+(block52/pokerchain#364). The provider parses frames through `parseFrame`
+(`src/bus/frame.ts`), which also tolerates a newline-batched frame and counts
+unparseable documents in `parseFailures` — a bad frame is logged and counted,
+never turned into a page-level error (ui#623). Stub controls (`__control/config` frame pacing,
 `__control/inject`, `__control/script`, `__control/disconnect`) drive the
 bus's paths in Playwright.
 

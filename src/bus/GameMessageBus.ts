@@ -132,8 +132,18 @@ export class GameMessageBus {
         totalEvents: 0,
         pendingAcks: 0,
         ackTimeouts: 0,
+        parseFailures: 0,
         commitLog: []
     };
+
+    /**
+     * Count inbound documents that were not JSON (ui#623). The provider calls
+     * this instead of raising a page-level error, so a malformed line is visible
+     * on `window.__B52_BUS__` without replacing a live table with an error page.
+     */
+    public recordParseFailure(count: number): void {
+        this.introspection.parseFailures += count;
+    }
 
     constructor(options: GameMessageBusOptions) {
         this.setLatestGameState = options.setLatestGameState;
