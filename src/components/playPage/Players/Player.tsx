@@ -10,7 +10,9 @@ import type { PlayerProps } from "../../../types/index";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import CustomDealer from "../../../assets/CustomDealer.svg";
-import { getCardImageUrl } from "../../../utils/cardImages";
+import { getCardImageUrl, getCardBackUrl, type CardBackStyle } from "../../../utils/cardImages";
+import { useHoleCardDealContext } from "../../../context/HoleCardDealContext";
+import { viteEnv } from "../../../utils/viteEnv";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
@@ -20,9 +22,10 @@ import { SIT_IN_METHOD_POST_NOW, sitIn } from "../../../hooks/playerActions";
 import { hasElements } from "../../../utils/guards";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
+import "../Card/UserCards.css";
 
-const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
-    ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
+const Player: React.FC<PlayerProps & { uiPosition?: number; cardBackStyle?: CardBackStyle }> = memo(
+    ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition, cardBackStyle }) => {
         const { id } = useParams<{ id: string }>();
         const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
         const { winnerInfo, winnerBySeat } = useWinnerInfo();
@@ -34,6 +37,13 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const { getAvatarForAddress } = useProfileAvatar();
         const { currentNetwork } = useNetwork();
         const { submit } = useActionSubmit();
+
+        // Dealing choreography (ui#21): hold the placeholder while this seat's
+        // cards are in flight, show backs once they land, flip to the faces once
+        // the whole deal has landed. Idle = dealt + revealed, so nothing changes
+        // outside a deal.
+        const { isDealt, viewerRevealed } = useHoleCardDealContext();
+        const dealt = isDealt(index);
 
         // Callback for "I'm Back" button on badge — routes through the
         // ActionSubmitController (dedupe / serialize / retry / error toast).
@@ -109,37 +119,51 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
             return winnerBySeat.get(index)?.description ?? null;
         }, [winnerBySeat, index]);
 
-        // 5) render hole cards
+        // 5) render hole cards — each as a 3D flip card (Card/UserCards.css):
+        //    front = card back, back = the face; `flipped` shows the face. Mounted
+        //    already flipped outside a deal, so the flip only ever animates at the
+        //    end of a deal, when viewerRevealed goes false → true.
         const renderCards = useCallback(() => {
-            if (!holeCards || holeCards.length !== 2) {
+            if (!holeCards || holeCards.length !== 2 || !dealt) {
                 return <div className="w-[120px] h-[80px]"></div>;
             }
 
             const hasWinningCards = winnerCards.size > 0;
-            const liftCard0 = isWinner && hasWinningCards && winnerCards.has(holeCards[0]);
-            const liftCard1 = isWinner && hasWinningCards && winnerCards.has(holeCards[1]);
-            const muteCard0 = isWinner && hasWinningCards && !winnerCards.has(holeCards[0]);
-            const muteCard1 = isWinner && hasWinningCards && !winnerCards.has(holeCards[1]);
+            const backSrc = getCardBackUrl(cardBackStyle);
+            const flippedClass = viewerRevealed ? " flipped" : "";
 
             return (
                 <>
-                    <img
-                        src={getCardImageUrl(holeCards[0])}
-                        width={60}
-                        height={80}
-                        className={`mb-[11px]${liftCard0 ? " animate-win-card" : ""}${muteCard0 ? " opacity-40" : ""}`}
-                        onError={_e => console.error(`❌ Player ${index} card1 failed to load:`, getCardImageUrl(holeCards[0]))}
-                    />
-                    <img
-                        src={getCardImageUrl(holeCards[1])}
-                        width={60}
-                        height={80}
-                        className={`mb-[11px]${liftCard1 ? " animate-win-card" : ""}${muteCard1 ? " opacity-40" : ""}`}
-                        onError={_e => console.error(`❌ Player ${index} card2 failed to load:`, getCardImageUrl(holeCards[1]))}
-                    />
+                    {holeCards.map((card, cardIndex) => {
+                        const lift = isWinner && hasWinningCards && winnerCards.has(card);
+                        const mute = isWinner && hasWinningCards && !winnerCards.has(card);
+                        const faceSrc = getCardImageUrl(card);
+                        return (
+                            <div
+                                key={`${cardIndex}-${card}`}
+                                className={`handcard mb-[11px]${flippedClass}${lift ? " animate-win-card" : ""}${mute ? " opacity-40" : ""}`}
+                                data-testid="hole-card"
+                            >
+                                <div className="handcard-inner">
+                                    <div className="handcard-front">
+                                        <img src={backSrc} alt="" width={60} height={80} />
+                                    </div>
+                                    <div className="handcard-back">
+                                        <img
+                                            src={faceSrc}
+                                            alt={`Your card ${cardIndex + 1}`}
+                                            width={60}
+                                            height={80}
+                                            onError={_e => console.error(`❌ Player ${index} card${cardIndex + 1} failed to load:`, faceSrc)}
+                                        />
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </>
             );
-        }, [holeCards, index, isWinner, winnerCards]);
+        }, [holeCards, index, isWinner, winnerCards, dealt, viewerRevealed, cardBackStyle]);
 
         // 6) container style for positioning
         const containerStyle = useMemo(
@@ -169,7 +193,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                 style={containerStyle}
             >
                 {/* Development Mode Debug Info */}
-                {import.meta.env.VITE_NODE_ENV === "development" && (
+                {viteEnv.VITE_NODE_ENV === "development" && (
                     <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-black bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-green-400">
                         <div className="text-green-400">UI Pos: {uiPosition ?? "N/A"}</div>
                         <div className="text-yellow-400">Seat: {index}</div>
@@ -233,7 +257,8 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
             prevProps.index === nextProps.index &&
             prevProps.currentIndex === nextProps.currentIndex &&
             prevProps.color === nextProps.color &&
-            prevProps.status === nextProps.status
+            prevProps.status === nextProps.status &&
+            prevProps.cardBackStyle === nextProps.cardBackStyle
         );
     }
 );

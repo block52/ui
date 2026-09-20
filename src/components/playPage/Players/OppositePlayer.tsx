@@ -22,6 +22,8 @@ import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import CustomDealer from "../../../assets/CustomDealer.svg";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/cardImages";
+import { useHoleCardDealContext } from "../../../context/HoleCardDealContext";
+import { viteEnv } from "../../../utils/viteEnv";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
@@ -57,6 +59,9 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     }, [shouldShowEquity, equities, index]);
     const { showingPlayers } = useShowingCardsByAddress();
     const { dealerSeat } = useDealerPosition();
+    // Dealing choreography (ui#21): keep the placeholder until this seat's
+    // second card has landed; the DealingLayer draws the cards in flight.
+    const { isDealt } = useHoleCardDealContext();
 
     // Check if this seat is the dealer
     const isDealer = dealerSeat === index;
@@ -124,7 +129,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                 }}
             >
                 {/* Development Mode Debug Info */}
-                {import.meta.env.VITE_NODE_ENV === "development" && (
+                {viteEnv.VITE_NODE_ENV === "development" && (
                     <div className="absolute top-[-60px] left-1/2 transform -translate-x-1/2 bg-blue-600 bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-blue-400">
                         <div className="text-blue-200">UI Pos: {uiPosition ?? "N/A"}</div>
                         <div className="text-yellow-300">Seat: {index}</div>
@@ -133,7 +138,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     </div>
                 )}
                 <div className="flex justify-center gap-1">
-                    {holeCards && holeCards.length === 2 && !isFolded? (
+                    {holeCards && holeCards.length === 2 && !isFolded && isDealt(index) ? (
                         isShowingCards && showingCards ? (
                             // Show the actual cards if player is showing
                             <>

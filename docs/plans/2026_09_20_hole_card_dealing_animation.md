@@ -1,7 +1,11 @@
 # Hole-Card Dealing Animation — cards fly from the deck to each seat
 
 **Date:** 2026-09-20
-**Status:** Plan (nothing implemented). Tracks block52/ui#21.
+**Status:** Phases 0–2 implemented as a stack — PR #616 (timing module +
+geometry) → #617 (bus event + decorator) → #618 (render hook + `DealingLayer` +
+seat gating + flip + setting). Verified against the stub with Playwright (zero
+ack timeouts, cards land 0.0 px from their slots). Phase 3 (polish) open.
+Tracks block52/ui#21.
 **Owner:** TBD
 
 ## Goal
@@ -120,13 +124,17 @@ Two invariants carried over from the board animation:
 | { type: "cardsDealt"; seats: number[]; dealerSeat: number }
 ```
 
-Emitted when a seat present in both snapshots has no hole cards in `prev` and
-two in `next` (masked or real — `isMaskedHand || isRevealedHand`), collected in
-ascending seat order, with `next.dealer`. Not gated to `sameHand`: with the
-engine-driven start the deal lands on the `handStarted` frame. `prev ===
-undefined` still yields nothing (late mount is not a deal). A seat that is
-`WAITING_FOR_BIG_BLIND` never gains cards, so it is naturally excluded (see
-`usePlayerData.ts:91-93`).
+Emitted for every seat that now holds a hand (masked or real —
+`isMaskedHand || isRevealedHand`) and EITHER held none in `prev` OR the hand
+advanced, collected in ascending seat order, with `next.dealer` (`null` when the
+optional DTO field is absent). The hand-advance clause was found during
+implementation and is load-bearing: the engine keeps hole cards through the END
+round and clears them only at the next hand's reinit (`Player.Reinit`), so on
+the engine-driven start the per-seat transition is "last hand's cards → this
+hand's cards" on the `handStarted` frame, never "none → cards". `prev ===
+undefined` still yields nothing (late mount is not a deal); a seat that first
+appears in the frame (a join) is dealt in only by a new hand; a seat parked
+`WAITING_FOR_BIG_BLIND` is skipped (see `usePlayerData.ts:91-93`).
 
 **New decorator** `src/bus/decorators/holeCardDeal.ts`, registered in
 `buildDefaultDecorators`:
@@ -282,7 +290,11 @@ Four PRs, each independently mergeable and behaviour-preserving until the last.
   decorator (clockwise order from button+1 with wrap, heads-up, seats without
   cards skipped, ack budget formula); `decorators.test.ts` merge with the other
   hints on the engine-start frame.
-- Hints are inert until Phase 2 consumes them — safe to ship alone.
+- Hints are inert until Phase 2 consumes them — safe to ship alone. The ack
+  opt-in (`ackTimeoutMs`) ships WITH the consumer in Phase 2: an ack-gated
+  hint nobody consumes holds the drain for its budget on every deal and
+  counts as an ack timeout (the acks e2e caught exactly this on the
+  phase-1 PR).
 
 ### Phase 2 — Render
 

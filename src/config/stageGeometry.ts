@@ -209,11 +209,12 @@ const HOLE_CARD_DX = 32;
 const HOLE_CARD_DY = -30;
 
 /**
- * The deck the hole cards are dealt from, in table-div coordinates (ui#21): the
- * felt centre, nudged above the community-card row so the cards visibly LEAVE
- * the board area. A single point, not per seat.
+ * The deck the hole cards are dealt from, in table-div coordinates (ui#21): on
+ * the felt's centre line, between the top rail (y = 0) and the total-pot pill
+ * (≈ y 130–170), so the stack neither covers the pot nor sits on the board. A
+ * single point, not per seat. Checked against the stub with the key-7 outlines.
  */
-export const DECK_ORIGIN: Position = { left: "500px", top: "150px" };
+export const DECK_ORIGIN: Position = { left: "500px", top: "80px" };
 
 // ─── Position Generators ─────────────────────────────────────────────
 
