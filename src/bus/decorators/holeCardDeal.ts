@@ -7,11 +7,11 @@
  * (useHoleCardDeal) flies a card back from the deck to each seat in two rounds,
  * then flips the viewer's pair.
  *
- * Like communityCardStagger it sets no `minDisplayMs`/`holdPreviousMs`. The
- * hint's ANIMATION-ACK opt-in (§2.7) ships WITH its consumer (useHoleCardDeal):
- * an ack-gated hint nobody consumes holds the drain for its whole budget on
- * every deal and counts as an ack timeout, so until the render layer lands this
- * hint is purely descriptive and the drain commits exactly as before.
+ * Like communityCardStagger it sets no `minDisplayMs`/`holdPreviousMs`: the hint
+ * opts into an ANIMATION ACK (§2.7) whose budget is computed from the ACTUAL seat
+ * count (heads-up is not budgeted like 9-max). The consumer acks when the flip
+ * finishes; a missing ack (unmounted, setting off, hidden tab) falls back to the
+ * budget so the drain can never stall.
  *
  * The engine hands the deck out in seat order, but the cards are face-down, so
  * the visual order is free to follow the felt — the issue's "first active player
@@ -21,7 +21,7 @@
  */
 import type { Decorator, Decoration, AnimationHint } from "../types";
 import { hasElements } from "../../utils/guards";
-import { HOLE_CARD_STAGGER_MS } from "../timing";
+import { HOLE_CARD_STAGGER_MS, holeCardDealAckTimeoutMs } from "../timing";
 
 /** The `AnimationHint.kind` this decorator attaches and useHoleCardDeal consumes. */
 export const DEAL_HOLE_CARDS_KIND = "dealHoleCards";
@@ -49,7 +49,9 @@ export const holeCardDeal: Decorator = (item): Partial<Decoration> => {
             animations.push({
                 kind: DEAL_HOLE_CARDS_KIND,
                 seats,
-                staggerMs: HOLE_CARD_STAGGER_MS
+                staggerMs: HOLE_CARD_STAGGER_MS,
+                // Opt into a drain-gating ack (ackId is stamped by the bus).
+                ackTimeoutMs: holeCardDealAckTimeoutMs(seats.length)
             });
         }
     }
