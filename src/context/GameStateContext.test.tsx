@@ -214,15 +214,59 @@ describe("GameStateProvider ingest funnel", () => {
         expect(screen.getByTestId("validation").textContent).toContain("Missing required fields");
     });
 
-    it("handles unparseable frames without crashing", async () => {
+    it("counts an unparseable frame and keeps the table up instead of raising a page error (ui#623)", async () => {
+        const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
         renderProvider();
         const socket = currentSocket();
+
+        act(() => {
+            socket.emit(stateFrame(4));
+        });
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("4"));
 
         act(() => {
             socket.emitRaw("not-json{{{");
         });
 
-        await waitFor(() => expect(screen.getByTestId("error").textContent).toBe("Error parsing WebSocket message"));
+        // Counted on the dev handle, logged, and the last good state stays on
+        // screen — never swapped for the error page.
+        await waitFor(() => expect(window.__B52_BUS__?.parseFailures).toBe(1));
+        expect(screen.getByTestId("error").textContent).toBe("none");
+        expect(screen.getByTestId("hand").textContent).toBe("4");
+        expect(window.__B52_BUS__?.committed).toBe(1);
+        expect(consoleError).toHaveBeenCalledWith(expect.stringContaining("Dropped 1 unparseable WebSocket document"), expect.any(String));
+        consoleError.mockRestore();
+    });
+
+    it("ingests every document of a newline-batched frame, in order (pokerchain#364 tolerance)", async () => {
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emitRaw(`${JSON.stringify(stateFrame(1))}\n${JSON.stringify(stateFrame(2))}\n`);
+        });
+
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("2"));
+        const bus = window.__B52_BUS__;
+        expect(bus!.commitLog.map(e => e.seq)).toEqual([1, 2]);
+        expect(bus!.parseFailures).toBe(0);
+        expect(screen.getByTestId("error").textContent).toBe("none");
+    });
+
+    it("keeps the good documents of a frame that also carries a malformed line", async () => {
+        jest.spyOn(console, "error").mockImplementation(() => {});
+        renderProvider();
+        const socket = currentSocket();
+
+        act(() => {
+            socket.emitRaw(`${JSON.stringify(stateFrame(1))}\ngarbage\n${JSON.stringify(stateFrame(2))}`);
+        });
+
+        await waitFor(() => expect(screen.getByTestId("hand").textContent).toBe("2"));
+        expect(window.__B52_BUS__?.parseFailures).toBe(1);
+        expect(window.__B52_BUS__?.committed).toBe(2);
+        expect(screen.getByTestId("error").textContent).toBe("none");
+        jest.restoreAllMocks();
     });
 
     it("ignores frames for a different table", async () => {

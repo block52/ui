@@ -4,6 +4,7 @@ import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-
 import { createAuthPayload } from "../utils/cosmos/signing";
 import { setLatestGameState } from "../hooks/playerActions/transportAction";
 import { ClassifiedMessage } from "../bus/ingest";
+import { parseFrame } from "../bus/frame";
 import { GameMessageBus } from "../bus/GameMessageBus";
 import { type GameStreamItem } from "../bus/types";
 import { viteEnv } from "../utils/viteEnv";
@@ -276,21 +277,37 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             };
 
             ws.onmessage = event => {
-                let message;
-                try {
-                    message = JSON.parse(event.data);
-                } catch (err) {
-                    console.error("[GameStateContext] Failed to parse WebSocket message:", (err as Error).message);
-                    setError(new Error("Error parsing WebSocket message"));
+                // One JSON document per frame is the relay's contract
+                // (block52/pokerchain#364). parseFrame also tolerates a
+                // newline-batched frame, so a relay regression degrades to "every
+                // document still ingested" rather than "the whole batch dropped".
+                const { messages, failures } = parseFrame(String(event.data));
+
+                // Any bytes from the relay prove it is alive — the "server not
+                // responding" fallback must not fire because a frame was malformed.
+                hasReceivedMessageRef.current = true;
+
+                if (failures > 0) {
+                    // Surface it (Commandment 7) without blanking the table: a bad
+                    // document is a relay/transport bug to count and log, not a
+                    // reason to replace a live hand with an error page (ui#623).
+                    console.error(
+                        `[GameStateContext] Dropped ${failures} unparseable WebSocket document(s):`,
+                        String(event.data).slice(0, 160)
+                    );
+                    busRef.current?.recordParseFailure(failures);
+                }
+
+                if (!hasElements(messages)) {
                     return;
                 }
 
-                hasReceivedMessageRef.current = true;
-
-                // WS Action Bus. The bus classifies the message, updates the
+                // WS Action Bus. The bus classifies each message, updates the
                 // logical track at ingest, and drives the render track through
                 // committed items (applyRenderTrack, wired via subscribe).
-                busRef.current?.ingest(message, tableId);
+                for (const message of messages) {
+                    busRef.current?.ingest(message, tableId);
+                }
             };
 
             ws.onclose = () => {
