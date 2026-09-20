@@ -1,9 +1,18 @@
+/*
+ * The viewer's hole cards as 3D flip cards (Player.tsx, ui#21).
+ *
+ *   .handcard          60×80 perspective box, one per card
+ *   .handcard-inner    rotates; `.flipped` shows the back face
+ *   .handcard-front    what you see unflipped — the CARD BACK
+ *   .handcard-back     pre-rotated 180°, so it faces you when flipped — the FACE
+ *
+ * The flip duration comes from src/bus/timing.ts (HOLE_CARD_FLIP_MS) via the
+ * table root's --hole-card-flip-ms, so it matches the deal's ack budget.
+ */
 .handcard {
     width: 60px;
     height: 80px;
     perspective: 1000px;
-    /* Enables 3D flipping */
-    cursor: pointer;
 }
 
 .handcard-inner {
@@ -11,13 +20,11 @@
     height: 100%;
     position: relative;
     transform-style: preserve-3d;
-    /* Preserve 3D transform effect */
-    transition: transform 1s ease-in-out;
+    transition: transform var(--hole-card-flip-ms, 300ms) ease-in-out;
 }
 
 .handcard.flipped .handcard-inner {
     transform: rotateY(-180deg);
-    /* Flip the card */
 }
 
 .handcard-front,
@@ -26,7 +33,6 @@
     height: 100%;
     position: absolute;
     backface-visibility: hidden;
-    /* Hide the back when facing front */
 }
 
 .handcard-front img,
@@ -39,5 +45,10 @@
 
 .handcard-back {
     transform: rotateY(-180deg);
-    /* Back side is rotated */
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .handcard-inner {
+        transition: none;
+    }
 }

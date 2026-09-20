@@ -50,11 +50,13 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
         autoMuck,
         sitInOptions,
         preSelectCheck,
+        dealingAnimation,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
         toggleSitInOptions,
-        togglePreSelectCheck
+        togglePreSelectCheck,
+        toggleDealingAnimation
     } = useGameSettings();
 
     return (
@@ -96,6 +98,12 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                         description="Show a Check box before your turn when checking is free, so you can queue an auto-check. Clears if a bet lands — it can only ever check, never fold."
                         checked={preSelectCheck}
                         onToggle={togglePreSelectCheck}
+                    />
+                    <ToggleRow
+                        label="Dealing Animation"
+                        description="Deal hole cards from the deck to each seat, then flip yours. Turn off on a slow device; your system's reduced-motion setting also turns it off."
+                        checked={dealingAnimation}
+                        onToggle={toggleDealingAnimation}
                     />
                 </div>
             </div>

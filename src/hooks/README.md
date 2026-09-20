@@ -540,6 +540,22 @@ const {
 } = useCardAnimations();
 ```
 
+#### `useHoleCardDeal()`
+Runs the hole-card dealing choreography (ui#21) — the per-seat twin of
+`useCardAnimations`. Consumes the `dealHoleCards` animation hint (from the
+`holeCardDeal` decorator: the dealt seats clockwise from the button) and exposes
+the timeline the render layer draws from: the card-back `flights` for
+`DealingLayer`, `isDealt(seat)` so a seat holds its placeholder until its second
+card lands, and `viewerRevealed` so the local player's pair flips only once the
+whole deal has landed. Acks the bus when the flip finishes; any other commit
+snaps to truth (the backpressure path). Skipped, with an immediate ack, when the
+`dealingAnimation` setting is off or the OS prefers reduced motion. Runs ONCE per
+table via `HoleCardDealProvider`; consumers read `useHoleCardDealContext()`.
+
+```typescript
+const { flights, landedCount, isDealt, viewerRevealed, isDealing } = useHoleCardDealContext();
+```
+
 #### `useChipPositions()`
 Calculates chip stack positions and animations.
 
