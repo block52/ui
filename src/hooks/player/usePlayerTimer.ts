@@ -1,14 +1,10 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
-import { useNetwork } from "../../context/NetworkContext";
-import { PlayerStatus, PlayerDTO, PlayerActionType } from "@block52/poker-vm-sdk";
+import { PlayerStatus, PlayerDTO } from "@block52/poker-vm-sdk";
 import { PlayerTimerReturn } from "../../types/index";
-import { foldHand } from "../playerActions/foldHand";
-import { checkHand } from "../playerActions/checkHand";
-import { usePlayerLegalActions } from "../playerActions/usePlayerLegalActions";
 import { useGameOptions } from "../game/useGameOptions";
-import { isEmpty, isNullish, safeLength } from "../../utils/guards";
+import { isNullish, safeLength } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
 
@@ -16,17 +12,13 @@ import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRem
 const timeExtensions = new Map<string, { extensionTime: number; hasUsedExtension: boolean }>();
 
 /**
- * Custom hook to manage player timer information with auto-fold functionality and time extensions
- * @param tableId The ID of the table for auto-fold actions
+ * Custom hook to manage player timer information and time extensions
+ * @param tableId The ID of the table used to scope time-extension state
  * @param playerSeat The seat number of the player to check (1-based)
  * @returns Object containing player status and timer information
  */
 export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTimerReturn => {
     const [currentTime, setCurrentTime] = useState(Date.now());
-    const [lastAutoFoldTime, setLastAutoFoldTime] = useState<number>(0);
-    const { currentNetwork } = useNetwork();
-    // Functions imported directly - no hook destructuring needed
-    const { legalActions } = usePlayerLegalActions();
 
     const { gameState } = useGameData();
     const { isLoading, error } = useGameUI();
@@ -40,14 +32,6 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
 
     // Create unique key for this seat
     const seatKey = `${tableId}-${playerSeat}`;
-
-    // useRef to hold latest values for the callback
-    const latestValues = useRef({
-        legalActions,
-        lastAutoFoldTime,
-        timeoutInSeconds,
-        isExecutingAutoAction: false
-    });
 
     // Find the player by seat number
     const player = useMemo((): PlayerDTO | null => {
@@ -95,14 +79,6 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
         return player?.address?.toLowerCase() === userAddress;
     }, [player]);
 
-    // Update ref with latest values on each render
-    latestValues.current = {
-        legalActions,
-        lastAutoFoldTime,
-        timeoutInSeconds,
-        isExecutingAutoAction: false
-    };
-
     // Get extension info for this seat
     const extensionInfo = timeExtensions.get(seatKey) || { extensionTime: 0, hasUsedExtension: false };
 
@@ -139,60 +115,6 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
 
     }, [isNextToAct, isCurrentUser, extensionInfo.hasUsedExtension, seatKey, lastActionTimestamp]);
 
-    // Auto-action logic (check first, then fold if check not available)
-    const _handleAutoAction = useCallback(async () => {
-        // Use a flag to prevent concurrent executions
-        if (latestValues.current.isExecutingAutoAction) {
-            return;
-        }
-        latestValues.current.isExecutingAutoAction = true;
-
-        // Get latest values from ref
-        const { legalActions, lastAutoFoldTime, timeoutInSeconds } = latestValues.current;
-
-        if (!isNextToAct || !isCurrentUser || !tableId) {
-            latestValues.current.isExecutingAutoAction = false;
-            return;
-        }
-
-        // Prevent multiple auto-actions in quick succession
-        const timeSinceLastAutoFold = Date.now() - lastAutoFoldTime;
-        if (timeSinceLastAutoFold < 5000) { // 5 second cooldown
-            latestValues.current.isExecutingAutoAction = false;
-            return;
-        }
-
-        // Check if player has legal actions (can actually act)
-        if (isEmpty(legalActions)) {
-            latestValues.current.isExecutingAutoAction = false;
-            return;
-        }
-
-        // Check if check is a legal action (preferred over fold)
-        const canCheck = legalActions.some(action => action.action === PlayerActionType.CHECK);
-        const canFold = legalActions.some(action => action.action === PlayerActionType.FOLD);
-
-        if (!canCheck && !canFold) {
-            latestValues.current.isExecutingAutoAction = false;
-            return;
-        }
-
-        try {
-            setLastAutoFoldTime(Date.now());
-
-            if (canCheck) {
-                await checkHand(tableId!, currentNetwork);
-            } else if (canFold) {
-                await foldHand(tableId, currentNetwork);
-            }
-        } catch (error) {
-            console.error("❌ Failed to auto-action:", error);
-            // Don't throw here as it would break the component
-        } finally {
-            latestValues.current.isExecutingAutoAction = false;
-        }
-    }, [isNextToAct, isCurrentUser, tableId, playerSeat, currentNetwork]);
-
     // Update current time every second - ONLY for active players
     useEffect(() => {
         if (!isNextToAct) {
@@ -205,22 +127,6 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
 
         return () => clearInterval(interval);
     }, [isNextToAct]); // Re-run effect when player becomes active/inactive
-
-    // Auto-action when timer expires - COMMENTED OUT TO DISABLE AUTO-FOLD/AUTO-CHECK
-    // useEffect(() => {
-    //     if (timeRemaining === 0 && isNextToAct && isCurrentUser) {
-    //         const timeoutId = setTimeout(() => {
-    //             _handleAutoAction();
-    //         }, 500); // Small delay to ensure state is stable
-
-    //         return () => clearTimeout(timeoutId);
-    //     }
-    // }, [timeRemaining, isNextToAct, isCurrentUser, _handleAutoAction]);
-
-    // Reset auto-action timer when next to act changes
-    useEffect(() => {
-        setLastAutoFoldTime(0);
-    }, [gameState?.nextToAct]);
 
     // Calculate progress (0-100) via shared util
     const _progress = useMemo(() => {
