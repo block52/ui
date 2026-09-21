@@ -28,6 +28,14 @@ import type { Action } from "./holdem.js";
 // Per-address sequence. CosmJS signs with whatever we report; the stub doesn't
 // verify, so a simple monotonic counter keeps consecutive broadcasts happy.
 const sequences = new Map<string, number>();
+
+/**
+ * The account as the REST auth route reports it (server.ts). Same numbers as the
+ * abci_query path below, so a client sees one account whichever way it asks.
+ */
+export function restAccount(address: string): { account_number: string; sequence: string } {
+    return { account_number: "0", sequence: String(sequences.get(address) ?? 0) };
+}
 // hashHex -> the tx's base64 bytes, so a `tx`/`tx_search` poll after
 // broadcast_tx_sync resolves with the real (non-empty) tx CosmJS asserts on.
 const committedTxs = new Map<string, string>();

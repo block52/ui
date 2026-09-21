@@ -3,7 +3,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { attachChainWs, broadcastRaw, disconnectGame } from "./chain-ws.js";
-import { handleCometRpc } from "./comet-rpc.js";
+import { handleCometRpc, restAccount } from "./comet-rpc.js";
 import {
   CASH_GAME_ID,
   getGameState,
@@ -70,6 +70,17 @@ app.post("/", async (c) => {
 });
 
 // ---- cosmetic reads the UI polls (benign shapes, stop the {} noise) ------
+// Auth account over REST. From SDK 1.4.1 gameplay txs are signed UNORDERED
+// (poker-vm#2619): the SDK builds the sign doc itself and reads account_number
+// from here, instead of letting CosmJS fetch it over abci_query. Without this
+// route the catch-all answered {} and every action threw before broadcast.
+app.get("/cosmos/auth/v1beta1/accounts/:address", (c) => {
+  const address = c.req.param("address");
+  return c.json({
+    account: { "@type": "/cosmos.auth.v1beta1.BaseAccount", address, pub_key: null, ...restAccount(address) }
+  });
+});
+
 app.get("/cosmos/base/tendermint/v1beta1/blocks/latest", (c) =>
   c.json({ block: { header: { height: "1", time: "2026-07-11T00:00:00Z" } } })
 );
