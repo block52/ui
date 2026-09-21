@@ -183,6 +183,34 @@ describe("remoteActionSound", () => {
         expect(patch).toEqual({});
     });
 
+    it("never sounds a blind post — it used to come out as a phantom check (ui#624)", () => {
+        const decorate = makeRemoteActionSound(() => LOCAL);
+        const patch = decorate(
+            makeItem([
+                { type: "playerActed", action: action({ playerId: "b521sb", action: PlayerActionType.SMALL_BLIND, seat: 1 }) },
+                { type: "playerActed", action: action({ playerId: "b521bb", action: PlayerActionType.BIG_BLIND, seat: 2 }) }
+            ]),
+            undefined
+        );
+        expect(patch).toEqual({});
+    });
+
+    it("keeps a multi-action frame's sounds in action order, blind posts dropped", () => {
+        const decorate = makeRemoteActionSound(() => LOCAL);
+        const patch = decorate(
+            makeItem([
+                { type: "playerActed", action: action({ playerId: "b521bb", action: PlayerActionType.BIG_BLIND, seat: 2 }) },
+                { type: "playerActed", action: action({ playerId: "b521a", action: PlayerActionType.RAISE, seat: 3 }) },
+                { type: "playerActed", action: action({ playerId: "b521b", action: PlayerActionType.FOLD, seat: 4 }) }
+            ]),
+            undefined
+        );
+        expect(patch.sounds).toEqual([
+            { kind: "raise", seat: 3 },
+            { kind: "fold", seat: 4 }
+        ]);
+    });
+
     it("skips actions that map to no sound (e.g. deal/join)", () => {
         const decorate = makeRemoteActionSound(() => LOCAL);
         const patch = decorate(
