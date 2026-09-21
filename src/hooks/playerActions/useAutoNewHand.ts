@@ -7,6 +7,7 @@ import { useGameEventsContext } from "../../context/gameState/GameEventsContext"
 import { getAutoNewHandEnabled } from "../../utils/urlParams";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isNullish } from "../../utils/guards";
+import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 
 /**
  * Hook to automatically trigger a new hand when the current hand ends.
@@ -40,11 +41,17 @@ import { isNullish } from "../../utils/guards";
  * always the logical snapshot. So the deal fires promptly while the rendered
  * showdown holds — the two are decoupled and never double-delay.
  *
+ * The new hand is SUBMITTED through the shared ActionSubmitController (ui#635),
+ * not broadcast from here: every tx this account sends — manual or automatic —
+ * goes through one queue, so they dedupe and serialize instead of racing, and
+ * a rejection is toasted to the player instead of dying in the console.
+ *
  * @param tableId - The table/game ID
  * @param network - The network configuration
- * @param onNewHandStarted - Optional callback when auto-new-hand starts
- * @param onNewHandComplete - Optional callback when auto-new-hand completes
- * @param onNewHandError - Optional callback when auto-new-hand fails
+ * @param submit - The ActionSubmitController's submit (from useActionSubmit)
+ * @param lastError - The controller's latest surfaced error (from useActionSubmit);
+ *                    a new-hand failure drops the dealing indicator
+ * @param onNewHandSubmitted - Optional callback with the tx hash once broadcast
  * @param enabled - Optional override for the URL param setting (reactive)
  * @returns `{ isDealingNewHand }` — true from the handEnded commit until the next
  *          hand starts (or the deal fails), so the UI can show a
@@ -53,15 +60,13 @@ import { isNullish } from "../../utils/guards";
 export function useAutoNewHand(
     tableId: string,
     network: NetworkEndpoints,
-    onNewHandStarted?: () => void,
-    onNewHandComplete?: (txHash: string) => void,
-    onNewHandError?: (error: Error) => void,
+    submit: (request: SubmitActionRequest) => void,
+    lastError: SubmitError | null,
+    onNewHandSubmitted?: (txHash: string) => void,
     enabled?: boolean
 ): { isDealingNewHand: boolean } {
     // Track if we've already triggered new hand for this opportunity
     const hasTriggeredRef = useRef<boolean>(false);
-    // Track if new hand is currently in progress to prevent duplicate calls
-    const isProcessingRef = useRef<boolean>(false);
     // Check if auto-new-hand is enabled — prefer the reactive `enabled` prop, fall back to URL param
     const autoNewHandEnabledRef = useRef<boolean>(enabled ?? getAutoNewHandEnabled());
     // Drives the "Dealing hand #X…" indicator (showdown hold + deal request).
@@ -85,30 +90,29 @@ export function useAutoNewHand(
         }
     }, [enabled]);
 
-    const triggerAutoNewHand = useCallback(async () => {
-        if (!tableId || isProcessingRef.current) {
+    const triggerAutoNewHand = useCallback(() => {
+        if (!tableId) {
             return;
         }
+        // isDealingNewHand stays true after a successful broadcast — it is
+        // cleared by the effect below when the next hand starts, so the
+        // indicator covers the whole showdown hold, not just the submission.
+        submit({
+            actionName: "new-hand",
+            run: () => startNewHand(tableId, network),
+            onSuccess: onNewHandSubmitted
+        });
+    }, [tableId, network, submit, onNewHandSubmitted]);
 
-        isProcessingRef.current = true;
-        onNewHandStarted?.();
-
-        try {
-            const result = await startNewHand(tableId, network);
-            onNewHandComplete?.(result.hash);
-            // Leave isDealingNewHand true on success — it is cleared by the effect
-            // below when the next hand starts (hasNewHandAction goes false), so the
-            // indicator stays up for the whole showdown hold, not just the ~ms it
-            // takes to submit the deal.
-        } catch (error) {
-            console.error("Auto-new-hand failed:", error);
-            // Failure — clear the indicator so the UI recovers.
+    // A failed deal — the controller has already told the player — must not
+    // leave "Dealing hand #X…" up forever. Keyed on the error OBJECT: the
+    // controller keeps its last error around, so a stale one must not clear the
+    // indicator again on a later hand.
+    useEffect(() => {
+        if (lastError?.actionName === "new-hand") {
             setIsDealingNewHand(false);
-            onNewHandError?.(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            isProcessingRef.current = false;
         }
-    }, [tableId, network, onNewHandStarted, onNewHandComplete, onNewHandError]);
+    }, [lastError]);
 
     useEffect(() => {
         // `latestItem` is the reactive tick only; the decision reads the LOGICAL
@@ -123,8 +127,7 @@ export function useAutoNewHand(
             autoNewHandEnabledRef.current &&
             hasNewHandAction &&
             isUsersTurn &&
-            !hasTriggeredRef.current &&
-            !isProcessingRef.current;
+            !hasTriggeredRef.current;
 
         if (shouldAutoNewHand) {
             hasTriggeredRef.current = true;

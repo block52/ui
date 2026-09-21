@@ -4,6 +4,7 @@ import { postSmallBlind } from "./postSmallBlind";
 import { postBigBlind } from "./postBigBlind";
 import { getAutoPostBlindsEnabled } from "../../utils/urlParams";
 import { isNullish } from "../../utils/guards";
+import type { SubmitActionRequest } from "../../submit/types";
 
 /**
  * Hook to automatically post blinds when conditions are met.
@@ -20,6 +21,13 @@ import { isNullish } from "../../utils/guards";
  * 2. It is the user's turn
  * 3. The blind has not already been posted for this opportunity
  *
+ * The blind is SUBMITTED through the shared ActionSubmitController (ui#635), not
+ * broadcast from here: every tx this account sends — manual or automatic —
+ * goes through one queue, so they dedupe and serialize instead of racing, and
+ * a rejection is toasted to the player instead of dying in the console. (The
+ * manual "Post Small Blind" button used to appear with no explanation because
+ * a rejected auto-post was only ever logged.)
+ *
  * @param tableId - The table/game ID
  * @param network - The network configuration
  * @param hasSmallBlindAction - Whether the SMALL_BLIND action is available in legal actions
@@ -27,9 +35,8 @@ import { isNullish } from "../../utils/guards";
  * @param smallBlindAmount - The small blind amount in micro-units as bigint
  * @param bigBlindAmount - The big blind amount in micro-units as bigint
  * @param isUsersTurn - Whether it is currently the user's turn
- * @param onBlindStarted - Optional callback when auto-post blind starts
- * @param onBlindComplete - Optional callback when auto-post blind completes
- * @param onBlindError - Optional callback when auto-post blind fails
+ * @param submit - The ActionSubmitController's submit (from useActionSubmit)
+ * @param onBlindSubmitted - Optional callback with the blind type + tx hash once broadcast
  * @param enabled - Optional override for the URL param setting (reactive)
  */
 export function useAutoPostBlinds(
@@ -40,16 +47,13 @@ export function useAutoPostBlinds(
     smallBlindAmount: bigint,
     bigBlindAmount: bigint,
     isUsersTurn: boolean,
-    onBlindStarted?: (blindType: "small" | "big") => void,
-    onBlindComplete?: (blindType: "small" | "big", txHash: string) => void,
-    onBlindError?: (error: Error) => void,
+    submit: (request: SubmitActionRequest) => void,
+    onBlindSubmitted?: (blindType: "small" | "big", txHash: string) => void,
     enabled?: boolean
 ): void {
     // Track if we've already triggered blind posting for this opportunity
     const hasTriggeredSmallBlindRef = useRef<boolean>(false);
     const hasTriggeredBigBlindRef = useRef<boolean>(false);
-    // Track if blind posting is currently in progress to prevent duplicate calls
-    const isProcessingRef = useRef<boolean>(false);
     // Check if auto-post blinds is enabled — prefer the reactive `enabled` prop, fall back to URL param
     const autoPostBlindsEnabledRef = useRef<boolean>(enabled ?? getAutoPostBlindsEnabled());
 
@@ -60,43 +64,27 @@ export function useAutoPostBlinds(
         }
     }, [enabled]);
 
-    const triggerPostSmallBlind = useCallback(async () => {
-        if (!tableId || isProcessingRef.current || smallBlindAmount === 0n) {
+    const triggerPostSmallBlind = useCallback(() => {
+        if (!tableId || smallBlindAmount === 0n) {
             return;
         }
+        submit({
+            actionName: "small-blind",
+            run: () => postSmallBlind(tableId, smallBlindAmount, network),
+            onSuccess: hash => onBlindSubmitted?.("small", hash)
+        });
+    }, [tableId, network, smallBlindAmount, submit, onBlindSubmitted]);
 
-        isProcessingRef.current = true;
-        onBlindStarted?.("small");
-
-        try {
-            const result = await postSmallBlind(tableId, smallBlindAmount, network);
-            onBlindComplete?.("small", result.hash);
-        } catch (error) {
-            console.error("❌ Auto-post small blind failed:", error);
-            onBlindError?.(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            isProcessingRef.current = false;
-        }
-    }, [tableId, network, smallBlindAmount, onBlindStarted, onBlindComplete, onBlindError]);
-
-    const triggerPostBigBlind = useCallback(async () => {
-        if (!tableId || isProcessingRef.current || bigBlindAmount === 0n) {
+    const triggerPostBigBlind = useCallback(() => {
+        if (!tableId || bigBlindAmount === 0n) {
             return;
         }
-
-        isProcessingRef.current = true;
-        onBlindStarted?.("big");
-
-        try {
-            const result = await postBigBlind(tableId, bigBlindAmount, network);
-            onBlindComplete?.("big", result.hash);
-        } catch (error) {
-            console.error("❌ Auto-post big blind failed:", error);
-            onBlindError?.(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            isProcessingRef.current = false;
-        }
-    }, [tableId, network, bigBlindAmount, onBlindStarted, onBlindComplete, onBlindError]);
+        submit({
+            actionName: "big-blind",
+            run: () => postBigBlind(tableId, bigBlindAmount, network),
+            onSuccess: hash => onBlindSubmitted?.("big", hash)
+        });
+    }, [tableId, network, bigBlindAmount, submit, onBlindSubmitted]);
 
     useEffect(() => {
         // Check conditions for auto-post small blind
@@ -104,8 +92,7 @@ export function useAutoPostBlinds(
             autoPostBlindsEnabledRef.current &&
             hasSmallBlindAction &&
             isUsersTurn &&
-            !hasTriggeredSmallBlindRef.current &&
-            !isProcessingRef.current;
+            !hasTriggeredSmallBlindRef.current;
 
         if (shouldPostSmallBlind) {
             hasTriggeredSmallBlindRef.current = true;
@@ -124,8 +111,7 @@ export function useAutoPostBlinds(
             autoPostBlindsEnabledRef.current &&
             hasBigBlindAction &&
             isUsersTurn &&
-            !hasTriggeredBigBlindRef.current &&
-            !isProcessingRef.current;
+            !hasTriggeredBigBlindRef.current;
 
         if (shouldPostBigBlind) {
             hasTriggeredBigBlindRef.current = true;

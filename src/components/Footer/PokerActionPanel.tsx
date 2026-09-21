@@ -73,7 +73,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // gate (busy stays until the chain advances a signal — ui#364/#440), the
     // 8s escape-hatch, and centralized error toasts. `submitLoadingAction` is
     // the in-flight manual action's label.
-    const { submit, loadingAction: submitLoadingAction } = useActionSubmit();
+    const { submit, loadingAction: submitLoadingAction, lastError: submitLastError } = useActionSubmit();
 
     // Auto-action hooks (auto-fold/deal/blinds/new-hand/show/muck) still manage
     // their own submission + self-clear via their callbacks; we merge their
@@ -153,26 +153,22 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     const bigBlindMicro = useMemo(() => parseMicroToBigInt(gameState?.gameOptions?.bigBlind), [gameState?.gameOptions?.bigBlind]);
 
+    // Auto-deal / auto-post-blinds / auto-new-hand submit through the same
+    // ActionSubmitController as the manual buttons (ui#635), so this account has
+    // ONE outbound queue: they dedupe + serialize with a click instead of racing
+    // it, the controller's loadingAction drives their spinners, and a rejection
+    // is toasted rather than logged.
+
     // Auto-deal hook - automatically triggers deal when conditions are met
     // Can be disabled via URL query param: ?autodeal=false or via settings panel
-    useAutoDeal(
-        tableId,
-        network,
-        hasDealAction,
-        isUsersTurn,
-        () => setAutoLoadingAction("deal"), // onDealStarted
-        txHash => {
-            setAutoLoadingAction(null);
-            if (onTransactionSubmitted) {
-                onTransactionSubmitted(txHash);
-            }
-        }, // onDealComplete
-        () => setAutoLoadingAction(null), // onDealError
-        autoDealEnabled
-    );
+    useAutoDeal(tableId, network, hasDealAction, isUsersTurn, submit, onTransactionSubmitted, autoDealEnabled);
 
     // Auto-post blinds hook - automatically posts small/big blind when conditions are met
     // Can be disabled via URL query param: ?autoblinds=false or via settings panel
+    const handleAutoBlindSubmitted = useCallback(
+        (_blindType: "small" | "big", txHash: string) => onTransactionSubmitted?.(txHash),
+        [onTransactionSubmitted]
+    );
     useAutoPostBlinds(
         tableId,
         network,
@@ -181,14 +177,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         smallBlindMicro,
         bigBlindMicro,
         isUsersTurn,
-        blindType => setAutoLoadingAction(blindType === "small" ? "small-blind" : "big-blind"), // onBlindStarted
-        (blindType, txHash) => {
-            setAutoLoadingAction(null);
-            if (onTransactionSubmitted) {
-                onTransactionSubmitted(txHash);
-            }
-        }, // onBlindComplete
-        () => setAutoLoadingAction(null), // onBlindError
+        submit,
+        handleAutoBlindSubmitted,
         autoPostBlindsEnabled
     );
 
@@ -301,19 +291,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // Its trigger inputs (hasNewHandAction / isUsersTurn) are derived internally
     // from the LOGICAL track so the deal is never delayed by the rendered
     // showdown hold (see useAutoNewHand).
-    const { isDealingNewHand } = useAutoNewHand(
-        tableId,
-        network,
-        () => setAutoLoadingAction("new-hand"), // onNewHandStarted
-        txHash => {
-            setAutoLoadingAction(null);
-            if (onTransactionSubmitted) {
-                onTransactionSubmitted(txHash);
-            }
-        }, // onNewHandComplete
-        () => setAutoLoadingAction(null), // onNewHandError
-        autoNewHandEnabled
-    );
+    const { isDealingNewHand } = useAutoNewHand(tableId, network, submit, submitLastError, onTransactionSubmitted, autoNewHandEnabled);
 
     // Show deal button if player has the deal action
     const shouldShowDealButton = hasDealAction && isUsersTurn;

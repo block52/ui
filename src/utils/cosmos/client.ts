@@ -273,8 +273,11 @@ export function isSequenceMismatchError(err: unknown): boolean {
  * committed" case. We do NOT loop — a persistently wedged account (a tx stuck
  * in the mempool indefinitely) surfaces the error so it isn't silently masked.
  *
- * Gameplay actions must NOT use this — they're unordered and never carry a
- * sequence, so they can't hit a sequence mismatch. Use withSigningClientRetry.
+ * Gameplay actions do NOT use this: they go through executeTransportAction,
+ * which carries its own code-32 recovery because the SDK's performActionSync
+ * still signs ORDERED up to 1.4.0 (that is what raced on 21 Sept 2026 — ui#635).
+ * From the SDK release that fixes poker-vm#2619 they are unordered, carry no
+ * sequence and cannot hit a mismatch; delete that recovery when the pin moves.
  */
 export const SEQUENCE_RETRY_DELAY_MS = 1500;
 
