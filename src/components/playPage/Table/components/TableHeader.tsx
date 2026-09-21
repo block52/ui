@@ -22,7 +22,7 @@ import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import styles from "./TableHeader.module.css";
 
-const formatBlindCountdown = (secondsRemaining: number): string => {
+export const formatBlindCountdown = (secondsRemaining: number): string => {
     // Negative = overtime (hand still running past the level end); show the
     // elapsed-over time with a leading minus, e.g. -0:10. (poker-vm#2292)
     const isOvertime = secondsRemaining < 0;
@@ -128,7 +128,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
         <div className="flex-shrink-0">
             {/*//! MAIN HEADER - CASINO STYLE */}
             <div
-                className={`w-[100vw] h-[50px] sm:h-[65px] text-center flex items-center justify-between px-2 sm:px-4 z-[100] relative border-b-2 ${styles.headerRoot}`}
+                className={`w-full h-[50px] sm:h-[65px] text-center flex items-center justify-between px-2 sm:px-4 z-[100] relative border-b-2 ${styles.headerRoot}`}
             >
                 {/* Subtle animated background */}
                 <div className="absolute inset-0 z-0">

@@ -104,12 +104,15 @@ export const useTableLayout = (
         return () => observer.disconnect();
     }, [containerRef, refreshLayout]);
 
-    const positions = useMemo(() => getAllPositions(tableSize), [tableSize]);
+    // viewportMode is a dependency of all three: it selects the stage orientation
+    // (portrait vs landscape seat rings) inside the geometry engine, so a mode
+    // flip must recompute positions even when tableSize/container are unchanged.
+    const positions = useMemo(() => getAllPositions(tableSize), [tableSize, viewportMode]);
 
     const { width: cw, height: ch } = containerSize;
 
-    const zoom = useMemo(() => calculateZoom(tableSize, cw, ch), [tableSize, cw, ch]);
-    const tableTransform = useMemo(() => getTableTransform(zoom, tableSize, cw, ch), [zoom, tableSize, cw, ch]);
+    const zoom = useMemo(() => calculateZoom(tableSize, cw, ch), [tableSize, cw, ch, viewportMode]);
+    const tableTransform = useMemo(() => getTableTransform(zoom, tableSize, cw, ch), [zoom, tableSize, cw, ch, viewportMode]);
 
     // Memoized so the returned object keeps a stable identity: PlayerSeating puts
     // it in a useCallback dep array, and a fresh object per render invalidated

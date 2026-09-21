@@ -26,6 +26,10 @@ import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
 export interface PlayerActionButtonsProps {
     isMobile: boolean;
     isMobileLandscape: boolean;
+    /** Portrait-phone declutter: panels become compact chips above the safe
+     *  area, top-up moves to the hamburger menu, and the 6-o'clock toggle only
+     *  renders while unseated (as a full-width button). */
+    isMobilePortrait?: boolean;
     legalActions: LegalActionDTO[];
     tableId: string | undefined;
     currentNetwork: NetworkEndpoints;
@@ -46,6 +50,7 @@ export interface PlayerActionButtonsProps {
 export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     isMobile,
     isMobileLandscape,
+    isMobilePortrait = false,
     legalActions,
     tableId,
     currentNetwork,
@@ -62,8 +67,12 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     isCurrentUserSeated,
     isTableFull
 }) => {
-    const isCompact = isMobile || isMobileLandscape;
+    const isCompact = isMobile || isMobileLandscape || isMobilePortrait;
     const positionClass = isMobileLandscape ? "bottom-2 left-2" : isMobile ? "bottom-[260px] right-4" : "bottom-20 left-4";
+    // Portrait: panels sit above the on-demand action bar's zone, clear of the
+    // home-indicator safe area.
+    const portraitPanelStyle: React.CSSProperties = { bottom: "calc(env(safe-area-inset-bottom) + 100px)" };
+    const portraitBarStyle: React.CSSProperties = { bottom: "calc(env(safe-area-inset-bottom) + 8px)" };
 
     // Optimistic local state for immediate visual feedback
     const [optimisticChecked, setOptimisticChecked] = useState<boolean | null>(null);
@@ -170,8 +179,10 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // the player is in the hand (ACTIVE/ALL_IN), so we read that rather than
     // re-deriving "in the hand" client-side (#597). Applied at the next hand.
     const canTopUp = legalActions.some(a => a.action === NonPlayerActionType.TOP_UP);
+    // On portrait phones the top-up entry lives in the hamburger menu
+    // (MobileTableHeader) — the floating button is landscape/desktop only.
     const buyChipsElement =
-        isCurrentUserSeated && tableId && !isSNG ? (
+        !isMobilePortrait && isCurrentUserSeated && tableId && !isSNG ? (
             <div className={`fixed z-30 ${buyChipsPositionClass}`}>
                 <BuyChipsButton
                     tableId={tableId}
@@ -211,17 +222,52 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // toggle pinned at the top, the state-specific panel(s) stacked beneath it.
     // Each switch case now returns just its own panel content via this wrapper,
     // so the toggle is guaranteed to render regardless of sit-in/out/waiting.
-    const seatedFrame = (panel: React.ReactNode) => (
-        <>
-            {buyChipsElement}
-            <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
-                {seatAtBottomToggle}
-                {panel}
-            </div>
-        </>
-    );
+    // Portrait phones drop the always-on toggle (it's offered while unseated
+    // instead) and center the panel above the action-bar zone.
+    const seatedFrame = (panel: React.ReactNode) =>
+        isMobilePortrait ? (
+            <>
+                {buyChipsElement}
+                {panel && (
+                    <div className="fixed z-30 left-1/2 -translate-x-1/2" style={portraitPanelStyle}>
+                        {panel}
+                    </div>
+                )}
+            </>
+        ) : (
+            <>
+                {buyChipsElement}
+                <div className={`fixed z-30 ${positionClass} flex flex-col gap-2`}>
+                    {seatAtBottomToggle}
+                    {panel}
+                </div>
+            </>
+        );
 
     if (!isCurrentUserSeated) {
+        if (isMobilePortrait) {
+            // Portrait declutter: one compact spectate chip and the 6-o'clock
+            // preference as a single full-width button above the safe area —
+            // the only pre-seating decision worth screen space.
+            return (
+                <div className="fixed left-3 right-3 z-30 flex flex-col items-center gap-2" style={portraitBarStyle}>
+                    <div className="flex items-center gap-2 rounded-full backdrop-blur-sm border border-white/20 bg-black/60 px-3 py-1">
+                        <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
+                        <span className="text-blue-300 font-medium text-xs">
+                            {isTableFull ? "You are spectating this table" : "Spectating — tap an open seat to join"}
+                        </span>
+                    </div>
+                    <button
+                        onClick={toggleSeatAtBottom}
+                        className={`w-full min-h-[44px] rounded-lg backdrop-blur-sm border font-medium text-sm transition-colors duration-150 ${
+                            seatAtBottom ? "border-amber-400 text-amber-300 bg-black/70" : "border-white/20 text-white bg-black/60"
+                        }`}
+                    >
+                        {seatAtBottom ? "✓ " : ""}Seat me at 6 o'clock
+                    </button>
+                </div>
+            );
+        }
         return (
             <>
                 {buyChipsElement}
@@ -353,11 +399,18 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             );
 
         case "waiting-for-players":
+            // Portrait: an inline status chip, not a panel.
             return seatedFrame(
-                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                <div
+                    className={`backdrop-blur-sm shadow-lg border border-white/20 bg-black/60 ${
+                        isMobilePortrait ? "rounded-full px-3 py-1" : `rounded-lg ${isCompact ? "p-2" : "p-3"}`
+                    }`}
+                >
                     <div className="flex items-center gap-2">
                         <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
-                        <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Waiting for players to join...</span>
+                        <span className={`text-blue-300 font-medium whitespace-nowrap ${isMobilePortrait ? "text-[11px]" : isCompact ? "text-xs" : "text-sm"}`}>
+                            Waiting for players to join...
+                        </span>
                     </div>
                 </div>
             );

@@ -7,6 +7,9 @@
 export { TableHeader } from "./TableHeader";
 export type { TableHeaderProps } from "./TableHeader";
 
+export { MobileTableHeader } from "./MobileTableHeader";
+export type { MobileTableHeaderProps, TableStyleOption } from "./MobileTableHeader";
+
 export { TableBoard } from "./TableBoard";
 export type { TableBoardProps, TableTheme } from "./TableBoard";
 

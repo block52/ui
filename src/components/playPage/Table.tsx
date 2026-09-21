@@ -54,6 +54,7 @@ import PokerActionPanel from "../Footer";
 // Extracted Table components
 import {
     TableHeader,
+    MobileTableHeader,
     TableBoard,
     TableSidebar,
     TableSettingsSidebar,
@@ -133,11 +134,9 @@ import {
     getViewportMode,
     COMPONENT_SCALE,
     type PositionArrays,
-    TABLE_CENTER_X,
-    TABLE_CENTER_Y,
-    TABLE_ORIGIN_X,
-    TABLE_ORIGIN_Y,
-    SEAT_COORDS,
+    getSeatCoords,
+    getStageDims,
+    STAGE_DIMS,
     getContentBounds,
     VIEWPORT_PARAMS,
     PLAYER_UI_PADDING,
@@ -150,9 +149,6 @@ import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
 import ConnectionBanner from "./ConnectionBanner";
 
-// Mobile Portrait Blocking (#200)
-import { useMobileFullscreen } from "../../hooks/game/useMobileFullscreen";
-import { MobileOrientationOverlay } from "./Table/components/MobileOrientationOverlay";
 import { hasElements } from "../../utils/guards";
 
 //* Here's the typical sequence of a poker hand:
@@ -435,7 +431,8 @@ const GeometryDebugOverlay: React.FC<{
     if (!debug.showGeometry) return null;
 
     const ts = tableSize as TableSize;
-    const coords = SEAT_COORDS[ts] || SEAT_COORDS[9];
+    const dims = getStageDims();
+    const coords = getSeatCoords(ts);
     const bounds = getContentBounds(ts);
     const mode = getViewportMode();
     const params = VIEWPORT_PARAMS[mode];
@@ -443,10 +440,10 @@ const GeometryDebugOverlay: React.FC<{
     const usableW = containerWidth - params.paddingH;
     const usableH = containerHeight - params.footerOverlay - params.paddingV;
 
-    const trx = (stageX: number) => stageX - TABLE_ORIGIN_X;
-    const tryy = (stageY: number) => stageY - TABLE_ORIGIN_Y;
-    const centerX = trx(TABLE_CENTER_X);
-    const centerY = tryy(TABLE_CENTER_Y);
+    const trx = (stageX: number) => stageX - dims.originX;
+    const tryy = (stageY: number) => stageY - dims.originY;
+    const centerX = trx(dims.centerX);
+    const centerY = tryy(dims.centerY);
     const boundsMinX = trx(bounds.centerX - bounds.width / 2);
     const boundsMinY = tryy(bounds.centerY - bounds.height / 2);
 
@@ -469,7 +466,7 @@ const GeometryDebugOverlay: React.FC<{
     const footerTop = window.innerHeight - footerHeight;
     const tableRect = tableDivEl?.getBoundingClientRect();
     const tTop = tableRect?.top ?? 0;
-    const tScaleY = tableRect ? tableRect.height / 450 : zoom;
+    const tScaleY = tableRect ? tableRect.height / dims.tableHeight : zoom;
     const boundsTopScreen = tTop + boundsMinY * tScaleY;
     const boundsBottomScreen = tTop + (boundsMinY + bounds.height) * tScaleY;
     const gapTop = boundsTopScreen - headerBottom;
@@ -477,7 +474,18 @@ const GeometryDebugOverlay: React.FC<{
 
     return (
         <>
-            <svg style={{ position: "absolute", top: 0, left: 0, width: "900px", height: "450px", overflow: "visible", zIndex: 99998, pointerEvents: "none" }}>
+            <svg
+                style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    width: `${dims.tableWidth}px`,
+                    height: `${dims.tableHeight}px`,
+                    overflow: "visible",
+                    zIndex: 99998,
+                    pointerEvents: "none"
+                }}
+            >
                 <rect
                     x={boundsMinX}
                     y={boundsMinY}
@@ -550,7 +558,7 @@ const GeometryFixedOverlay: React.FC<{
     if (!debug.showGeometry) return null;
 
     const ts = tableSize as TableSize;
-    const coords = SEAT_COORDS[ts] || SEAT_COORDS[9];
+    const coords = getSeatCoords(ts);
     const bounds = getContentBounds(ts);
     const mode = getViewportMode();
     const params = VIEWPORT_PARAMS[mode];
@@ -837,8 +845,12 @@ const Table = React.memo(() => {
     const tableLayout = useTableLayout((tableSize || 9) as 2 | 4 | 6 | 9, tableContainerRef);
     const { dealerSeat } = useDealerPosition();
 
-    // Mobile portrait blocking (#200)
-    const { isPortraitBlocked } = useMobileFullscreen();
+    // Portrait phones get a decluttered UI + the vertical portrait stage —
+    // the old "Rotate to Play" gate (#200) is gone.
+    const isMobilePortrait = tableLayout.viewportMode === "mobile-portrait";
+    // Felt/rail dimensions follow the SAME mode as the layout hook, so the
+    // markup and the seat positions can never disagree mid-rotation.
+    const stageDims = STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
 
     // Add the useGameProgress hook
     const { isGameInProgress, handNumber, actionCount, nextToAct } = useGameProgress(id);
@@ -1053,11 +1065,15 @@ const Table = React.memo(() => {
 
     // Memoize handlers
     const handleResize = useCallback(() => {
-        // Add a small delay for orientation changes to ensure dimensions are updated
+        // Add a small delay for orientation changes to ensure dimensions are updated.
+        // isMobileLandscape derives from getViewportMode() — the same classifier the
+        // geometry engine uses — so the header/footer and the stage can never disagree
+        // (the old inline width/height formula here contradicted the other resize
+        // listener and made the header flicker on fine-pointer windows).
         setTimeout(() => {
             tableLayout.refreshLayout();
             setIsMobile(window.innerWidth <= 414);
-            setIsMobileLandscape(window.innerWidth <= 1024 && window.innerWidth > window.innerHeight && window.innerHeight <= 600);
+            setIsMobileLandscape(getViewportMode() === "mobile-landscape");
         }, 100);
     }, [tableLayout]);
 
@@ -1282,27 +1298,31 @@ const Table = React.memo(() => {
             )}
             {/* DEBUG OVERLAY: Press D/C/B/S/G to toggle debug tools */}
             <LayoutDebugOverlay />
-            {/* Table style toggle */}
-            <button
-                onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
-                style={{
-                    position: "fixed",
-                    bottom: isMobileLandscape ? 60 : 12,
-                    left: 12,
-                    zIndex: 999999,
-                    padding: "6px 12px",
-                    borderRadius: tableStyle === "nouns" ? 0 : 6,
-                    border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
-                    backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
-                    color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
-                    fontSize: 12,
-                    fontFamily: tableStyle === "nouns" ? "'Silkscreen', monospace" : "monospace",
-                    fontWeight: "bold",
-                    cursor: "pointer"
-                }}
-            >
-                Table: {tableStyle === "modern" ? "Modern" : tableStyle === "classic" ? "Classic" : "Nouns"}
-            </button>
+            {/* Table style toggle — on portrait phones this lives in the hamburger
+                menu instead. z-index is deliberately modest: this must never sit
+                above modals/overlays (it used to be 999999 and beat everything). */}
+            {!isMobilePortrait && (
+                <button
+                    onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                    style={{
+                        position: "fixed",
+                        bottom: isMobileLandscape ? 60 : 12,
+                        left: 12,
+                        zIndex: 30,
+                        padding: "6px 12px",
+                        borderRadius: tableStyle === "nouns" ? 0 : 6,
+                        border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
+                        backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
+                        color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
+                        fontSize: 12,
+                        fontFamily: tableStyle === "nouns" ? "'Silkscreen', monospace" : "monospace",
+                        fontWeight: "bold",
+                        cursor: "pointer"
+                    }}
+                >
+                    Table: {tableStyle === "modern" ? "Modern" : tableStyle === "classic" ? "Classic" : "Nouns"}
+                </button>
+            )}
             <GeometryFixedOverlay
                 containerWidth={tableLayout.containerWidth}
                 containerHeight={tableLayout.containerHeight}
@@ -1310,35 +1330,73 @@ const Table = React.memo(() => {
                 tableSize={tableSize}
             />
 
-            {/*//! HEADER - CASINO STYLE - Hidden in mobile landscape */}
-            <TableHeader
-                tableId={id || ""}
-                tableName={gameName}
-                isMobileLandscape={isMobileLandscape}
-                gameFormat={gameFormat || null}
-                gameOptions={gameOptions}
-                tableActivePlayers={tableActivePlayers}
-                publicKey={publicKey}
-                formattedAddress={formattedAddress}
-                isBalanceLoading={isBalanceLoading}
-                balanceFormatted={balanceFormatted}
-                formattedValues={formattedValues}
-                handNumber={handNumber}
-                actionCount={actionCount}
-                nextToAct={nextToAct}
-                currentPlayerData={currentPlayerData || null}
-                openSidebar={openSidebar}
-                openSettings={openSettings}
-                handleLobbyClick={handleLobbyClick}
-                handleCopyTableLink={handleCopyTableLink}
-                handleDepositClick={handleDepositClick}
-                fetchAccountBalance={fetchAccountBalance}
-                copyToClipboard={copyToClipboard}
-                onCloseSideBar={onCloseSideBar}
-                onToggleSettings={onToggleSettings}
-                handleLeaveTableClick={handleLeaveTableClick}
-                handleShareHand={handleShareHand}
-            />
+            {/*//! HEADER - CASINO STYLE - Hidden in mobile landscape;
+                portrait phones get the collapsed one-row header + hamburger */}
+            {isMobilePortrait ? (
+                <MobileTableHeader
+                    tableId={id || ""}
+                    tableName={gameName}
+                    currentNetwork={currentNetwork}
+                    gameFormat={gameFormat || null}
+                    gameOptions={gameOptions}
+                    tableActivePlayers={tableActivePlayers}
+                    publicKey={publicKey}
+                    formattedAddress={formattedAddress}
+                    isBalanceLoading={isBalanceLoading}
+                    balanceFormatted={balanceFormatted}
+                    formattedValues={formattedValues}
+                    handNumber={handNumber}
+                    nextToAct={nextToAct}
+                    currentPlayerData={currentPlayerData || null}
+                    isCurrentUserSeated={isCurrentUserSeated}
+                    legalActions={playerLegalActions}
+                    currentStack={currentPlayerData?.stack || "0"}
+                    minBuyIn={gameOptions?.minBuyIn || "0"}
+                    maxBuyIn={gameOptions?.maxBuyIn || "0"}
+                    walletBalance={accountBalance}
+                    openSidebar={openSidebar}
+                    openSettings={openSettings}
+                    tableStyle={tableStyle}
+                    onCycleTableStyle={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                    handleLobbyClick={handleLobbyClick}
+                    handleCopyTableLink={handleCopyTableLink}
+                    fetchAccountBalance={fetchAccountBalance}
+                    copyToClipboard={copyToClipboard}
+                    onCloseSideBar={onCloseSideBar}
+                    onToggleSettings={onToggleSettings}
+                    handleLeaveTableClick={handleLeaveTableClick}
+                    handleShareHand={handleShareHand}
+                />
+            ) : (
+                <TableHeader
+                    tableId={id || ""}
+                    tableName={gameName}
+                    isMobileLandscape={isMobileLandscape}
+                    gameFormat={gameFormat || null}
+                    gameOptions={gameOptions}
+                    tableActivePlayers={tableActivePlayers}
+                    publicKey={publicKey}
+                    formattedAddress={formattedAddress}
+                    isBalanceLoading={isBalanceLoading}
+                    balanceFormatted={balanceFormatted}
+                    formattedValues={formattedValues}
+                    handNumber={handNumber}
+                    actionCount={actionCount}
+                    nextToAct={nextToAct}
+                    currentPlayerData={currentPlayerData || null}
+                    openSidebar={openSidebar}
+                    openSettings={openSettings}
+                    handleLobbyClick={handleLobbyClick}
+                    handleCopyTableLink={handleCopyTableLink}
+                    handleDepositClick={handleDepositClick}
+                    fetchAccountBalance={fetchAccountBalance}
+                    copyToClipboard={copyToClipboard}
+                    onCloseSideBar={onCloseSideBar}
+                    onToggleSettings={onToggleSettings}
+                    handleLeaveTableClick={handleLeaveTableClick}
+                    handleShareHand={handleShareHand}
+                />
+            )}
 
             {/* Mobile Landscape Floating Controls */}
             {isMobileLandscape && (
@@ -1390,16 +1448,28 @@ const Table = React.memo(() => {
 
                 {/*//! TABLE — zoom-wrapper applies calculated transform */}
                 <div className={`${isMobile ? "zoom-wrapper-mobile" : "zoom-wrapper-desktop"}`} style={{ transform: tableLayout.tableTransform }}>
-                    {/*//! 1000x500 table coordinate space — positioned at TABLE_ORIGIN (300,285) in the 1600x850 stage.
+                    {/*//! Table coordinate space — the felt div at its stage origin.
+                        Landscape: 1000×500 at (300,285) on the 1600×850 stage.
+                        Portrait: 500×1000 at (175,300) on the 850×1600 stage.
                         Also the root for the card-animation durations (src/bus/timing.ts → CSS custom properties). */}
-                    <div ref={tableDivRef} className="w-[1000px] h-[500px] absolute" style={{ left: "300px", top: "285px", ...cssVars(ANIMATION_CSS_VARS) }}>
+                    <div
+                        ref={tableDivRef}
+                        className="absolute"
+                        style={{
+                            width: `${stageDims.tableWidth}px`,
+                            height: `${stageDims.tableHeight}px`,
+                            left: `${stageDims.originX}px`,
+                            top: `${stageDims.originY}px`,
+                            ...cssVars(ANIMATION_CSS_VARS)
+                        }}
+                    >
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
                         {(tableStyle === "modern" || tableStyle === "nouns") && (
                             <div
                                 className="absolute z-10 rounded-[290px]"
                                 style={{
-                                    width: "1060px",
-                                    height: "560px",
+                                    width: `${stageDims.tableWidth + 60}px`,
+                                    height: `${stageDims.tableHeight + 60}px`,
                                     left: "-30px",
                                     top: "-30px",
                                     border: tableStyle === "nouns" ? "10px solid rgba(26, 26, 46, 0.8)" : "10px solid rgba(100, 75, 40, 0.6)",
@@ -1416,8 +1486,10 @@ const Table = React.memo(() => {
                         )}
                         {/* Table felt surface */}
                         <div
-                            className={`table-surface-shadow z-20 relative flex flex-col w-[1000px] h-[500px] text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
+                            className={`table-surface-shadow z-20 relative flex flex-col text-center border-solid rounded-[250px] items-center justify-center ${tableStyle === "nouns" ? "nouns-table-felt border-[3px]" : tableStyle === "classic" ? "border-[3px]" : "border-[2px]"}`}
                             style={{
+                                width: `${stageDims.tableWidth}px`,
+                                height: `${stageDims.tableHeight}px`,
                                 borderColor:
                                     tableStyle === "nouns"
                                         ? "rgba(214, 60, 94, 0.4)"
@@ -1496,25 +1568,43 @@ const Table = React.memo(() => {
                 <LiveHandStrengthDisplay />
             </div>
 
-            {/*//! FOOTER — hidden in replay mode (read-only) */}
-            {!isReplayMode && (
-                <div
-                    className={`w-full flex justify-center items-center z-[10] ${
-                        isMobileLandscape
-                            ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                            : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                    }`}
-                >
-                    <div className={`w-full flex justify-center items-center h-full ${isMobileLandscape ? "max-w-[500px] px-2" : "max-w-[700px]"}`}>
+            {/*//! FOOTER — hidden in replay mode (read-only).
+                Portrait phones get NO persistent banner: the panel stays MOUNTED
+                (it hosts the auto-deal/auto-blinds/auto-fold/auto-new-hand hooks,
+                which must run regardless of visibility) in a chromeless overlay
+                above the safe area, so it occupies space only when it has
+                something to show — i.e. when it's the user's turn. */}
+            {!isReplayMode &&
+                (isMobilePortrait ? (
+                    <div
+                        className="fixed bottom-0 left-0 right-0 z-[10] [&>div]:!bottom-0"
+                        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                    >
                         <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
+                        {gameFormat && isSitAndGoFormat(gameFormat) && (
+                            <div className="absolute right-2 bottom-full mb-1 z-20">
+                                <SngPayoutPanel />
+                            </div>
+                        )}
                     </div>
-                    {gameFormat && isSitAndGoFormat(gameFormat) && (
-                        <div className="absolute right-4 bottom-3 z-20">
-                            <SngPayoutPanel />
+                ) : (
+                    <div
+                        className={`w-full flex justify-center items-center z-[10] ${
+                            isMobileLandscape
+                                ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                                : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                        }`}
+                    >
+                        <div className={`w-full flex justify-center items-center h-full ${isMobileLandscape ? "max-w-[500px] px-2" : "max-w-[700px]"}`}>
+                            <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                         </div>
-                    )}
-                </div>
-            )}
+                        {gameFormat && isSitAndGoFormat(gameFormat) && (
+                            <div className="absolute right-4 bottom-3 z-20">
+                                <SngPayoutPanel />
+                            </div>
+                        )}
+                    </div>
+                ))}
 
             {/*//! ACTION LOG OVERLAY */}
             <TableSidebar isOpen={openSidebar} />
@@ -1530,6 +1620,7 @@ const Table = React.memo(() => {
                 <PlayerActionButtons
                     isMobile={isMobile}
                     isMobileLandscape={isMobileLandscape}
+                    isMobilePortrait={isMobilePortrait}
                     legalActions={playerLegalActions}
                     tableId={id}
                     currentNetwork={currentNetwork}
@@ -1570,9 +1661,6 @@ const Table = React.memo(() => {
                 currentPlayerStack={currentPlayerData?.stack || "0"}
                 isInActiveHand={isGameInProgress && currentUserSeat > 0}
             />
-
-            {/* Mobile Portrait Blocking (#200) */}
-            <MobileOrientationOverlay isPortraitBlocked={isPortraitBlocked} onGoToLobby={handleLobbyClick} />
 
             {/* No-wallet overlay — blurs the table and walks the user through wallet setup */}
             {!hasWallet && <NoWalletOverlay onWalletReady={handleWalletReady} />}

@@ -89,8 +89,62 @@ export const TABLE_CENTER_Y = 535;
 export const SEAT_OFFSET = 72;
 
 // Table div origin in stage coordinates
-export const TABLE_ORIGIN_X = TABLE_CENTER_X - TABLE_WIDTH / 2;   // 350
-export const TABLE_ORIGIN_Y = TABLE_CENTER_Y - TABLE_HEIGHT / 2;  // 310
+export const TABLE_ORIGIN_X = TABLE_CENTER_X - TABLE_WIDTH / 2;   // 300
+export const TABLE_ORIGIN_Y = TABLE_CENTER_Y - TABLE_HEIGHT / 2;  // 285
+
+// ─── Stage Orientation ───────────────────────────────────────────────
+//
+// Portrait viewports get a REAL portrait stage — a vertical stadium with its
+// own seat ring — instead of the old approach of rotating the landscape stage
+// 90° (which rendered every seat label and card sideways and was hidden
+// behind the "Rotate to Play" gate).
+
+export type StageOrientation = "landscape" | "portrait";
+
+export interface StageDims {
+    stageWidth: number;
+    stageHeight: number;
+    /** Felt div width/height (the table surface). */
+    tableWidth: number;
+    tableHeight: number;
+    /** Table centre in stage coordinates. */
+    centerX: number;
+    centerY: number;
+    /** Felt div origin in stage coordinates. */
+    originX: number;
+    originY: number;
+}
+
+export const STAGE_DIMS: Record<StageOrientation, StageDims> = {
+    landscape: {
+        stageWidth: STAGE_WIDTH,
+        stageHeight: STAGE_HEIGHT,
+        tableWidth: TABLE_WIDTH,
+        tableHeight: TABLE_HEIGHT,
+        centerX: TABLE_CENTER_X,
+        centerY: TABLE_CENTER_Y,
+        originX: TABLE_ORIGIN_X,
+        originY: TABLE_ORIGIN_Y
+    },
+    portrait: {
+        stageWidth: 850,
+        stageHeight: 1600,
+        tableWidth: 500,
+        tableHeight: 1000,
+        centerX: 425,
+        centerY: 800,
+        originX: 175,
+        originY: 300
+    }
+};
+
+export function getStageOrientation(): StageOrientation {
+    return getViewportMode() === "mobile-portrait" ? "portrait" : "landscape";
+}
+
+export function getStageDims(): StageDims {
+    return STAGE_DIMS[getStageOrientation()];
+}
 
 // ─── Seat Colors ─────────────────────────────────────────────────────
 
@@ -153,14 +207,58 @@ export const SEAT_COORDS: Record<number, [number, number][]> = {
     ]
 };
 
+// Portrait seat rings on the 850×1600 stage: a vertical stadium (felt spans
+// x 175–675, y 300–1300; end half-circles r=250 centred at y=550 and y=1050).
+// Same seat ORDER as landscape — index 0 is the hero at 6 o'clock, then
+// clockwise (lower-left, up the left side, across the top, down the right).
+// Tuned against the felt rim the way the landscape spec seats are: side seats
+// sit ON the straight rim, arc seats ~25px outside the end circles.
+const PORTRAIT_SEAT_COORDS: Record<number, [number, number][]> = {
+    2: [
+        [425, 1362],    // seat 1 bottom
+        [425, 238]      // seat 2 top
+    ],
+    4: [
+        [425, 1362],    // Seat 1 - bottom-center
+        [170, 800],     // Seat 2 - left-center
+        [425, 238],     // Seat 3 - top-center
+        [680, 800]      // Seat 4 - right-center
+    ],
+    6: [
+        [425, 1362],    // seat 1 bottom
+        [170, 1075],    // seat 2 lower-left
+        [170, 525],     // seat 3 upper-left
+        [425, 238],     // seat 4 top
+        [680, 525],     // seat 5 upper-right
+        [680, 1075]     // seat 6 lower-right
+    ],
+    9: [
+        [425, 1362],    // Seat 1 - bottom-center (hero, alone on the bottom arc)
+        [231, 1244],    // Seat 2 - lower-left arc
+        [170, 950],     // Seat 3 - left side, lower
+        [170, 650],     // Seat 4 - left side, upper
+        [231, 356],     // Seat 5 - upper-left arc
+        [619, 356],     // Seat 6 - upper-right arc
+        [680, 650],     // Seat 7 - right side, upper
+        [680, 950],     // Seat 8 - right side, lower
+        [619, 1244]     // Seat 9 - lower-right arc
+    ]
+};
+
+/** Seat coordinates for the current orientation's stage. */
+export function getSeatCoords(tableSize: TableSize): [number, number][] {
+    return getStageOrientation() === "portrait" ? PORTRAIT_SEAT_COORDS[tableSize] : SEAT_COORDS[tableSize];
+}
+
 
 // ─── Coordinate Conversion ───────────────────────────────────────────
 
 /** Convert stage coordinates to table-div-relative pixel values */
 function stageToTable(stageX: number, stageY: number): [number, number] {
+    const dims = getStageDims();
     return [
-        Math.round((stageX - TABLE_ORIGIN_X) * 10) / 10,
-        Math.round((stageY - TABLE_ORIGIN_Y) * 10) / 10
+        Math.round((stageX - dims.originX) * 10) / 10,
+        Math.round((stageY - dims.originY) * 10) / 10
     ];
 }
 
@@ -215,6 +313,15 @@ const HOLE_CARD_DY = -30;
  */
 export const DECK_ORIGIN: Position = { left: "500px", top: "150px" };
 
+/** Portrait counterpart of {@link DECK_ORIGIN}: felt centre (250) nudged above
+ *  the community-card row on the 500×1000 portrait felt. */
+const PORTRAIT_DECK_ORIGIN: Position = { left: "250px", top: "360px" };
+
+/** The deck origin for the current orientation's felt. */
+export function getDeckOrigin(): Position {
+    return getStageOrientation() === "portrait" ? PORTRAIT_DECK_ORIGIN : DECK_ORIGIN;
+}
+
 // ─── Position Generators ─────────────────────────────────────────────
 
 export type TableSize = 2 | 4 | 6 | 9;
@@ -223,8 +330,9 @@ export type TableSize = 2 | 4 | 6 | 9;
 /** Push a seat position outward from table center by SEAT_SPREAD pixels */
 function applySpread(sx: number, sy: number): [number, number] {
     if ((SEAT_SPREAD as number) === 0) return [sx, sy];
-    const dx = sx - TABLE_CENTER_X;
-    const dy = sy - TABLE_CENTER_Y;
+    const dims = getStageDims();
+    const dx = sx - dims.centerX;
+    const dy = sy - dims.centerY;
     const dist = Math.sqrt(dx * dx + dy * dy);
     if (dist === 0) return [sx, sy];
     return [sx + (dx / dist) * SEAT_SPREAD, sy + (dy / dist) * SEAT_SPREAD];
@@ -232,7 +340,7 @@ function applySpread(sx: number, sy: number): [number, number] {
 
 /** Get player seat positions for a given table size (with SEAT_SPREAD applied) */
 export function getSeatPositions(tableSize: TableSize): Position[] {
-    const coords = SEAT_COORDS[tableSize];
+    const coords = getSeatCoords(tableSize);
     const colors = SEAT_COLORS[tableSize];
     return coords.map(([x, y], i) => {
         const [sx, sy] = applySpread(x, y);
@@ -242,7 +350,7 @@ export function getSeatPositions(tableSize: TableSize): Position[] {
 
 /** Get vacant seat positions (with SEAT_SPREAD applied) */
 export function getVacantPositions(tableSize: TableSize): Position[] {
-    const coords = SEAT_COORDS[tableSize];
+    const coords = getSeatCoords(tableSize);
     return coords.map(([x, y]) => {
         const [sx, sy] = applySpread(x, y);
         return stageToPosition(sx, sy);
@@ -255,13 +363,14 @@ export function getVacantPositions(tableSize: TableSize): Position[] {
  * They use { left, bottom } instead of { left, top }.
  */
 export function getChipPositions(tableSize: TableSize): ChipPosition[] {
-    const coords = SEAT_COORDS[tableSize];
+    const dims = getStageDims();
+    const coords = getSeatCoords(tableSize);
 
     return coords.map(([x, y]) => {
         const [sx, sy] = applySpread(x, y);
         // Vector from seat toward table center
-        const dx = TABLE_CENTER_X - sx;
-        const dy = TABLE_CENTER_Y - sy;
+        const dx = dims.centerX - sx;
+        const dy = dims.centerY - sy;
 
         // Move CHIP_DISTANCE of the way from seat toward center
         const chipStageX = sx + dx * CHIP_DISTANCE;
@@ -270,11 +379,10 @@ export function getChipPositions(tableSize: TableSize): ChipPosition[] {
         // Convert to table-div-relative
         const [chipX] = stageToTable(chipStageX, chipStageY);
 
-        // Chips are inside the 900x350 surface div, using "bottom" positioning.
-        // The surface div starts at y=0 within the table div and is 350px tall.
-        // bottom = TABLE_SURFACE_HEIGHT - (chipStageY - TABLE_ORIGIN_Y)
-        const chipRelY = chipStageY - TABLE_ORIGIN_Y;
-        const chipBottom = TABLE_SURFACE_HEIGHT - chipRelY;
+        // Chips are inside the felt surface div, using "bottom" positioning:
+        // bottom = surface height - (chipStageY - originY)
+        const chipRelY = chipStageY - dims.originY;
+        const chipBottom = dims.tableHeight - chipRelY;
 
         return {
             left: `${Math.round(chipX)}px`,
@@ -288,12 +396,13 @@ export function getChipPositions(tableSize: TableSize): ChipPosition[] {
  * Placed between seat and table edge, offset toward table center.
  */
 export function getDealerPositions(tableSize: TableSize): Position[] {
-    const coords = SEAT_COORDS[tableSize];
+    const dims = getStageDims();
+    const coords = getSeatCoords(tableSize);
 
     return coords.map(([x, y]) => {
         const [sx, sy] = applySpread(x, y);
-        const dx = TABLE_CENTER_X - sx;
-        const dy = TABLE_CENTER_Y - sy;
+        const dx = dims.centerX - sx;
+        const dy = dims.centerY - sy;
 
         // Move DEALER_DISTANCE from seat toward center
         const dealerX = sx + dx * DEALER_DISTANCE;
@@ -308,7 +417,7 @@ export function getDealerPositions(tableSize: TableSize): Position[] {
  * Placed at the seat with a slight downward offset for the ring animation.
  */
 export function getTurnAnimationPositions(tableSize: TableSize): Position[] {
-    const coords = SEAT_COORDS[tableSize];
+    const coords = getSeatCoords(tableSize);
 
     return coords.map(([x, y]) => {
         const [sx, sy] = applySpread(x, y);
@@ -321,7 +430,7 @@ export function getTurnAnimationPositions(tableSize: TableSize): Position[] {
  * Same as seat positions (animation overlays the player).
  */
 export function getWinAnimationPositions(tableSize: TableSize): Position[] {
-    const coords = SEAT_COORDS[tableSize];
+    const coords = getSeatCoords(tableSize);
     return coords.map(([x, y]) => {
         const [sx, sy] = applySpread(x, y);
         return stageToPosition(sx, sy);
@@ -334,7 +443,7 @@ export function getWinAnimationPositions(tableSize: TableSize): Position[] {
  * HOLE_CARD_DX / HOLE_CARD_DY. Same seat order as {@link getSeatPositions}.
  */
 export function getHoleCardSlotPositions(tableSize: TableSize): HoleCardSlotPosition[] {
-    const coords = SEAT_COORDS[tableSize];
+    const coords = getSeatCoords(tableSize);
     return coords.map(([x, y]) => {
         const [sx, sy] = applySpread(x, y);
         return {
@@ -471,6 +580,15 @@ const VIEWPORT_OFFSETS: Partial<Record<ViewportMode, typeof GLOBAL_OFFSETS>> = {
     }
 };
 
+/** Portrait offsets are tuned independently — the landscape GLOBAL_OFFSETS were
+ *  hand-fitted to the landscape seat ring and don't transfer. Starts empty;
+ *  nudge portrait elements here after visual QA. */
+const PORTRAIT_GLOBAL_OFFSETS: typeof GLOBAL_OFFSETS = {};
+
+function globalOffsetsForOrientation(): typeof GLOBAL_OFFSETS {
+    return getStageOrientation() === "portrait" ? PORTRAIT_GLOBAL_OFFSETS : GLOBAL_OFFSETS;
+}
+
 /** Apply global + viewport offsets to a Position array */
 function applyPositionOffsets(
     positions: Position[],
@@ -478,7 +596,7 @@ function applyPositionOffsets(
     element: ElementType
 ): Position[] {
     const mode = getViewportMode();
-    const globalOffs = GLOBAL_OFFSETS[tableSize]?.[element];
+    const globalOffs = globalOffsetsForOrientation()[tableSize]?.[element];
     const vpOffs = VIEWPORT_OFFSETS[mode]?.[tableSize]?.[element];
 
     if (!globalOffs && !vpOffs) return positions;
@@ -505,7 +623,7 @@ function applyChipOffsets(
     tableSize: TableSize
 ): ChipPosition[] {
     const mode = getViewportMode();
-    const globalOffs = GLOBAL_OFFSETS[tableSize]?.["chips"];
+    const globalOffs = globalOffsetsForOrientation()[tableSize]?.["chips"];
     const vpOffs = VIEWPORT_OFFSETS[mode]?.[tableSize]?.["chips"];
 
     if (!globalOffs && !vpOffs) return positions;
@@ -561,7 +679,7 @@ export function getAllPositions(tableSize: TableSize): PositionArrays {
         turnAnimations: applyPositionOffsets(getTurnAnimationPositions(tableSize), tableSize, "turnAnimations"),
         winAnimations: applyPositionOffsets(getWinAnimationPositions(tableSize), tableSize, "winAnimations"),
         holeCards: applyHoleCardOffsets(getHoleCardSlotPositions(tableSize), tableSize),
-        deck: DECK_ORIGIN
+        deck: getDeckOrigin()
     };
 }
 
@@ -576,10 +694,14 @@ export function getViewportMode(): ViewportMode {
     const isCoarsePointer =
         typeof window.matchMedia === "function" && window.matchMedia("(pointer: coarse)").matches;
 
-    // Portrait: use aspect ratio + coarse pointer instead of a fixed pixel threshold.
-    // This catches large phones (iPhone 14 Pro Max = 430px, Galaxy S24 = 412px,
-    // Pixel Fold inner screen = 608px tall in portrait, etc.) reliably.
-    if (!isLandscape && isCoarsePointer) return "mobile-portrait";
+    // Portrait: aspect ratio + (coarse pointer OR narrow width). The coarse-pointer
+    // test catches large phones (iPhone 14 Pro Max = 430px, Galaxy S24 = 412px,
+    // Pixel Fold inner screen = 608px tall in portrait) reliably; the <768px arm
+    // makes fine-pointer environments (narrow desktop windows, viewport-resized
+    // automation without touch emulation) take the SAME code path as a real
+    // phone instead of falling through to "tablet" and rendering the squashed
+    // landscape stage.
+    if (!isLandscape && (isCoarsePointer || width < 768)) return "mobile-portrait";
 
     // Landscape touch devices up to 1700×900 CSS px — covers regular phones,
     // large Android flagships, and foldables (e.g. Galaxy Z Fold outer = 904px wide,
@@ -607,7 +729,6 @@ export const VIEWPORT_PARAMS: Record<ViewportMode, {
     paddingH: number;
     paddingV: number;
     footerOverlay: number;
-    portraitOffsetX?: number;
 }> = {
     "desktop": {
         paddingH: 40,
@@ -625,10 +746,10 @@ export const VIEWPORT_PARAMS: Record<ViewportMode, {
         footerOverlay: 80       // mobile landscape footer is 80px
     },
     "mobile-portrait": {
-        paddingH: 20,
+        paddingH: 12,
         paddingV: 10,
-        footerOverlay: 160,     // footer is fixed overlay (160px) on portrait too
-        portraitOffsetX: -50    // horizontal offset to visually center the rotated table
+        footerOverlay: 90       // no persistent footer bar — just clearance for the
+                                // on-demand action overlay + safe area at the bottom
     }
 };
 
@@ -651,7 +772,7 @@ export const PLAYER_UI_PADDING: Record<ViewportMode, { x: number; top: number; b
     "desktop":          { x: 80, top: 90, bottom: 90 },    // symmetric → perfectly centered between header and footer
     "tablet":           { x: 80, top: 120, bottom: 90 },
     "mobile-landscape": { x: 40, top: 80, bottom: 60 },    // extra top for browser chrome
-    "mobile-portrait":  { x: 60, top: 140, bottom: 40 },   // tighter for portrait rotation
+    "mobile-portrait":  { x: 70, top: 90, bottom: 90 },    // symmetric — vertical stadium, hero at the bottom
 };
 
 export interface ContentBounds {
@@ -666,7 +787,7 @@ export interface ContentBounds {
 export function getContentBounds(tableSize: TableSize): ContentBounds {
     const mode = getViewportMode();
     const pad = PLAYER_UI_PADDING[mode];
-    const coords = SEAT_COORDS[tableSize];
+    const coords = getSeatCoords(tableSize);
     let minX = Infinity, maxX = -Infinity, minY = Infinity, maxY = -Infinity;
     for (const [x, y] of coords) {
         const [sx, sy] = applySpread(x, y);
@@ -700,21 +821,14 @@ export function calculateZoom(
     const params = VIEWPORT_PARAMS[mode];
     const bounds = getContentBounds(tableSize);
 
-    // Usable space = container minus any fixed overlay minus breathing room
+    // Usable space = container minus any fixed overlay minus breathing room.
+    // Portrait needs no axis swap: the portrait stage is already vertical, so
+    // its content bounds are taller than wide and fit the viewport directly.
     const usableWidth = containerWidth - params.paddingH;
     const usableHeight = containerHeight - params.footerOverlay - params.paddingV;
 
-    // In portrait mode, the table is rotated 90deg — content width maps to screen height
-    // and content height maps to screen width. Swap the fit calculation.
-    let scaleByWidth: number;
-    let scaleByHeight: number;
-    if (mode === "mobile-portrait") {
-        scaleByWidth = usableHeight / bounds.width;    // content width fits in screen height
-        scaleByHeight = usableWidth / bounds.height;   // content height fits in screen width
-    } else {
-        scaleByWidth = usableWidth / bounds.width;
-        scaleByHeight = usableHeight / bounds.height;
-    }
+    const scaleByWidth = usableWidth / bounds.width;
+    const scaleByHeight = usableHeight / bounds.height;
     const fitScale = Math.min(scaleByWidth, scaleByHeight);
 
     const result = Math.max(MIN_SCALE, Math.min(fitScale, MAX_GLOBAL_SCALE));
@@ -741,57 +855,12 @@ export function getTableTransform(
     const usableCenterX = containerWidth / 2;
     const usableCenterY = (containerHeight - params.footerOverlay) / 2;
 
-    // Content center after scaling (transform-origin: 0 0)
+    // Content center after scaling (transform-origin: 0 0).
+    // Portrait needs no special case: the portrait stage is natively vertical
+    // (the old rotate-90 matrix rendered every seat label sideways and is gone).
     const scaledCenterX = bounds.centerX * zoom;
     const scaledCenterY = bounds.centerY * zoom;
 
-    if (mode === "mobile-portrait") {
-        // PORTRAIT: Rotate the table 90deg clockwise using transform-origin at the
-        // content center. This way rotate+scale happen around the content center,
-        // and we just need a simple translate to move it to the play area center.
-        //
-        // Transform-origin is set to the content center in stage px.
-        // After rotate(90deg) + scale(zoom) around that origin, the content center
-        // stays at the origin point. We then translate to move it to screen center.
-        //
-        // The CSS will be: transform-origin: CXpx CYpx;
-        //                  transform: translate(dx, dy) rotate(90deg) scale(zoom);
-        //
-        // Since transform-origin handles centering, translate just offsets from origin to screen center.
-        // In the local coord system (before transforms), the origin is at (cx, cy).
-        // We want it to end up at screen (usableCenterX, usableCenterY).
-        // The origin starts at CSS top:0 left:0, so its screen position = (cx, cy) before transform.
-        // After rotate+scale around itself, it stays at (cx, cy) in the parent's coord system... no.
-        //
-        // Actually: transform-origin only affects WHERE the transforms are centered.
-        // The element still starts at (left:0, top:0).
-        // After all transforms, the origin point IS at the element's CSS position + origin offset.
-        //
-        // Simplest approach that works: use matrix math.
-        // Put translate FIRST in CSS (applied last in screen space):
-
-        // Use the STAGE center (not padded bounds center) as the rotation pivot.
-        // The padded centerY has asymmetric top/bottom offsets that would cause
-        // a horizontal shift after 90deg rotation. Stage center is symmetric.
-        const cx = TABLE_CENTER_X;
-        const cy = TABLE_CENTER_Y;
-
-        // Matrix math: rotate(90deg) then scale(z)
-        // matrix = [0, z, -z, 0, tx, ty]
-        // Point (cx, cy) maps to: (-z*cy, z*cx)
-        // We want (-z*cy + tx, z*cx + ty) = (usableCenterX, usableCenterY)
-        // tx = usableCenterX + portraitOffsetX + z*cy
-        // ty = usableCenterY - z*cx
-
-        const offsetX = params.portraitOffsetX ?? 0;
-        const tx = usableCenterX + offsetX + zoom * cy;
-        const ty = usableCenterY - zoom * cx;
-
-        // Using matrix: scale(z) * rotate(90deg) = matrix(0, z, -z, 0, tx, ty)
-        return `matrix(0, ${zoom}, ${-zoom}, 0, ${tx.toFixed(1)}, ${ty.toFixed(1)})`;
-    }
-
-    // Normal (non-rotated) modes
     const tx = usableCenterX - scaledCenterX;
     const ty = usableCenterY - scaledCenterY;
 
