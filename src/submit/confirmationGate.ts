@@ -17,6 +17,7 @@ export function snapshotConfirmationSignals(state: TexasHoldemStateDTO | undefin
     return {
         actionCount: state?.actionCount ?? 0,
         handNumber: state?.handNumber ?? 0,
-        actionIndex: nextActionIndex(state)
+        actionIndex: nextActionIndex(state),
+        nextToAct: state?.nextToAct ?? -1
     };
 }

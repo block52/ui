@@ -38,7 +38,7 @@ function snap(overrides: { actionCount?: number; handNumber?: number; previousAc
 
 describe("snapshotConfirmationSignals", () => {
     it("captures the counters and the next action index from the snapshot", () => {
-        expect(snapshotConfirmationSignals(snap({ actionCount: 5, handNumber: 2 }))).toEqual({ actionCount: 5, handNumber: 2, actionIndex: 6 });
+        expect(snapshotConfirmationSignals(snap({ actionCount: 5, handNumber: 2 }))).toEqual({ actionCount: 5, handNumber: 2, actionIndex: 6, nextToAct: 0 });
     });
 
     it("derives the next index from the last recorded action when there are any", () => {
@@ -49,6 +49,6 @@ describe("snapshotConfirmationSignals", () => {
     });
 
     it("treats an undefined snapshot as the empty table", () => {
-        expect(snapshotConfirmationSignals(undefined)).toEqual({ actionCount: 0, handNumber: 0, actionIndex: 1 });
+        expect(snapshotConfirmationSignals(undefined)).toEqual({ actionCount: 0, handNumber: 0, actionIndex: 1, nextToAct: -1 });
     });
 });

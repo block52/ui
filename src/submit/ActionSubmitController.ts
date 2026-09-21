@@ -30,19 +30,13 @@ import type { PlayerActionResult } from "../types";
 import { snapshotConfirmationSignals } from "./confirmationGate";
 import { attributeEvidence, type Evidence, type OpenJobRef } from "./identity";
 import { classifyActionError } from "./classifyActionError";
-import type {
-    ControllerSnapshot,
-    SubmitActionRequest,
-    SubmitControllerConfig,
-    SubmitError,
-    SubmitJob,
-    SubmitNotice,
-    TrackMeta,
-    TxVerdict
-} from "./types";
+import type { ControllerSnapshot, SubmitActionRequest, SubmitControllerConfig, SubmitError, SubmitJob, SubmitNotice, TrackMeta, TxVerdict } from "./types";
 
 /** At most one distinct action waits behind the in-flight one. */
 const QUEUE_CAP = 1;
+
+/** Actions that are only safe to run while the decision snapshot is current. */
+const DECISION_ACTIONS = new Set(["fold", "check", "call", "bet", "raise", "muck", "show"]);
 
 /**
  * Jobs that released busy but have no final verdict are kept for late evidence
@@ -176,7 +170,8 @@ export class ActionSubmitController {
         // A double-click fires at the SAME game position → same key → collapsed.
         // The same action a street later fires at a NEW index → different key →
         // never wrongly dropped by the settle window. Callers may override.
-        const baseIndex = snapshotConfirmationSignals(this.getState()).actionIndex;
+        const submittedBaseline = snapshotConfirmationSignals(this.getState());
+        const baseIndex = submittedBaseline.actionIndex;
         const dedupeKey = request.dedupeKey ?? `${request.actionName}:${baseIndex}`;
         const at = this.now();
 
@@ -189,7 +184,8 @@ export class ActionSubmitController {
             request,
             dedupeKey,
             status: "queued",
-            submittedAt: at
+            submittedAt: at,
+            submittedBaseline
         };
 
         if (this.activeJob) {
@@ -488,10 +484,39 @@ export class ActionSubmitController {
         }
         const next = this.queue.shift();
         if (next) {
+            if (this.isStaleQueuedDecision(next)) {
+                this.failQueuedDecision(next);
+                this.startNext();
+                return;
+            }
             this.startJob(next);
             return;
         }
         this.emit();
+    }
+
+    /**
+     * A queued decision was made for an earlier turn. Progression actions such
+     * as blinds and deal are intentionally allowed to cross action boundaries;
+     * their own engine checks keep those chains ordered.
+     */
+    private isStaleQueuedDecision(job: SubmitJob): boolean {
+        if (!DECISION_ACTIONS.has(job.request.actionName)) return false;
+        const current = snapshotConfirmationSignals(this.getState());
+        const submitted = job.submittedBaseline;
+        return current.handNumber !== submitted.handNumber || current.actionIndex !== submitted.actionIndex || current.nextToAct !== submitted.nextToAct;
+    }
+
+    private failQueuedDecision(job: SubmitJob): void {
+        const error: SubmitError = {
+            kind: "superseded",
+            message: `Your ${job.request.actionName} was not sent — the table moved on before it could run.`,
+            actionName: job.request.actionName
+        };
+        job.status = "failed";
+        job.error = error;
+        this.lastError = error;
+        this.onError(error);
     }
 
     // ---- tx-by-hash verdict ---------------------------------------------------

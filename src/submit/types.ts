@@ -106,6 +106,8 @@ export interface SubmitJob {
     status: JobStatus;
     /** now() at enqueue — used for the dedupe window. */
     submittedAt: number;
+    /** Confirmation signals captured when the job entered the queue. */
+    submittedBaseline: ConfirmationBaseline;
     /** Confirmation baseline captured at execute time (not enqueue). */
     baseline?: ConfirmationBaseline;
     /** The broadcast tx hash, once CheckTx accepted it. */
@@ -124,6 +126,7 @@ export interface ConfirmationBaseline {
     actionCount: number;
     handNumber: number;
     actionIndex: number;
+    nextToAct: number;
 }
 
 /** What React consumers read to drive button state. */

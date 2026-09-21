@@ -39,7 +39,7 @@ function snap(previousActions: ActionDTO[] = [], handNumber = 1): TexasHoldemSta
     };
 }
 
-const baseline = { actionCount: 5, handNumber: 1, actionIndex: 6 };
+const baseline = { actionCount: 5, handNumber: 1, actionIndex: 6, nextToAct: 0 };
 const job = (id: number, actionName: string, base = baseline) => ({ id, actionName, baseline: base });
 
 describe("recordedActionsFor", () => {
