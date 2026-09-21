@@ -2,14 +2,9 @@ import { getSigningClient, clearSigningClientCache } from "../../utils/cosmos/cl
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { executeTransportAction } from "./transportAction";
 
-// Provide a real isSequenceMismatchError so the retry branch can trigger, a zero
-// retry delay so tests don't wait, and spies for the client accessors.
 jest.mock("../../utils/cosmos/client", () => ({
     getSigningClient: jest.fn(),
-    clearSigningClientCache: jest.fn(),
-    isSequenceMismatchError: (err: unknown) =>
-        /account sequence mismatch/i.test(err instanceof Error ? err.message : String(err ?? "")),
-    SEQUENCE_RETRY_DELAY_MS: 0
+    clearSigningClientCache: jest.fn()
 }));
 
 const mockGetSigningClient = getSigningClient as jest.MockedFunction<typeof getSigningClient>;
@@ -52,55 +47,32 @@ describe("executeTransportAction — stale-index rewrite", () => {
     });
 });
 
-describe("executeTransportAction — sequence-mismatch recovery", () => {
+// Gameplay actions are UNORDERED from SDK 1.4.1 (poker-vm#2619): they carry no
+// account sequence, so there is nothing to recover from. The wait-and-retry that
+// lived here re-read the same stale sequence and failed identically (ui#635).
+describe("executeTransportAction — no account-sequence recovery", () => {
     beforeEach(() => jest.clearAllMocks());
 
     const SEQ_ERR = new Error(
         "Broadcasting transaction failed with code 32 (codespace: sdk). Log: account sequence mismatch, expected 510, got 509: incorrect account sequence"
     );
 
-    it("clears the client cache and retries once, succeeding on the retry", async () => {
-        const performActionSync = jest
-            .fn()
-            .mockRejectedValueOnce(SEQ_ERR)
-            .mockResolvedValueOnce("0xretry");
-        mockSigningClient(performActionSync);
-
-        const result = await executeTransportAction("game-1", "sit-out", 0n, fakeNetwork, "method=next-hand");
-
-        expect(result).toEqual({ hash: "0xretry", gameId: "game-1", action: "sit-out", amount: "0" });
-        expect(performActionSync).toHaveBeenCalledTimes(2);
-        expect(mockClearSigningClientCache).toHaveBeenCalledTimes(1);
-    });
-
-    it("surfaces the error if the sequence mismatch persists after the retry", async () => {
+    it("surfaces a sequence mismatch without retrying — it means an ordered SDK build is in play", async () => {
         const performActionSync = jest.fn().mockRejectedValue(SEQ_ERR);
         mockSigningClient(performActionSync);
 
-        await expect(
-            executeTransportAction("game-1", "sit-out", 0n, fakeNetwork, "method=next-hand")
-        ).rejects.toThrow(/account sequence mismatch/);
-        expect(performActionSync).toHaveBeenCalledTimes(2);
+        await expect(executeTransportAction("game-1", "sit-out", 0n, fakeNetwork, "method=next-hand")).rejects.toThrow(
+            /account sequence mismatch/
+        );
+        expect(performActionSync).toHaveBeenCalledTimes(1);
+        expect(mockClearSigningClientCache).not.toHaveBeenCalled();
     });
 
-    it("does not retry a non-sequence error", async () => {
+    it("broadcasts exactly once for any other error", async () => {
         const performActionSync = jest.fn().mockRejectedValue(new Error("insufficient funds"));
         mockSigningClient(performActionSync);
 
         await expect(executeTransportAction("game-1", "sit-out", 0n, fakeNetwork)).rejects.toThrow("insufficient funds");
         expect(performActionSync).toHaveBeenCalledTimes(1);
-        expect(mockClearSigningClientCache).not.toHaveBeenCalled();
-    });
-
-    it("rewrites a stale-index error surfaced on the retry", async () => {
-        const performActionSync = jest
-            .fn()
-            .mockRejectedValueOnce(SEQ_ERR)
-            .mockRejectedValueOnce(new Error("Invalid action index"));
-        mockSigningClient(performActionSync);
-
-        await expect(
-            executeTransportAction("game-1", "sit-out", 0n, fakeNetwork, "method=next-hand")
-        ).rejects.toThrow("Your turn advanced while you were acting — please try again.");
     });
 });

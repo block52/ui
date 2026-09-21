@@ -242,16 +242,15 @@ export async function withSigningClientRetry<T>(
  * Does this error look like a Cosmos account-sequence mismatch (SDK code 32,
  * "account sequence mismatch, expected N, got M")?
  *
- * Every tx from an account carries an account sequence (performActionSync uses
- * standard signAndBroadcastSync). When a prior tx is still pending in the mempool
- * (accepted by CheckTx but not yet committed), a fresh `getSequence` query still
- * returns the pre-increment value, so the next tx signs a sequence that collides
- * and the chain rejects it with this error. Repeatable while the pending tx sits
- * uncommitted — which is why "no one can join" (ui#530 follow-up).
+ * Every ORDERED tx from an account carries an account sequence. When a prior
+ * ordered tx is still pending in the mempool (accepted by CheckTx but not yet
+ * committed), a fresh `getSequence` query still returns the pre-increment value,
+ * so the next tx signs a sequence that collides and the chain rejects it with
+ * this error. Repeatable while the pending tx sits uncommitted — which is why
+ * "no one can join" (ui#530 follow-up).
  *
- * This is NOT limited to money-movers: any gameplay / non-player action (e.g.
- * sit-out) that races a still-pending tx from the same account hits it too, which
- * is why executeTransportAction now recovers from it as well.
+ * Only the money-movers are ordered now. Gameplay / non-player actions went
+ * unordered in SDK 1.4.1 (poker-vm#2619) and cannot produce this.
  */
 export function isSequenceMismatchError(err: unknown): boolean {
     const message = err instanceof Error ? err.message : String(err ?? "");
@@ -273,11 +272,11 @@ export function isSequenceMismatchError(err: unknown): boolean {
  * committed" case. We do NOT loop — a persistently wedged account (a tx stuck
  * in the mempool indefinitely) surfaces the error so it isn't silently masked.
  *
- * Gameplay actions do NOT use this: they go through executeTransportAction,
- * which carries its own code-32 recovery because the SDK's performActionSync
- * still signs ORDERED up to 1.4.0 (that is what raced on 21 Sept 2026 — ui#635).
- * From the SDK release that fixes poker-vm#2619 they are unordered, carry no
- * sequence and cannot hit a mismatch; delete that recovery when the pin moves.
+ * Gameplay actions do NOT use this. From SDK 1.4.1 performActionSync signs
+ * UNORDERED (poker-vm#2619): they carry no account sequence, cannot hit a
+ * mismatch, and do not advance the sequence — so they cannot collide with the
+ * ordered money-movers here either. (Up to 1.4.0 it signed ordered; that is what
+ * raced on 21 Sept 2026 — ui#635.)
  */
 export const SEQUENCE_RETRY_DELAY_MS = 1500;
 
