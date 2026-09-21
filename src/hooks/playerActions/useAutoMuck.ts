@@ -1,7 +1,7 @@
-import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { muckCards } from "./muckCards";
-import { isNullish } from "../../utils/guards";
+import { useLatchedDelay } from "./useLatchedDelay";
+import type { SubmitActionRequest } from "../../submit/types";
 
 /**
  * Hook to automatically muck cards at showdown when autoMuck is enabled.
@@ -12,88 +12,42 @@ import { isNullish } from "../../utils/guards";
  * 1. `enabled` is true
  * 2. The player has a MUCK action available
  * 3. It is the user's turn
- * 4. An auto-action has not already been triggered for this opportunity
+ * 4. The submit queue is idle
+ * 5. An auto-action has not already been triggered for this opportunity
+ *
+ * The muck is SUBMITTED through the shared ActionSubmitController (ui#635), not
+ * broadcast from here. It stands down while the queue is busy: the controller
+ * runs a queued job without re-checking the table, so an automatic action must
+ * never wait in line behind one the player already made (see useAutoFold).
  *
  * @param tableId - The table/game ID
  * @param network - The network configuration
  * @param hasMuckAction - Whether MUCK is available in legal actions
  * @param isUsersTurn - Whether it is currently the user's turn
- * @param onAutoMuckStarted - Optional callback when auto-muck starts
- * @param onAutoMuckComplete - Optional callback when auto-muck completes
- * @param onAutoMuckError - Optional callback when auto-muck fails
- * @param enabled - Whether auto-muck is enabled (reactive)
+ * @param submit - The ActionSubmitController's submit (from useActionSubmit)
+ * @param isBusy - Whether the controller has a submission in flight (from useActionSubmit)
+ * @param onAutoMuckSubmitted - Optional callback with the tx hash once broadcast
+ * @param enabled - Whether auto-muck is enabled (reactive; default off)
  */
 export function useAutoMuck(
     tableId: string,
     network: NetworkEndpoints,
     hasMuckAction: boolean,
     isUsersTurn: boolean,
-    onAutoMuckStarted?: () => void,
-    onAutoMuckComplete?: (txHash: string) => void,
-    onAutoMuckError?: (error: Error) => void,
+    submit: (request: SubmitActionRequest) => void,
+    isBusy: boolean,
+    onAutoMuckSubmitted?: (txHash: string) => void,
     enabled?: boolean
 ): void {
-    const hasTriggeredRef = useRef<boolean>(false);
-    const isProcessingRef = useRef<boolean>(false);
-    const enabledRef = useRef<boolean>(enabled ?? false);
+    const shouldArm = (enabled ?? false) && hasMuckAction && isUsersTurn && !isBusy;
+    // Unlike fold/show this is not clock-driven: the opportunity ends with the turn.
+    const shouldReset = !isUsersTurn;
 
-    useEffect(() => {
-        if (!isNullish(enabled)) {
-            enabledRef.current = enabled;
+    useLatchedDelay(shouldArm, shouldReset, () => {
+        if (!tableId || isBusy) {
+            return false;
         }
-    }, [enabled]);
-
-    /**
-     * Callbacks live in a ref so this hook is immune to callers that pass fresh
-     * arrow functions on every render — PokerActionPanel does exactly that.
-     *
-     * Without it, triggerAutoMuck's identity changed every render, the effect below
-     * re-ran, and its cleanup cancelled the pending 500ms submit before it could
-     * fire. The guard is latched synchronously, so nothing re-armed it and the
-     * action silently never happened (#605).
-     */
-    const callbacksRef = useRef({ onAutoMuckStarted, onAutoMuckComplete, onAutoMuckError });
-    useEffect(() => {
-        callbacksRef.current = { onAutoMuckStarted, onAutoMuckComplete, onAutoMuckError };
+        submit({ actionName: "muck", run: () => muckCards(tableId, network), onSuccess: onAutoMuckSubmitted });
+        return true;
     });
-
-    const triggerAutoMuck = useCallback(async () => {
-        if (!tableId || isProcessingRef.current) {
-            return;
-        }
-
-        isProcessingRef.current = true;
-        callbacksRef.current.onAutoMuckStarted?.();
-
-        try {
-            const result = await muckCards(tableId, network);
-            callbacksRef.current.onAutoMuckComplete?.(result.hash);
-        } catch (error) {
-            console.error("Auto-muck failed:", error);
-            callbacksRef.current.onAutoMuckError?.(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            isProcessingRef.current = false;
-        }
-    }, [tableId, network]);
-
-    useEffect(() => {
-        const shouldAutoMuck =
-            enabledRef.current &&
-            hasMuckAction &&
-            isUsersTurn &&
-            !hasTriggeredRef.current &&
-            !isProcessingRef.current;
-
-        if (shouldAutoMuck) {
-            hasTriggeredRef.current = true;
-            const timeoutId = setTimeout(() => {
-                triggerAutoMuck();
-            }, 500);
-            return () => clearTimeout(timeoutId);
-        }
-
-        if (!isUsersTurn) {
-            hasTriggeredRef.current = false;
-        }
-    }, [hasMuckAction, isUsersTurn, enabled, triggerAutoMuck]);
 }

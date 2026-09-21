@@ -1,6 +1,7 @@
-import { useEffect, useRef, useCallback } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { showCards } from "./showCards";
+import { useLatchedDelay } from "./useLatchedDelay";
+import type { SubmitActionRequest } from "../../submit/types";
 
 /**
  * Hook to automatically show cards when the player's action timer expires.
@@ -9,16 +10,22 @@ import { showCards } from "./showCards";
  * 1. The timer has expired (timeRemaining === 0)
  * 2. The player has a SHOW action available
  * 3. It is the user's turn
- * 4. An auto-action has not already been triggered for this opportunity
+ * 4. The submit queue is idle
+ * 5. An auto-action has not already been triggered for this opportunity
+ *
+ * The show is SUBMITTED through the shared ActionSubmitController (ui#635), not
+ * broadcast from here. It stands down while the queue is busy: the controller
+ * runs a queued job without re-checking the table, so an automatic action must
+ * never wait in line behind one the player already made (see useAutoFold).
  *
  * @param tableId - The table/game ID
  * @param network - The network configuration
  * @param hasShowAction - Whether SHOW is available in legal actions
  * @param isUsersTurn - Whether it is currently the user's turn
  * @param timeRemaining - Seconds remaining on the player's action timer
- * @param onAutoShowStarted - Optional callback when auto-show starts
- * @param onAutoShowComplete - Optional callback when auto-show completes
- * @param onAutoShowError - Optional callback when auto-show fails
+ * @param submit - The ActionSubmitController's submit (from useActionSubmit)
+ * @param isBusy - Whether the controller has a submission in flight (from useActionSubmit)
+ * @param onAutoShowSubmitted - Optional callback with the tx hash once broadcast
  */
 export function useAutoShowCards(
     tableId: string,
@@ -26,60 +33,19 @@ export function useAutoShowCards(
     hasShowAction: boolean,
     isUsersTurn: boolean,
     timeRemaining: number,
-    onAutoShowStarted?: () => void,
-    onAutoShowComplete?: (txHash: string) => void,
-    onAutoShowError?: (error: Error) => void
+    submit: (request: SubmitActionRequest) => void,
+    isBusy: boolean,
+    onAutoShowSubmitted?: (txHash: string) => void
 ): void {
-    const hasTriggeredRef = useRef<boolean>(false);
-    const isProcessingRef = useRef<boolean>(false);
+    const shouldArm = hasShowAction && isUsersTurn && timeRemaining === 0 && !isBusy;
+    // New opportunity: the turn passed, or the clock was reset.
+    const shouldReset = !isUsersTurn || timeRemaining > 0;
 
-    /**
-     * Callbacks live in a ref so this hook is immune to callers that pass fresh
-     * arrow functions on every render — PokerActionPanel does exactly that.
-     *
-     * Without it, triggerAutoShow's identity changed every render, the effect below
-     * re-ran, and its cleanup cancelled the pending 500ms submit before it could
-     * fire. The guard is latched synchronously, so nothing re-armed it and the
-     * action silently never happened (#605).
-     */
-    const callbacksRef = useRef({ onAutoShowStarted, onAutoShowComplete, onAutoShowError });
-    useEffect(() => {
-        callbacksRef.current = { onAutoShowStarted, onAutoShowComplete, onAutoShowError };
+    useLatchedDelay(shouldArm, shouldReset, () => {
+        if (!tableId || isBusy) {
+            return false;
+        }
+        submit({ actionName: "show", run: () => showCards(tableId, network), onSuccess: onAutoShowSubmitted });
+        return true;
     });
-
-    const triggerAutoShow = useCallback(async () => {
-        if (!tableId || isProcessingRef.current) {
-            return;
-        }
-
-        isProcessingRef.current = true;
-        callbacksRef.current.onAutoShowStarted?.();
-
-        try {
-            const result = await showCards(tableId, network);
-            callbacksRef.current.onAutoShowComplete?.(result.hash);
-        } catch (error) {
-            console.error("Auto-show cards failed:", error);
-            callbacksRef.current.onAutoShowError?.(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            isProcessingRef.current = false;
-        }
-    }, [tableId, network]);
-
-    useEffect(() => {
-        const shouldAutoShow = hasShowAction && isUsersTurn && timeRemaining === 0 && !hasTriggeredRef.current && !isProcessingRef.current;
-
-        if (shouldAutoShow) {
-            hasTriggeredRef.current = true;
-            const timeoutId = setTimeout(() => {
-                triggerAutoShow();
-            }, 500);
-            return () => clearTimeout(timeoutId);
-        }
-
-        // Reset when it's no longer the user's turn or timer resets
-        if (!isUsersTurn || timeRemaining > 0) {
-            hasTriggeredRef.current = false;
-        }
-    }, [hasShowAction, isUsersTurn, timeRemaining, triggerAutoShow]);
 }

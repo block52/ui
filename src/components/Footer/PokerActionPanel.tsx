@@ -68,18 +68,14 @@ import { isCheckFreeForPlayer } from "../../utils/chipUtils";
 import type { PokerActionPanelProps } from "./types";
 
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
-    // Manual button submission goes through the ActionSubmitController, which
-    // owns dedupe, serialization, the safe transport retry, the confirmation
-    // gate (busy stays until the chain advances a signal — ui#364/#440), the
-    // 8s escape-hatch, and centralized error toasts. `submitLoadingAction` is
-    // the in-flight manual action's label.
-    const { submit, loadingAction: submitLoadingAction, lastError: submitLastError } = useActionSubmit();
-
-    // Auto-action hooks (auto-fold/deal/blinds/new-hand/show/muck) still manage
-    // their own submission + self-clear via their callbacks; we merge their
-    // loading label with the controller's so buttons show a single spinner.
-    const [autoLoadingAction, setAutoLoadingAction] = useState<string | null>(null);
-    const loadingAction = submitLoadingAction ?? autoLoadingAction;
+    // The ActionSubmitController owns dedupe, serialization, the safe transport
+    // retry, the confirmation gate (busy stays until the chain advances a signal
+    // — ui#364/#440), the 8s escape-hatch, and centralized error toasts.
+    // Every submission from this panel — manual buttons AND the automatic hooks
+    // (new-hand / blinds / deal / fold / pre-check / show / muck) — goes through
+    // the one ActionSubmitController (ui#635), so its loadingAction is the single
+    // source for every spinner.
+    const { submit, loadingAction, isBusy: isSubmitBusy, lastError: submitLastError } = useActionSubmit();
 
     // Action sounds. Preloading is owned by the Table (useGameStateSounds, which
     // knows the playerActionSounds setting); the player is shared, so this panel
@@ -189,6 +185,10 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     // Auto-fold hook - automatically folds (or checks) when the action timer expires
     // Can be disabled via URL query param: ?autofold=false or via settings panel
+    const handleAutoActionSubmitted = useCallback(
+        (_action: PlayerActionType.FOLD | PlayerActionType.CHECK, txHash: string) => onTransactionSubmitted?.(txHash),
+        [onTransactionSubmitted]
+    );
     useAutoFold(
         tableId,
         network,
@@ -196,14 +196,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         hasCheckAction,
         isUsersTurn,
         timeRemaining,
-        action => setAutoLoadingAction(action), // onAutoActionStarted
-        (action, txHash) => {
-            setAutoLoadingAction(null);
-            if (onTransactionSubmitted) {
-                onTransactionSubmitted(txHash);
-            }
-        }, // onAutoActionComplete
-        () => setAutoLoadingAction(null), // onAutoActionError
+        submit,
+        isSubmitBusy,
+        handleAutoActionSubmitted,
         autoFoldEnabled
     );
 
@@ -237,56 +232,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         setPreCheckQueued(false);
     }, [gameState?.round]);
 
-    usePreCheck(
-        tableId,
-        network,
-        preCheckQueued,
-        hasCheckAction,
-        isUsersTurn,
-        () => setAutoLoadingAction("check"), // onStarted
-        txHash => {
-            setAutoLoadingAction(null);
-            if (onTransactionSubmitted) {
-                onTransactionSubmitted(txHash);
-            }
-        }, // onComplete
-        () => setAutoLoadingAction(null), // onError
-        () => setPreCheckQueued(false) // onResolved
-    );
+    const clearPreCheck = useCallback(() => setPreCheckQueued(false), []);
+    usePreCheck(tableId, network, preCheckQueued, hasCheckAction, isUsersTurn, submit, isSubmitBusy, onTransactionSubmitted, clearPreCheck);
 
     // Auto-show-cards hook - automatically shows cards when the action timer expires
-    useAutoShowCards(
-        tableId,
-        network,
-        hasShowAction,
-        isUsersTurn,
-        timeRemaining,
-        () => setAutoLoadingAction("show"), // onAutoShowStarted
-        txHash => {
-            setAutoLoadingAction(null);
-            if (onTransactionSubmitted) {
-                onTransactionSubmitted(txHash);
-            }
-        }, // onAutoShowComplete
-        () => setAutoLoadingAction(null) // onAutoShowError
-    );
+    useAutoShowCards(tableId, network, hasShowAction, isUsersTurn, timeRemaining, submit, isSubmitBusy, onTransactionSubmitted);
 
     // Auto-muck hook - automatically mucks cards at showdown when enabled in settings
-    useAutoMuck(
-        tableId,
-        network,
-        hasMuckAction,
-        isUsersTurn,
-        () => setAutoLoadingAction("muck"), // onAutoMuckStarted
-        txHash => {
-            setAutoLoadingAction(null);
-            if (onTransactionSubmitted) {
-                onTransactionSubmitted(txHash);
-            }
-        }, // onAutoMuckComplete
-        () => setAutoLoadingAction(null), // onAutoMuckError
-        autoMuckEnabled
-    );
+    useAutoMuck(tableId, network, hasMuckAction, isUsersTurn, submit, isSubmitBusy, onTransactionSubmitted, autoMuckEnabled);
 
     // Auto-new-hand hook - automatically triggers new hand when conditions are met
     // Can be disabled via URL query param: ?autonewhand=false or via settings panel.

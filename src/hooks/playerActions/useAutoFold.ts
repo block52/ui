@@ -1,10 +1,12 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useRef } from "react";
 import { PlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { foldHand } from "./foldHand";
 import { checkHand } from "./checkHand";
 import { getAutoFoldEnabled } from "../../utils/urlParams";
 import { isNullish } from "../../utils/guards";
+import { useLatchedDelay } from "./useLatchedDelay";
+import type { SubmitActionRequest } from "../../submit/types";
 
 /**
  * Hook to automatically fold (or check if available) when the player's action timer expires.
@@ -20,9 +22,21 @@ import { isNullish } from "../../utils/guards";
  * 1. The timer has expired (timeRemaining === 0)
  * 2. The user has FOLD or CHECK in their legal actions
  * 3. It is the user's turn
- * 4. An auto-action has not already been triggered for this opportunity
+ * 4. The submit queue is idle (see below)
+ * 5. An auto-action has not already been triggered for this opportunity
  *
  * Prefers CHECK over FOLD when both are available.
+ *
+ * The action is SUBMITTED through the shared ActionSubmitController (ui#635),
+ * not broadcast from here, so this account has one outbound queue and a
+ * rejection is toasted rather than logged.
+ *
+ * It stands down while that queue is BUSY. The controller runs a queued job as
+ * soon as the one ahead of it clears, without re-checking the table — so a fold
+ * queued behind the player's own in-flight call would fire after the call
+ * landed, and heads-up against a fast opponent could land on their NEXT
+ * decision. If they have already acted, the clock running out is not a fold. If
+ * that action is rejected and it is still their turn, this re-arms.
  *
  * @param tableId - The table/game ID
  * @param network - The network configuration
@@ -30,9 +44,9 @@ import { isNullish } from "../../utils/guards";
  * @param hasCheckAction - Whether CHECK is available in legal actions
  * @param isUsersTurn - Whether it is currently the user's turn
  * @param timeRemaining - Seconds remaining on the player's action timer
- * @param onAutoActionStarted - Optional callback when auto-action starts
- * @param onAutoActionComplete - Optional callback when auto-action completes
- * @param onAutoActionError - Optional callback when auto-action fails
+ * @param submit - The ActionSubmitController's submit (from useActionSubmit)
+ * @param isBusy - Whether the controller has a submission in flight (from useActionSubmit)
+ * @param onAutoActionSubmitted - Optional callback with the action + tx hash once broadcast
  * @param enabled - Optional override for the URL param setting (reactive)
  */
 export function useAutoFold(
@@ -42,87 +56,29 @@ export function useAutoFold(
     hasCheckAction: boolean,
     isUsersTurn: boolean,
     timeRemaining: number,
-    onAutoActionStarted?: (action: PlayerActionType.FOLD | PlayerActionType.CHECK) => void,
-    onAutoActionComplete?: (action: PlayerActionType.FOLD | PlayerActionType.CHECK, txHash: string) => void,
-    onAutoActionError?: (error: Error) => void,
+    submit: (request: SubmitActionRequest) => void,
+    isBusy: boolean,
+    onAutoActionSubmitted?: (action: PlayerActionType.FOLD | PlayerActionType.CHECK, txHash: string) => void,
     enabled?: boolean
 ): void {
-    // Track if we've already triggered for this opportunity
-    const hasTriggeredRef = useRef<boolean>(false);
-    // Track if action is currently in progress to prevent duplicate calls
-    const isProcessingRef = useRef<boolean>(false);
-    // Check if auto-fold is enabled — prefer the reactive `enabled` prop, fall back to URL param
-    const autoFoldEnabledRef = useRef<boolean>(enabled ?? getAutoFoldEnabled());
+    const urlDefaultRef = useRef<boolean>(getAutoFoldEnabled());
+    const isEnabled = isNullish(enabled) ? urlDefaultRef.current : enabled;
 
-    // Keep the ref up-to-date when the reactive `enabled` prop changes
-    useEffect(() => {
-        if (!isNullish(enabled)) {
-            autoFoldEnabledRef.current = enabled;
+    const shouldArm = isEnabled && (hasFoldAction || hasCheckAction) && isUsersTurn && timeRemaining === 0 && !isBusy;
+    // New opportunity: the turn passed, or the clock was reset.
+    const shouldReset = !isUsersTurn || timeRemaining > 0;
+
+    useLatchedDelay(shouldArm, shouldReset, () => {
+        if (!tableId || isBusy) {
+            return false;
         }
-    }, [enabled]);
-
-    /**
-     * Callbacks live in a ref so this hook is immune to callers that pass fresh
-     * arrow functions on every render — PokerActionPanel does exactly that.
-     *
-     * Without it, triggerAutoAction's identity changed every render, the effect below
-     * re-ran, and its cleanup cancelled the pending 500ms submit before it could
-     * fire. The guard is latched synchronously, so nothing re-armed it and the
-     * action silently never happened (#605).
-     */
-    const callbacksRef = useRef({ onAutoActionStarted, onAutoActionComplete, onAutoActionError });
-    useEffect(() => {
-        callbacksRef.current = { onAutoActionStarted, onAutoActionComplete, onAutoActionError };
-    });
-
-    const triggerAutoAction = useCallback(async () => {
-        if (!tableId || isProcessingRef.current) {
-            return;
-        }
-
-        // Prefer check over fold
+        // Prefer check over fold — read at fire time, not when the timer armed.
         const action = hasCheckAction ? PlayerActionType.CHECK : PlayerActionType.FOLD;
-
-        isProcessingRef.current = true;
-        callbacksRef.current.onAutoActionStarted?.(action);
-
-        try {
-            const result = action === PlayerActionType.CHECK
-                ? await checkHand(tableId, network)
-                : await foldHand(tableId, network);
-            callbacksRef.current.onAutoActionComplete?.(action, result.hash);
-        } catch (error) {
-            console.error(`Auto-${action} failed:`, error);
-            callbacksRef.current.onAutoActionError?.(error instanceof Error ? error : new Error(String(error)));
-        } finally {
-            isProcessingRef.current = false;
-        }
-    }, [tableId, network, hasCheckAction]);
-
-    useEffect(() => {
-        // Check all conditions for auto-fold
-        const canAct = hasFoldAction || hasCheckAction;
-        const shouldAutoFold =
-            autoFoldEnabledRef.current &&
-            canAct &&
-            isUsersTurn &&
-            timeRemaining === 0 &&
-            !hasTriggeredRef.current &&
-            !isProcessingRef.current;
-
-        if (shouldAutoFold) {
-            hasTriggeredRef.current = true;
-            // Small delay to ensure state is stable
-            const timeoutId = setTimeout(() => {
-                triggerAutoAction();
-            }, 500);
-            return () => clearTimeout(timeoutId);
-        }
-
-        // Reset the trigger flag when it's no longer the user's turn
-        // or when timer resets (new action opportunity)
-        if (!isUsersTurn || timeRemaining > 0) {
-            hasTriggeredRef.current = false;
-        }
-    }, [hasFoldAction, hasCheckAction, isUsersTurn, timeRemaining, enabled, triggerAutoAction]);
+        submit({
+            actionName: action,
+            run: () => (action === PlayerActionType.CHECK ? checkHand(tableId, network) : foldHand(tableId, network)),
+            onSuccess: hash => onAutoActionSubmitted?.(action, hash)
+        });
+        return true;
+    });
 }

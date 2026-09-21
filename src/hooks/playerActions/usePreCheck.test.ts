@@ -1,216 +1,188 @@
+/**
+ * Tests for usePreCheck (ui#388 acceptance criteria, #605, #635).
+ *
+ * The pre-check can only ever CHECK. It fires on the rising edge of the turn,
+ * re-reads legality at fire time, always resolves the queued intent, submits
+ * through the ActionSubmitController — and never waits in line behind an action
+ * the player already made.
+ */
 import { renderHook, act } from "@testing-library/react";
 import { usePreCheck } from "./usePreCheck";
 import { checkHand } from "./checkHand";
+import { makeTestSubmit } from "./testSubmit";
 
 jest.mock("./checkHand");
 
-const mockCheckHand = checkHand as jest.MockedFunction<typeof checkHand>;
+const mockCheck = checkHand as jest.MockedFunction<typeof checkHand>;
 
-// usePreCheck waits 500ms (mirroring useAutoFold's settle delay) before it reads
-// legality and submits, so every fire path is driven through fake timers.
 const TABLE_ID = "0xtable";
 const NETWORK = {} as never;
 
-/**
- * Advance past the hook's 500ms settle delay and flush the async submit so the
- * onResolved/onComplete callbacks have run before assertions.
- */
-async function fireAndSettle(): Promise<void> {
+async function settle(): Promise<void> {
     await act(async () => {
         jest.advanceTimersByTime(500);
-        // Let the awaited checkHand()/onComplete microtasks flush.
         await Promise.resolve();
         await Promise.resolve();
     });
 }
 
+interface Props {
+    tableId?: string;
+    queued?: boolean;
+    hasCheck?: boolean;
+    isUsersTurn?: boolean;
+    isBusy?: boolean;
+}
+
 describe("usePreCheck", () => {
+    let harness: ReturnType<typeof makeTestSubmit>;
+    const onSubmitted = jest.fn();
+    const onResolved = jest.fn();
+
+    const render = (initial: Props = {}) =>
+        renderHook(
+            ({ tableId = TABLE_ID, queued = true, hasCheck = true, isUsersTurn = true, isBusy = false }: Props) =>
+                usePreCheck(tableId, NETWORK, queued, hasCheck, isUsersTurn, harness.submit, isBusy, onSubmitted, onResolved),
+            { initialProps: initial }
+        );
+
     beforeEach(() => {
         jest.useFakeTimers();
-        mockCheckHand.mockReset();
-        mockCheckHand.mockResolvedValue({ hash: "0xhash", gameId: TABLE_ID, action: "check", amount: "0" });
+        harness = makeTestSubmit();
+        onSubmitted.mockReset();
+        onResolved.mockReset();
+        mockCheck.mockReset();
+        mockCheck.mockResolvedValue({ hash: "0xcheck", gameId: TABLE_ID, action: "check", amount: "0" } as never);
     });
-
-    afterEach(() => {
-        jest.useRealTimers();
-    });
+    afterEach(() => jest.useRealTimers());
 
     describe("re-renders during the settle window (#605)", () => {
-        it("still fires when the caller passes fresh callbacks every render", async () => {
-            // PokerActionPanel passes inline arrows, so every render gave `fire`
-            // a new identity — the effect re-ran and its cleanup cancelled the
-            // pending submit, with the latch already set.
-            const submitted: string[] = [];
+        it("still fires when the caller re-renders with fresh callbacks every time", async () => {
             const { rerender } = renderHook(() =>
-                usePreCheck(
-                    TABLE_ID,
-                    NETWORK,
-                    true,
-                    true,
-                    true,
-                    () => {},
-                    (hash: string) => {
-                        submitted.push(hash);
-                    },
-                    () => {},
-                    () => {}
-                )
+                usePreCheck(TABLE_ID, NETWORK, true, true, true, harness.submit, false, () => {}, () => {})
             );
-
-            act(() => {
-                jest.advanceTimersByTime(200);
-            });
+            act(() => jest.advanceTimersByTime(200));
             rerender();
-            act(() => {
-                jest.advanceTimersByTime(100);
-            });
+            act(() => jest.advanceTimersByTime(100));
             rerender();
+            await settle();
 
-            await fireAndSettle();
-
-            expect(mockCheckHand).toHaveBeenCalledTimes(1);
-            expect(submitted).toEqual(["0xhash"]);
+            expect(mockCheck).toHaveBeenCalledTimes(1);
         });
 
         it("resolves the queued state so the checkbox does not stay stuck", async () => {
-            // onResolved is only ever called from inside fire(). If the timer is
-            // cancelled it never runs, and preCheckQueued stays true.
-            const onResolved = jest.fn();
-            const { rerender } = renderHook(() =>
-                usePreCheck(TABLE_ID, NETWORK, true, true, true, () => {}, () => {}, () => {}, onResolved)
-            );
-
-            act(() => {
-                jest.advanceTimersByTime(250);
-            });
-            rerender();
-
-            await fireAndSettle();
+            const { rerender } = render();
+            act(() => jest.advanceTimersByTime(200));
+            rerender({});
+            await settle();
 
             expect(onResolved).toHaveBeenCalledTimes(1);
         });
     });
 
     it("does not fire when the pre-check is not queued", async () => {
-        const onResolved = jest.fn();
-        renderHook(() => usePreCheck(TABLE_ID, NETWORK, false, true, true, undefined, undefined, undefined, onResolved));
-        await fireAndSettle();
-        expect(mockCheckHand).not.toHaveBeenCalled();
+        render({ queued: false });
+        await settle();
+        expect(harness.requests).toHaveLength(0);
         expect(onResolved).not.toHaveBeenCalled();
     });
 
     it("does not fire when it is not the user's turn", async () => {
-        const onResolved = jest.fn();
-        renderHook(() => usePreCheck(TABLE_ID, NETWORK, true, true, false, undefined, undefined, undefined, onResolved));
-        await fireAndSettle();
-        expect(mockCheckHand).not.toHaveBeenCalled();
-        expect(onResolved).not.toHaveBeenCalled();
+        render({ isUsersTurn: false });
+        await settle();
+        expect(harness.requests).toHaveLength(0);
     });
 
     it("submits CHECK once when queued and the turn arrives with CHECK still legal (AC-2)", async () => {
-        const onStarted = jest.fn();
-        const onComplete = jest.fn();
-        const onResolved = jest.fn();
-        renderHook(() =>
-            usePreCheck(TABLE_ID, NETWORK, true, true, true, onStarted, onComplete, undefined, onResolved)
-        );
-        await fireAndSettle();
+        render();
+        await settle();
 
-        expect(onStarted).toHaveBeenCalledTimes(1);
-        expect(mockCheckHand).toHaveBeenCalledTimes(1);
-        expect(mockCheckHand).toHaveBeenCalledWith(TABLE_ID, NETWORK);
-        expect(onComplete).toHaveBeenCalledWith("0xhash");
+        expect(harness.requests.map(r => r.actionName)).toEqual(["check"]);
+        expect(mockCheck).toHaveBeenCalledWith(TABLE_ID, NETWORK);
+        expect(onSubmitted).toHaveBeenCalledWith("0xcheck");
         expect(onResolved).toHaveBeenCalledTimes(1);
     });
 
     it("resolves WITHOUT acting when a bet slipped in so CHECK is no longer legal (AC-3/AC-5)", async () => {
-        const onStarted = jest.fn();
-        const onResolved = jest.fn();
-        renderHook(() =>
-            usePreCheck(TABLE_ID, NETWORK, true, /* hasCheckAction */ false, true, onStarted, undefined, undefined, onResolved)
-        );
-        await fireAndSettle();
+        render({ hasCheck: false });
+        await settle();
 
-        expect(mockCheckHand).not.toHaveBeenCalled();
-        expect(onStarted).not.toHaveBeenCalled();
+        expect(harness.requests).toHaveLength(0);
         expect(onResolved).toHaveBeenCalledTimes(1);
     });
 
     it("reads the FRESH legality at fire time, not the value when the turn began (AC-5)", async () => {
-        // Turn arrives with CHECK legal, but a bet lands during the 500ms settle
-        // window and re-renders with hasCheckAction=false → must NOT submit.
-        const onResolved = jest.fn();
-        const { rerender } = renderHook(
-            ({ hasCheck }: { hasCheck: boolean }) =>
-                usePreCheck(TABLE_ID, NETWORK, true, hasCheck, true, undefined, undefined, undefined, onResolved),
-            { initialProps: { hasCheck: true } }
-        );
-
-        // Bet lands before the settle timer elapses.
+        const { rerender } = render({ hasCheck: true });
+        act(() => jest.advanceTimersByTime(200));
         rerender({ hasCheck: false });
-        await fireAndSettle();
+        await settle();
 
-        expect(mockCheckHand).not.toHaveBeenCalled();
+        expect(harness.requests).toHaveLength(0);
         expect(onResolved).toHaveBeenCalledTimes(1);
     });
 
     it("fires only once while the turn persists across re-renders", async () => {
-        const onResolved = jest.fn();
-        const { rerender } = renderHook(
-            ({ turn }: { turn: boolean }) =>
-                usePreCheck(TABLE_ID, NETWORK, true, true, turn, undefined, undefined, undefined, onResolved),
-            { initialProps: { turn: true } }
-        );
-        await fireAndSettle();
-        expect(mockCheckHand).toHaveBeenCalledTimes(1);
+        const { rerender } = render();
+        await settle();
+        rerender({});
+        await settle();
 
-        rerender({ turn: true });
-        await fireAndSettle();
-        expect(mockCheckHand).toHaveBeenCalledTimes(1);
+        expect(harness.requests).toHaveLength(1);
     });
 
     it("re-arms after the turn passes and fires again on the next turn", async () => {
-        const onResolved = jest.fn();
-        const { rerender } = renderHook(
-            ({ turn }: { turn: boolean }) =>
-                usePreCheck(TABLE_ID, NETWORK, true, true, turn, undefined, undefined, undefined, onResolved),
-            { initialProps: { turn: true } }
-        );
-        await fireAndSettle();
-        expect(mockCheckHand).toHaveBeenCalledTimes(1);
+        const { rerender } = render();
+        await settle();
+        rerender({ isUsersTurn: false });
+        rerender({ isUsersTurn: true });
+        await settle();
 
-        // Turn passes → latch resets.
-        rerender({ turn: false });
-        await fireAndSettle();
-        // Turn comes back around.
-        rerender({ turn: true });
-        await fireAndSettle();
-
-        expect(mockCheckHand).toHaveBeenCalledTimes(2);
+        expect(harness.requests).toHaveLength(2);
     });
 
-    it("still resolves when the check submit throws (AC-4 clear path)", async () => {
-        const onError = jest.fn();
-        const onResolved = jest.fn();
-        const consoleError = jest.spyOn(console, "error").mockImplementation(() => {});
-        mockCheckHand.mockRejectedValueOnce(new Error("broadcast failed"));
-        renderHook(() =>
-            usePreCheck(TABLE_ID, NETWORK, true, true, true, undefined, undefined, onError, onResolved)
-        );
-        await fireAndSettle();
+    it("still resolves when the check submit is rejected (AC-4 clear path)", async () => {
+        mockCheck.mockRejectedValue(new Error("rejected"));
+        render();
+        await settle();
 
-        expect(mockCheckHand).toHaveBeenCalledTimes(1);
-        expect(onError).toHaveBeenCalledWith(expect.any(Error));
+        expect(harness.requests).toHaveLength(1);
         expect(onResolved).toHaveBeenCalledTimes(1);
-        consoleError.mockRestore();
     });
 
     it("does nothing when tableId is empty", async () => {
-        const onResolved = jest.fn();
-        renderHook(() => usePreCheck("", NETWORK, true, true, true, undefined, undefined, undefined, onResolved));
-        await fireAndSettle();
-        expect(mockCheckHand).not.toHaveBeenCalled();
-        // The fire() early-returns on empty tableId before onResolved.
+        render({ tableId: "" });
+        await settle();
+
+        expect(harness.requests).toHaveLength(0);
         expect(onResolved).not.toHaveBeenCalled();
+    });
+
+    describe("through the submit controller (#635)", () => {
+        it("submits rather than broadcasting", async () => {
+            const requests: Array<{ actionName: string }> = [];
+            renderHook(() => usePreCheck(TABLE_ID, NETWORK, true, true, true, request => requests.push(request), false));
+            await settle();
+
+            expect(requests.map(r => r.actionName)).toEqual(["check"]);
+            expect(mockCheck).not.toHaveBeenCalled();
+        });
+
+        it("resolves WITHOUT checking when the player already acted by hand — a late check lands on the wrong decision", async () => {
+            render({ isBusy: true });
+            await settle();
+
+            expect(harness.requests).toHaveLength(0);
+            expect(onResolved).toHaveBeenCalledTimes(1);
+        });
+
+        it("does the same when the player acts INSIDE the settle window", async () => {
+            const { rerender } = render({ isBusy: false });
+            act(() => jest.advanceTimersByTime(200));
+            rerender({ isBusy: true });
+            await settle();
+
+            expect(harness.requests).toHaveLength(0);
+            expect(onResolved).toHaveBeenCalledTimes(1);
+        });
     });
 });

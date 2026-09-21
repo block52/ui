@@ -1,13 +1,15 @@
 /**
- * Tests for useAutoMuck (#605).
+ * Tests for useAutoMuck (#605, #635).
  *
- * Same timer-cancellation defect as useAutoFold/useAutoShowCards, with one
- * difference worth pinning: this hook's guard resets on the TURN ending rather
- * than on the action flag clearing, and it defaults to disabled.
+ * Differs from useAutoFold/useAutoShowCards in two ways worth pinning: its latch
+ * reopens on the TURN ending rather than on the clock, and it defaults to
+ * disabled. Like them it submits through the ActionSubmitController and stands
+ * down while that queue is busy.
  */
 import { renderHook, act } from "@testing-library/react";
 import { useAutoMuck } from "./useAutoMuck";
 import { muckCards } from "./muckCards";
+import { makeTestSubmit } from "./testSubmit";
 
 jest.mock("./muckCards");
 
@@ -24,9 +26,28 @@ async function settle(): Promise<void> {
     });
 }
 
+interface Props {
+    hasMuck?: boolean;
+    isUsersTurn?: boolean;
+    isBusy?: boolean;
+    enabled?: boolean;
+}
+
 describe("useAutoMuck", () => {
+    let harness: ReturnType<typeof makeTestSubmit>;
+    const onSubmitted = jest.fn();
+
+    const render = (initial: Props = {}) =>
+        renderHook(
+            ({ hasMuck = true, isUsersTurn = true, isBusy = false, enabled = true }: Props) =>
+                useAutoMuck(TABLE_ID, NETWORK, hasMuck, isUsersTurn, harness.submit, isBusy, onSubmitted, enabled),
+            { initialProps: initial }
+        );
+
     beforeEach(() => {
         jest.useFakeTimers();
+        harness = makeTestSubmit();
+        onSubmitted.mockReset();
         mockMuck.mockReset();
         mockMuck.mockResolvedValue({ hash: "0xmuck", gameId: TABLE_ID, action: "muck", amount: "0" } as never);
     });
@@ -34,74 +55,74 @@ describe("useAutoMuck", () => {
 
     describe("gating", () => {
         it("is off unless explicitly enabled", async () => {
-            renderHook(() => useAutoMuck(TABLE_ID, NETWORK, true, true));
+            renderHook(() => useAutoMuck(TABLE_ID, NETWORK, true, true, harness.submit, false));
             await settle();
-            expect(mockMuck).not.toHaveBeenCalled();
+            expect(harness.requests).toHaveLength(0);
         });
 
         it("does not fire when MUCK is not legal", async () => {
-            renderHook(() => useAutoMuck(TABLE_ID, NETWORK, false, true, undefined, undefined, undefined, true));
+            render({ hasMuck: false });
             await settle();
-            expect(mockMuck).not.toHaveBeenCalled();
+            expect(harness.requests).toHaveLength(0);
         });
 
         it("does not fire when it is not the user's turn", async () => {
-            renderHook(() => useAutoMuck(TABLE_ID, NETWORK, true, false, undefined, undefined, undefined, true));
+            render({ isUsersTurn: false });
             await settle();
-            expect(mockMuck).not.toHaveBeenCalled();
+            expect(harness.requests).toHaveLength(0);
         });
     });
 
     describe("firing", () => {
         it("mucks once when enabled and it is the user's turn", async () => {
-            const onStarted = jest.fn();
-            const onComplete = jest.fn();
-            renderHook(() => useAutoMuck(TABLE_ID, NETWORK, true, true, onStarted, onComplete, undefined, true));
-
+            render();
             await settle();
 
-            expect(mockMuck).toHaveBeenCalledTimes(1);
-            expect(onStarted).toHaveBeenCalledTimes(1);
-            expect(onComplete).toHaveBeenCalledWith("0xmuck");
+            expect(harness.requests.map(r => r.actionName)).toEqual(["muck"]);
+            expect(mockMuck).toHaveBeenCalledWith(TABLE_ID, NETWORK);
+            expect(onSubmitted).toHaveBeenCalledWith("0xmuck");
         });
 
-        it("reports an error without wedging the hook", async () => {
-            const spy = jest.spyOn(console, "error").mockImplementation(() => {});
-            const onError = jest.fn();
-            mockMuck.mockRejectedValueOnce(new Error("nope"));
-
-            renderHook(() => useAutoMuck(TABLE_ID, NETWORK, true, true, undefined, undefined, onError, true));
+        it("a rejected submit does not wedge the hook — the next showdown mucks", async () => {
+            mockMuck.mockRejectedValueOnce(new Error("rejected"));
+            const { rerender } = render();
             await settle();
 
-            expect(onError).toHaveBeenCalledWith(expect.any(Error));
-            spy.mockRestore();
+            rerender({ isUsersTurn: false });
+            rerender({ isUsersTurn: true });
+            await settle();
+            expect(harness.requests).toHaveLength(2);
+        });
+    });
+
+    describe("through the submit controller (#635)", () => {
+        it("submits rather than broadcasting", async () => {
+            const requests: Array<{ actionName: string }> = [];
+            renderHook(() => useAutoMuck(TABLE_ID, NETWORK, true, true, request => requests.push(request), false, undefined, true));
+            await settle();
+
+            expect(requests.map(r => r.actionName)).toEqual(["muck"]);
+            expect(mockMuck).not.toHaveBeenCalled();
+        });
+
+        it("stands down while the queue is busy, and mucks once it clears", async () => {
+            const { rerender } = render({ isBusy: true });
+            await settle();
+            expect(harness.requests).toHaveLength(0);
+
+            rerender({ isBusy: false });
+            await settle();
+            expect(harness.requests).toHaveLength(1);
         });
     });
 
     describe("re-renders during the settle window (#605)", () => {
-        it("still mucks when the caller passes fresh callbacks every render", async () => {
-            const { rerender } = renderHook(() =>
-                useAutoMuck(
-                    TABLE_ID,
-                    NETWORK,
-                    true,
-                    true,
-                    () => {},
-                    () => {},
-                    () => {},
-                    true
-                )
-            );
-
-            act(() => {
-                jest.advanceTimersByTime(200);
-            });
+        it("still mucks when the caller re-renders with a fresh callback every time", async () => {
+            const { rerender } = renderHook(() => useAutoMuck(TABLE_ID, NETWORK, true, true, harness.submit, false, () => {}, true));
+            act(() => jest.advanceTimersByTime(200));
             rerender();
-            act(() => {
-                jest.advanceTimersByTime(100);
-            });
+            act(() => jest.advanceTimersByTime(100));
             rerender();
-
             await settle();
 
             expect(mockMuck).toHaveBeenCalledTimes(1);
@@ -110,34 +131,25 @@ describe("useAutoMuck", () => {
 
     describe("reactive enabled", () => {
         it("mucks when switched on while the opportunity is already open", async () => {
-            const { rerender } = renderHook(
-                ({ enabled }) => useAutoMuck(TABLE_ID, NETWORK, true, true, undefined, undefined, undefined, enabled),
-                { initialProps: { enabled: false } }
-            );
+            const { rerender } = render({ enabled: false });
             await settle();
-            expect(mockMuck).not.toHaveBeenCalled();
+            expect(harness.requests).toHaveLength(0);
 
             rerender({ enabled: true });
             await settle();
-
-            expect(mockMuck).toHaveBeenCalledTimes(1);
+            expect(harness.requests).toHaveLength(1);
         });
     });
 
     describe("re-arming", () => {
         it("mucks again on the next hand's showdown", async () => {
-            const { rerender } = renderHook(
-                ({ turn }) => useAutoMuck(TABLE_ID, NETWORK, true, turn, undefined, undefined, undefined, true),
-                { initialProps: { turn: true } }
-            );
+            const { rerender } = render();
             await settle();
-            expect(mockMuck).toHaveBeenCalledTimes(1);
-
-            rerender({ turn: false });
-            rerender({ turn: true });
+            rerender({ isUsersTurn: false });
+            rerender({ isUsersTurn: true });
             await settle();
 
-            expect(mockMuck).toHaveBeenCalledTimes(2);
+            expect(harness.requests).toHaveLength(2);
         });
     });
 });
