@@ -75,6 +75,13 @@ export interface ActionSubmitControllerOptions {
     /** Drops the memoized signing client so a transport retry rebuilds it. */
     clearSigningCache: () => void;
     /**
+     * Is the game-state socket live? When it is not, a submission is refused
+     * before broadcast (kind `offline`): the state it was decided on may be
+     * stale, and the chain's action clock keeps running regardless (ui#613).
+     * Optional: without it nothing is gated.
+     */
+    isConnected?: () => boolean;
+    /**
      * Asks the chain for a broadcast tx's execution result. `null` = no verdict
      * yet (not in a block, or the query failed). Optional: without it, evidence
      * comes from the WS snapshots only.
@@ -93,6 +100,7 @@ export class ActionSubmitController {
     private readonly onError: (error: SubmitError) => void;
     private readonly onNotice: (notice: SubmitNotice) => void;
     private readonly clearSigningCache: () => void;
+    private readonly isConnected: (() => boolean) | null;
     private readonly lookupTx: ((hash: string) => Promise<TxVerdict | null>) | null;
     private readonly now: () => number;
     private readonly config: SubmitControllerConfig;
@@ -122,6 +130,7 @@ export class ActionSubmitController {
         this.onError = options.onError;
         this.onNotice = options.onNotice ?? (() => {});
         this.clearSigningCache = options.clearSigningCache;
+        this.isConnected = options.isConnected ?? null;
         this.lookupTx = options.lookupTx ?? null;
         this.now = options.now ?? Date.now;
         this.config = { ...DEFAULT_SUBMIT_CONFIG, ...options.config };
@@ -149,6 +158,20 @@ export class ActionSubmitController {
      * never thrown. Dropped submissions (dedupe / queue full) return silently.
      */
     public submit(request: SubmitActionRequest): void {
+        // Freshness gate (ui#613): never broadcast an action decided on a view
+        // that may be stale. Surfaced like any failure; nothing is queued.
+        if (this.isConnected && !this.isConnected()) {
+            const error: SubmitError = {
+                kind: "offline",
+                message: `Not connected to the table — your ${request.actionName} was not sent. It will be possible again once the connection is back.`,
+                actionName: request.actionName
+            };
+            this.lastError = error;
+            this.onError(error);
+            this.emit();
+            return;
+        }
+
         // Default dedupe key is position-aware: `${actionName}:${actionIndex}`.
         // A double-click fires at the SAME game position → same key → collapsed.
         // The same action a street later fires at a NEW index → different key →

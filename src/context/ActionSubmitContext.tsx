@@ -16,6 +16,8 @@ import { getLatestGameState, subscribeLatestGameState } from "../hooks/playerAct
 import { clearSigningClientCache } from "../utils/cosmos/client";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 import { useCosmosApi } from "./CosmosApiContext";
+import { useGameUI } from "./gameState/GameUIContext";
+import { isConnectionLive } from "./gameState/connection";
 import type { CosmosApi } from "../apis/Api";
 
 const ActionSubmitContext = createContext<ActionSubmitController>(null as unknown as ActionSubmitController);
@@ -27,6 +29,13 @@ export const ActionSubmitProvider: FC<{ children: ReactNode }> = ({ children }) 
     const apiRef = useRef<CosmosApi>(cosmosApi);
     apiRef.current = cosmosApi;
 
+    // Connection freshness (ui#613): the controller refuses to broadcast while
+    // the game-state socket is not live. Read through a ref so the one
+    // controller instance always sees the current status.
+    const { connection } = useGameUI();
+    const liveRef = useRef<boolean>(isConnectionLive(connection));
+    liveRef.current = isConnectionLive(connection);
+
     // One controller for the app, created eagerly so it exists before any child
     // effect can submit. Reads the logical track (never the render track).
     const controllerRef = useRef<ActionSubmitController | null>(null);
@@ -37,6 +46,7 @@ export const ActionSubmitProvider: FC<{ children: ReactNode }> = ({ children }) 
             onError: (error: SubmitError) => toast.error(error.message),
             onNotice: (notice: SubmitNotice) => toast.warn(notice.message),
             clearSigningCache: clearSigningClientCache,
+            isConnected: () => liveRef.current,
             // `null` = no verdict yet: not in a block (404) or the query failed.
             // Bounded by the controller's verdict window, so a dead REST endpoint
             // costs a few failed polls, never a stuck job.

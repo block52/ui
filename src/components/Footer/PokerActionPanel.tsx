@@ -21,6 +21,7 @@ import { useTableState, useNextToActInfo } from "../../hooks";
 import { useActionSounds } from "../../hooks/notifications/useActionSounds";
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { isConnectionLive } from "../../context/gameState/connection";
 import { useActionSubmit } from "../../context/ActionSubmitContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { dealCardsWithEntropy } from "../../hooks/playerActions/dealCards";
@@ -101,7 +102,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     }, []);
 
     // Get game state and player data
-    const { gameState, gameFormat } = useGameStateContext();
+    const { gameState, gameFormat, connection } = useGameStateContext();
     const isTournament = isTournamentFormat(gameFormat);
     const players = gameState?.players || null;
     const { legalActions, isPlayerTurn, playerStatus } = usePlayerLegalActions();
@@ -126,7 +127,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const userPlayer = useMemo(() => getUserPlayer(players, userAddress), [players, userAddress]);
 
     // Determine if it's user's turn
-    const isUsersTurn = isPlayerTurn;
+    // It is only "our turn" on a view we can trust: while the game-state socket
+    // is not live (ui#613) the last snapshot may be stale, so every action
+    // control hides or disables exactly as when it is not our turn, and the
+    // controller refuses anything that slips through. The table banner explains.
+    const isUsersTurn = isPlayerTurn && isConnectionLive(connection);
 
     // Check available actions
     const {

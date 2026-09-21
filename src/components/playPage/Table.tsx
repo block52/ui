@@ -148,6 +148,7 @@ import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
 // Turn Notification
 import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
+import ConnectionBanner from "./ConnectionBanner";
 
 // Mobile Portrait Blocking (#200)
 import { useMobileFullscreen } from "../../hooks/game/useMobileFullscreen";
@@ -668,7 +669,7 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, replayActionIndex } =
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, replayActionIndex, connection } =
         useGameStateContext();
     const { currentNetwork } = useNetwork();
 
@@ -1249,7 +1250,17 @@ const Table = React.memo(() => {
     }
 
     return (
-        <div className="table-container">
+        <div className="table-container" data-connection={connection.status}>
+            {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
+            {!isReplayMode && id && (
+                <ConnectionBanner
+                    connection={connection}
+                    onRetry={() => {
+                        unsubscribeFromTable();
+                        subscribeToTable(id);
+                    }}
+                />
+            )}
             {/* Replay mode banner */}
             {isReplayMode && replayHandNumber != null && (
                 <div

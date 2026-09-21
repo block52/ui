@@ -403,3 +403,50 @@ describe("ActionSubmitController", () => {
         warn.mockRestore();
     });
 });
+
+describe("ActionSubmitController connection gate (ui#613)", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+    });
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    function makeGated(live: () => boolean) {
+        const onError = jest.fn<void, [SubmitError]>();
+        const run = jest.fn().mockResolvedValue(ok());
+        const controller = new ActionSubmitController({
+            getState: () => snap(),
+            getLocalAddress: () => ME,
+            onError,
+            clearSigningCache: jest.fn(),
+            isConnected: live,
+            now: () => 1000
+        });
+        return { controller, onError, run };
+    }
+
+    it("refuses to broadcast while the game-state socket is not live, and says so", async () => {
+        const { controller, onError, run } = makeGated(() => false);
+        controller.submit({ actionName: "call", run });
+        await flush();
+        expect(run).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledWith(expect.objectContaining({ kind: "offline", actionName: "call" }));
+        expect(controller.getSnapshot()).toMatchObject({ status: "idle", queueDepth: 0 });
+        expect(controller.getSnapshot().lastError?.kind).toBe("offline");
+    });
+
+    it("broadcasts normally once the socket is live again", async () => {
+        let live = false;
+        const { controller, onError, run } = makeGated(() => live);
+        controller.submit({ actionName: "call", run });
+        await flush();
+        expect(run).not.toHaveBeenCalled();
+
+        live = true;
+        controller.submit({ actionName: "call", run });
+        await flush();
+        expect(run).toHaveBeenCalledTimes(1);
+        expect(onError).toHaveBeenCalledTimes(1); // only the refused one
+    });
+});

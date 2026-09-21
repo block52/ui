@@ -466,6 +466,19 @@ The UI uses WebSocket connections for real-time game state updates:
 4. Hooks like `useTableData()` and `usePlayerData()` read from context
 5. Updates are pushed in real-time from the backend
 
+**Connection freshness (ui#613):** `useGameUI().connection` is
+`{ status: idle | connecting | live | reconnecting | offline, attempt }`. A
+dropped socket reconnects on its own with exponential backoff and jitter
+(`utils/reconnectBackoff.ts`, 8 attempts, 30 s cap), re-subscribes and takes
+the relay's fresh snapshot as a new baseline (the bus is reset, so the
+catch-up frame derives no events). A superseded socket's late frames are
+ignored by generation. Tab-visible and browser-online events reconnect at
+once; while offline the provider waits for `online` instead of burning
+attempts. Only `live` means the table is current: `ActionSubmitController`
+refuses to broadcast otherwise (kind `offline`), and `ConnectionBanner` says
+so on the table. Never treat the last snapshot as current while the status is
+anything else.
+
 ### WS Action Bus
 
 All inbound WebSocket messages flow through the **WS Action Bus** (`src/bus/`)

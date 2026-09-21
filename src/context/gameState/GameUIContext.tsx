@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useMemo } from "react";
 import type { ValidationError } from "../../components/playPage/TableErrorPage";
+import type { ConnectionState } from "./connection";
 
 export interface PendingAction {
     gameId: string;
@@ -10,17 +11,20 @@ export interface PendingAction {
 }
 
 /**
- * GameUIContext — holds interaction-driven UI state (loading, errors, optimistic action).
+ * GameUIContext — holds interaction-driven UI state (loading, errors, optimistic
+ * action, connection freshness).
  *
- * Updated on user action, mempool acks, and connection-level errors. Splitting
+ * Updated on user action, mempool acks, and connection-level changes. Splitting
  * this out means components that only render game data don't re-render when
- * pendingAction or isLoading flips.
+ * pendingAction, isLoading or the connection status flips.
  */
 interface GameUIContextValue {
     isLoading: boolean;
     error: Error | null;
     validationError: ValidationError | null;
     pendingAction: PendingAction | null;
+    /** Freshness of the live socket (ui#613). Only `live` means the table is current. */
+    connection: ConnectionState;
 }
 
 const GameUIContext = createContext<GameUIContextValue | null>(null);
@@ -34,11 +38,12 @@ export const GameUIProvider: React.FC<GameUIProviderProps> = ({
     error,
     validationError,
     pendingAction,
+    connection,
     children
 }) => {
     const value = useMemo<GameUIContextValue>(
-        () => ({ isLoading, error, validationError, pendingAction }),
-        [isLoading, error, validationError, pendingAction]
+        () => ({ isLoading, error, validationError, pendingAction, connection }),
+        [isLoading, error, validationError, pendingAction, connection]
     );
     return <GameUIContext.Provider value={value}>{children}</GameUIContext.Provider>;
 };

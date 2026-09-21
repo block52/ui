@@ -67,8 +67,10 @@ export interface SubmitError {
      *   rejected    broadcast, then FAILED at execution — from the tx-by-hash query
      *   superseded  the chain recorded a different action of ours at our turn (e.g. the
      *               action clock folded us before our call landed), so ours cannot land
+     *   offline     refused before broadcast: the game-state socket is not live, so the
+     *               view this action was decided on may be stale (ui#613)
      */
-    kind: "stale" | "transport" | "terminal" | "rejected" | "superseded";
+    kind: "stale" | "transport" | "terminal" | "rejected" | "superseded" | "offline";
     message: string;
     actionName: string;
     /** The broadcast tx, when there was one. */
