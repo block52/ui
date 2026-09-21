@@ -37,6 +37,19 @@ describe("getViewportMode", () => {
         expect(getViewportMode()).toBe("desktop");
     });
 
+    it("returns mobile-landscape for short landscape windows even without a coarse pointer", () => {
+        // An iPhone 15 in landscape is 852px WIDE — any width-based breakpoint
+        // calls it desktop. Height is what's scarce: sub-500px-tall landscape
+        // gets the compact treatment regardless of pointer type.
+        setViewport(852, 443, false);
+        expect(getViewportMode()).toBe("mobile-landscape");
+    });
+
+    it("returns mobile-landscape for real landscape phone dimensions", () => {
+        setViewport(852, 393, true);
+        expect(getViewportMode()).toBe("mobile-landscape");
+    });
+
     it("returns mobile-portrait for portrait touch devices", () => {
         setViewport(393, 852, true);
         expect(getViewportMode()).toBe("mobile-portrait");

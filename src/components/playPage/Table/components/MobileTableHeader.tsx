@@ -149,14 +149,24 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
 
     return (
         <div className="flex-shrink-0">
-            {/* Single 44px row: table name · balance · hamburger */}
-            <div className={`w-full h-[44px] flex items-center justify-between pl-3 relative z-[100] border-b-2 ${styles.headerRoot}`}>
-                <span
-                    className="text-white text-sm font-bold cursor-pointer truncate min-w-0 flex-1"
+            {/* Single 44px row: table name · balance · hamburger.
+                viewport-fit=cover extends the page under the Dynamic Island and,
+                in landscape, under the notch on one side — the safe-area paddings
+                keep the row's content clear of both. */}
+            <div
+                className={`w-full min-h-[44px] flex items-center justify-between pl-3 relative z-[100] border-b-2 ${styles.headerRoot}`}
+                style={{
+                    paddingTop: "env(safe-area-inset-top)",
+                    paddingLeft: "calc(env(safe-area-inset-left) + 12px)",
+                    paddingRight: "env(safe-area-inset-right)"
+                }}
+            >
+                <button
+                    className="text-white text-sm font-bold cursor-pointer truncate min-w-0 flex-1 min-h-[44px] text-left"
                     onClick={handleLobbyClick}
                 >
                     {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
-                </span>
+                </button>
                 <div className="flex items-center flex-shrink-0">
                     {/* Balance — money on the table, wanted at a glance; tap to refresh */}
                     <button
@@ -186,7 +196,10 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
             </div>
 
             {/* Status strip — text only, no controls. No action count on mobile. */}
-            <div className={`w-full flex items-center justify-center gap-3 px-2 h-[22px] sub-header z-[1] ${styles.subHeaderRoot}`}>
+            <div
+                className={`w-full flex items-center justify-center gap-3 px-2 h-[22px] sub-header z-[1] ${styles.subHeaderRoot}`}
+                style={{ paddingLeft: "env(safe-area-inset-left)", paddingRight: "env(safe-area-inset-right)" }}
+            >
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>
                     {blindLevel.isActive ? (
                         <>
@@ -214,7 +227,16 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
             {menuOpen && (
                 <>
                     <div className="fixed inset-0 z-[1999] bg-black/60" onClick={() => setMenuOpen(false)} />
-                    <div className={`fixed top-0 right-0 bottom-0 z-[2000] w-[290px] max-w-[85vw] flex flex-col overflow-y-auto border-l-2 ${styles.headerRoot}`}>
+                    <div
+                        className={`fixed top-0 right-0 bottom-0 z-[2000] w-[290px] max-w-[85vw] flex flex-col overflow-y-auto border-l-2 ${styles.headerRoot}`}
+                        style={{
+                            // Leave Table (the drawer's last row) must clear the home
+                            // indicator; the top row must clear the Dynamic Island.
+                            paddingTop: "env(safe-area-inset-top)",
+                            paddingBottom: "env(safe-area-inset-bottom)",
+                            paddingRight: "env(safe-area-inset-right)"
+                        }}
+                    >
                         <div className="flex items-center justify-between pl-4 min-h-[44px] border-b border-white/10">
                             <span className="text-white text-sm font-bold">Table menu</span>
                             <button
@@ -251,7 +273,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <span className={`font-mono text-xs truncate ${styles.brandText}`}>{formattedAddress}</span>
                         </button>
                         <div className={`${menuRowClass} cursor-default`}>
-                            <ProfileAvatarButton title="Open avatar picker" />
+                            <ProfileAvatarButton title="Open avatar picker" className="min-w-[44px] min-h-[44px] flex items-center justify-center" />
                             <span>Avatar / NFT badge</span>
                         </div>
 

@@ -74,7 +74,6 @@ import { useParams } from "react-router-dom";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
-import { RxExit } from "react-icons/rx";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
@@ -848,6 +847,11 @@ const Table = React.memo(() => {
     // Portrait phones get a decluttered UI + the vertical portrait stage —
     // the old "Rotate to Play" gate (#200) is gone.
     const isMobilePortrait = tableLayout.viewportMode === "mobile-portrait";
+    // Compact = both phone orientations. Landscape phones (852px WIDE — any
+    // width-based breakpoint calls them desktop; height is what's scarce) get
+    // the same treatment as portrait: one-row header + hamburger, no persistent
+    // banner, no style selector — just with the horizontal stage.
+    const isCompactMobile = isMobilePortrait || tableLayout.viewportMode === "mobile-landscape";
     // Felt/rail dimensions follow the SAME mode as the layout hook, so the
     // markup and the seat positions can never disagree mid-rotation.
     const stageDims = STAGE_DIMS[isMobilePortrait ? "portrait" : "landscape"];
@@ -1298,15 +1302,15 @@ const Table = React.memo(() => {
             )}
             {/* DEBUG OVERLAY: Press D/C/B/S/G to toggle debug tools */}
             <LayoutDebugOverlay />
-            {/* Table style toggle — on portrait phones this lives in the hamburger
-                menu instead. z-index is deliberately modest: this must never sit
-                above modals/overlays (it used to be 999999 and beat everything). */}
-            {!isMobilePortrait && (
+            {/* Table style toggle — on phones (either orientation) this lives in
+                the hamburger menu instead. z-index is deliberately modest: this must
+                never sit above modals/overlays (it used to be 999999 and beat everything). */}
+            {!isCompactMobile && (
                 <button
                     onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
                     style={{
                         position: "fixed",
-                        bottom: isMobileLandscape ? 60 : 12,
+                        bottom: 12,
                         left: 12,
                         zIndex: 30,
                         padding: "6px 12px",
@@ -1330,9 +1334,9 @@ const Table = React.memo(() => {
                 tableSize={tableSize}
             />
 
-            {/*//! HEADER - CASINO STYLE - Hidden in mobile landscape;
-                portrait phones get the collapsed one-row header + hamburger */}
-            {isMobilePortrait ? (
+            {/*//! HEADER - CASINO STYLE — phones (both orientations) get the
+                collapsed one-row header + hamburger */}
+            {isCompactMobile ? (
                 <MobileTableHeader
                     tableId={id || ""}
                     tableName={gameName}
@@ -1396,40 +1400,6 @@ const Table = React.memo(() => {
                     handleLeaveTableClick={handleLeaveTableClick}
                     handleShareHand={handleShareHand}
                 />
-            )}
-
-            {/* Mobile Landscape Floating Controls */}
-            {isMobileLandscape && (
-                <div className="fixed top-2 left-2 right-2 flex justify-between items-center z-50">
-                    {/* Left: Essential Info */}
-                    <div className="flex items-center gap-2 bg-black bg-opacity-70 px-2 py-1 rounded-lg">
-                        <span className="text-white text-xs font-bold cursor-pointer" onClick={handleLobbyClick}>
-                            Table {id ? id.slice(-5) : ""}
-                        </span>
-                        <span className="text-gray-300 text-xs">|</span>
-                        <span className="text-white text-xs">
-                            {formattedValues.isTournamentStyle
-                                ? `${formattedValues.smallBlindFormatted}/${formattedValues.bigBlindFormatted}`
-                                : `$${formattedValues.smallBlindFormatted}/${formattedValues.bigBlindFormatted}`}
-                        </span>
-                    </div>
-
-                    {/* Right: Balance & Leave */}
-                    <div className="flex items-center gap-2 bg-black bg-opacity-70 px-2 py-1 rounded-lg">
-                        <span className="text-white text-xs font-mono">${balanceFormatted}</span>
-                        {/* No Leave in SNG — the roster is frozen once play
-                            starts (poker-vm#2343); SNG leave/claim flows live in
-                            the SNG modals (block52/ui#465). */}
-                        {currentPlayerData && !isSitAndGoFormat(gameFormat) && (
-                            <>
-                                <span className="text-gray-300 text-xs">|</span>
-                                <span className="text-white text-xs cursor-pointer flex items-center gap-1" onClick={handleLeaveTableClick}>
-                                    Leave <RxExit size={10} />
-                                </span>
-                            </>
-                        )}
-                    </div>
-                </div>
             )}
 
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
@@ -1569,16 +1539,21 @@ const Table = React.memo(() => {
             </div>
 
             {/*//! FOOTER — hidden in replay mode (read-only).
-                Portrait phones get NO persistent banner: the panel stays MOUNTED
-                (it hosts the auto-deal/auto-blinds/auto-fold/auto-new-hand hooks,
-                which must run regardless of visibility) in a chromeless overlay
-                above the safe area, so it occupies space only when it has
-                something to show — i.e. when it's the user's turn. */}
+                Phones (both orientations) get NO persistent banner: the panel stays
+                MOUNTED (it hosts the auto-deal/auto-blinds/auto-fold/auto-new-hand
+                hooks, which must run regardless of visibility) in a chromeless
+                overlay above the safe area, so it occupies space only when it has
+                something to show — i.e. when it's the user's turn. The safe-area
+                left/right insets matter in landscape, where the notch eats a side. */}
             {!isReplayMode &&
-                (isMobilePortrait ? (
+                (isCompactMobile ? (
                     <div
                         className="fixed bottom-0 left-0 right-0 z-[10] [&>div]:!bottom-0"
-                        style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+                        style={{
+                            paddingBottom: "env(safe-area-inset-bottom)",
+                            paddingLeft: "env(safe-area-inset-left)",
+                            paddingRight: "env(safe-area-inset-right)"
+                        }}
                     >
                         <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                         {gameFormat && isSitAndGoFormat(gameFormat) && (
@@ -1588,14 +1563,8 @@ const Table = React.memo(() => {
                         )}
                     </div>
                 ) : (
-                    <div
-                        className={`w-full flex justify-center items-center z-[10] ${
-                            isMobileLandscape
-                                ? "h-[80px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                                : "h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                        }`}
-                    >
-                        <div className={`w-full flex justify-center items-center h-full ${isMobileLandscape ? "max-w-[500px] px-2" : "max-w-[700px]"}`}>
+                    <div className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm">
+                        <div className="w-full flex justify-center items-center h-full max-w-[700px]">
                             <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                         </div>
                         {gameFormat && isSitAndGoFormat(gameFormat) && (
@@ -1620,7 +1589,7 @@ const Table = React.memo(() => {
                 <PlayerActionButtons
                     isMobile={isMobile}
                     isMobileLandscape={isMobileLandscape}
-                    isMobilePortrait={isMobilePortrait}
+                    isCompactMobile={isCompactMobile}
                     legalActions={playerLegalActions}
                     tableId={id}
                     currentNetwork={currentNetwork}
