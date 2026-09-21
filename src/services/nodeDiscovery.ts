@@ -24,6 +24,7 @@ export interface DiscoveredNode {
     probeStatus?: "pending" | "reachable" | "unreachable";
     blockHeight?: string | null;
     chainId?: string | null;
+    isValidator?: boolean;
 }
 
 /**
@@ -193,7 +194,22 @@ export async function probeNodeEndpoints(endpoints: NetworkEndpoints): Promise<{
     reachable: boolean;
     blockHeight: string | null;
     chainId: string | null;
+    isValidator: boolean;
 }> {
+    let isValidator = false;
+    const rpcUrl = endpoints.rpc.endsWith("/") ? endpoints.rpc : `${endpoints.rpc}/`;
+
+    try {
+        const response = await fetch(`${rpcUrl}status`, { signal: AbortSignal.timeout(5000) });
+        if (response.ok) {
+            const data = await response.json();
+            const votingPower = Number(data.result?.validator_info?.voting_power ?? 0);
+            isValidator = Number.isFinite(votingPower) && votingPower > 0;
+        }
+    } catch {
+        // Role detection is best effort; reachability is checked below.
+    }
+
     // Try REST API first (most reliable for Cosmos nodes)
     try {
         const response = await fetch(
@@ -207,7 +223,8 @@ export async function probeNodeEndpoints(endpoints: NetworkEndpoints): Promise<{
             return {
                 reachable: true,
                 blockHeight: header?.height || null,
-                chainId: header?.chain_id || null
+                chainId: header?.chain_id || null,
+                isValidator
             };
         }
     } catch {
@@ -216,7 +233,6 @@ export async function probeNodeEndpoints(endpoints: NetworkEndpoints): Promise<{
 
     // Try RPC /status endpoint as fallback
     try {
-        const rpcUrl = endpoints.rpc.endsWith("/") ? endpoints.rpc : `${endpoints.rpc}/`;
         const rpcResponse = await fetch(
             `${rpcUrl}status`,
             { signal: AbortSignal.timeout(5000) }
@@ -226,14 +242,15 @@ export async function probeNodeEndpoints(endpoints: NetworkEndpoints): Promise<{
             return {
                 reachable: true,
                 blockHeight: data.result?.sync_info?.latest_block_height || null,
-                chainId: data.result?.node_info?.network || null
+                chainId: data.result?.node_info?.network || null,
+                isValidator
             };
         }
     } catch {
         // Both failed
     }
 
-    return { reachable: false, blockHeight: null, chainId: null };
+    return { reachable: false, blockHeight: null, chainId: null, isValidator: false };
 }
 
 /**
@@ -251,7 +268,8 @@ export async function probeNodes(nodes: DiscoveredNode[]): Promise<DiscoveredNod
                 ...node,
                 probeStatus: probeResult.reachable ? "reachable" as const : "unreachable" as const,
                 blockHeight: probeResult.blockHeight,
-                chainId: probeResult.chainId
+                chainId: probeResult.chainId,
+                isValidator: probeResult.isValidator
             };
         })
     );
