@@ -81,8 +81,10 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const [autoLoadingAction, setAutoLoadingAction] = useState<string | null>(null);
     const loadingAction = submitLoadingAction ?? autoLoadingAction;
 
-    // Action sounds
-    const { playActionSound } = useActionSounds();
+    // Action sounds. Preloading is owned by the Table (useGameStateSounds, which
+    // knows the playerActionSounds setting); the player is shared, so this panel
+    // plays from the same warmed buffers without fetching when sounds are off.
+    const { playActionSound } = useActionSounds({ preload: false });
 
     // Detect mobile landscape orientation
     const [isMobileLandscape, setIsMobileLandscape] = useState(getViewportMode() === "mobile-landscape");

@@ -45,7 +45,7 @@ export const MAX_SOUNDS_PER_FRAME = 4;
  */
 export const useGameStateSounds = (enabled: boolean): void => {
     const { latestItem } = useGameEventsContext();
-    const { playActionSound } = useActionSounds();
+    const { playActionSound } = useActionSounds({ preload: enabled });
 
     // Pending staggered plays. Deliberately NOT cleared when the next frame
     // commits: a frame arriving inside the stagger window must not swallow the
