@@ -44,6 +44,9 @@ import type {
 /** At most one distinct action waits behind the in-flight one. */
 const QUEUE_CAP = 1;
 
+/** Actions that legitimately form a queued next-step chain across state changes. */
+const PROGRESSION_ACTIONS = new Set(["new-hand", "small-blind", "big-blind", "deal"]);
+
 /**
  * Jobs that released busy but have no final verdict are kept for late evidence
  * (a rejection surfaced after `unknown`, a commit after `accepted`). Bounded so
@@ -176,7 +179,8 @@ export class ActionSubmitController {
         // A double-click fires at the SAME game position → same key → collapsed.
         // The same action a street later fires at a NEW index → different key →
         // never wrongly dropped by the settle window. Callers may override.
-        const baseIndex = snapshotConfirmationSignals(this.getState()).actionIndex;
+        const queuedBaseline = snapshotConfirmationSignals(this.getState());
+        const baseIndex = queuedBaseline.actionIndex;
         const dedupeKey = request.dedupeKey ?? `${request.actionName}:${baseIndex}`;
         const at = this.now();
 
@@ -189,7 +193,8 @@ export class ActionSubmitController {
             request,
             dedupeKey,
             status: "queued",
-            submittedAt: at
+            submittedAt: at,
+            queuedBaseline
         };
 
         if (this.activeJob) {
@@ -486,12 +491,49 @@ export class ActionSubmitController {
             this.emit();
             return;
         }
-        const next = this.queue.shift();
-        if (next) {
+        while (this.queue.length > 0) {
+            const next = this.queue.shift()!;
+            if (this.isStaleQueuedDecision(next)) {
+                this.rejectStaleQueuedDecision(next);
+                continue;
+            }
             this.startJob(next);
             return;
         }
         this.emit();
+    }
+
+    /**
+     * A queued player decision was made against an older turn. Progression
+     * actions are intentionally exempt: new-hand → blind → deal is a valid
+     * chain even though its action index and hand number advance.
+     */
+    private isStaleQueuedDecision(job: SubmitJob): boolean {
+        if (PROGRESSION_ACTIONS.has(job.request.actionName)) {
+            return false;
+        }
+        const state = this.getState();
+        const localAddress = this.getLocalAddress();
+        if (!state || !localAddress) {
+            return false;
+        }
+        if (state.handNumber !== job.queuedBaseline.handNumber) {
+            return true;
+        }
+        return state.previousActions.some(action => action.playerId === localAddress && action.index >= job.queuedBaseline.actionIndex);
+    }
+
+    private rejectStaleQueuedDecision(job: SubmitJob): void {
+        const error: SubmitError = {
+            kind: "superseded",
+            message: `Your ${job.request.actionName} was not sent — the table moved on before it could run.`,
+            actionName: job.request.actionName
+        };
+        job.status = "failed";
+        job.error = error;
+        this.lastError = error;
+        this.lastSettledAt.set(job.dedupeKey, this.now());
+        this.onError(error);
     }
 
     // ---- tx-by-hash verdict ---------------------------------------------------
