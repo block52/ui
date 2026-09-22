@@ -7,6 +7,8 @@
  * 2. baseURI() + tokenId - for contracts using baseURI pattern (including proxies)
  */
 
+import { ipfsCandidateUrls, normalizeIpfsUri } from "./ipfs";
+
 const ETH_RPC_URL = import.meta.env.VITE_MAINNET_RPC_URL || "";
 
 // ERC-721 function selectors
@@ -109,19 +111,24 @@ async function ethCall(contractAddress: string, callData: string): Promise<{ res
  * Fetch metadata from tokenURI and extract image URL
  */
 async function fetchMetadataImage(tokenUri: string): Promise<string | null> {
-    try {
-        const metadataUrl = resolveIpfsUrl(tokenUri);
-        const metaResponse = await fetch(metadataUrl);
-        if (!metaResponse.ok) return null;
+    // ui#625: the metadata document is content-addressed too, so a gateway
+    // refusing us (a public gateway answers 403 under load) must not end the
+    // lookup — walk the configured chain before giving up.
+    for (const metadataUrl of ipfsCandidateUrls(tokenUri)) {
+        try {
+            const metaResponse = await fetch(metadataUrl);
+            if (!metaResponse.ok) continue;
 
-        const metadata = await metaResponse.json();
-        const imageUrl = metadata.image || metadata.image_url || null;
+            const metadata = await metaResponse.json();
+            const imageUrl = metadata.image || metadata.image_url || null;
 
-        return imageUrl ? resolveIpfsUrl(imageUrl) : null;
-    } catch (err) {
-        console.error("[nftImageResolver] Failed to fetch metadata:", err);
-        return null;
+            return imageUrl ? normalizeIpfsUri(imageUrl) : null;
+        } catch (err) {
+            console.error("[nftImageResolver] Failed to fetch metadata from", metadataUrl, err);
+        }
     }
+
+    return null;
 }
 
 /** Decode an ABI-encoded string from an eth_call result */
@@ -137,12 +144,4 @@ function decodeAbiString(hex: string): string | null {
     } catch {
         return null;
     }
-}
-
-/** Convert ipfs:// URLs to a public gateway */
-function resolveIpfsUrl(url: string): string {
-    if (url.startsWith("ipfs://")) {
-        return url.replace("ipfs://", "https://ipfs.io/ipfs/");
-    }
-    return url;
 }

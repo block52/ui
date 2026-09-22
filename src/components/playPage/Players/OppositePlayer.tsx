@@ -28,6 +28,7 @@ import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import { hasElements } from "../../../utils/guards";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
+import { PlayerAvatar } from "./PlayerAvatar";
 
 type OppositePlayerProps = {
     left?: string;
@@ -48,7 +49,6 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
     const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
     const { getAvatarForAddress } = useProfileAvatar();
-    const [avatarLoadFailed, setAvatarLoadFailed] = React.useState(false);
 
     // Get equity for this player if available
     const playerEquity = React.useMemo((): number | null => {
@@ -104,10 +104,6 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         return getAvatarForAddress(playerData?.address, playerData?.avatar);
     }, [getAvatarForAddress, playerData?.address, playerData?.avatar]);
 
-    React.useEffect(() => {
-        setAvatarLoadFailed(false);
-    }, [selectedAvatarUrl]);
-
     if (!playerData) {
         return <></>;
     }
@@ -152,21 +148,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     )}
                 </div>
                 <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
-                    {selectedAvatarUrl && !avatarLoadFailed && (
-                        <div className={styles.avatarChip}>
-                            <img
-                                src={selectedAvatarUrl}
-                                alt="Player avatar"
-                                className={styles.avatarImage}
-                                onError={() => setAvatarLoadFailed(true)}
-                            />
-                        </div>
-                    )}
-                    {selectedAvatarUrl && avatarLoadFailed && (
-                        <div className={`${styles.avatarChip} ${styles.avatarFallback}`}>
-                            NFT
-                        </div>
-                    )}
+                    <PlayerAvatar src={selectedAvatarUrl} />
                     {/* Spacer preserves the 55px flow height the old status bar occupied */}
                     <div className="w-full h-[55px]" />
                     <div className="absolute top-[-10px] w-full">
