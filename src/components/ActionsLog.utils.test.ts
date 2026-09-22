@@ -1,4 +1,4 @@
-import { ActionDTO, TexasHoldemRound, TexasHoldemStateDTO, PlayerActionType } from "@block52/poker-vm-sdk";
+import { ActionDTO, NonPlayerActionType, TexasHoldemRound, TexasHoldemStateDTO, PlayerActionType } from "@block52/poker-vm-sdk";
 import { getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
 import { WinnerInfo } from "../types/index";
 
@@ -41,6 +41,41 @@ describe("getActionLine", () => {
             true
         );
         expect(line).toBe("0x1234...5678 (Seat 3): Raise 1,500 chips - River");
+    });
+
+    // ui#660: monetary actions carry USDC micro-units even in tournaments —
+    // an SNG Join's 100,000 uUSDC buy-in must read "$0.10", never
+    // "100,000 chips" next to a 1,500-chip starting stack.
+    it("formats an SNG join's buy-in as USDC, not tournament chips", () => {
+        const line = getActionLine(
+            buildAction({ action: NonPlayerActionType.JOIN, amount: "100000", round: TexasHoldemRound.ANTE }),
+            true
+        );
+        expect(line).toBe("0x1234...5678 (Seat 3): Join $0.10 - Ante");
+    });
+
+    it("formats an SNG leave's payout as USDC, not tournament chips", () => {
+        const line = getActionLine(
+            buildAction({ action: NonPlayerActionType.LEAVE, amount: "200000", round: TexasHoldemRound.END }),
+            true
+        );
+        expect(line).toBe("0x1234...5678 (Seat 3): Leave $0.20 - End");
+    });
+
+    it("keeps SNG blind posts in chips (the non-monetary path is untouched)", () => {
+        const line = getActionLine(
+            buildAction({ action: "post-small-blind" as PlayerActionType, amount: "100", round: TexasHoldemRound.ANTE }),
+            true
+        );
+        expect(line).toBe("0x1234...5678 (Seat 3): Post Small Blind 100 chips - Ante");
+    });
+
+    it("leaves cash-game join formatting unchanged", () => {
+        const line = getActionLine(
+            buildAction({ action: NonPlayerActionType.JOIN, amount: "1000000", round: TexasHoldemRound.ANTE }),
+            false
+        );
+        expect(line).toBe("0x1234...5678 (Seat 3): Join $1.00 - Ante");
     });
 });
 

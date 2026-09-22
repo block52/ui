@@ -132,26 +132,63 @@ describe("ActionSubmitController", () => {
         expect(controller.getSnapshot()).toMatchObject({ status: "busy", loadingAction: "fold", queueDepth: 0 });
     });
 
-    it("serializes distinct actions — the second waits until the first is settled by evidence", async () => {
+    it("serializes progression actions — the second waits until the first is settled by evidence", async () => {
         const { controller, authoritative } = makeController();
-        const foldRun = jest.fn().mockResolvedValue(ok("0xfold"));
-        const callRun = jest.fn().mockResolvedValue(ok("0xcall"));
+        const newHandRun = jest.fn().mockResolvedValue(ok("0xnew-hand"));
+        const blindRun = jest.fn().mockResolvedValue(ok("0xblind"));
 
-        controller.submit({ actionName: "fold", run: foldRun });
-        controller.submit({ actionName: "call", run: callRun });
+        controller.submit({ actionName: "new-hand", run: newHandRun });
+        controller.submit({ actionName: "small-blind", run: blindRun });
         await flush();
 
-        // Fold is submitted; call is queued and has NOT run yet.
-        expect(foldRun).toHaveBeenCalledTimes(1);
-        expect(callRun).not.toHaveBeenCalled();
-        expect(controller.getSnapshot()).toMatchObject({ loadingAction: "fold", queueDepth: 1 });
+        // New hand is submitted; small blind is queued and has NOT run yet.
+        expect(newHandRun).toHaveBeenCalledTimes(1);
+        expect(blindRun).not.toHaveBeenCalled();
+        expect(controller.getSnapshot()).toMatchObject({ loadingAction: "new-hand", queueDepth: 1 });
 
-        // The chain records OUR fold → committed → call dequeues and runs.
-        authoritative(mine(PlayerActionType.FOLD));
+        // The chain records the new hand → blind dequeues and runs.
+        authoritative(snap({ actionCount: 0, handNumber: 2 }));
+        await flush();
+
+        expect(blindRun).toHaveBeenCalledTimes(1);
+        expect(controller.getSnapshot()).toMatchObject({ loadingAction: "small-blind" });
+    });
+
+    it("drops a queued decision when our preceding action advances the table", async () => {
+        const { controller, authoritative, onError } = makeController();
+        const callRun = jest.fn().mockResolvedValue(ok("0xcall"));
+        const foldRun = jest.fn().mockResolvedValue(ok("0xfold"));
+
+        controller.submit({ actionName: "call", run: callRun });
+        controller.submit({ actionName: "fold", run: foldRun });
+        await flush();
+
+        authoritative(mine(PlayerActionType.CALL));
         await flush();
 
         expect(callRun).toHaveBeenCalledTimes(1);
-        expect(controller.getSnapshot()).toMatchObject({ loadingAction: "call" });
+        expect(foldRun).not.toHaveBeenCalled();
+        expect(onError).toHaveBeenCalledWith(expect.objectContaining({
+            kind: "superseded",
+            actionName: "fold",
+            message: expect.stringContaining("was not sent")
+        }));
+        expect(controller.getSnapshot()).toMatchObject({ status: "idle", queueDepth: 0 });
+    });
+
+    it("runs a queued decision when its predecessor fails without advancing the table", async () => {
+        const { controller, onError } = makeController();
+        const failedRun = jest.fn().mockRejectedValue(new Error("insufficient funds"));
+        const foldRun = jest.fn().mockResolvedValue(ok("0xfold"));
+
+        controller.submit({ actionName: "call", run: failedRun });
+        controller.submit({ actionName: "fold", run: foldRun });
+        await flush();
+
+        expect(failedRun).toHaveBeenCalledTimes(1);
+        expect(foldRun).toHaveBeenCalledTimes(1);
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onError).toHaveBeenCalledWith(expect.objectContaining({ kind: "terminal", actionName: "call" }));
     });
 
     it("confirms only OUR recorded action — another player's action at the table does not confirm ours (ui#609)", async () => {

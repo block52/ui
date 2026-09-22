@@ -66,6 +66,7 @@ import { isCheckFreeForPlayer } from "../../utils/chipUtils";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
     // The ActionSubmitController owns dedupe, serialization, the safe transport
@@ -405,7 +406,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         const shouldShowBigBlindButton = hasBigBlindAction && isUsersTurn;
 
         return {
-            canFoldAnytime: hasFoldAction && playerStatus !== PlayerStatus.FOLDED && showButtons,
+            canFoldAnytime: hasFoldAction && !hasFoldedOrMucked(playerStatus) && showButtons,
             showActionButtons: isUsersTurn && hasElements(legalActions) && showButtons && !controlsPending,
             showSmallBlindButton: shouldShowSmallBlindButton && showButtons && !controlsPending,
             showBigBlindButton: shouldShowBigBlindButton && showButtons && !controlsPending

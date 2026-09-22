@@ -3,6 +3,7 @@ import { PlayerStatus } from "@block52/poker-vm-sdk";
 import { LoadingSpinner } from "../common";
 import { FoldButton } from "./FoldButton";
 import type { BlindButtonGroupProps } from "./types";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
 export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
     showSmallBlind,
@@ -20,7 +21,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
 }) => {
     return (
         <div className={`flex justify-center items-center ${isMobileLandscape ? "gap-0.5" : "gap-1 lg:gap-2"}`}>
-            {showSmallBlind && playerStatus !== PlayerStatus.FOLDED && (
+            {showSmallBlind && !hasFoldedOrMucked(playerStatus) && (
                 <button
                     onClick={onPostSmallBlind}
                     disabled={loading !== null}
@@ -42,7 +43,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                 </button>
             )}
 
-            {showBigBlind && playerStatus !== PlayerStatus.FOLDED && (
+            {showBigBlind && !hasFoldedOrMucked(playerStatus) && (
                 <button
                     onClick={onPostBigBlind}
                     disabled={loading !== null}
@@ -74,9 +75,9 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                 />
             )}
 
-            {playerStatus === PlayerStatus.FOLDED && (
+            {hasFoldedOrMucked(playerStatus) && (
                 <div className="text-gray-400 py-1.5 lg:py-2 px-2 lg:px-4 bg-gray-800 bg-opacity-50 rounded-lg text-xs lg:text-sm">
-                    You have folded this hand
+                    {playerStatus === PlayerStatus.MUCKED ? "You mucked your hand" : "You have folded this hand"}
                 </div>
             )}
         </div>

@@ -28,9 +28,11 @@ export const NetworkSelector: React.FC = () => {
     return (
         <div className="relative z-[10000]" ref={dropdownRef}>
             {/* Dropdown Button */}
+            {/* min-h-[44px]: minimum touch-target size (the header rows that host
+                this are ≥44px tall, so the extra height changes nothing visually) */}
             <button
                 onClick={() => setIsOpen(!isOpen)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-lg transition-all duration-200 ${styles.dropdownButton}`}
+                className={`flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-lg transition-all duration-200 ${styles.dropdownButton}`}
             >
                 {/* Network Icon */}
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -1,6 +1,6 @@
 import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usdcToMicro } from "../constants/currency";
-import { getRaiseToAmount, calculateRaiseToDisplay } from "./raiseUtils";
+import { getRaiseToAmount, calculateRaiseToDisplay, getStreetCommitTotalForAction } from "./raiseUtils";
 
 describe("calculateRaiseToDisplay", () => {
     describe("basic calculation", () => {
@@ -369,5 +369,71 @@ describe("getRaiseToAmount", () => {
             expect(result).toBe(1575);
             expect(Number.isInteger(result)).toBe(true);
         });
+    });
+});
+
+// ui#638 — the chain records action.amount as the STACK DELTA (chips that left
+// the stack), so a raise-to-600 from the SB (100 posted) arrives as 500. The
+// badge must recover the street total the buttons and chips already use.
+describe("getStreetCommitTotalForAction", () => {
+    const SB_ADDRESS = "b521qypqxpq9qcrsszg2pvxq6rs0zqg3yyc5z5tpwxqer";
+    const BB_ADDRESS = "b521qz4sdj8gfx9w9r8h8xvnkkl0xhucqhqv39gtr7";
+
+    const act = (
+        index: number,
+        playerId: string,
+        seat: number,
+        action: PlayerActionType,
+        amount: string,
+        round: TexasHoldemRound
+    ): ActionDTO => ({ playerId, seat, action, amount, round, index, timestamp: Date.now() });
+
+    it("recovers RAISE TO 600 from the 500 delta recorded for an SB raise at 100/200 (issue #638, hand #6)", () => {
+        const actions = [
+            act(1, SB_ADDRESS, 1, PlayerActionType.SMALL_BLIND, "100", TexasHoldemRound.ANTE),
+            act(2, BB_ADDRESS, 2, PlayerActionType.BIG_BLIND, "200", TexasHoldemRound.ANTE),
+            act(3, SB_ADDRESS, 1, PlayerActionType.RAISE, "500", TexasHoldemRound.PREFLOP)
+        ];
+        expect(getStreetCommitTotalForAction(actions, actions[2], true)).toBe(600);
+    });
+
+    it("recovers the matched total for a call after a posted blind, not the delta", () => {
+        // SB limps: posts 100, calls 100 more — the badge total is 200.
+        const actions = [
+            act(1, SB_ADDRESS, 1, PlayerActionType.SMALL_BLIND, "100", TexasHoldemRound.ANTE),
+            act(2, BB_ADDRESS, 2, PlayerActionType.BIG_BLIND, "200", TexasHoldemRound.ANTE),
+            act(3, SB_ADDRESS, 1, PlayerActionType.CALL, "100", TexasHoldemRound.PREFLOP)
+        ];
+        expect(getStreetCommitTotalForAction(actions, actions[2], true)).toBe(200);
+    });
+
+    it("sums cash amounts in dollars from micro-units", () => {
+        const actions = [
+            act(1, SB_ADDRESS, 1, PlayerActionType.SMALL_BLIND, "100000", TexasHoldemRound.ANTE),
+            act(2, BB_ADDRESS, 2, PlayerActionType.BIG_BLIND, "200000", TexasHoldemRound.ANTE),
+            act(3, SB_ADDRESS, 1, PlayerActionType.RAISE, "500000", TexasHoldemRound.PREFLOP)
+        ];
+        expect(getStreetCommitTotalForAction(actions, actions[2], false)).toBeCloseTo(0.6, 10);
+    });
+
+    it("does not fold a blind into a postflop bet", () => {
+        const actions = [
+            act(1, SB_ADDRESS, 1, PlayerActionType.SMALL_BLIND, "100", TexasHoldemRound.ANTE),
+            act(2, BB_ADDRESS, 2, PlayerActionType.BIG_BLIND, "200", TexasHoldemRound.ANTE),
+            act(5, SB_ADDRESS, 1, PlayerActionType.BET, "300", TexasHoldemRound.FLOP)
+        ];
+        expect(getStreetCommitTotalForAction(actions, actions[2], true)).toBe(300);
+    });
+
+    it("excludes the same player's LATER street actions via the index cut (coalesced frames)", () => {
+        const actions = [
+            act(1, SB_ADDRESS, 1, PlayerActionType.SMALL_BLIND, "100", TexasHoldemRound.ANTE),
+            act(3, SB_ADDRESS, 1, PlayerActionType.RAISE, "500", TexasHoldemRound.PREFLOP),
+            act(5, SB_ADDRESS, 1, PlayerActionType.RAISE, "600", TexasHoldemRound.PREFLOP)
+        ];
+        // Total for the FIRST raise must not include the later re-raise.
+        expect(getStreetCommitTotalForAction(actions, actions[1], true)).toBe(600);
+        // The re-raise's own total includes everything committed before it.
+        expect(getStreetCommitTotalForAction(actions, actions[2], true)).toBe(1200);
     });
 });

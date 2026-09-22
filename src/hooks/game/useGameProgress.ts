@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { GameProgressReturn } from "../../types/index";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
 /**
  * Custom hook to check if a game is in progress and provide game status information
@@ -58,7 +59,7 @@ export const useGameProgress = (_tableId?: string): GameProgressReturn => {
             // Filter for active players (not folded, not sitting out, and not seated)
             const activePlayers = gameState.players.filter(
                 (player: PlayerDTO) =>
-                    player.status !== PlayerStatus.FOLDED && player.status !== PlayerStatus.SITTING_OUT && player.status !== PlayerStatus.SEATED
+                    !hasFoldedOrMucked(player.status) && player.status !== PlayerStatus.SITTING_OUT && player.status !== PlayerStatus.SEATED
             );
 
             // Game is in progress if there are at least 2 active players

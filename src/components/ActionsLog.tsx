@@ -1,9 +1,11 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useSyncExternalStore } from "react";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
 import { formatAmount } from "../utils/accountUtils";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
+import { getBeatenHandDescription } from "../utils/showdownSummary";
+import { getLastHandResult, subscribeLastHandResult } from "../utils/lastHandResult";
 import { ActionDTO } from "@block52/poker-vm-sdk";
 import { formatActionName, formatRoundName, getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
@@ -19,6 +21,23 @@ const ActionsLog: React.FC = () => {
     const { gameState, gameFormat } = useGameStateContext();
     const { winnerInfo } = useWinnerInfo();
     const showWinnerSummary = shouldShowWinnerSummary(gameState, winnerInfo);
+
+    // The strongest revealed LOSING hand — the "over Pair, Kings" clause on the
+    // live winner rows. Evaluated client-side; null when nothing was revealed.
+    const beatenDescription = useMemo(
+        () => (showWinnerSummary ? getBeatenHandDescription(gameState, winnerInfo) : null),
+        [showWinnerSummary, gameState, winnerInfo]
+    );
+
+    // The PREVIOUS hand's summary, retained across the hand boundary (and this
+    // sidebar's own unmount) so a showdown that flew by — an all-in runout
+    // resolves in one engine step — can still be read afterwards. Hidden while
+    // the same hand's live winner rows are on screen.
+    const lastHandResult = useSyncExternalStore(subscribeLastHandResult, getLastHandResult);
+    const showLastHandBlock =
+        !!lastHandResult &&
+        lastHandResult.tableId === id &&
+        !(showWinnerSummary && lastHandResult.handNumber === gameState?.handNumber);
 
     // Monotonic fingerprint of the action log — changes only when a new action
     // lands, not on every gameState identity flip (same approach as
@@ -182,6 +201,7 @@ const ActionsLog: React.FC = () => {
                               <span className={styles.winnerText}>
                                   WINS {w.formattedAmount}
                                   {w.description && ` — ${w.description}`}
+                                  {w.description && beatenDescription && ` over ${beatenDescription}`}
                               </span>
                               <span className={`text-[10px] ${styles.secondaryText}`}>
                                   Seat {w.seat} · {w.winType === "showdown" ? "Showdown" : "Uncontested"}
@@ -190,7 +210,7 @@ const ActionsLog: React.FC = () => {
                       </div>
                   ))
                 : null,
-        [showWinnerSummary, winnerInfo]
+        [showWinnerSummary, winnerInfo, beatenDescription]
     );
 
     return (
@@ -226,13 +246,25 @@ const ActionsLog: React.FC = () => {
                 </div>
             </div>
             
+            {/* Previous hand's result, pinned above the current hand's actions */}
+            {showLastHandBlock && lastHandResult && (
+                <div className={`text-xs p-2 border-b ${styles.actionRow} ${styles.winnerRow}`}>
+                    <div className={`text-[10px] ${styles.secondaryText}`}>Last hand #{lastHandResult.handNumber}</div>
+                    {lastHandResult.lines.map((line, i) => (
+                        <div key={`last-hand-${i}`} className={styles.winnerText}>
+                            {line}
+                        </div>
+                    ))}
+                </div>
+            )}
+
             {hasElements(previousActions) ? (
                 <div className="space-y-0.5 p-2">
                     {actionRows}
                     {winnerRows}
                 </div>
             ) : (
-                <p 
+                <p
                     className={`text-xs p-3 ${styles.secondaryText}`}
                 >
                     No actions recorded yet.
