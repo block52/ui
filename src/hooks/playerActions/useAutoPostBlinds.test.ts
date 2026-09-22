@@ -90,6 +90,159 @@ describe("useAutoPostBlinds", () => {
         });
     });
 
+    // ui#662: the latch used to be set BEFORE the trigger ran, and the trigger
+    // returns without submitting when the amount or the table id has not arrived.
+    // So a render carrying `0n` burned the one shot for the whole opportunity and
+    // the blind never posted — the player was left with the manual button.
+    describe("late inputs (ui#662)", () => {
+        it("submits exactly once when the small blind amount arrives after the opportunity", () => {
+            const { rerender } = renderHook(
+                ({ amount }) => useAutoPostBlinds(TABLE_ID, NETWORK, true, false, amount, BB, true, submit, undefined, true),
+                { initialProps: { amount: 0n } }
+            );
+            expect(submit).not.toHaveBeenCalled();
+
+            rerender({ amount: SB });
+            expect(submit).toHaveBeenCalledTimes(1);
+            expect(submit.mock.calls[0][0].actionName).toBe("small-blind");
+
+            // the opportunity is now consumed — further renders must not re-submit
+            rerender({ amount: SB });
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("submits exactly once when the big blind amount arrives after the opportunity", () => {
+            const { rerender } = renderHook(
+                ({ amount }) => useAutoPostBlinds(TABLE_ID, NETWORK, false, true, SB, amount, true, submit, undefined, true),
+                { initialProps: { amount: 0n } }
+            );
+            expect(submit).not.toHaveBeenCalled();
+
+            rerender({ amount: BB });
+            expect(submit).toHaveBeenCalledTimes(1);
+            expect(submit.mock.calls[0][0].actionName).toBe("big-blind");
+
+            rerender({ amount: BB });
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("submits exactly once when the table id arrives after the opportunity", () => {
+            const { rerender } = renderHook(
+                ({ id }) => useAutoPostBlinds(id, NETWORK, true, false, SB, BB, true, submit, undefined, true),
+                { initialProps: { id: "" } }
+            );
+            expect(submit).not.toHaveBeenCalled();
+
+            rerender({ id: TABLE_ID });
+            expect(submit).toHaveBeenCalledTimes(1);
+
+            rerender({ id: TABLE_ID });
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("still re-arms for the next hand after a late-input opportunity was served", () => {
+            const { rerender } = renderHook(
+                ({ hasSb, amount }) => useAutoPostBlinds(TABLE_ID, NETWORK, hasSb, false, amount, BB, true, submit, undefined, true),
+                { initialProps: { hasSb: true, amount: 0n } }
+            );
+            rerender({ hasSb: true, amount: SB });
+            expect(submit).toHaveBeenCalledTimes(1);
+
+            rerender({ hasSb: false, amount: SB });
+            rerender({ hasSb: true, amount: SB });
+            expect(submit).toHaveBeenCalledTimes(2);
+        });
+
+        it("never submits while the amount stays zero for the whole opportunity", () => {
+            const { rerender } = renderHook(
+                ({ hasSb }) => useAutoPostBlinds(TABLE_ID, NETWORK, hasSb, false, 0n, BB, true, submit, undefined, true),
+                { initialProps: { hasSb: true } }
+            );
+            rerender({ hasSb: true });
+            rerender({ hasSb: false });
+            expect(submit).not.toHaveBeenCalled();
+        });
+    });
+
+    // ui#655: the c1001 session left "Post Small Blind 25" on screen over a pot
+    // of 0, hand after hand. The auto-post HAD fired and been rejected — and the
+    // latch survived the rejection, so the hook never looked again for the whole
+    // opportunity. A manual click or a refresh was the only way on.
+    describe("recovery after a rejected auto-post (ui#655)", () => {
+        const fail = (kind: SubmitError["kind"], actionName = "small-blind"): SubmitError => ({
+            kind,
+            message: "rejected",
+            actionName
+        });
+
+        it("looks again after a rejection, without a refresh", () => {
+            renderHook(() => useAutoPostBlinds(TABLE_ID, NETWORK, true, false, SB, BB, true, submit, undefined, true));
+            expect(submit).toHaveBeenCalledTimes(1);
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(2);
+            expect(submit.mock.calls[1][0].actionName).toBe("small-blind");
+        });
+
+        it("stops after one second look — two failures are evidence, not grounds for a third", () => {
+            renderHook(() => useAutoPostBlinds(TABLE_ID, NETWORK, true, false, SB, BB, true, submit, undefined, true));
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+            act(() => submit.mock.calls[1][0].onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(2);
+        });
+
+        it("does not look again when the table has moved past us", () => {
+            renderHook(() => useAutoPostBlinds(TABLE_ID, NETWORK, true, false, SB, BB, true, submit, undefined, true));
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("stale")));
+
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("does not look again once the opportunity is gone", () => {
+            const { rerender } = renderHook(
+                ({ hasSb }) => useAutoPostBlinds(TABLE_ID, NETWORK, hasSb, false, SB, BB, true, submit, undefined, true),
+                { initialProps: { hasSb: true } }
+            );
+            const firstRequest = submit.mock.calls[0][0];
+
+            rerender({ hasSb: false });
+            act(() => firstRequest.onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("gives the NEXT hand its own full allowance", () => {
+            const { rerender } = renderHook(
+                ({ hasSb }) => useAutoPostBlinds(TABLE_ID, NETWORK, hasSb, false, SB, BB, true, submit, undefined, true),
+                { initialProps: { hasSb: true } }
+            );
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+            expect(submit).toHaveBeenCalledTimes(2);
+
+            // opportunity ends, a new hand brings a new one
+            rerender({ hasSb: false });
+            rerender({ hasSb: true });
+            expect(submit).toHaveBeenCalledTimes(3);
+
+            act(() => submit.mock.calls[2][0].onFailure!(fail("terminal")));
+            expect(submit).toHaveBeenCalledTimes(4);
+        });
+
+        it("recovers each blind independently", () => {
+            renderHook(() => useAutoPostBlinds(TABLE_ID, NETWORK, false, true, SB, BB, true, submit, undefined, true));
+            expect(submit.mock.calls[0][0].actionName).toBe("big-blind");
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal", "big-blind")));
+
+            expect(submit).toHaveBeenCalledTimes(2);
+            expect(submit.mock.calls[1][0].actionName).toBe("big-blind");
+        });
+    });
+
     // The regression itself: on 21 Sept 2026 a rejected auto-post ("account
     // sequence mismatch, expected 120, got 119") was only ever console.error'd,
     // so the player just saw a manual "Post Small Blind" button appear.

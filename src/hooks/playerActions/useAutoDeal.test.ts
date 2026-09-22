@@ -4,10 +4,10 @@
  * The hook no longer broadcasts: it hands the deal to the ActionSubmitController
  * so every tx from this account goes through one queue.
  */
-import { renderHook } from "@testing-library/react";
+import { renderHook, act } from "@testing-library/react";
 import { useAutoDeal } from "./useAutoDeal";
 import { dealCardsWithEntropy } from "./dealCards";
-import type { SubmitActionRequest } from "../../submit/types";
+import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 
 jest.mock("./dealCards");
 
@@ -75,6 +75,83 @@ describe("useAutoDeal", () => {
             rerender({ hasDeal: false });
             rerender({ hasDeal: true });
             expect(submit).toHaveBeenCalledTimes(2);
+        });
+    });
+
+    // ui#662, same shape as the blinds: the latch was set before the trigger ran,
+    // and the trigger returns without submitting when the table id is missing.
+    describe("late inputs (ui#662)", () => {
+        it("submits exactly once when the table id arrives after the opportunity", () => {
+            const { rerender } = renderHook(({ id }) => useAutoDeal(id, NETWORK, true, true, submit, undefined, true), {
+                initialProps: { id: "" }
+            });
+            expect(submit).not.toHaveBeenCalled();
+
+            rerender({ id: TABLE_ID });
+            expect(submit).toHaveBeenCalledTimes(1);
+
+            rerender({ id: TABLE_ID });
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+    });
+
+    // ui#655: the c1001 session repeatedly left DEAL on screen after the blinds
+    // had posted (hand 1/4, hand 5/2). The auto-deal had fired and been
+    // rejected, and the latch outlived the rejection.
+    describe("recovery after a rejected auto-deal (ui#655)", () => {
+        const fail = (kind: SubmitError["kind"]): SubmitError => ({ kind, message: "rejected", actionName: "deal" });
+
+        it("looks again after a rejection, without a refresh", () => {
+            renderHook(() => useAutoDeal(TABLE_ID, NETWORK, true, true, submit, undefined, true));
+            expect(submit).toHaveBeenCalledTimes(1);
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(2);
+            expect(submit.mock.calls[1][0].actionName).toBe("deal");
+        });
+
+        it("stops after one second look", () => {
+            renderHook(() => useAutoDeal(TABLE_ID, NETWORK, true, true, submit, undefined, true));
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("transport")));
+            act(() => submit.mock.calls[1][0].onFailure!(fail("transport")));
+
+            expect(submit).toHaveBeenCalledTimes(2);
+        });
+
+        it("does not look again when the table has moved past us", () => {
+            renderHook(() => useAutoDeal(TABLE_ID, NETWORK, true, true, submit, undefined, true));
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("stale")));
+
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("does not look again once DEAL is no longer legal", () => {
+            const { rerender } = renderHook(({ hasDeal }) => useAutoDeal(TABLE_ID, NETWORK, hasDeal, true, submit, undefined, true), {
+                initialProps: { hasDeal: true }
+            });
+            const firstRequest = submit.mock.calls[0][0];
+
+            rerender({ hasDeal: false });
+            act(() => firstRequest.onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("gives the next hand its own allowance", () => {
+            const { rerender } = renderHook(({ hasDeal }) => useAutoDeal(TABLE_ID, NETWORK, hasDeal, true, submit, undefined, true), {
+                initialProps: { hasDeal: true }
+            });
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+            expect(submit).toHaveBeenCalledTimes(2);
+
+            rerender({ hasDeal: false });
+            rerender({ hasDeal: true });
+            act(() => submit.mock.calls[2][0].onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(4);
         });
     });
 });
