@@ -8,6 +8,7 @@ import { getAutoNewHandEnabled } from "../../utils/urlParams";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isNullish } from "../../utils/guards";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
+import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
 
 /**
  * Hook to automatically trigger a new hand when the current hand ends.
@@ -67,6 +68,10 @@ export function useAutoNewHand(
 ): { isDealingNewHand: boolean } {
     // Track if we've already triggered new hand for this opportunity
     const hasTriggeredRef = useRef<boolean>(false);
+    // ui#661: re-arms spent on the current opportunity, and the tick that makes
+    // a re-arm re-run the gate below (a ref alone would not).
+    const rearmCountRef = useRef<number>(0);
+    const [rearmToken, setRearmToken] = useState<number>(0);
     // Check if auto-new-hand is enabled — prefer the reactive `enabled` prop, fall back to URL param
     const autoNewHandEnabledRef = useRef<boolean>(enabled ?? getAutoNewHandEnabled());
     // Drives the "Dealing hand #X…" indicator (showdown hold + deal request).
@@ -90,9 +95,24 @@ export function useAutoNewHand(
         }
     }, [enabled]);
 
-    const triggerAutoNewHand = useCallback(() => {
-        if (!tableId) {
+    // ui#661: a failed new-hand used to hold the latch until the opportunity
+    // itself disappeared — which, at a showdown nobody else can deal from, means
+    // the table simply stops. Clearing the latch re-runs the check below, which
+    // re-reads the LOGICAL track: current hand, turn and NEW_HAND legality are
+    // all revalidated before anything is submitted again, and the controller's
+    // dedupe collapses a manual "Deal" racing the retry.
+    const rearmAfterFailure = useCallback((error: SubmitError) => {
+        if (!shouldRearmAfterFailure(error) || rearmCountRef.current >= MAX_AUTO_REARMS) {
             return;
+        }
+        rearmCountRef.current += 1;
+        hasTriggeredRef.current = false;
+        setRearmToken(token => token + 1);
+    }, []);
+
+    const triggerAutoNewHand = useCallback((): boolean => {
+        if (!tableId) {
+            return false;
         }
         // isDealingNewHand stays true after a successful broadcast — it is
         // cleared by the effect below when the next hand starts, so the
@@ -100,9 +120,11 @@ export function useAutoNewHand(
         submit({
             actionName: "new-hand",
             run: () => startNewHand(tableId, network),
-            onSuccess: onNewHandSubmitted
+            onSuccess: onNewHandSubmitted,
+            onFailure: rearmAfterFailure
         });
-    }, [tableId, network, submit, onNewHandSubmitted]);
+        return true;
+    }, [tableId, network, submit, onNewHandSubmitted, rearmAfterFailure]);
 
     // A failed deal — the controller has already told the player — must not
     // leave "Dealing hand #X…" up forever. Keyed on the error OBJECT: the
@@ -130,21 +152,25 @@ export function useAutoNewHand(
             !hasTriggeredRef.current;
 
         if (shouldAutoNewHand) {
-            hasTriggeredRef.current = true;
+            // ui#662: latch on the SUBMISSION, not the intent — a render before
+            // the table id arrived used to burn the one shot for the opportunity.
             // Surface the "Dealing hand #X…" indicator, then deal immediately —
             // the showdownHold decoration keeps the showdown visible on the
             // rendered track while the next hand deals behind it.
-            setIsDealingNewHand(true);
-            triggerAutoNewHand();
+            if (triggerAutoNewHand()) {
+                hasTriggeredRef.current = true;
+                setIsDealingNewHand(true);
+            }
         }
 
         // New-hand opportunity gone (a hand started — by us or another player).
         // Reset so the next END re-arms, and drop the dealing indicator.
         if (!hasNewHandAction) {
             hasTriggeredRef.current = false;
+            rearmCountRef.current = 0;
             setIsDealingNewHand(false);
         }
-    }, [latestItem, localAddress, triggerAutoNewHand]);
+    }, [latestItem, localAddress, triggerAutoNewHand, rearmToken]);
 
     return { isDealingNewHand };
 }

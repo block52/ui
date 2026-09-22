@@ -120,4 +120,81 @@ describe("useAutoNewHand", () => {
         expect(submit).toHaveBeenCalledTimes(2);
         expect(result.current.isDealingNewHand).toBe(true);
     });
+
+    // ui#661: hand 7's showdown on c1001 never progressed — two screenshots ~30s
+    // apart still on hand7/action6. A failed new-hand held the latch, and at a
+    // showdown there is no other player to deal from, so the table simply stops.
+    describe("recovery after a failed new-hand (ui#661)", () => {
+        const fail = (kind: SubmitError["kind"]): SubmitError => ({ kind, message: "rejected", actionName: "new-hand" });
+
+        it("looks again after a failure, without a refresh", () => {
+            mockLatest.mockReturnValue(snapshot(true));
+            renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+            expect(submit).toHaveBeenCalledTimes(1);
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(2);
+            expect(submit.mock.calls[1][0].actionName).toBe("new-hand");
+        });
+
+        it("re-reads the logical track before re-submitting, so a hand that started meanwhile is not dealt twice", () => {
+            mockLatest.mockReturnValue(snapshot(true));
+            renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+            const firstRequest = submit.mock.calls[0][0];
+
+            // the hand started anyway — NEW_HAND is gone from the logical track
+            mockLatest.mockReturnValue(snapshot(false));
+            act(() => firstRequest.onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("does not look again out of turn", () => {
+            mockLatest.mockReturnValue(snapshot(true));
+            renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+            const firstRequest = submit.mock.calls[0][0];
+
+            mockLatest.mockReturnValue(snapshot(true, 2));
+            act(() => firstRequest.onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("stops after one second look", () => {
+            mockLatest.mockReturnValue(snapshot(true));
+            renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+            act(() => submit.mock.calls[1][0].onFailure!(fail("terminal")));
+
+            expect(submit).toHaveBeenCalledTimes(2);
+        });
+
+        it("does not look again when the table has moved past us", () => {
+            mockLatest.mockReturnValue(snapshot(true));
+            renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+
+            act(() => submit.mock.calls[0][0].onFailure!(fail("superseded")));
+
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("gives the next showdown its own allowance", () => {
+            mockLatest.mockReturnValue(snapshot(true));
+            const { rerender } = renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+            act(() => submit.mock.calls[0][0].onFailure!(fail("terminal")));
+            expect(submit).toHaveBeenCalledTimes(2);
+
+            // the hand starts, then the next one ends
+            frame(snapshot(false));
+            act(() => rerender());
+            frame(snapshot(true));
+            act(() => rerender());
+            expect(submit).toHaveBeenCalledTimes(3);
+
+            act(() => submit.mock.calls[2][0].onFailure!(fail("terminal")));
+            expect(submit).toHaveBeenCalledTimes(4);
+        });
+    });
 });

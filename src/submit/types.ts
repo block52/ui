@@ -35,6 +35,17 @@ export interface SubmitActionRequest {
     dedupeKey?: string;
     /** Called once with the tx hash on a successful broadcast (before confirm). */
     onSuccess?: (hash: string) => void;
+    /**
+     * Called once when the job reaches a terminal FAILURE (ui#655/#661). The
+     * controller already tells the player; this is for a submitter that needs
+     * to know its own attempt is over — an automatic action, which otherwise
+     * holds its once-per-opportunity latch forever and leaves the manual
+     * button as the only way forward.
+     *
+     * Not called for `unknown` (no evidence either way): that is a notice, not
+     * a failure, and re-submitting on it risks a duplicate.
+     */
+    onFailure?: (error: SubmitError) => void;
 }
 
 /**
