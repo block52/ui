@@ -6,6 +6,7 @@ import { getRaiseToAmount } from "../../utils/raiseUtils";
 import { formatDisplayAmount } from "../../utils/numberUtils";
 import type { MainActionButtonsProps } from "./types";
 import styles from "./MainActionButtons.module.css";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
 export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
     canFold,
@@ -48,9 +49,9 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                 />
             )}
 
-            {playerStatus === PlayerStatus.FOLDED && (
+            {hasFoldedOrMucked(playerStatus) && (
                 <div className="text-gray-400 py-1.5 lg:py-2 px-2 lg:px-4 bg-gray-800 bg-opacity-50 rounded-lg text-xs lg:text-sm">
-                    You have folded this hand
+                    {playerStatus === PlayerStatus.MUCKED ? "You mucked your hand" : "You have folded this hand"}
                 </div>
             )}
 

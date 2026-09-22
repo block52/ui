@@ -7,6 +7,7 @@ import { useGameUI } from "../../context/gameState/GameUIContext";
 import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { convertUSDCToNumber } from "../../utils/numberUtils";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
 /**
  * Custom hook to fetch player data for a specific seat
@@ -61,7 +62,7 @@ export const usePlayerData = (seatIndex?: number): PlayerDataReturn => {
   
   // Calculate derived properties
   const isFolded = React.useMemo((): boolean => {
-    return playerData?.status === PlayerStatus.FOLDED;
+    return hasFoldedOrMucked(playerData?.status);
   }, [playerData]);
   
   const isAllIn = React.useMemo((): boolean => {
