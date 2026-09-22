@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { truncateMiddle } from "../utils/stringUtils";
 import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
@@ -63,6 +63,22 @@ const TableList: React.FC = () => {
     const [buyInSortDir, setBuyInSortDir] = useState<SortDirection>(null);
     const [gameIdSearch, setGameIdSearch] = useState("");
     const [showTreasuryOnly, setShowTreasuryOnly] = useState(!!treasuryAddress);
+    // The treasury toggle is not RENDERED below the sm breakpoint (it doesn't
+    // fit the 328px card header). A `hidden` class is not enough: it stays
+    // tabbable and can still contribute to the flex layout calculation.
+    // matchMedia is guarded (same as stageGeometry) — jsdom lacks it; the
+    // fallback is sm-up, i.e. today's desktop rendering.
+    const [isSmUp, setIsSmUp] = useState<boolean>(() =>
+        typeof window.matchMedia === "function" ? window.matchMedia("(min-width: 640px)").matches : true
+    );
+
+    useEffect(() => {
+        if (typeof window.matchMedia !== "function") return;
+        const mq = window.matchMedia("(min-width: 640px)");
+        const onChange = (e: MediaQueryListEvent) => setIsSmUp(e.matches);
+        mq.addEventListener("change", onChange);
+        return () => mq.removeEventListener("change", onChange);
+    }, []);
 
     const handlePlayersSortClick = useCallback(() => {
         setPlayersSortDir(prev => {
@@ -248,27 +264,30 @@ const TableList: React.FC = () => {
 
     return (
         <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-            {/* Header */}
-            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex items-center gap-4">
-                <h2 className="text-xl font-bold text-white shrink-0">Available Tables</h2>
-                <div className="flex items-center gap-3 ml-auto">
-                    {treasuryAddress && (
-                        <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                            <span className="text-sm text-gray-400 select-none">Treasury Only Tables</span>
-                            <button
-                                role="switch"
-                                aria-checked={showTreasuryOnly}
-                                onClick={() => setShowTreasuryOnly(v => !v)}
-                                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${showTreasuryOnly ? "bg-blue-600" : "bg-gray-600"}`}
-                            >
-                                <span
-                                    className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${showTreasuryOnly ? "translate-x-4" : "translate-x-1"}`}
-                                />
-                            </button>
-                        </label>
-                    )}
-                </div>
-                <div className="relative max-w-xs w-full">
+            {/* Header — stacks vertically below sm so the search box gets real
+                width instead of being crushed by three children on one line */}
+            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
+                <h2 className="text-xl font-bold text-white sm:shrink-0">Available Tables</h2>
+                {isSmUp && (
+                    <div className="flex items-center gap-3 ml-auto">
+                        {treasuryAddress && (
+                            <label className="flex items-center gap-2 cursor-pointer shrink-0">
+                                <span className="text-sm text-gray-400 select-none">Treasury Only Tables</span>
+                                <button
+                                    role="switch"
+                                    aria-checked={showTreasuryOnly}
+                                    onClick={() => setShowTreasuryOnly(v => !v)}
+                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${showTreasuryOnly ? "bg-blue-600" : "bg-gray-600"}`}
+                                >
+                                    <span
+                                        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${showTreasuryOnly ? "translate-x-4" : "translate-x-1"}`}
+                                    />
+                                </button>
+                            </label>
+                        )}
+                    </div>
+                )}
+                <div className="relative w-full sm:max-w-xs">
                     <svg
                         className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
                         fill="none"
@@ -287,42 +306,47 @@ const TableList: React.FC = () => {
                 </div>
             </div>
 
-            {/* Table */}
-            <div className="overflow-x-auto">
-                <table className="w-full">
-                    <colgroup>
-                        <col className="w-[150px]" />
-                        <col className="w-[140px]" />
-                        {hasCashGames && <col className="w-[150px]" />}
-                        <col className="w-[120px]" />
-                        <col className="w-[120px]" />
-                        <col className="w-[100px]" />
-                        <col className="w-[190px]" />
-                        <col className="w-[80px]" />
-                        <col className="w-[90px]" />
-                    </colgroup>
+            {/* Table.
+                Below sm: fixed layout with a reduced 4-column set (Table ID,
+                Players, Buy-In, Action) whose % widths sum to 100 — the table can
+                never outgrow the card, so the wrapper needs no horizontal scroll.
+                From sm up: auto layout with the original px widths (moved from the
+                old colgroup onto the th cells) and the scroll wrapper restored. */}
+            <div className="overflow-visible sm:overflow-x-auto">
+                <table className="w-full table-fixed sm:table-auto">
                     <thead className="bg-gray-900">
                         <tr>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Club</th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Table ID</th>
-                            {hasCashGames && <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Stakes</th>}
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                            <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Club</th>
+                            <th className="w-[38%] sm:w-[140px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Table ID</th>
+                            {hasCashGames && (
+                                <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Stakes</th>
+                            )}
+                            {/* Format sorting is only reachable from md up — the column
+                                (and its SortButton) is not rendered below that. */}
+                            <th className="hidden md:table-cell md:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
                                 <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
                             </th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                            <th className="hidden sm:table-cell sm:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
+                            <th className="w-[18%] sm:w-[100px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
                                 <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
                             </th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">
+                            <th className="w-[24%] sm:w-[190px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
                                 <SortButton label="Buy-In" direction={buyInSortDir} onClick={handleBuyInSortClick} />
                             </th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
-                            <th className="px-4 py-3 text-center text-sm font-semibold text-gray-400"></th>
+                            <th className="w-[20%] sm:w-[80px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
+                            {/* Creator-only manage column (delete / force-close). Looks
+                                empty to non-creators but is NOT dead — hidden on mobile
+                                rather than deleted. */}
+                            <th className="hidden sm:table-cell sm:w-[90px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400"></th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
                         {isEmpty(games) ? (
                             <tr>
+                                {/* colSpan is the MAX column count; browsers clamp it to the
+                                    columns actually rendered at the breakpoint, so with the
+                                    table at w-full this centres inside the card at every width
+                                    (it used to inherit the overflowing 597px track). */}
                                 <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
                                     <div className="mb-4">
                                         <svg className="w-12 h-12 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -343,22 +367,22 @@ const TableList: React.FC = () => {
                                 const isTournament = isTournamentFormat(game.gameFormat);
                                 return (
                                     <tr key={game.gameId} className="hover:bg-gray-700/50 transition-colors">
-                                        <td className="px-4 py-4">
+                                        <td className="hidden sm:table-cell px-2 sm:px-4 py-4">
                                             <div className="flex items-center justify-center gap-2">
                                                 <img src={clubLogo} alt={clubName} className="w-6 h-6 object-contain" />
                                                 <span className="text-white">{clubName}</span>
                                             </div>
                                         </td>
-                                        <td className="px-4 py-4">
-                                            <div className="flex items-center justify-center gap-2">
+                                        <td className="px-2 sm:px-4 py-4">
+                                            <div className="flex items-center justify-center gap-2 min-w-0">
                                                 {/* Named tables (poker-vm#337) show their name; unnamed fall
                                                     back to the truncated gameId (name stays undefined in data). */}
                                                 {game.name ? (
-                                                    <span className="text-white text-sm font-semibold" title={game.gameId}>
+                                                    <span className="text-white text-sm font-semibold truncate" title={game.gameId}>
                                                         {game.name}
                                                     </span>
                                                 ) : (
-                                                    <span className="text-gray-300 font-mono text-sm">
+                                                    <span className="text-gray-300 font-mono text-sm truncate" title={game.gameId}>
                                                         {truncateMiddle(game.gameId, 4, 4)}
                                                     </span>
                                                 )}
@@ -379,7 +403,7 @@ const TableList: React.FC = () => {
                                             </div>
                                         </td>
                                         {hasCashGames && (
-                                            <td className="px-4 py-4 text-center">
+                                            <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
                                                 {!isTournament ? (
                                                     <span className="text-white font-bold">
                                                         ${formatMicroAsUsdc(game.smallBlind, 2)} / ${formatMicroAsUsdc(game.bigBlind, 2)}
@@ -389,32 +413,34 @@ const TableList: React.FC = () => {
                                                 )}
                                             </td>
                                         )}
-                                        <td className="px-4 py-4 text-center">
+                                        <td className="hidden md:table-cell px-2 sm:px-4 py-4 text-center">
                                             <span className="text-white capitalize">{formatGameFormatDisplay(game.gameFormat)}</span>
                                         </td>
-                                        <td className="px-4 py-4 text-center">
+                                        <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
                                             <span className="text-white capitalize">{formatGameVariantDisplay(game.gameVariant)}</span>
                                         </td>
-                                        <td className="px-4 py-4 text-center">
+                                        <td className="px-2 sm:px-4 py-4 text-center">
                                             <span className="text-white font-semibold">
                                                 {game.currentPlayers}/{game.maxPlayers}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-4 text-center">
-                                            <span className="text-gray-300 font-mono text-sm">{formatBuyIn(game)}</span>
+                                        <td className="px-2 sm:px-4 py-4 text-center">
+                                            <span className="block truncate text-gray-300 font-mono text-sm" title={formatBuyIn(game)}>
+                                                {formatBuyIn(game)}
+                                            </span>
                                         </td>
-                                        <td className="px-4 py-4 text-center">
+                                        <td className="px-2 sm:px-4 py-4 text-center">
                                             <a
                                                 href={`/table/${game.gameId}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
                                                 aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
-                                                className={`inline-block px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
+                                                className={`inline-block px-3 sm:px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
                                             >
                                                 {game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
                                             </a>
                                         </td>
-                                        <td className="px-4 py-4 text-center">
+                                        <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
                                             {canDelete(game) && (
                                                 <button
                                                     onClick={() => setDeleteModalGameId(game.gameId)}
