@@ -1,7 +1,17 @@
-import { ActionDTO, TexasHoldemRound, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { ActionDTO, NonPlayerActionType, TexasHoldemRound, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { formatPlayerId, formatAmount } from "../utils/accountUtils";
 import { WinnerInfo } from "../types/index";
 import { hasElements } from "../utils/guards";
+
+/**
+ * Actions whose amounts are MONETARY (USDC micro-units) even in tournaments:
+ * join carries the buy-in paid, leave the stack/prize taken out, top-up the
+ * chips purchased. Everything ELSE in an SNG/tournament (blinds, bets, raises,
+ * calls) is tournament chips. Formatting these by game format alone labelled an
+ * SNG's 100,000 µUSDC ($0.10) buy-in as "100,000 chips" next to a 1,500-chip
+ * starting stack (ui#660).
+ */
+const MONETARY_ACTIONS = new Set<string>([NonPlayerActionType.JOIN, NonPlayerActionType.LEAVE, NonPlayerActionType.TOP_UP]);
 
 export const formatActionName = (action: string): string => {
     switch (action.toLowerCase()) {
@@ -66,7 +76,9 @@ export const formatRoundName = (round: string): string => {
 export const getActionLine = (action: ActionDTO, isTournament: boolean): string => {
     const player = formatPlayerId(action.playerId);
     const actionName = formatActionName(action.action);
-    const amount = action.amount ? ` ${formatAmount(action.amount, undefined, isTournament)}` : "";
+    // Monetary actions format as USDC regardless of game format (ui#660).
+    const asChips = isTournament && !MONETARY_ACTIONS.has(action.action);
+    const amount = action.amount ? ` ${formatAmount(action.amount, undefined, asChips)}` : "";
     const round = formatRoundName(action.round);
     return `${player} (Seat ${action.seat}): ${actionName}${amount} - ${round}`;
 };

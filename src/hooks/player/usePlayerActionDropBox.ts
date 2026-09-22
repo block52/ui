@@ -72,6 +72,11 @@ export const formatActionAmount = (amount: string | undefined, isTournament: boo
 // Committing actions whose badge shows the STREET TOTAL, not the stack delta.
 const STREET_TOTAL_ACTIONS: string[] = [PlayerActionType.BET, PlayerActionType.CALL, PlayerActionType.RAISE];
 
+// Actions whose amounts are MONETARY (USDC micro-units) even in tournaments —
+// join carries the buy-in, leave the stack/prize taken, top-up the purchase.
+// Formatting them as chips labelled µUSDC as tournament chips (ui#660).
+const MONETARY_ACTIONS: string[] = [NonPlayerActionType.JOIN, NonPlayerActionType.LEAVE, NonPlayerActionType.TOP_UP];
+
 /**
  * Build the badge label + amount for an action (ui#638).
  *
@@ -93,7 +98,9 @@ export const getActionBadgeDisplay = (
   const baseLabel = ACTION_DISPLAY_MAP[action.action] || action.action.toUpperCase();
 
   if (!STREET_TOTAL_ACTIONS.includes(action.action)) {
-    return { action: baseLabel, amount: formatActionAmount(action.amount, isTournament) };
+    // Monetary actions format as USDC regardless of game format (ui#660).
+    const asChips = isTournament && !MONETARY_ACTIONS.includes(action.action);
+    return { action: baseLabel, amount: formatActionAmount(action.amount, asChips) };
   }
 
   const total = getStreetCommitTotalForAction(previousActions, action, isTournament);

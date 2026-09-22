@@ -112,4 +112,22 @@ describe("getActionBadgeDisplay", () => {
             amount: ""
         });
     });
+
+    // ui#660: monetary actions (join/leave/top-up) carry USDC micro-units even
+    // in tournaments — a LEFT badge must not chips-format the µUSDC payout.
+    it("formats an SNG leave's monetary amount as USDC, not chips", () => {
+        const leave: ActionDTO = {
+            playerId: SB_ADDRESS,
+            seat: 1,
+            action: "leave" as ActionDTO["action"],
+            amount: "200000",
+            round: TexasHoldemRound.END,
+            index: 9,
+            timestamp: Date.now()
+        };
+        expect(getActionBadgeDisplay(leave, [leave], true)).toEqual({
+            action: "LEFT",
+            amount: " $0.20"
+        });
+    });
 });
