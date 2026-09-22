@@ -89,6 +89,53 @@ describe("useTableLayout", () => {
             expect(result.current.containerHeight).toBe(600);
         });
 
+        // ui#658: Table's loading branch renders no container, so on first load
+        // the ref is null when the hook mounts and the real body appears later.
+        // The reported numbers: window 1705×1278 was used where the body was
+        // 1705×1178, and the fixed footer covered the bottom seat.
+        it("re-measures when the container mounts AFTER the first render (loading branch)", () => {
+            const container = makeContainer(1705, 1178);
+            const ref = { current: null } as RefObject<HTMLDivElement | null>;
+            const { result, rerender } = renderHook(() => useTableLayout(2, ref));
+            expect(result.current.containerHeight).toBe(window.innerHeight);
+            expect(resizeCallback).toBeNull(); // nothing to observe yet
+
+            // The loading branch gives way to the live table: the body mounts.
+            ref.current = container.ref.current;
+            rerender();
+
+            expect(result.current.containerWidth).toBe(1705);
+            expect(result.current.containerHeight).toBe(1178);
+            expect(result.current.zoom).toBe(
+                renderHook(() => useTableLayout(2, container.ref)).result.current.zoom
+            );
+        });
+
+        it("attaches the ResizeObserver to a late-mounted container", () => {
+            const container = makeContainer(1705, 1178);
+            const ref = { current: null } as RefObject<HTMLDivElement | null>;
+            const { result, rerender } = renderHook(() => useTableLayout(2, ref));
+
+            ref.current = container.ref.current;
+            rerender();
+            expect(resizeCallback).not.toBeNull();
+
+            container.resizeTo(1705, 900);
+            act(() => resizeCallback?.());
+            expect(result.current.containerHeight).toBe(900);
+        });
+
+        it("falls back to the window again if the container unmounts", () => {
+            const container = makeContainer(1705, 1178);
+            const ref = { current: container.ref.current } as RefObject<HTMLDivElement | null>;
+            const { result, rerender } = renderHook(() => useTableLayout(2, ref));
+            expect(result.current.containerHeight).toBe(1178);
+
+            ref.current = null;
+            rerender();
+            expect(result.current.containerHeight).toBe(window.innerHeight);
+        });
+
         it("produces a zoom and a transform for the measured size", () => {
             const container = makeContainer(1200, 700);
             const { result } = renderHook(() => useTableLayout(6, container.ref));
