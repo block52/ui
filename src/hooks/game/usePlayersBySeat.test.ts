@@ -15,7 +15,8 @@ describe("usePlayersBySeat", () => {
 
     it("indexes players by their seat number", () => {
         mockedUseGameData.mockReturnValue({
-            gameState: { players: [player(1, "0xa"), player(5, "0xb")] } as any
+            gameState: { players: [player(1, "0xa"), player(5, "0xb")] } as any,
+            isOptimistic: false
         });
 
         const { result } = renderHook(() => usePlayersBySeat());
@@ -27,7 +28,7 @@ describe("usePlayersBySeat", () => {
     });
 
     it("returns an empty map when there is no game state", () => {
-        mockedUseGameData.mockReturnValue({ gameState: undefined });
+        mockedUseGameData.mockReturnValue({ gameState: undefined, isOptimistic: false });
 
         const { result } = renderHook(() => usePlayersBySeat());
 
@@ -36,7 +37,8 @@ describe("usePlayersBySeat", () => {
 
     it("returns an empty map when players is not an array", () => {
         mockedUseGameData.mockReturnValue({
-            gameState: { players: undefined } as any
+            gameState: { players: undefined } as any,
+            isOptimistic: false
         });
 
         const { result } = renderHook(() => usePlayersBySeat());
@@ -46,7 +48,7 @@ describe("usePlayersBySeat", () => {
 
     it("returns a stable map reference while the players array is unchanged", () => {
         const players = [player(2, "0xc")];
-        mockedUseGameData.mockReturnValue({ gameState: { players } as any });
+        mockedUseGameData.mockReturnValue({ gameState: { players } as any, isOptimistic: false });
 
         const { result, rerender } = renderHook(() => usePlayersBySeat());
         const first = result.current;
@@ -60,7 +62,8 @@ describe("usePlayersBySeat", () => {
         // write. Seats are unique in real game state, so this only documents the
         // degenerate case — flagged so a future dup-seat bug is loud, not silent.
         mockedUseGameData.mockReturnValue({
-            gameState: { players: [player(1, "0xfirst"), player(1, "0xsecond")] } as any
+            gameState: { players: [player(1, "0xfirst"), player(1, "0xsecond")] } as any,
+            isOptimistic: false
         });
 
         const { result } = renderHook(() => usePlayersBySeat());
