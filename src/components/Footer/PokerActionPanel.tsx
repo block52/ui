@@ -66,6 +66,7 @@ import { isCheckFreeForPlayer } from "../../utils/chipUtils";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
     // The ActionSubmitController owns dedupe, serialization, the safe transport
@@ -76,6 +77,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // the one ActionSubmitController (ui#635), so its loadingAction is the single
     // source for every spinner.
     const { submit, loadingAction, isBusy: isSubmitBusy, lastError: submitLastError } = useActionSubmit();
+    // Hide stale controls immediately after a manual click, until the next
+    // game-state snapshot confirms the new legal actions.
+    const [optimisticActionName, setOptimisticActionName] = useState<string | null>(null);
+    const [optimisticActionTurnIndex, setOptimisticActionTurnIndex] = useState<number | null>(null);
+    const lastSeenSubmitError = React.useRef(submitLastError);
 
     // Action sounds. Preloading is owned by the Table (useGameStateSounds, which
     // knows the playerActionSounds setting); the player is shared, so this panel
@@ -103,7 +109,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { gameState, gameFormat, connection } = useGameStateContext();
     const isTournament = isTournamentFormat(gameFormat);
     const players = gameState?.players || null;
-    const { legalActions, isPlayerTurn, playerStatus } = usePlayerLegalActions();
+    const { legalActions, isPlayerTurn, playerStatus, actionTurnIndex } = usePlayerLegalActions();
     const { totalPot } = useTableState();
     const totalPotMicro = useMemo(() => getTotalPotMicro(totalPot), [totalPot]);
 
@@ -123,6 +129,30 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     // Get user player
     const userPlayer = useMemo(() => getUserPlayer(players, userAddress), [players, userAddress]);
+
+    useEffect(() => {
+        if (submitLastError !== lastSeenSubmitError.current) {
+            lastSeenSubmitError.current = submitLastError;
+            if (submitLastError?.actionName === optimisticActionName) {
+                setOptimisticActionName(null);
+                setOptimisticActionTurnIndex(null);
+            }
+        }
+    }, [submitLastError, optimisticActionName]);
+
+    useEffect(() => {
+        if (optimisticActionName && !legalActions.some(action => action.action === optimisticActionName)) {
+            setOptimisticActionName(null);
+            setOptimisticActionTurnIndex(null);
+        }
+    }, [legalActions, optimisticActionName]);
+
+    useEffect(() => {
+        if (optimisticActionName && optimisticActionTurnIndex !== null && actionTurnIndex !== optimisticActionTurnIndex) {
+            setOptimisticActionName(null);
+            setOptimisticActionTurnIndex(null);
+        }
+    }, [actionTurnIndex, optimisticActionName, optimisticActionTurnIndex]);
 
     // Determine if it's user's turn
     // It is only "our turn" on a view we can trust: while the game-state socket
@@ -249,7 +279,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { isDealingNewHand } = useAutoNewHand(tableId, network, submit, submitLastError, onTransactionSubmitted, autoNewHandEnabled);
 
     // Show deal button if player has the deal action
-    const shouldShowDealButton = hasDealAction && isUsersTurn;
+    const controlsPending = optimisticActionName !== null;
+    const shouldShowDealButton = hasDealAction && isUsersTurn && !controlsPending;
     const hideOtherButtons = shouldShowDealButton;
 
     // Get action details
@@ -321,12 +352,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // on failure, so the controller can classify it).
     const submitAction = useCallback(
         (actionName: string, run: () => Promise<PlayerActionResult>, playSound = true) => {
+            setOptimisticActionName(actionName);
+            setOptimisticActionTurnIndex(actionTurnIndex);
             if (playSound && playerActionSounds) {
                 playActionSound(actionName);
             }
             submit({ actionName, run, onSuccess: onTransactionSubmitted });
         },
-        [submit, onTransactionSubmitted, playActionSound, playerActionSounds]
+        [actionTurnIndex, submit, onTransactionSubmitted, playActionSound, playerActionSounds]
     );
 
     // Handler for dealing cards with entropy. Async to satisfy DealButtonGroup's
@@ -373,12 +406,12 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         const shouldShowBigBlindButton = hasBigBlindAction && isUsersTurn;
 
         return {
-            canFoldAnytime: hasFoldAction && playerStatus !== PlayerStatus.FOLDED && showButtons,
-            showActionButtons: isUsersTurn && hasElements(legalActions) && showButtons,
-            showSmallBlindButton: shouldShowSmallBlindButton && showButtons,
-            showBigBlindButton: shouldShowBigBlindButton && showButtons
+            canFoldAnytime: hasFoldAction && !hasFoldedOrMucked(playerStatus) && showButtons,
+            showActionButtons: isUsersTurn && hasElements(legalActions) && showButtons && !controlsPending,
+            showSmallBlindButton: shouldShowSmallBlindButton && showButtons && !controlsPending,
+            showBigBlindButton: shouldShowBigBlindButton && showButtons && !controlsPending
         };
-    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions]);
+    }, [hasSmallBlindAction, hasBigBlindAction, isUsersTurn, userPlayer, hasFoldAction, playerStatus, legalActions, controlsPending]);
 
     // Increment/decrement handlers - always step by big blind amount
     const getStep = (): number => {
@@ -461,7 +494,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 )}
 
                 {/* New Hand Button - hidden when auto-new-hand is enabled */}
-                {gameState?.round === TexasHoldemRound.END && !autoNewHandEnabled && (
+                {gameState?.round === TexasHoldemRound.END && !autoNewHandEnabled && !controlsPending && (
                     <div className="flex justify-center mb-2 lg:mb-3">
                         <ActionButton
                             action="new-hand"
@@ -476,7 +509,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
                 {/* Auto-new-hand: hold on the showdown for a beat, showing a
                     "Dealing hand #X…" indicator before the next hand deals (ui#443) */}
-                {autoNewHandEnabled && isDealingNewHand && (
+                {autoNewHandEnabled && isDealingNewHand && !controlsPending && (
                     <div className="flex justify-center mb-2 lg:mb-3">
                         <ActionButton
                             action="new-hand"
@@ -494,7 +527,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 {!hideOtherButtons && (
                     <>
                         {/* Showdown Buttons */}
-                        {(hasMuckAction || hasShowAction) && (
+                        {(hasMuckAction || hasShowAction) && !controlsPending && (
                             <ShowdownButtons
                                 canMuck={hasMuckAction}
                                 canShow={hasShowAction}
@@ -505,7 +538,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                         )}
 
                         {/* Blind Buttons */}
-                        {(showSmallBlindButton || showBigBlindButton) && (
+                        {(showSmallBlindButton || showBigBlindButton) && !controlsPending && (
                             <BlindButtonGroup
                                 showSmallBlind={showSmallBlindButton}
                                 showBigBlind={showBigBlindButton}

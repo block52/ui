@@ -59,6 +59,11 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
 
     return (
         <div className={`action-log-overlay ${isOpen ? "action-log-open settings-panel-width" : "action-log-closed"}`}>
+            {/* Content is UNMOUNTED while closed. The closed container is width:0 +
+                overflow:hidden, which hid the panel visually but left its five toggle
+                switches in the DOM — focusable, screen-reader reachable, and rendering
+                off-canvas past the viewport's right edge on phones. */}
+            {isOpen && (
             <div className="h-full bg-[#1a2234] border-l border-white/10 flex flex-col overflow-hidden">
                 {/* Header */}
                 <div className="flex items-center px-4 py-3 border-b border-white/10 flex-shrink-0">
@@ -99,6 +104,7 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                     />
                 </div>
             </div>
+            )}
         </div>
     );
 };

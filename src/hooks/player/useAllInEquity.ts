@@ -9,6 +9,7 @@ import {
     PokerSolver,
     Deck
 } from "@block52/poker-vm-sdk";
+import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
 /**
  * Monte Carlo iterations per simulation. Each iteration copies and shuffles the
@@ -102,7 +103,7 @@ export function useAllInEquity(): AllInEquityResult {
     const activePlayers = useMemo(() => {
         if (!gameState?.players) return [];
         return gameState.players.filter(
-            (p: PlayerDTO) => p.status !== PlayerStatus.FOLDED
+            (p: PlayerDTO) => !hasFoldedOrMucked(p.status)
         );
     }, [gameState?.players]);
 

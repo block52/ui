@@ -106,6 +106,8 @@ export interface SubmitJob {
     status: JobStatus;
     /** now() at enqueue — used for the dedupe window. */
     submittedAt: number;
+    /** Snapshot captured when the job entered the queue, before an active job could change the table. */
+    queuedBaseline: ConfirmationBaseline;
     /** Confirmation baseline captured at execute time (not enqueue). */
     baseline?: ConfirmationBaseline;
     /** The broadcast tx hash, once CheckTx accepted it. */
