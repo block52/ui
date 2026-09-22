@@ -79,6 +79,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // Hide stale controls immediately after a manual click, until the next
     // game-state snapshot confirms the new legal actions.
     const [optimisticActionName, setOptimisticActionName] = useState<string | null>(null);
+    const [optimisticActionTurnIndex, setOptimisticActionTurnIndex] = useState<number | null>(null);
     const lastSeenSubmitError = React.useRef(submitLastError);
 
     // Action sounds. Preloading is owned by the Table (useGameStateSounds, which
@@ -107,7 +108,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { gameState, gameFormat, connection } = useGameStateContext();
     const isTournament = isTournamentFormat(gameFormat);
     const players = gameState?.players || null;
-    const { legalActions, isPlayerTurn, playerStatus } = usePlayerLegalActions();
+    const { legalActions, isPlayerTurn, playerStatus, actionTurnIndex } = usePlayerLegalActions();
     const { totalPot } = useTableState();
     const totalPotMicro = useMemo(() => getTotalPotMicro(totalPot), [totalPot]);
 
@@ -133,6 +134,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
             lastSeenSubmitError.current = submitLastError;
             if (submitLastError?.actionName === optimisticActionName) {
                 setOptimisticActionName(null);
+                setOptimisticActionTurnIndex(null);
             }
         }
     }, [submitLastError, optimisticActionName]);
@@ -140,8 +142,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     useEffect(() => {
         if (optimisticActionName && !legalActions.some(action => action.action === optimisticActionName)) {
             setOptimisticActionName(null);
+            setOptimisticActionTurnIndex(null);
         }
     }, [legalActions, optimisticActionName]);
+
+    useEffect(() => {
+        if (optimisticActionName && optimisticActionTurnIndex !== null && actionTurnIndex !== optimisticActionTurnIndex) {
+            setOptimisticActionName(null);
+            setOptimisticActionTurnIndex(null);
+        }
+    }, [actionTurnIndex, optimisticActionName, optimisticActionTurnIndex]);
 
     // Determine if it's user's turn
     // It is only "our turn" on a view we can trust: while the game-state socket
@@ -342,12 +352,13 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const submitAction = useCallback(
         (actionName: string, run: () => Promise<PlayerActionResult>, playSound = true) => {
             setOptimisticActionName(actionName);
+            setOptimisticActionTurnIndex(actionTurnIndex);
             if (playSound && playerActionSounds) {
                 playActionSound(actionName);
             }
             submit({ actionName, run, onSuccess: onTransactionSubmitted });
         },
-        [submit, onTransactionSubmitted, playActionSound, playerActionSounds]
+        [actionTurnIndex, submit, onTransactionSubmitted, playActionSound, playerActionSounds]
     );
 
     // Handler for dealing cards with entropy. Async to satisfy DealButtonGroup's
