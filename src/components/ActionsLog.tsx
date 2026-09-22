@@ -2,12 +2,11 @@ import React, { useMemo, useState, useSyncExternalStore } from "react";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
-import { formatAmount } from "../utils/accountUtils";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
 import { getBeatenHandDescription } from "../utils/showdownSummary";
 import { getLastHandResult, subscribeLastHandResult } from "../utils/lastHandResult";
 import { ActionDTO } from "@block52/poker-vm-sdk";
-import { formatActionName, formatRoundName, getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
+import { formatActionAmount, formatActionName, formatRoundName, getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
@@ -179,7 +178,7 @@ const ActionsLog: React.FC = () => {
                     <div className="flex justify-between">
                         <span className={styles.actionText}>
                             {formatActionName(action.action)}
-                            {action.amount && ` ${formatAmount(action.amount, undefined, isTournamentFormat(gameFormat))}`}
+                            {formatActionAmount(action, isTournamentFormat(gameFormat))}
                         </span>
                         <span className={`text-[10px] ${styles.secondaryText}`}>
                             Seat {action.seat} · {formatRoundName(action.round)}
