@@ -48,17 +48,33 @@ export const useTableLayout = (
         height: window.innerHeight
     }));
 
+    // The container NODE, tracked in state. A RefObject's identity never
+    // changes, so effects keyed on it run once and never again — and Table's
+    // loading branch renders a different tree with no container, so on first
+    // load `containerRef.current` is null. The hook measured the window,
+    // attached its ResizeObserver to nothing, and when the real body mounted a
+    // moment later nothing re-ran: the window-height fallback stuck until some
+    // unrelated resize, and the fixed footer covered the bottom seat (ui#658).
+    // Comparing `current` after every commit costs nothing (no DOM read) and
+    // fires exactly when the node appears, disappears or is swapped.
+    const [container, setContainer] = useState<HTMLDivElement | null>(null);
+    useLayoutEffect(() => {
+        const el = containerRef?.current ?? null;
+        if (el !== container) {
+            setContainer(el);
+        }
+    });
+
     const refreshLayout = useCallback(() => {
         setViewportMode(getViewportMode());
         setIsLandscape(window.innerWidth > window.innerHeight);
 
-        const el = containerRef?.current;
-        const width = el?.offsetWidth ?? window.innerWidth;
-        const height = el?.offsetHeight ?? window.innerHeight;
+        const width = container?.offsetWidth ?? window.innerWidth;
+        const height = container?.offsetHeight ?? window.innerHeight;
         // Keep the previous object when the size is unchanged, so a resize event
         // that does not actually change the container re-renders nothing.
         setContainerSize(prev => (prev.width === width && prev.height === height ? prev : { width, height }));
-    }, [containerRef]);
+    }, [container]);
 
     // useLayoutEffect fires synchronously BEFORE the browser paints.
     // This ensures the first visible frame uses the real container dimensions.
@@ -95,14 +111,13 @@ export const useTableLayout = (
     // misses: soft keyboard appearing, browser chrome toggling, foldable hinge
     // state changes (inner ↔ outer screen, half-open posture).
     useLayoutEffect(() => {
-        const el = containerRef?.current;
-        if (!el) return;
+        if (!container) return;
 
         const observer = new ResizeObserver(() => refreshLayout());
-        observer.observe(el);
+        observer.observe(container);
 
         return () => observer.disconnect();
-    }, [containerRef, refreshLayout]);
+    }, [container, refreshLayout]);
 
     // viewportMode is a dependency of all three: it selects the stage orientation
     // (portrait vs landscape seat rings) inside the geometry engine, so a mode

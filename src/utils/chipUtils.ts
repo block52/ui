@@ -1,6 +1,7 @@
 import { ActionDTO, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { MAX_ACTION_GROUPS } from "../constants/chips";
 import { hasContent } from "./guards";
+import { hasFoldedOrMucked } from "./playerStatus";
 
 /** Action types that place chips on the table */
 export const CHIP_ACTIONS: string[] = [
@@ -20,7 +21,7 @@ export const shouldShowChips = (status: PlayerStatus): boolean => {
     return (
         status === PlayerStatus.ACTIVE ||
         status === PlayerStatus.ALL_IN ||
-        status === PlayerStatus.FOLDED
+        hasFoldedOrMucked(status)
     );
 };
 

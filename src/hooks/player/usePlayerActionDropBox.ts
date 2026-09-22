@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameEvents } from "../game/useGameEvents";
-import { PlayerActionType, NonPlayerActionType } from "@block52/poker-vm-sdk";
-import { formatForSitAndGo, formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { ActionDTO, PlayerActionType, NonPlayerActionType } from "@block52/poker-vm-sdk";
+import { formatDisplayAmount, formatForSitAndGo, formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { getStreetCommitTotalForAction } from "../../utils/raiseUtils";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { isBlank } from "../../utils/guards";
 
@@ -68,6 +69,47 @@ export const formatActionAmount = (amount: string | undefined, isTournament: boo
   return isTournament ? ` ${formatForSitAndGo(numeric)}` : ` $${formatUSDCToSimpleDollars(amount)}`;
 };
 
+// Committing actions whose badge shows the STREET TOTAL, not the stack delta.
+const STREET_TOTAL_ACTIONS: string[] = [PlayerActionType.BET, PlayerActionType.CALL, PlayerActionType.RAISE];
+
+// Actions whose amounts are MONETARY (USDC micro-units) even in tournaments —
+// join carries the buy-in, leave the stack/prize taken, top-up the purchase.
+// Formatting them as chips labelled µUSDC as tournament chips (ui#660).
+const MONETARY_ACTIONS: string[] = [NonPlayerActionType.JOIN, NonPlayerActionType.LEAVE, NonPlayerActionType.TOP_UP];
+
+/**
+ * Build the badge label + amount for an action (ui#638).
+ *
+ * The chain's `action.amount` is the stack delta — chips that left the stack on
+ * that action. For BET / CALL / RAISE the badge instead shows the actor's total
+ * committed this street (blind-aware), matching the action button ("RAISE TO
+ * 600") and the chips in front of the seat: a raise-to-600 from the SB (100
+ * posted) must not read "RAISE 500", and a call from the SB must not read as
+ * its delta either. A raise is labelled "RAISE TO" to make the convention
+ * explicit. All other actions keep the raw amount (blind posts ARE their total).
+ *
+ * Pure function — unit-tested directly, the hook just consumes it.
+ */
+export const getActionBadgeDisplay = (
+  action: ActionDTO,
+  previousActions: ActionDTO[],
+  isTournament: boolean
+): { action: string; amount: string } => {
+  const baseLabel = ACTION_DISPLAY_MAP[action.action] || action.action.toUpperCase();
+
+  if (!STREET_TOTAL_ACTIONS.includes(action.action)) {
+    // Monetary actions format as USDC regardless of game format (ui#660).
+    const asChips = isTournament && !MONETARY_ACTIONS.includes(action.action);
+    return { action: baseLabel, amount: formatActionAmount(action.amount, asChips) };
+  }
+
+  const total = getStreetCommitTotalForAction(previousActions, action, isTournament);
+  return {
+    action: action.action === PlayerActionType.RAISE ? "RAISE TO" : baseLabel,
+    amount: total > 0 ? ` ${formatDisplayAmount(total, isTournament)}` : ""
+  };
+};
+
 /**
  * Drives the transient "action badge" under a player's avatar.
  *
@@ -86,7 +128,9 @@ export const formatActionAmount = (amount: string | undefined, isTournament: boo
  */
 export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay => {
   // Tournament/SNG amounts are raw chips; cash amounts are USDC micro-units.
-  const { gameFormat } = useGameStateContext();
+  // gameState supplies previousActions for the street-total computation — the
+  // rendered track, i.e. the same committed frame the events came from.
+  const { gameState, gameFormat } = useGameStateContext();
   const isTournament = isTournamentFormat(gameFormat);
 
   // Newest actions committed this frame (index-ordered; last is globally newest).
@@ -124,9 +168,10 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
 
     // This seat performed the newest action — show it, then run the choreography.
     clearTimers();
+    const badge = getActionBadgeDisplay(latestAction, gameState?.previousActions ?? [], isTournament);
     setDisplayState({
-      action: ACTION_DISPLAY_MAP[latestAction.action] || latestAction.action.toUpperCase(),
-      amount: formatActionAmount(latestAction.amount, isTournament),
+      action: badge.action,
+      amount: badge.amount,
       isVisible: true,
       isTextHiding: false,
       isAnimatingOut: false
@@ -145,7 +190,10 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
         );
       }, SHOW_DURATION)
     );
-  }, [latestAction, seatIndex, isTournament]);
+    // previousActions is safe as a dep: a commit without new actions yields no
+    // playerActed events, so latestAction is null and the effect early-returns
+    // before it could disturb an in-progress badge.
+  }, [latestAction, seatIndex, isTournament, gameState?.previousActions]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Cleanup timeouts on unmount

@@ -20,6 +20,10 @@ describe("shouldShowChips", () => {
         expect(shouldShowChips(PlayerStatus.FOLDED)).toBe(true);
     });
 
+    it("returns true for MUCKED players — their chips are still in the pot", () => {
+        expect(shouldShowChips(PlayerStatus.MUCKED)).toBe(true);
+    });
+
     it("returns false for SITTING_OUT players", () => {
         expect(shouldShowChips(PlayerStatus.SITTING_OUT)).toBe(false);
     });

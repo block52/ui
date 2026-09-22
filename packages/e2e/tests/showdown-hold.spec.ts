@@ -6,17 +6,25 @@ import type { Page } from "@playwright/test";
  *
  * With auto-new-hand ON (the paced path), a hand's WINS banner must stay visible
  * for the showdown-hold window before the next hand replaces it. We measure the
- * wall-clock between the banner appearing and it disappearing (the next hand
- * committing) and assert a LOWER BOUND only so the test stays unflaky despite
- * scheduler jitter. The showdown hold is 2000ms; we bound at 1000ms to leave
- * ample margin for banner-detection latency on a loaded CI runner (the
- * toBeVisible poll can resolve ~1s after the banner truly appears) while still
- * proving a real hold (the 150ms frame cadence would otherwise replace it near
- * instantly). This is the regression proof that pacing keeps the showdown
+ * inter-commit gap from the bus introspection timestamps rather than the
+ * wall-clock interval between two DOM visibility polls. The showdown hold is
+ * 2000ms; we bound at 1000ms to leave ample margin for scheduler jitter while
+ * still proving a real hold (the 150ms frame cadence would otherwise replace it
+ * near instantly). This is the regression proof that pacing keeps the showdown
  * visible after the useAutoNewHand timer was retired.
  */
 
 const LOWER_BOUND_MS = 1_000;
+
+type BusHandle = {
+  commitLog: Array<{ seq: number; committedAt: number; eventCount: number }>;
+};
+
+function readBus(page: Page): Promise<BusHandle> {
+  return page.evaluate(() => ({
+    commitLog: (window as unknown as { __B52_BUS__?: BusHandle }).__B52_BUS__?.commitLog ?? [],
+  }));
+}
 
 async function playToShowdown(page: Page): Promise<void> {
   await expect(page.locator(".btn-call")).toBeVisible({ timeout: 15_000 });
@@ -48,14 +56,21 @@ test("the WINS banner stays visible for the showdown hold before the next hand",
 
   await test.step("banner appears, then persists through the hold before the next hand", async () => {
     await expect(banner).toBeVisible({ timeout: 15_000 });
-    const bannerVisibleAt = Date.now();
+    // The banner is rendered from the showdown commit. Record that commit's
+    // timestamp from the bus rather than the time a Playwright visibility poll
+    // happens to observe the DOM.
+    const beforeNextHand = await readBus(page);
+    const showdownCommit = beforeNextHand.commitLog.at(-1);
+    expect(showdownCommit, "showdown commit was not recorded").toBeDefined();
 
     // Auto-new-hand + showdownHold hold the banner, then hand #2 commits and the
-    // winner banner clears. Measure the visible duration.
+    // winner banner clears. Measure the inter-commit gap.
     await expect(banner).toBeHidden({ timeout: 15_000 });
-    const bannerGoneAt = Date.now();
+    const afterNextHand = await readBus(page);
+    const nextCommit = afterNextHand.commitLog.find(commit => commit.committedAt > showdownCommit!.committedAt);
+    expect(nextCommit, "next-hand commit was not recorded").toBeDefined();
 
-    const heldForMs = bannerGoneAt - bannerVisibleAt;
+    const heldForMs = nextCommit!.committedAt - showdownCommit!.committedAt;
     expect(heldForMs, `showdown banner was only visible ${heldForMs}ms`).toBeGreaterThanOrEqual(LOWER_BOUND_MS);
   });
 

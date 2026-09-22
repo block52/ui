@@ -32,6 +32,10 @@ describe("getSeatOpacityClass", () => {
             expect(getSeatOpacityClass({ status: PlayerStatus.FOLDED, hasWinner: false, isWinner: false })).toBe(SEAT_OPACITY.FOLDED);
         });
 
+        it("returns FOLDED for a mucked player too", () => {
+            expect(getSeatOpacityClass({ status: PlayerStatus.MUCKED, hasWinner: false, isWinner: false })).toBe(SEAT_OPACITY.FOLDED);
+        });
+
         it.each([PlayerStatus.ACTIVE, PlayerStatus.ALL_IN, PlayerStatus.WAITING_FOR_BIG_BLIND, PlayerStatus.SHOWING])(
             "returns FULL for in-hand status %s",
             status => {

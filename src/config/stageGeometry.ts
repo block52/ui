@@ -232,16 +232,21 @@ const PORTRAIT_SEAT_COORDS: Record<number, [number, number][]> = {
         [680, 525],     // seat 5 upper-right
         [680, 1075]     // seat 6 lower-right
     ],
+    // Angular distribution matters on the narrow felt: the first cut put the
+    // arc seats at ±45°, which left the 12-o'clock region empty and read as two
+    // vertical columns. Arc seats now sit at ~±27° (top) / ~±38° (bottom) from
+    // vertical on the end circles (r=250 + 25px outside), so the ring reads as
+    // a ring. Hero stays alone at 6 o'clock.
     9: [
         [425, 1362],    // Seat 1 - bottom-center (hero, alone on the bottom arc)
-        [231, 1244],    // Seat 2 - lower-left arc
-        [170, 950],     // Seat 3 - left side, lower
-        [170, 650],     // Seat 4 - left side, upper
-        [231, 356],     // Seat 5 - upper-left arc
-        [619, 356],     // Seat 6 - upper-right arc
-        [680, 650],     // Seat 7 - right side, upper
-        [680, 950],     // Seat 8 - right side, lower
-        [619, 1244]     // Seat 9 - lower-right arc
+        [256, 1267],    // Seat 2 - lower-left arc (~38° from vertical)
+        [170, 985],     // Seat 3 - left side, lower
+        [170, 615],     // Seat 4 - left side, upper
+        [300, 305],     // Seat 5 - upper-left arc (~27° from vertical)
+        [550, 305],     // Seat 6 - upper-right arc (~27° from vertical)
+        [680, 615],     // Seat 7 - right side, upper
+        [680, 985],     // Seat 8 - right side, lower
+        [594, 1267]     // Seat 9 - lower-right arc (~38° from vertical)
     ]
 };
 
@@ -581,9 +586,17 @@ const VIEWPORT_OFFSETS: Partial<Record<ViewportMode, typeof GLOBAL_OFFSETS>> = {
 };
 
 /** Portrait offsets are tuned independently — the landscape GLOBAL_OFFSETS were
- *  hand-fitted to the landscape seat ring and don't transfer. Starts empty;
- *  nudge portrait elements here after visual QA. */
-const PORTRAIT_GLOBAL_OFFSETS: typeof GLOBAL_OFFSETS = {};
+ *  hand-fitted to the landscape seat ring and don't transfer. Nudge portrait
+ *  elements here after visual QA (dy negative = up for chips too — the sign is
+ *  normalized by applyChipOffsets). */
+const PORTRAIT_GLOBAL_OFFSETS: typeof GLOBAL_OFFSETS = {
+    // Hero (seat 1) bet chip was landing on the felt's bottom boundary — pull
+    // it up toward the centre so it reads as "inside the felt, near the seat".
+    2: { chips: { 0: { dy: -60 } } },
+    4: { chips: { 0: { dy: -60 } } },
+    6: { chips: { 0: { dy: -60 } } },
+    9: { chips: { 0: { dy: -60 } } }
+};
 
 function globalOffsetsForOrientation(): typeof GLOBAL_OFFSETS {
     return getStageOrientation() === "portrait" ? PORTRAIT_GLOBAL_OFFSETS : GLOBAL_OFFSETS;
@@ -703,10 +716,14 @@ export function getViewportMode(): ViewportMode {
     // landscape stage.
     if (!isLandscape && (isCoarsePointer || width < 768)) return "mobile-portrait";
 
-    // Landscape touch devices up to 1700×900 CSS px — covers regular phones,
+    // Landscape: coarse pointer up to 1700×900 CSS px — covers regular phones,
     // large Android flagships, and foldables (e.g. Galaxy Z Fold outer = 904px wide,
     // Pixel Fold inner = 1080px wide, future iPhone Fold ≈ 1100px wide in landscape).
-    const isCompactTouchLandscape = isLandscape && isCoarsePointer && width <= 1700 && height <= 900;
+    // The height<500 arm is the landscape twin of the portrait width<768 arm: an
+    // iPhone 15 in landscape is 852px WIDE, so any width-based breakpoint calls
+    // it desktop. Height is what's actually scarce — a sub-500px-tall landscape
+    // window needs the compact treatment regardless of pointer type.
+    const isCompactTouchLandscape = isLandscape && (isCoarsePointer || height < 500) && width <= 1700 && height <= 900;
     if (isCompactTouchLandscape) return "mobile-landscape";
 
     if (width <= 1024) return "tablet";
