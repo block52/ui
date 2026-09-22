@@ -46,6 +46,7 @@ function statusLabel(status: string): string {
     switch (status) {
         case "active": return "";
         case "folded": return "FOLDED";
+        case "mucked": return "MUCKED";
         case "all-in": return "ALL IN";
         case "busted": return "BUSTED";
         case "sitting-out": return "SITTING OUT";
@@ -91,7 +92,7 @@ function getSeatPosition(seat: number, totalSeats: number, allSeats: number[]): 
 // ---- Components ----
 
 function PlayerCard({ player, isDealer }: { player: PlayerDTO; isDealer: boolean }) {
-    const isFolded = player.status === "folded";
+    const isFolded = player.status === "folded" || player.status === "mucked";
     const isBusted = player.status === "busted";
     const dimmed = isFolded || isBusted;
     const hasHoleCards = hasElements(player.holeCards);

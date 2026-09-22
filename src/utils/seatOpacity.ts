@@ -1,4 +1,5 @@
 import { PlayerStatus } from "@block52/poker-vm-sdk";
+import { hasFoldedOrMucked } from "./playerStatus";
 
 /**
  * Tailwind opacity classes used to dim a player's seat/avatar based on how
@@ -65,7 +66,7 @@ export const getSeatOpacityClass = ({ status, hasWinner, isWinner }: SeatOpacity
     if (status !== undefined && IDLE_STATUSES.has(status)) {
         return SEAT_OPACITY.IDLE;
     }
-    if (status === PlayerStatus.FOLDED) {
+    if (hasFoldedOrMucked(status)) {
         return SEAT_OPACITY.FOLDED;
     }
     return SEAT_OPACITY.FULL;
