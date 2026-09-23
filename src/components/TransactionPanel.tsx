@@ -5,7 +5,15 @@ import { useNetwork } from "../context/NetworkContext";
 import { formatTimestampRelative } from "../utils/formatUtils";
 import { microToUsdc } from "../constants/currency";
 import styles from "./TransactionPanel.module.css";
-import { formatTransactionLabel, formatTransferDirection, getTransferDirectionClass, formatShortHash, formatGameId } from "../utils/transactionUtils";
+import {
+    formatTransactionLabel,
+    formatTransferDirection,
+    getTransferDirectionClass,
+    formatShortHash,
+    formatGameId,
+    getDisplayableActionAmount,
+    sumUsdcTransferEvents
+} from "../utils/transactionUtils";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { isEmpty, hasElements } from "../utils/guards";
 
@@ -104,9 +112,7 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                     // Extract poker action details
                     if (msgType.includes("MsgPerformAction")) {
                         action = msg.action;
-                        if (msg.amount && msg.amount !== "0") {
-                            amount = msg.amount;
-                        }
+                        amount = getDisplayableActionAmount("MsgPerformAction", msg.amount);
                         gameId = msg.game_id;
                     } else if (msgType.includes("MsgJoinGame")) {
                         action = "join";
@@ -130,20 +136,11 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
 
                 // Check events for transfer details if not already found
                 if (!transferAmount && tx.events) {
-                    const transferEvent = tx.events.find((e: any) => e.type === "transfer");
-                    if (transferEvent) {
-                        const amountAttr = transferEvent.attributes?.find((a: any) => a.key === "amount");
-                        const recipientAttr = transferEvent.attributes?.find((a: any) => a.key === "recipient");
-                        const senderAttr = transferEvent.attributes?.find((a: any) => a.key === "sender");
-
-                        if (amountAttr?.value) {
-                            // Parse amount like "120000usdc"
-                            const match = amountAttr.value.match(/^(\d+)/);
-                            if (match) {
-                                transferAmount = match[1];
-                                transferDirection = recipientAttr?.value === address ? "received" : "sent";
-                            }
-                        }
+                    transferAmount = sumUsdcTransferEvents(tx.events);
+                    if (transferAmount) {
+                        const transferEvent = tx.events.find((e: any) => e.type === "transfer");
+                        const recipientAttr = transferEvent?.attributes?.find((a: any) => a.key === "recipient");
+                        transferDirection = recipientAttr?.value === address ? "received" : "sent";
                     }
                 }
 
