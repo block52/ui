@@ -12,8 +12,16 @@ import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRem
 const timeExtensions = new Map<string, { extensionTime: number; hasUsedExtension: boolean }>();
 
 /**
- * Custom hook to manage player timer information and time extensions
- * @param tableId The ID of the table used to scope time-extension state
+ * Player timer: how long the seat has left to act, and the one-per-turn time
+ * extension. It REPORTS time; it never acts.
+ *
+ * Automatic actions belong to the auto hooks (`useAutoFold`, `useAutoCheck`
+ * and friends), which submit through the shared ActionSubmitController. This
+ * hook used to carry a second, direct implementation of auto-fold/auto-check
+ * that broadcast on its own — dead since the initial open-source commit, and
+ * deleted in ui#644.
+ *
+ * @param tableId The ID of the table (identifies the seat's extension slot)
  * @param playerSeat The seat number of the player to check (1-based)
  * @returns Object containing player status and timer information
  */
@@ -133,13 +141,6 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
         if (!isNextToAct) return 0;
         return calcProgressPercent(currentTime, anchoredActionTimestamp, TIMEOUT_DURATION, extensionInfo.hasUsedExtension);
     }, [currentTime, anchoredActionTimestamp, isNextToAct, TIMEOUT_DURATION, extensionInfo.hasUsedExtension]);
-
-    // Debug logging (only in development)
-    useEffect(() => {
-        if (import.meta.env.DEV && isNextToAct && isCurrentUser) {
-            const _extensionStatus = extensionInfo.hasUsedExtension ? " (EXTENDED)" : "";
-        }
-    }, [timeRemaining, isNextToAct, isCurrentUser, playerSeat, timeoutInSeconds, extensionInfo.hasUsedExtension]);
 
     return {
         playerStatus: player?.status || PlayerStatus.SEATED,
