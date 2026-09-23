@@ -249,28 +249,13 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
 
     if (!isCurrentUserSeated) {
         if (isCompactMobile) {
-            // Phone declutter: one compact spectate chip and the 6-o'clock
-            // preference as a single full-width button above the safe area —
-            // the only pre-seating decision worth screen space. Width is capped
-            // so the button doesn't span the whole screen in landscape.
-            return (
-                <div className="fixed left-3 right-3 z-30 flex flex-col items-center gap-2" style={compactBarStyle}>
-                    <div className="flex items-center gap-2 rounded-full backdrop-blur-sm border border-white/20 bg-black/60 px-3 py-1">
-                        <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
-                        <span className="text-blue-300 font-medium text-xs">
-                            {isTableFull ? "You are spectating this table" : "Spectating — tap an open seat to join"}
-                        </span>
-                    </div>
-                    <button
-                        onClick={toggleSeatAtBottom}
-                        className={`w-full max-w-[420px] min-h-[44px] rounded-lg backdrop-blur-sm border font-medium text-sm transition-colors duration-150 ${
-                            seatAtBottom ? "border-amber-400 text-amber-300 bg-black/70" : "border-white/20 text-white bg-black/60"
-                        }`}
-                    >
-                        {seatAtBottom ? "✓ " : ""}Seat me at 6 o'clock
-                    </button>
-                </div>
-            );
+            // Phone: NOTHING is pinned below the felt while spectating (#684).
+            // The spectate hint and the 6-o'clock view preference both live in
+            // the hamburger drawer (MobileTableHeader) — they are a status line
+            // and a persisted setting, neither worth permanent screen space on a
+            // 393px-wide table. Taking a seat is unaffected: that is still done
+            // by tapping an open seat's "Click to Join".
+            return null;
         }
         return (
             <>

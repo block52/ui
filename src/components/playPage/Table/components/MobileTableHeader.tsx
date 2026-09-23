@@ -4,7 +4,8 @@
  * Portrait-phone replacement for TableHeader: a single 44px row (table name,
  * USDC balance, hamburger) plus a text-only status strip (blinds, hand number,
  * next to act). Everything else — network selector, share/copy/QR, wallet
- * address, avatar, settings, action log, top-up, table style, leave table —
+ * address, avatar, settings, action log, top-up, table style, seat orientation,
+ * leave table —
  * lives in the hamburger drawer, each row a ≥44px tap target. Leave Table sits
  * at the bottom of the drawer styled as destructive, never as a bare tap
  * target next to the play surface.
@@ -24,6 +25,7 @@ import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gam
 import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
+import { useGameSettings } from "../../../../context/GameSettingsContext";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import styles from "./TableHeader.module.css";
@@ -141,6 +143,10 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     // Same gating as TableHeader: no Leave for SNG (roster frozen once play
     // starts, poker-vm#2343; SNG leave/claim lives in the SNG modals, ui#465).
     const showLeaveTable = !!currentPlayerData && !isSNG;
+    // Seat orientation is a view preference, read straight from settings rather
+    // than drilled through props — the drawer is its only mobile home (#684).
+    const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
+    const isTableFull = !!gameOptions?.maxPlayers && tableActivePlayers.length >= gameOptions.maxPlayers;
 
     const closeMenuAnd = (action: () => void) => () => {
         setMenuOpen(false);
@@ -330,6 +336,36 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <span className="text-xs text-gray-400">Style</span>
                             <span>{TABLE_STYLE_LABELS[tableStyle]}</span>
                         </button>
+
+                        {/* Seat orientation (#392). A persisted VIEW preference — it
+                            rotates the table so the local seat renders at the bottom,
+                            it does not seat anyone. So it belongs here whether or not
+                            the player is seated, and it is useful mainly once they
+                            are. It used to be a full-width button pinned below the
+                            felt while spectating (#684). */}
+                        <button
+                            className={menuRowClass}
+                            onClick={toggleSeatAtBottom}
+                            role="switch"
+                            aria-checked={seatAtBottom}
+                        >
+                            <span className="text-xs text-gray-400">Seat</span>
+                            <span className={seatAtBottom ? "text-amber-300" : undefined}>
+                                {seatAtBottom ? "✓ " : ""}Seat me at 6 o&apos;clock
+                            </span>
+                        </button>
+
+                        {/* Spectating hint. Non-interactive: the only way to sit is
+                            tapping an open seat, and this is what tells a first-time
+                            player that (#684). */}
+                        {!isCurrentUserSeated && (
+                            <div className={`${menuRowClass} cursor-default hover:bg-transparent`}>
+                                <span className="animate-pulse w-2 h-2 rounded-full bg-blue-400 shrink-0" />
+                                <span className="text-blue-300 text-xs">
+                                    {isTableFull ? "Spectating — the table is full" : "Spectating — tap an open seat to join"}
+                                </span>
+                            </div>
+                        )}
 
                         <div className="flex-1" />
 
