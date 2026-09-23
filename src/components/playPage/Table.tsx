@@ -110,6 +110,7 @@ import { useGameResults } from "../../hooks/game/useGameResults"; // Game result
 
 // other
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
+import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
@@ -1276,6 +1277,7 @@ const Table = React.memo(() => {
     }
 
     return (
+        <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
         <div className="table-container" data-connection={connection.status}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
@@ -1640,6 +1642,7 @@ const Table = React.memo(() => {
             {/* No-wallet overlay — blurs the table and walks the user through wallet setup */}
             {!hasWallet && <NoWalletOverlay onWalletReady={handleWalletReady} />}
         </div>
+        </SitOutIntentProvider>
     );
 });
 
