@@ -69,6 +69,9 @@ interface GameStateProviderProps {
 
 export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }) => {
     const [gameState, setGameState] = useState<TexasHoldemStateDTO | undefined>(undefined);
+    // ui#659: provenance of the snapshot currently on the RENDER track — true
+    // when it is the relay's mempool projection rather than committed state.
+    const [isOptimistic, setIsOptimistic] = useState<boolean>(false);
     const [gameFormat, setGameFormat] = useState<GameFormat | undefined>(undefined);
     const [gameVariant, setGameVariant] = useState<GameVariant | undefined>(undefined);
     // Table name is display-only, so it lives on the RENDER track alongside
@@ -140,6 +143,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 }
 
                 setGameState(classified.snapshot);
+                setIsOptimistic(classified.optimistic);
                 setGameFormat(classified.format);
                 setGameVariant(classified.variant);
                 setGameName(classified.name);
@@ -173,6 +177,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 setPendingAction(null);
                 if (classified.clearGameState) {
                     setGameState(undefined);
+                    setIsOptimistic(false);
                 }
                 break;
             }
@@ -480,6 +485,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         busRef.current?.reset();
         setLatestStreamItem(null);
         setGameState(undefined);
+        setIsOptimistic(false);
         setLatestGameState(undefined, { optimistic: false });
         setGameFormat(undefined);
         setGameVariant(undefined);
@@ -614,7 +620,9 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         connection={connection}
                     >
                         <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation}>
-                            <GameDataProvider gameState={gameState}>{children}</GameDataProvider>
+                            <GameDataProvider gameState={gameState} isOptimistic={isOptimistic}>
+                                {children}
+                            </GameDataProvider>
                         </GameEventsProvider>
                     </GameUIProvider>
                 </ReplayProvider>

@@ -1,10 +1,11 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { postSmallBlind } from "./postSmallBlind";
 import { postBigBlind } from "./postBigBlind";
 import { getAutoPostBlindsEnabled } from "../../utils/urlParams";
 import { isNullish } from "../../utils/guards";
-import type { SubmitActionRequest } from "../../submit/types";
+import type { SubmitActionRequest, SubmitError } from "../../submit/types";
+import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
 
 /**
  * Hook to automatically post blinds when conditions are met.
@@ -54,6 +55,12 @@ export function useAutoPostBlinds(
     // Track if we've already triggered blind posting for this opportunity
     const hasTriggeredSmallBlindRef = useRef<boolean>(false);
     const hasTriggeredBigBlindRef = useRef<boolean>(false);
+    // ui#655: re-arms spent on the current opportunity, per blind, and the tick
+    // that makes a re-arm re-run the gate below (a ref alone would not).
+    const smallBlindRearmsRef = useRef<number>(0);
+    const bigBlindRearmsRef = useRef<number>(0);
+    const [smallBlindRearmToken, setSmallBlindRearmToken] = useState<number>(0);
+    const [bigBlindRearmToken, setBigBlindRearmToken] = useState<number>(0);
     // Check if auto-post blinds is enabled — prefer the reactive `enabled` prop, fall back to URL param
     const autoPostBlindsEnabledRef = useRef<boolean>(enabled ?? getAutoPostBlindsEnabled());
 
@@ -64,27 +71,53 @@ export function useAutoPostBlinds(
         }
     }, [enabled]);
 
-    const triggerPostSmallBlind = useCallback(() => {
-        if (!tableId || smallBlindAmount === 0n) {
+    // ui#655: a rejected auto-post used to hold the latch for the rest of the
+    // opportunity, so "Post Small Blind 25" sat there over a pot of 0 with no way
+    // forward but a manual click or a refresh. Clearing the latch re-runs the
+    // effect, which revalidates turn and legal action before re-submitting.
+    const rearmSmallBlind = useCallback((error: SubmitError) => {
+        if (!shouldRearmAfterFailure(error) || smallBlindRearmsRef.current >= MAX_AUTO_REARMS) {
             return;
+        }
+        smallBlindRearmsRef.current += 1;
+        hasTriggeredSmallBlindRef.current = false;
+        setSmallBlindRearmToken(token => token + 1);
+    }, []);
+
+    const rearmBigBlind = useCallback((error: SubmitError) => {
+        if (!shouldRearmAfterFailure(error) || bigBlindRearmsRef.current >= MAX_AUTO_REARMS) {
+            return;
+        }
+        bigBlindRearmsRef.current += 1;
+        hasTriggeredBigBlindRef.current = false;
+        setBigBlindRearmToken(token => token + 1);
+    }, []);
+
+    const triggerPostSmallBlind = useCallback((): boolean => {
+        if (!tableId || smallBlindAmount === 0n) {
+            return false;
         }
         submit({
             actionName: "small-blind",
             run: () => postSmallBlind(tableId, smallBlindAmount, network),
-            onSuccess: hash => onBlindSubmitted?.("small", hash)
+            onSuccess: hash => onBlindSubmitted?.("small", hash),
+            onFailure: rearmSmallBlind
         });
-    }, [tableId, network, smallBlindAmount, submit, onBlindSubmitted]);
+        return true;
+    }, [tableId, network, smallBlindAmount, submit, onBlindSubmitted, rearmSmallBlind]);
 
-    const triggerPostBigBlind = useCallback(() => {
+    const triggerPostBigBlind = useCallback((): boolean => {
         if (!tableId || bigBlindAmount === 0n) {
-            return;
+            return false;
         }
         submit({
             actionName: "big-blind",
             run: () => postBigBlind(tableId, bigBlindAmount, network),
-            onSuccess: hash => onBlindSubmitted?.("big", hash)
+            onSuccess: hash => onBlindSubmitted?.("big", hash),
+            onFailure: rearmBigBlind
         });
-    }, [tableId, network, bigBlindAmount, submit, onBlindSubmitted]);
+        return true;
+    }, [tableId, network, bigBlindAmount, submit, onBlindSubmitted, rearmBigBlind]);
 
     useEffect(() => {
         // Check conditions for auto-post small blind
@@ -95,15 +128,22 @@ export function useAutoPostBlinds(
             !hasTriggeredSmallBlindRef.current;
 
         if (shouldPostSmallBlind) {
-            hasTriggeredSmallBlindRef.current = true;
-            triggerPostSmallBlind();
+            // ui#662: consume the opportunity only when a submission is actually made.
+            // Latching first burned the one shot on a render where the amount or the
+            // table id had not arrived yet — the callback returned without submitting,
+            // and the later render carrying a real amount found the latch already set,
+            // so the blind never posted and the manual button sat there.
+            if (triggerPostSmallBlind()) {
+                hasTriggeredSmallBlindRef.current = true;
+            }
         }
 
         // Reset the trigger flag when small blind action is no longer available
         if (!hasSmallBlindAction) {
             hasTriggeredSmallBlindRef.current = false;
+            smallBlindRearmsRef.current = 0;
         }
-    }, [hasSmallBlindAction, isUsersTurn, triggerPostSmallBlind]);
+    }, [hasSmallBlindAction, isUsersTurn, triggerPostSmallBlind, smallBlindRearmToken]);
 
     useEffect(() => {
         // Check conditions for auto-post big blind
@@ -114,13 +154,16 @@ export function useAutoPostBlinds(
             !hasTriggeredBigBlindRef.current;
 
         if (shouldPostBigBlind) {
-            hasTriggeredBigBlindRef.current = true;
-            triggerPostBigBlind();
+            // ui#662: see the small-blind effect — latch on submission, not on intent.
+            if (triggerPostBigBlind()) {
+                hasTriggeredBigBlindRef.current = true;
+            }
         }
 
         // Reset the trigger flag when big blind action is no longer available
         if (!hasBigBlindAction) {
             hasTriggeredBigBlindRef.current = false;
+            bigBlindRearmsRef.current = 0;
         }
-    }, [hasBigBlindAction, isUsersTurn, triggerPostBigBlind]);
+    }, [hasBigBlindAction, isUsersTurn, triggerPostBigBlind, bigBlindRearmToken]);
 }

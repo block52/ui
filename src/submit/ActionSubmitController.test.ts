@@ -487,3 +487,60 @@ describe("ActionSubmitController connection gate (ui#613)", () => {
         expect(onError).toHaveBeenCalledTimes(1); // only the refused one
     });
 });
+
+// ui#655/#661: the auto hooks hold a once-per-opportunity latch. Without a
+// per-request failure signal they can never know their own attempt is over,
+// so a rejected auto-post leaves the manual button as the only way forward.
+describe("ActionSubmitController per-request failure signal (ui#655)", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+    });
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    it("tells the submitter when its own job failed before broadcast", async () => {
+        const { controller, onError } = makeController();
+        const onFailure = jest.fn<void, [SubmitError]>();
+
+        controller.submit({
+            actionName: "small-blind",
+            run: () => Promise.reject(new Error("account sequence mismatch, expected 120, got 119")),
+            onFailure
+        });
+        await flush();
+
+        expect(onError).toHaveBeenCalledTimes(1);
+        expect(onFailure).toHaveBeenCalledTimes(1);
+        expect(onFailure.mock.calls[0][0]).toMatchObject({ actionName: "small-blind" });
+        // the submitter is told the SAME error the player was
+        expect(onFailure.mock.calls[0][0]).toBe(onError.mock.calls[0][0]);
+    });
+
+    it("does not tell the submitter its job failed when it succeeded", async () => {
+        const { controller, authoritative } = makeController();
+        const onFailure = jest.fn<void, [SubmitError]>();
+        const onSuccess = jest.fn<void, [string]>();
+
+        controller.submit({
+            actionName: "deal",
+            run: () => Promise.resolve({ hash: "0xdeal" } as never),
+            onSuccess,
+            onFailure
+        });
+        await flush();
+
+        expect(onSuccess).toHaveBeenCalledWith("0xdeal");
+        expect(onFailure).not.toHaveBeenCalled();
+        void authoritative;
+    });
+
+    it("is optional — a request without onFailure still fails cleanly", async () => {
+        const { controller, onError } = makeController();
+
+        controller.submit({ actionName: "deal", run: () => Promise.reject(new Error("nope")) });
+        await flush();
+
+        expect(onError).toHaveBeenCalledTimes(1);
+    });
+});

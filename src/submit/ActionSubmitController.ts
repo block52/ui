@@ -451,6 +451,7 @@ export class ActionSubmitController {
         job.error = error;
         this.lastError = error;
         this.onError(error);
+        job.request.onFailure?.(error);
         this.finalize(job);
     }
 
@@ -534,6 +535,7 @@ export class ActionSubmitController {
         this.lastError = error;
         this.lastSettledAt.set(job.dedupeKey, this.now());
         this.onError(error);
+        job.request.onFailure?.(error);
     }
 
     // ---- tx-by-hash verdict ---------------------------------------------------
