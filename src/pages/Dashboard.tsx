@@ -9,7 +9,7 @@ import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
 import { calculateBuyIn } from "../utils/buyInUtils";
-import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX } from "../constants/blindLevels";
+import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, SNG_BLINDS } from "../constants/blindLevels";
 import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
@@ -30,6 +30,7 @@ import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import t
 // Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
 import { isTournamentFormat, toGameFormat } from "../utils/gameFormatUtils";
+import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 
 // Password protection utils
 import {
@@ -89,9 +90,22 @@ const Dashboard: React.FC = () => {
     const [modalMinBuyInBB, setModalMinBuyInBB] = useState(20); // 20 BB default
     const [modalMaxBuyInBB, setModalMaxBuyInBB] = useState(100); // 100 BB default
 
-    // Get current blind values from selected level (memoized to prevent unnecessary recalculation)
-    const modalSmallBlind = useMemo(() => BLIND_LEVELS[selectedBlindLevel].smallBlind, [selectedBlindLevel]);
-    const modalBigBlind = useMemo(() => BLIND_LEVELS[selectedBlindLevel].bigBlind, [selectedBlindLevel]);
+    // Sit & Go settings — the chain requires them (ui#690: without them the SDK throws
+    // "sit-and-go games require an sngConfig"). Same presets as /admin/tables.
+    const [modalStartingStack, setModalStartingStack] = useState(1500);
+    const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(10);
+    const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(1); // 25 / 50
+
+    // Cash blinds are dollars (BLIND_LEVELS); Sit & Go blinds are chips (SNG_BLINDS).
+    const isModalTournament = isTournamentFormat(modalGameFormat);
+    const modalSmallBlind = useMemo(
+        () => (isModalTournament ? SNG_BLINDS[modalSngBlindsIndex].smallBlind : BLIND_LEVELS[selectedBlindLevel].smallBlind),
+        [isModalTournament, modalSngBlindsIndex, selectedBlindLevel]
+    );
+    const modalBigBlind = useMemo(
+        () => (isModalTournament ? SNG_BLINDS[modalSngBlindsIndex].bigBlind : BLIND_LEVELS[selectedBlindLevel].bigBlind),
+        [isModalTournament, modalSngBlindsIndex, selectedBlindLevel]
+    );
 
     // Calculate actual buy-in values from BB using utility function
     const { minBuyIn: calculatedMinBuyIn, maxBuyIn: calculatedMaxBuyIn } = useMemo(
@@ -174,7 +188,8 @@ const Dashboard: React.FC = () => {
                 maxPlayers: modalGameFormat === GameFormat.CASH ? modalMaxPlayers : modalPlayerCount,
                 smallBlind: modalSmallBlind,
                 bigBlind: modalBigBlind,
-                name: normalizedTableName || undefined
+                name: normalizedTableName || undefined,
+                ...(isTournament && { sng: { startingStack: modalStartingStack, blindLevelDuration: modalBlindLevelDuration } })
             };
 
             // Use the createTable function from the hook (Cosmos SDK)
@@ -183,6 +198,8 @@ const Dashboard: React.FC = () => {
             if (txHash) {
                 setShowCreateGameModal(false);
                 setModalTableName("");
+                // The chain just debited the creation (+ name) fee — show the real balance.
+                void cosmosWallet.refreshBalance();
             }
         } catch (error: any) {
             console.error("Error creating game:", error);
@@ -319,7 +336,24 @@ const Dashboard: React.FC = () => {
     // Block table creation if the name is invalid, or the creator can't cover the
     // naming fee (the definite creation-time debit, poker-vm#337).
     const insufficientForName = tableNameFeeUsd > numericUsdcBalance;
-    const createDisabled = isCreatingTable || !!tableNameError || insufficientForName;
+
+    // Table creation fee = 10 big blinds (pokerchain#378, ui#690), priced from the
+    // exact values handleCreateNewGame submits. null = the chain could not price it.
+    const creationFeeMicro = useMemo(
+        () =>
+            computeTableCreationFeeMicro(
+                modalGameFormat,
+                modalSmallBlind,
+                modalBigBlind,
+                isModalTournament ? modalSitAndGoBuyIn : calculatedMinBuyIn,
+                isModalTournament ? modalStartingStack : undefined
+            ),
+        [modalGameFormat, modalSmallBlind, modalBigBlind, isModalTournament, modalSitAndGoBuyIn, calculatedMinBuyIn, modalStartingStack]
+    );
+    const creationTotalMicro = creationFeeMicro === null ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
+    const insufficientForCreation =
+        creationTotalMicro === null || creationTotalMicro > usdcToMicroBigInt(numericUsdcBalance);
+    const createDisabled = isCreatingTable || !!tableNameError || insufficientForName || insufficientForCreation;
 
     // Check if transfer amount exceeds available balance
     const isAmountExceedingBalance = useMemo(() => {
@@ -821,6 +855,39 @@ const Dashboard: React.FC = () => {
                                                 className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
                                             />
                                             <p className="text-xs text-gray-400 mt-1">All players pay the same buy in</p>
+                                            <label className="block text-white text-sm mb-1 mt-3">Starting Stack (chips)</label>
+                                            <select
+                                                value={modalStartingStack}
+                                                onChange={e => setModalStartingStack(Number(e.target.value))}
+                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            >
+                                                <option value={1000}>Turbo (1,000)</option>
+                                                <option value={1500}>Standard (1,500)</option>
+                                                <option value={3000}>Deep Stack (3,000)</option>
+                                            </select>
+                                            <label className="block text-white text-sm mb-1 mt-3">Starting Blinds (chips)</label>
+                                            <select
+                                                value={modalSngBlindsIndex}
+                                                onChange={e => setModalSngBlindsIndex(Number(e.target.value))}
+                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            >
+                                                {SNG_BLINDS.map((b, i) => (
+                                                    <option key={b.bigBlind} value={i}>
+                                                        {b.smallBlind} / {b.bigBlind}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <label className="block text-white text-sm mb-1 mt-3">Blind Level Duration</label>
+                                            <select
+                                                value={modalBlindLevelDuration}
+                                                onChange={e => setModalBlindLevelDuration(Number(e.target.value))}
+                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            >
+                                                <option value={3}>Hyper (3 min)</option>
+                                                <option value={5}>Turbo (5 min)</option>
+                                                <option value={10}>Standard (10 min)</option>
+                                                <option value={15}>Deep (15 min)</option>
+                                            </select>
                                         </div>
                                     ) : (
                                         // For Cash games: Blind level and buy-in in Big Blinds (BB)
@@ -950,6 +1017,19 @@ const Dashboard: React.FC = () => {
                                             </React.Fragment>
                                         </select>
                                     </div>
+
+                                    <div className="flex items-center justify-between rounded bg-gray-900 border border-gray-700 p-2 text-sm">
+                                        <span className="text-gray-400">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds)</span>
+                                        <span className="text-white font-mono">
+                                            {creationFeeMicro === null ? "—" : `$${formatMicroAsUsdc(creationFeeMicro.toString(), 6)}`}
+                                        </span>
+                                    </div>
+                                    {insufficientForCreation && creationTotalMicro !== null && (
+                                        <p className="text-red-400 text-sm">
+                                            You need ${formatMicroAsUsdc(creationTotalMicro.toString(), 6)} to create this table (fee
+                                            {normalizedTableName.length > 0 ? " + name" : ""}); your balance is ${numericUsdcBalance.toFixed(6)}.
+                                        </p>
+                                    )}
 
                                     {createGameError && <p className="text-red-500 text-sm">{createGameError}</p>}
                                     {createTableError && <p className="text-red-500 text-sm">{createTableError.message}</p>}
