@@ -110,6 +110,14 @@ export interface OnChainNftAvatar {
 }
 
 /**
+ * True when an error body from the NFT avatar query means "this address has no
+ * avatar registered" rather than a real failure. Matches both the chain's
+ * intended message and the wrapped collections error it returns today (#657).
+ */
+export const isNotRegisteredResponse = (body: string): boolean =>
+    /collections: not found|no NFT avatar registered/i.test(body);
+
+/**
  * Query the cosmos chain REST API for a registered NFT avatar.
  *
  * @param restEndpoint - The cosmos node REST endpoint
@@ -126,7 +134,10 @@ export const queryNftAvatar = async (
         );
 
         if (!response.ok) {
-            if (response.status === 404) {
+            // "No avatar registered" is the common case, not a failure. The chain
+            // should answer 404, but its handler compares a wrapped error with `==`,
+            // so today it answers 500 {"message": "...collections: not found..."} (#657).
+            if (response.status === 404 || isNotRegisteredResponse(await response.text())) {
                 return null;
             }
             throw new Error(`Failed to query NFT avatar: ${response.status}`);
