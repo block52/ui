@@ -20,7 +20,7 @@ import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
 import { useGameStateContext } from "../../../../context/GameStateContext";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { useActionSubmit } from "../../../../context/ActionSubmitContext";
-import { findUserSeat } from "../../../../utils/playerSeatUtils";
+import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
 import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
 
 export interface PlayerActionButtonsProps {
@@ -75,13 +75,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     const compactPanelStyle: React.CSSProperties = { bottom: "calc(env(safe-area-inset-bottom) + 100px)" };
     const compactBarStyle: React.CSSProperties = { bottom: "calc(env(safe-area-inset-bottom) + 8px)" };
 
-    // Optimistic local state for immediate visual feedback
-    const [optimisticChecked, setOptimisticChecked] = useState<boolean | null>(null);
-
-    // Browser-only intent for "Sit Out Next Big Blind" (#114). No chain state:
-    // the hook below fires a standard SIT_OUT(next-hand) when bigBlindPosition
-    // rotates onto our seat, then this flag is cleared so the box unchecks.
-    const [sitOutNextBbQueued, setSitOutNextBbQueued] = useState<boolean>(false);
+    // Sit-out intent is shared with the phone's hamburger drawer, which offers
+    // the same two boxes (#684) — one owner, or the two copies drift and the
+    // next-BB auto-submit fires twice.
+    const { nextHandChecked: isChecked, toggleNextHand: handleToggleSitOutNextHand, nextBbQueued: sitOutNextBbQueued, toggleNextBb } =
+        useSitOutIntent();
 
     // Sit-in/out submission runs through the shared ActionSubmitController: it
     // dedupes double-clicks, serializes, retries transport errors safely, holds
@@ -92,40 +90,6 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     const { seatAtBottom, toggleSeatAtBottom, sitInOptions } = useGameSettings();
     const { submit, loadingAction } = useActionSubmit();
     const sittingIn = loadingAction === "sit-in";
-
-    // Sync optimistic state with server state when it arrives
-    const serverChecked = pendingSitOut === "next-hand";
-    useEffect(() => {
-        setOptimisticChecked(null);
-    }, [pendingSitOut]);
-
-    const isChecked = optimisticChecked ?? serverChecked;
-
-    const handleToggleSitOutNextHand = () => {
-        setOptimisticChecked(!isChecked);
-        if (tableId) {
-            submit({ actionName: "sit-out", run: () => sitOut(tableId, currentNetwork) });
-        }
-    };
-
-    // When the BB rotates onto our seat, fire the standard SIT_OUT(next-hand)
-    // through the ActionSubmitController — same path as the manual toggle above,
-    // so the two dedupe/serialize instead of racing into a sequence mismatch
-    // (ui#567). Clear the box optimistically once fired; controller toasts any
-    // failure and the user can re-check.
-    const handleAutoSitOutNextBb = useCallback(() => {
-        if (tableId) {
-            submit({ actionName: "sit-out", run: () => sitOut(tableId, currentNetwork) });
-        }
-        setSitOutNextBbQueued(false);
-    }, [tableId, currentNetwork, submit]);
-
-    useAutoSitOutNextBB(
-        findUserSeat(gameState, getCosmosAddressSync()),
-        gameState?.bigBlindPosition,
-        sitOutNextBbQueued,
-        handleAutoSitOutNextBb
-    );
 
     const display = getPlayerActionDisplay({
         playerStatus,
@@ -360,6 +324,11 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             // hand boundary, "next big blind" holds you in until the BB rotates back
             // to your seat (so you don't waste blinds already paid this orbit). Both
             // may be checked; per #763 "the first applicable condition triggers".
+            // Phones offer both boxes in the hamburger drawer instead, so nothing
+            // is pinned over the felt (#684). Desktop keeps the panel.
+            if (isCompactMobile) {
+                return seatedFrame(null);
+            }
             return seatedFrame(
                 <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
                     <label className="flex items-center cursor-pointer">
@@ -377,7 +346,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                         <input
                             type="checkbox"
                             checked={sitOutNextBbQueued}
-                            onChange={() => setSitOutNextBbQueued(prev => !prev)}
+                            onChange={toggleNextBb}
                             className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
                         />
                         <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>

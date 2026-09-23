@@ -26,6 +26,7 @@ import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, Player
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
+import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import styles from "./TableHeader.module.css";
@@ -146,6 +147,8 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     // Seat orientation is a view preference, read straight from settings rather
     // than drilled through props — the drawer is its only mobile home (#684).
     const { seatAtBottom, toggleSeatAtBottom } = useGameSettings();
+    // Sit-out lives here on phones rather than pinned over the felt (#684).
+    const { nextHandChecked, toggleNextHand, nextBbQueued, toggleNextBb, canSitOut } = useSitOutIntent();
     const isTableFull = !!gameOptions?.maxPlayers && tableActivePlayers.length >= gameOptions.maxPlayers;
 
     const closeMenuAnd = (action: () => void) => () => {
@@ -354,6 +357,28 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                 {seatAtBottom ? "✓ " : ""}Seat me at 6 o&apos;clock
                             </span>
                         </button>
+
+                        {/* Sit-out intents (#684). Queued conditions, not immediate
+                            actions: "next hand" fires at the next hand boundary,
+                            "next big blind" holds you in until the BB comes round
+                            again. Both may be ticked (#763). Shown whenever the
+                            engine allows sitting out. */}
+                        {canSitOut && (
+                            <>
+                                <button className={menuRowClass} onClick={toggleNextHand} role="switch" aria-checked={nextHandChecked}>
+                                    <span className="text-xs text-gray-400">Sit out</span>
+                                    <span className={nextHandChecked ? "text-amber-300" : undefined}>
+                                        {nextHandChecked ? "☑ " : "☐ "}Next hand
+                                    </span>
+                                </button>
+                                <button className={menuRowClass} onClick={toggleNextBb} role="switch" aria-checked={nextBbQueued}>
+                                    <span className="text-xs text-gray-400">Sit out</span>
+                                    <span className={nextBbQueued ? "text-amber-300" : undefined}>
+                                        {nextBbQueued ? "☑ " : "☐ "}Next big blind
+                                    </span>
+                                </button>
+                            </>
+                        )}
 
                         {/* Spectating hint. Non-interactive: the only way to sit is
                             tapping an open seat, and this is what tells a first-time
