@@ -50,7 +50,11 @@ const formatBuyIn = (game: GameWithFormat) => {
  * Used on the landing page RHS
  * Join buttons open tables in a new tab for better user experience
  */
-const TableList: React.FC = () => {
+interface TableListProps {
+    onCreateTable?: () => void;
+}
+
+const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
     const { games: rawGames, isLoading, error, refetch } = useFindGames();
     const { deleteGame, isDeleting } = useDeleteGame();
     const { forceCloseGame, isClosing } = useForceCloseGame();
@@ -360,6 +364,15 @@ const TableList: React.FC = () => {
                                     </div>
                                     <p className="text-gray-400 mb-1">No tables available</p>
                                     <p className="text-gray-500 text-sm">Create the first table to start playing!</p>
+                                    {onCreateTable && (
+                                        <button
+                                            type="button"
+                                            onClick={onCreateTable}
+                                            className="mt-4 px-4 py-2 text-sm text-white rounded-lg transition duration-300 shadow-md bg-blue-600 hover:bg-blue-700"
+                                        >
+                                            Create table
+                                        </button>
+                                    )}
                                 </td>
                             </tr>
                         ) : (

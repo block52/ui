@@ -1019,7 +1019,12 @@ const Dashboard: React.FC = () => {
 
                             {/* Right column: Table List (takes remaining space) */}
                             <div className="flex-1 min-w-0">
-                                <TableList />
+                                <TableList
+                                    onCreateTable={() => {
+                                        setCreateGameError("");
+                                        setShowCreateGameModal(true);
+                                    }}
+                                />
                                 {/* Powered by Block52 — shown below table on small/mid screens */}
                                 <div className="flex lg:hidden items-center justify-center opacity-30 py-4">
                                     <div className="flex flex-col items-center gap-1">
