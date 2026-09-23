@@ -100,3 +100,32 @@ describe("formatPotDisplay", () => {
         });
     });
 });
+
+// #639 — seen live on table 9d9ad, 23 Sep 2026: "Total Pot: 0" between hands, and "Total Pot: 150 / Main Pot: 150" at showdown.
+describe("pot row visibility (#639)", () => {
+    it("hides Total Pot while the pot is empty (new-hand setup, before blinds)", () => {
+        expect(formatPotDisplay([], "0", GameFormat.SIT_AND_GO, TexasHoldemRound.PREFLOP).showTotalPot).toBe(false);
+        expect(formatPotDisplay([], undefined, GameFormat.CASH, undefined).showTotalPot).toBe(false);
+    });
+
+    it("shows Total Pot once chips are in", () => {
+        expect(formatPotDisplay([], "75", GameFormat.SIT_AND_GO, TexasHoldemRound.PREFLOP).showTotalPot).toBe(true);
+    });
+
+    it("collapses Main Pot into Total Pot when they are equal", () => {
+        const v = formatPotDisplay(["150"], "150", GameFormat.SIT_AND_GO, TexasHoldemRound.SHOWDOWN);
+        expect(v.showTotalPot).toBe(true);
+        expect(v.showMainPot).toBe(false);
+    });
+
+    it("keeps the split when they legitimately diverge (900 total / 600 main)", () => {
+        const v = formatPotDisplay(["600"], "900", GameFormat.SIT_AND_GO, TexasHoldemRound.FLOP);
+        expect(v.showMainPot).toBe(true);
+        expect(v.mainPot).toBe("600");
+        expect(v.totalPot).toBe("900");
+    });
+
+    it("never shows Main Pot preflop", () => {
+        expect(formatPotDisplay(["600"], "900", GameFormat.SIT_AND_GO, TexasHoldemRound.PREFLOP).showMainPot).toBe(false);
+    });
+});
