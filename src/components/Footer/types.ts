@@ -162,6 +162,8 @@ export interface RaiseBetControlsProps {
     displayOffset: number;
     totalPotMicro: bigint;
     callAmountMicro: bigint;
+    // Big blind in micro-units — the pot presets floor an opening bet here (#692).
+    bigBlindMicro: bigint;
     isInvalid: boolean;
     isMobileLandscape: boolean;
     isTournament: boolean;
@@ -199,6 +201,8 @@ export interface RaiseSliderProps {
 export interface PotSizedBetButtonsProps {
     totalPotMicro: bigint;
     callAmountMicro: bigint;
+    // Big blind in micro-units — opening bets are floored here (#692).
+    bigBlindMicro: bigint;
     minAmount: number;
     maxAmount: number;
     isTournament: boolean;

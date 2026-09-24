@@ -407,6 +407,62 @@ describe("calculatePotBetAmount", () => {
         });
     });
 
+    describe("big-blind floor for opening bets (#692)", () => {
+        // Blinds $0.01 / $0.02, pot $0.04 (SB + BB). First to act on a later
+        // street, quarter pot = $0.01 — below the $0.02 big blind.
+        const bigBlind = 20_000n; // $0.02 in micro-units
+
+        it("floors an opening 1/4-pot bet at the big blind when the fraction is below it", () => {
+            // pot $0.04, 1/4 = $0.01 (10_000n) < BB $0.02 → clamp up to BB.
+            const result = calculatePotBetWithVariation(
+                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 40_000n },
+                "1/4",
+                { bigBlind }
+            );
+            expect(result).toBe(20_000n); // $0.02
+        });
+
+        it("leaves an opening bet unchanged when the fraction equals the big blind", () => {
+            // pot $0.08, 1/4 = $0.02 == BB.
+            const result = calculatePotBetWithVariation(
+                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 80_000n },
+                "1/4",
+                { bigBlind }
+            );
+            expect(result).toBe(20_000n);
+        });
+
+        it("leaves an opening bet unchanged when the fraction is above the big blind", () => {
+            // pot $1.00, 1/4 = $0.25 > BB.
+            const result = calculatePotBetWithVariation(
+                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 1_000_000n },
+                "1/4",
+                { bigBlind }
+            );
+            expect(result).toBe(250_000n); // $0.25, not floored
+        });
+
+        it("does NOT apply the big-blind floor when facing a bet (raise uses legal min)", () => {
+            // Facing a $0.02 bet, pot $0.06. 1/4 = call + 1/4×(call+pot)
+            // = 20_000 + (80_000/4) = 20_000 + 20_000 = 40_000. BB floor must not
+            // alter this — a RAISE TO's floor is the game-provided legal minimum.
+            const result = calculatePotBetWithVariation(
+                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 20_000n, pot: 60_000n },
+                "1/4",
+                { bigBlind }
+            );
+            expect(result).toBe(40_000n);
+        });
+
+        it("is a no-op without a bigBlind option (backwards compatible)", () => {
+            const withoutOpt = calculatePotBetWithVariation(
+                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 40_000n },
+                "1/4"
+            );
+            expect(withoutOpt).toBe(10_000n); // $0.01, unfloored
+        });
+    });
+
     describe("getPotBetVariations", () => {
         // Correct formula: CALL + fraction × (CALL + POT)
         // potentialPot = 30M + 60M = 90M
