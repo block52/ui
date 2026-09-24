@@ -1,4 +1,4 @@
-import { useMemo} from "react";
+import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { ShowingCardsByAddressReturn, ShowingCardData } from "../../types/index";
@@ -20,7 +20,11 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
   const isShowdown = useMemo((): boolean => {
     if (!gameState?.round) return false;
     return gameState.round === TexasHoldemRound.SHOWDOWN || gameState.round === TexasHoldemRound.END;
-  }, [gameState]);
+  }, [gameState?.round]);
+
+  const showingFingerprint = useMemo(() => (
+    gameState?.players ?? []
+  ).map(player => `${player.seat}:${player.status}:${player.holeCards?.join(",") ?? ""}`).join("|"), [gameState?.players]);
   
   // Find all players with status "showing"
   const showingPlayers = useMemo((): ShowingCardData[] => {
@@ -42,12 +46,21 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
       console.error("Error filtering showing players:", err);
       return [];
     }
-  }, [gameState]);
+  }, [showingFingerprint]);
+
+  const showingBySeat = useMemo(() => {
+    const bySeat = new Map<number, ShowingCardData>();
+    for (const player of showingPlayers) {
+      bySeat.set(player.seat, player);
+    }
+    return bySeat;
+  }, [showingPlayers]);
   
   return {
     showingPlayers,
+    showingBySeat,
     isShowdown,
     isLoading,
     error
   };
-}; 
+};

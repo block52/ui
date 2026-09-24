@@ -54,7 +54,7 @@ function withState(state: unknown) {
 describe("useAllInEquity simulation sharing", () => {
     beforeEach(() => {
         jest.useFakeTimers();
-        mockedShowing.mockReturnValue({ showingPlayers: [] } as any);
+        mockedShowing.mockReturnValue({ showingPlayers: [], showingBySeat: new Map() } as any);
         mockedEquity.mockClear();
         // The cache is shared across instances BY DESIGN, which means it is also
         // shared across test cases — clear it so each case starts cold.
