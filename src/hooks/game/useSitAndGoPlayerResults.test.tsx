@@ -8,6 +8,12 @@ jest.mock("../../context/GameStateContext", () => ({
     useGameStateContext: () => mockUseGameStateContext(),
 }));
 
+// usePlayersBySeat reads the narrow GameDataContext slice. Point it at the same
+// stubbed state so the seat index and the omnibus context can't disagree.
+jest.mock("../../context/gameState/GameDataContext", () => ({
+    useGameData: () => ({ gameState: mockUseGameStateContext().gameState }),
+}));
+
 // Minimal helpers to build the shapes the hook reads.
 const player = (seat: number, address: string): PlayerDTO =>
     ({ seat, address } as PlayerDTO);
@@ -128,6 +134,79 @@ describe("useSitAndGoPlayerResults", () => {
             const { result: hookResult } = renderHook(() => useSitAndGoPlayerResults());
 
             expect(hookResult.current.getSeatResult(2)).toBeNull();
+        });
+
+        it("returns null for a seat nobody is sitting in", () => {
+            // Previously guarded by an explicit !gameState.players check; the
+            // seat index now answers this with a miss.
+            setGameState({
+                players: [player(1, "alice")],
+                results: [result(1, "alice", "400")],
+            });
+            const { result: hookResult } = renderHook(() => useSitAndGoPlayerResults());
+
+            expect(hookResult.current.getSeatResult(7)).toBeNull();
+        });
+    });
+
+    describe("indexed lookup (#704)", () => {
+        it("matches addresses case-insensitively in both directions", () => {
+            // The scan this replaced lowercased both sides. The Map keys are
+            // lowercased on insert, so lookups must lowercase too — a plain
+            // .get(address) would regress every mixed-case address.
+            setGameState({
+                players: [player(1, "0xAbCdEf")],
+                results: [result(1, "0xaBcDeF", "400")],
+            });
+            const { result: hookResult } = renderHook(() => useSitAndGoPlayerResults());
+
+            expect(hookResult.current.getPlayerResult("0xABCDEF")?.place).toBe(1);
+            expect(hookResult.current.getPlayerResult("0xabcdef")?.place).toBe(1);
+            expect(hookResult.current.getSeatResult(1)?.place).toBe(1);
+        });
+
+        it("skips result entries with no playerId rather than indexing undefined", () => {
+            setGameState({
+                players: [player(1, "alice"), player(2, "bob")],
+                results: [
+                    { place: 1, payout: "400" } as ResultDTO,
+                    result(2, "bob", "0"),
+                ],
+            });
+            const { result: hookResult } = renderHook(() => useSitAndGoPlayerResults());
+
+            expect(hookResult.current.getSeatResult(2)?.place).toBe(2);
+            expect(hookResult.current.getSeatResult(1)).toBeNull();
+        });
+
+        it("is stable across a re-render that changes nothing", () => {
+            setGameState({
+                players: [player(1, "alice"), player(2, "bob")],
+                results: [result(1, "alice", "400"), result(2, "bob", "0")],
+            });
+            const { result: hookResult, rerender } = renderHook(() => useSitAndGoPlayerResults());
+
+            const firstGetSeatResult = hookResult.current.getSeatResult;
+            rerender();
+
+            expect(hookResult.current.getSeatResult).toBe(firstGetSeatResult);
+            expect(hookResult.current.getSeatResult(1)?.place).toBe(1);
+        });
+
+        it("gives the same answer however many times it is called", () => {
+            // Every seat calls this on each frame; repeated calls must not
+            // depend on any state accumulated by earlier ones.
+            setGameState({
+                players: [player(1, "alice"), player(2, "bob"), player(3, "carol")],
+                results: [result(1, "alice", "400"), result(2, "bob", "100"), result(3, "carol", "0")],
+            });
+            const { result: hookResult } = renderHook(() => useSitAndGoPlayerResults());
+
+            for (let call = 0; call < 3; call++) {
+                expect(hookResult.current.getSeatResult(1)?.place).toBe(1);
+                expect(hookResult.current.getSeatResult(2)?.place).toBe(2);
+                expect(hookResult.current.getSeatResult(3)?.place).toBe(3);
+            }
         });
     });
 });

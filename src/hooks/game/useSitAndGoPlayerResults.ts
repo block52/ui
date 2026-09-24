@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { ResultDTO, GameFormat } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { usePlayersBySeat } from "./usePlayersBySeat";
 import { hasElements } from "../../utils/guards";
 
 // Hook return type for individual player result
@@ -30,6 +31,7 @@ export interface SitAndGoPlayerResultsReturn {
  */
 export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
     const { gameState, gameFormat } = useGameStateContext();
+    const playersBySeat = usePlayersBySeat();
 
     // Check if it's a sit and go game
     const isSitAndGo = useMemo(() => {
@@ -46,6 +48,26 @@ export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
         return hasElements(allResults);
     }, [allResults]);
 
+    // Address -> result index, built once per results change (#704).
+    //
+    // These memos return FUNCTIONS, so what they cache is the closure, not the
+    // lookup. Every seat calls getSeatResult on each render, and its identity
+    // churns whenever gameState.players does — a fresh array on every
+    // WebSocket frame — so a scan here runs per seat, per frame. Indexing makes
+    // each call O(1) instead of a seat scan nested inside a results scan.
+    //
+    // Keys are lowercased, matching the case-insensitive comparison this
+    // replaced; lookups must lowercase too.
+    const resultsByAddress = useMemo(() => {
+        const byAddress = new Map<string, ResultDTO>();
+        for (const result of allResults) {
+            if (result.playerId) {
+                byAddress.set(result.playerId.toLowerCase(), result);
+            }
+        }
+        return byAddress;
+    }, [allResults]);
+
     // Get result for a specific player address.
     //
     // ONLY reads from gameState.results (tournament-final placements),
@@ -57,10 +79,7 @@ export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
         return (playerAddress: string): PlayerResultData | null => {
             if (!playerAddress || !hasResults) return null;
 
-            // Find the result for this player (case-insensitive)
-            const result = allResults.find(
-                r => r.playerId?.toLowerCase() === playerAddress.toLowerCase()
-            );
+            const result = resultsByAddress.get(playerAddress.toLowerCase());
 
             if (!result) return null;
 
@@ -70,21 +89,21 @@ export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
                 isWinner: result.place === 1
             };
         };
-    }, [allResults, hasResults]);
+    }, [resultsByAddress, hasResults]);
 
     // Get result for a specific seat number
     const getSeatResult = useMemo(() => {
         return (seatNumber: number): PlayerResultData | null => {
-            if (!seatNumber || !hasResults || !gameState?.players) return null;
+            if (!seatNumber || !hasResults) return null;
 
-            // Find the player at this seat
-            const player = gameState.players.find(p => p.seat === seatNumber);
+            // Seat -> player comes from the shared index, not a fresh scan
+            const player = playersBySeat.get(seatNumber);
             if (!player?.address) return null;
 
             // Get the result for this player
             return getPlayerResult(player.address);
         };
-    }, [gameState?.players, hasResults, getPlayerResult]);
+    }, [playersBySeat, hasResults, getPlayerResult]);
 
     return {
         getPlayerResult,
