@@ -20,6 +20,9 @@ import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { TopUpModal } from "../../../modals";
+import SngPayoutPanel from "../../SngPayoutPanel";
+import SitOutControls from "./SitOutControls";
+import { useSitOutControls } from "../../../../hooks/playerActions/useSitOutControls";
 import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
@@ -59,6 +62,9 @@ export interface MobileTableHeaderProps {
     currentPlayerData: PlayerDTO | null;
     isCurrentUserSeated: boolean;
     legalActions: LegalActionDTO[];
+    // Sit-out drawer controls (ui#670): the checkboxes moved off the felt, where
+    // they overlapped CHECK/CALL on compact mobile, into this menu.
+    pendingSitOut: string | null;
     currentStack: string;
     minBuyIn: string;
     maxBuyIn: string;
@@ -110,6 +116,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     currentPlayerData,
     isCurrentUserSeated,
     legalActions,
+    pendingSitOut,
     currentStack,
     minBuyIn,
     maxBuyIn,
@@ -137,6 +144,13 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     const canTopUp = legalActions.some(a => a.action === NonPlayerActionType.TOP_UP);
     const showTopUpEntry = isCurrentUserSeated && !isSNG;
     const { topUp } = useTableTopUp(tableId, currentNetwork);
+
+    // Sit-out controls (ui#670): the auto-sit-out-on-BB hook lives inside here and
+    // is the single enabled instance on compact mobile (PlayerActionButtons runs a
+    // disabled one off-compact). Show the drawer row only when the engine offers a
+    // SIT_OUT legal action — same gate as the old on-felt "sit-out-button" case.
+    const sitOutControls = useSitOutControls(tableId, currentNetwork, pendingSitOut);
+    const canSitOut = legalActions.some(a => a.action === NonPlayerActionType.SIT_OUT);
 
     // Same gating as TableHeader: no Leave for SNG (roster frozen once play
     // starts, poker-vm#2343; SNG leave/claim lives in the SNG modals, ui#465).
@@ -261,6 +275,17 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             </div>
                         )}
 
+                        {/* SNG payout structure — lives here on compact mobile instead
+                            of the floating bottom-right panel, which overlapped the
+                            ALL-IN preset button on the action bar (ui#693). The panel
+                            self-gates on payout data; the isSNG check keeps the divider
+                            from rendering an empty row in cash games. */}
+                        {isSNG && (
+                            <div className="px-4 py-2 border-b border-white/10">
+                                <SngPayoutPanel />
+                            </div>
+                        )}
+
                         {/* Network */}
                         <div className="px-4 py-2 flex items-center gap-3 border-b border-white/10">
                             <span className="text-xs text-gray-400">Network</span>
@@ -311,6 +336,16 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <IoSettingsOutline size={16} />
                             <span>Settings</span>
                         </button>
+
+                        {/* Sit out — moved off the felt (ui#670), where the checkboxes
+                            overlapped CHECK/CALL on compact mobile. Shown only when the
+                            engine offers a SIT_OUT legal action. Toggling does not close
+                            the drawer, so both boxes can be set in one visit. */}
+                        {canSitOut && (
+                            <div className="px-4 py-3 border-b border-white/10">
+                                <SitOutControls controls={sitOutControls} />
+                            </div>
+                        )}
 
                         {/* Top-up — disabled while in the current hand, same rule as the
                             desktop button (#597): enablement comes from the TOP_UP legal action. */}

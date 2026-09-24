@@ -1360,6 +1360,7 @@ const Table = React.memo(() => {
                     currentPlayerData={currentPlayerData || null}
                     isCurrentUserSeated={isCurrentUserSeated}
                     legalActions={playerLegalActions}
+                    pendingSitOut={pendingSitOut}
                     currentStack={currentPlayerData?.stack || "0"}
                     minBuyIn={gameOptions?.minBuyIn || "0"}
                     maxBuyIn={gameOptions?.maxBuyIn || "0"}
@@ -1562,11 +1563,9 @@ const Table = React.memo(() => {
                         }}
                     >
                         <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
-                        {gameFormat && isSitAndGoFormat(gameFormat) && (
-                            <div className="absolute right-2 bottom-full mb-1 z-20">
-                                <SngPayoutPanel />
-                            </div>
-                        )}
+                        {/* On compact mobile the SNG payout structure moves into the
+                            hamburger drawer (MobileTableHeader) — the floating panel
+                            here sat on top of the ALL-IN preset button (ui#693). */}
                     </div>
                 ) : (
                     <div className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm">
