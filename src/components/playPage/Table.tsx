@@ -1564,11 +1564,9 @@ const Table = React.memo(() => {
                         }}
                     >
                         <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
-                        {gameFormat && isSitAndGoFormat(gameFormat) && (
-                            <div className="absolute right-2 bottom-full mb-1 z-20">
-                                <SngPayoutPanel />
-                            </div>
-                        )}
+                        {/* SNG payout structure is hidden on mobile: the floating panel
+                            sat on top of the ALL-IN preset button (ui#693). It stays on
+                            desktop/landscape below, where there's lateral room for it. */}
                     </div>
                 ) : (
                     <div className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm">
