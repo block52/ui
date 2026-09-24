@@ -14,7 +14,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 export const useVacantSeatData = (): VacantSeatResponse => {
     // Get game state directly from Context - no additional WebSocket connections
     const { gameState, isLoading, error } = useGameStateContext();
-    
+
     const userAddress = React.useMemo(() => {
         // Use Cosmos address (b52...) instead of Ethereum address
         return localStorage.getItem(STORAGE_KEYS.cosmosAddress)?.toLowerCase() || null;
@@ -32,15 +32,18 @@ export const useVacantSeatData = (): VacantSeatResponse => {
             players.some((player: PlayerDTO) => player.address?.toLowerCase() === userAddress));
     }, [players, userAddress]);
 
+    const occupiedSeats = React.useMemo(() => new Set(
+        players
+            .filter(player => isValidPlayerAddress(player.address))
+            .map(player => player.seat)
+    ), [players]);
+
     // Function to check if a specific seat is vacant
     const isSeatVacant = React.useCallback(
         (seatIndex: number) => {
-            return !players.some(
-                (player: PlayerDTO) => player.seat === seatIndex &&
-                isValidPlayerAddress(player.address)
-            );
+            return !occupiedSeats.has(seatIndex);
         },
-        [players]
+        [occupiedSeats]
     );
 
     // Get array of all empty seat indexes - optimized to avoid repeated function calls
@@ -52,12 +55,6 @@ export const useVacantSeatData = (): VacantSeatResponse => {
             // If no players, all seats are empty
             return Array.from({ length: maxPlayers }, (_, i) => i + 1);
         }
-
-        const occupiedSeats = new Set(
-            players
-                .filter(player => isValidPlayerAddress(player.address))
-                .map(player => player.seat)
-        );
 
         const emptySeatNumbers: number[] = [];
         for (let seatIndex = 1; seatIndex <= maxPlayers; seatIndex++) {

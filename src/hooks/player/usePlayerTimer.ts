@@ -4,6 +4,7 @@ import { useGameUI } from "../../context/gameState/GameUIContext";
 import { PlayerStatus, PlayerDTO } from "@block52/poker-vm-sdk";
 import { PlayerTimerReturn } from "../../types/index";
 import { useGameOptions } from "../game/useGameOptions";
+import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { isNullish, safeLength } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
@@ -33,6 +34,7 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
 
     // Get game options for timeout value
     const { gameOptions } = useGameOptions();
+    const playersBySeat = usePlayersBySeat();
 
     // Timer configuration via shared util
     const TIMEOUT_DURATION = useMemo(() => getTimeoutMs(gameOptions?.timeout), [gameOptions]);
@@ -46,8 +48,8 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
         if (!gameState?.players || isNullish(playerSeat)) {
             return null;
         }
-        return gameState.players.find((p: PlayerDTO) => p.seat === playerSeat) || null;
-    }, [gameState, playerSeat]);
+        return playersBySeat.get(playerSeat) || null;
+    }, [playersBySeat, gameState?.players, playerSeat]);
 
     // Get the last action timestamp (normalized to ms) via shared util
     const lastActionTimestamp = useMemo(

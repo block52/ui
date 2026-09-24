@@ -1,10 +1,11 @@
 import { useMemo } from "react";
-import { PlayerDTO, LegalActionDTO } from "@block52/poker-vm-sdk";
+import { LegalActionDTO } from "@block52/poker-vm-sdk";
 import { NextToActInfoReturn } from "../../types/index";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getTimeoutMs, timeoutToSeconds } from "../../utils/timerUtils";
 import { isEmpty, isNullish } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { usePlayersBySeat } from "./usePlayersBySeat";
 
 /**
  * Custom hook to fetch and provide information about who is next to act
@@ -18,6 +19,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 export const useNextToActInfo = (_tableId?: string): NextToActInfoReturn => {
     // Get game state directly from Context - no additional WebSocket connections
     const { gameState, isLoading, error } = useGameStateContext();
+    const playersBySeat = usePlayersBySeat();
 
     // Calculate next-to-act information
     const result = useMemo(() => {
@@ -43,7 +45,7 @@ export const useNextToActInfo = (_tableId?: string): NextToActInfoReturn => {
             }
 
             // Find the player who is next to act
-            const player = gameState.players.find((p: PlayerDTO) => p && p.seat === nextToActSeat);
+            const player = playersBySeat.get(nextToActSeat);
             if (!player) {
                 return defaultValues;
             }
@@ -74,7 +76,7 @@ export const useNextToActInfo = (_tableId?: string): NextToActInfoReturn => {
                 error: err instanceof Error ? err : new Error("Error parsing next-to-act info")
             };
         }
-    }, [gameState, isLoading, error]);
+    }, [gameState, isLoading, error, playersBySeat]);
 
     return result;
 };
