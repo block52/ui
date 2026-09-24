@@ -1,4 +1,4 @@
-import { isAllowedAvatarUrl, normalizeIpfsUri } from "./ipfs";
+import { isAllowedAvatarUrl, normalizeIpfsUri, toCanonicalAvatarRef } from "./ipfs";
 
 const NFT_AVATAR_PATTERN = /^nft:eip155:(\d+)\/erc721:(0x[a-fA-F0-9]{40})\/([^|]+)\|(.+)$/;
 
@@ -23,8 +23,11 @@ export const buildPlayerAvatar = ({
     tokenId,
     imageUrl
 }: BuildPlayerAvatarInput): string => {
-    const normalizedImageUrl = normalizeIpfsUri(imageUrl);
-    return `nft:eip155:${chainId}/erc721:${contractAddress}/${tokenId}|${normalizedImageUrl}`;
+    // Store the CONTENT ADDRESS (ipfs://<cid>/<path>), never a gateway URL, so the
+    // gateway is not baked into chain state and can change later (ui#625). A CDN
+    // URL (Alchemy cachedUrl/thumbnail) or data: URL is kept as-is.
+    const canonicalImageUrl = toCanonicalAvatarRef(imageUrl);
+    return `nft:eip155:${chainId}/erc721:${contractAddress}/${tokenId}|${canonicalImageUrl}`;
 };
 
 export const parsePlayerAvatar = (value: string | undefined | null): ParsedPlayerAvatar | null => {

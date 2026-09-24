@@ -7,6 +7,8 @@
  * 2. baseURI() + tokenId - for contracts using baseURI pattern (including proxies)
  */
 
+import { normalizeIpfsUri } from "./ipfs";
+
 const ETH_RPC_URL = import.meta.env.VITE_MAINNET_RPC_URL || "";
 
 // ERC-721 function selectors
@@ -110,14 +112,14 @@ async function ethCall(contractAddress: string, callData: string): Promise<{ res
  */
 async function fetchMetadataImage(tokenUri: string): Promise<string | null> {
     try {
-        const metadataUrl = resolveIpfsUrl(tokenUri);
+        const metadataUrl = normalizeIpfsUri(tokenUri);
         const metaResponse = await fetch(metadataUrl);
         if (!metaResponse.ok) return null;
 
         const metadata = await metaResponse.json();
         const imageUrl = metadata.image || metadata.image_url || null;
 
-        return imageUrl ? resolveIpfsUrl(imageUrl) : null;
+        return imageUrl ? normalizeIpfsUri(imageUrl) : null;
     } catch (err) {
         console.error("[nftImageResolver] Failed to fetch metadata:", err);
         return null;
@@ -137,12 +139,4 @@ function decodeAbiString(hex: string): string | null {
     } catch {
         return null;
     }
-}
-
-/** Convert ipfs:// URLs to a public gateway */
-function resolveIpfsUrl(url: string): string {
-    if (url.startsWith("ipfs://")) {
-        return url.replace("ipfs://", "https://ipfs.io/ipfs/");
-    }
-    return url;
 }

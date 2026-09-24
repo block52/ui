@@ -20,6 +20,7 @@ import { SIT_IN_METHOD_POST_NOW, sitIn } from "../../../hooks/playerActions";
 import { hasElements } from "../../../utils/guards";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
+import { NftAvatarImage } from "../../profile/NftAvatarImage";
 
 const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
@@ -60,7 +61,6 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
 
         // State for extension UI feedback
         const [isExtending, setIsExtending] = useState(false);
-        const [avatarLoadFailed, setAvatarLoadFailed] = useState(false);
 
         // Handle time extension
         const _handleExtendTime = () => {
@@ -154,10 +154,6 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
             return getAvatarForAddress(playerData?.address, playerData?.avatar);
         }, [getAvatarForAddress, playerData?.address, playerData?.avatar]);
 
-        useEffect(() => {
-            setAvatarLoadFailed(false);
-        }, [selectedAvatarUrl]);
-
         if (!playerData) {
             return <></>;
         }
@@ -181,20 +177,14 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                 )}
                 <div className="flex justify-center gap-1">{renderCards()}</div>
                 <div className="relative flex flex-col justify-end mt-[-6px] mx-1">
-                    {selectedAvatarUrl && !avatarLoadFailed && (
-                        <div className={styles.avatarChip}>
-                            <img
-                                src={selectedAvatarUrl}
-                                alt="Player avatar"
-                                className={styles.avatarImage}
-                                onError={() => setAvatarLoadFailed(true)}
-                            />
-                        </div>
-                    )}
-                    {selectedAvatarUrl && avatarLoadFailed && (
-                        <div className={`${styles.avatarChip} ${styles.avatarFallback}`}>
-                            NFT
-                        </div>
+                    {selectedAvatarUrl && (
+                        <NftAvatarImage
+                            src={selectedAvatarUrl}
+                            alt="Player avatar"
+                            imgClassName={styles.avatarImage}
+                            chipClassName={styles.avatarChip}
+                            fallbackClassName={`${styles.avatarChip} ${styles.avatarFallback}`}
+                        />
                     )}
                     {/* Spacer preserves the 55px flow height the old status bar occupied */}
                     <div className="w-full h-[55px]" />

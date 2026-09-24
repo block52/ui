@@ -120,7 +120,10 @@ export const useWalletNfts = (walletAddress: string | undefined, isConnected: bo
                     return null;
                 }
 
-                const rawImage = item.image?.cachedUrl || item.image?.thumbnailUrl || item.image?.pngUrl || item.image?.originalUrl || item.metadata?.image || item.rawMetadata?.image || item.raw?.metadata?.image || "";
+                // A seat avatar is small — prefer the CDN thumbnail, then the
+                // cached CDN copy, before any raw IPFS metadata image (which can be
+                // a multi-MB original behind a rate-limited gateway, ui#625).
+                const rawImage = item.image?.thumbnailUrl || item.image?.cachedUrl || item.image?.pngUrl || item.image?.originalUrl || item.metadata?.image || item.rawMetadata?.image || item.raw?.metadata?.image || "";
                 const imageUrl = normalizeIpfsUri(rawImage);
 
                 if (!isAllowedAvatarUrl(imageUrl)) {
