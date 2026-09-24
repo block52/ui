@@ -9,7 +9,7 @@ import { useFindGames } from "../hooks/game/useFindGames";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
-import { validateTableName, normalizeTableName, tableNameCharCount } from "../utils/tableName";
+import { validateTableName, normalizeTableName, tableNameCharCount, TABLE_NAME_PERMANENCE_NOTE } from "../utils/tableName";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
@@ -400,16 +400,19 @@ export default function TableAdminPage() {
                         {tableNameError ? (
                             <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
                         ) : normalizedTableName.length > 0 ? (
-                            <p className="text-xs text-gray-400 mt-1">
-                                {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
-                                <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
-                                {normalizedTableName !== tableName && (
-                                    <span className="text-gray-500"> — saved as “{normalizedTableName}”</span>
-                                )}
-                                {insufficientForName && (
-                                    <span className="text-red-400"> — exceeds your ${usdcBalanceFormatted} balance</span>
-                                )}
-                            </p>
+                            <>
+                                <p className="text-xs text-gray-400 mt-1">
+                                    {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
+                                    <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
+                                    {normalizedTableName !== tableName && (
+                                        <span className="text-gray-500"> — saved as “{normalizedTableName}”</span>
+                                    )}
+                                    {insufficientForName && (
+                                        <span className="text-red-400"> — exceeds your ${usdcBalanceFormatted} balance</span>
+                                    )}
+                                </p>
+                                <p className="text-xs text-amber-300 mt-1">{TABLE_NAME_PERMANENCE_NOTE}</p>
+                            </>
                         ) : (
                             <p className="text-xs text-gray-500 mt-1">Free if left blank. Lowercase a–z, 0–9 and hyphens; $0.10 per character.</p>
                         )}

@@ -21,7 +21,7 @@ import { AnimatedBackground } from "../components/common";
 // Game wallet and SDK imports
 // ...existing code...
 import { GameFormat, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
-import { validateTableName, tableNameCharCount, normalizeTableName } from "../utils/tableName";
+import { validateTableName, tableNameCharCount, normalizeTableName, TABLE_NAME_PERMANENCE_NOTE } from "../utils/tableName";
 
 // Hook imports from barrel file
 import { useUserWalletConnect, useNewTable, useCosmosWallet } from "../hooks";
@@ -784,17 +784,20 @@ const Dashboard: React.FC = () => {
                                         {tableNameError ? (
                                             <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
                                         ) : normalizedTableName.length > 0 ? (
-                                            <p className="text-xs text-gray-400 mt-1">
-                                                {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
-                                                <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
-                                                {/* Show the canonical form the chain stores when it differs from the raw input. */}
-                                                {normalizedTableName !== modalTableName && (
-                                                    <span className="text-gray-500"> — saved as “{normalizedTableName}”</span>
-                                                )}
-                                                {insufficientForName && (
-                                                    <span className="text-red-400"> — exceeds your ${numericUsdcBalance.toFixed(2)} balance</span>
-                                                )}
-                                            </p>
+                                            <>
+                                                <p className="text-xs text-gray-400 mt-1">
+                                                    {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
+                                                    <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
+                                                    {/* Show the canonical form the chain stores when it differs from the raw input. */}
+                                                    {normalizedTableName !== modalTableName && (
+                                                        <span className="text-gray-500"> — saved as “{normalizedTableName}”</span>
+                                                    )}
+                                                    {insufficientForName && (
+                                                        <span className="text-red-400"> — exceeds your ${numericUsdcBalance.toFixed(2)} balance</span>
+                                                    )}
+                                                </p>
+                                                <p className="text-xs text-amber-300 mt-1">{TABLE_NAME_PERMANENCE_NOTE}</p>
+                                            </>
                                         ) : (
                                             <p className="text-xs text-gray-400 mt-1">Free if left blank. Lowercase a–z, 0–9 and hyphens; $0.10 per character.</p>
                                         )}
