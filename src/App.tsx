@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
+import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import Table from "./components/playPage/Table";
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiProvider } from "wagmi";
@@ -34,6 +34,7 @@ import { GameSettingsProvider } from "./context/GameSettingsContext";
 import { generateCSSVariables } from "./utils/colorConfig";
 import { useEffect, useState, lazy, Suspense } from "react";
 import FaviconSetter from "./components/FaviconSetter";
+import { ErrorBoundary } from "./components/common/ErrorBoundary";
 import { GlobalHeader } from "./components/GlobalHeader";
 import { ProfileAvatarProvider } from "./context/profile/ProfileAvatarContext";
 import { ProfileAvatarModal } from "./components/profile";
@@ -65,6 +66,7 @@ createAppKit({
 
 // Main App content to be wrapped with providers
 function AppContent() {
+    const location = useLocation();
     const [showChipDebug, setShowChipDebug] = useState(false);
 
     // Inject CSS variables on mount
@@ -95,6 +97,9 @@ function AppContent() {
             <FaviconSetter />
             <GlobalHeader />
             <ProfileAvatarModal />
+            {/* poker-vm#2097: a throw inside a page shows an error page, not a white
+                screen; keyed by path so navigating away resets it. */}
+            <ErrorBoundary key={location.pathname} showDetails={import.meta.env.DEV}>
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<Table />} />
@@ -131,6 +136,7 @@ function AppContent() {
                 <Route path="/tech-notes" element={<TechNotesPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
+            </ErrorBoundary>
             <ToastContainer
                 position="top-right"
                 autoClose={3000}
