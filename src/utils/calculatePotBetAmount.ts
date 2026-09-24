@@ -1,5 +1,6 @@
 import { PlayerActionType, ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
+import { hasValue } from "./guards";
 
 type CalculatePotBetAmountParams = {
     currentRound: TexasHoldemRound;
@@ -113,7 +114,7 @@ export function calculatePotBetWithVariation(
         // First to act — a fraction of the pot, but never below the big blind:
         // a quarter of a tiny pot can round under the minimum legal open (#692).
         const fractionOfPot = (pot * multiplierBigInt) / PRECISION;
-        return bigBlind !== undefined && fractionOfPot < bigBlind ? bigBlind : fractionOfPot;
+        return hasValue(bigBlind) && fractionOfPot < bigBlind ? bigBlind : fractionOfPot;
     }
 
     // Facing a bet: CALL + fraction × (CALL + POT)
