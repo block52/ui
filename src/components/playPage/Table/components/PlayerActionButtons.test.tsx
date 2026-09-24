@@ -1,9 +1,10 @@
 import React from "react";
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render as rtlRender, screen, fireEvent } from "@testing-library/react";
 import { GameFormat, NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
 import { PlayerActionButtons, PlayerActionButtonsProps } from "./PlayerActionButtons";
 import { SIT_IN_METHOD_POST_NOW } from "../../../../hooks/playerActions";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
+import { SitOutIntentProvider } from "../../../../context/SitOutIntentContext";
 
 // Mock BuyChipsButton to avoid import.meta.env issues. Emit a testid so tests
 // can assert its presence/absence directly (the wrapper's .fixed.z-30 class is
@@ -94,6 +95,18 @@ beforeEach(() => {
     mockSubmit.mockClear();
     mockGameSettings.sitInOptions = true; // method-UI tests; auto-drive test sets false
 });
+
+/**
+ * The sit-out boxes read their state from SitOutIntentProvider, which Table
+ * mounts above both this panel and the phone drawer (#684) — so render through
+ * it here too, exactly as the app does.
+ */
+const render = (ui: React.ReactElement): ReturnType<typeof rtlRender> =>
+    rtlRender(
+        <SitOutIntentProvider tableId="0xtable" network={{} as never} pendingSitOut={null} legalActions={[action(NonPlayerActionType.SIT_OUT)]}>
+            {ui}
+        </SitOutIntentProvider>
+    );
 
 describe("PlayerActionButtons", () => {
     it("renders only the Top-Up Chips wrapper when display kind is none and no top-up legal (#401)", () => {

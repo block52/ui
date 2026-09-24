@@ -4,6 +4,49 @@
 
 import { truncateMiddle } from "./stringUtils";
 
+interface TransferEvent {
+    type?: string;
+    attributes?: Array<{ key?: string; value?: string }>;
+}
+
+/**
+ * Sum all USDC transfer amounts emitted by a transaction.
+ *
+ * A create-game transaction can emit separate transfer events for the base
+ * creation fee and the optional table-name fee. Looking only at the first
+ * event under-reports the actual debit.
+ */
+export function sumUsdcTransferEvents(events: TransferEvent[]): string | undefined {
+    let total = 0n;
+    let found = false;
+
+    for (const event of events) {
+        if (event.type !== "transfer") continue;
+
+        for (const attribute of event.attributes ?? []) {
+            if (attribute.key !== "amount" || !attribute.value) continue;
+
+            const match = attribute.value.match(/(\d+)usdc/);
+            if (!match) continue;
+
+            total += BigInt(match[1]);
+            found = true;
+        }
+    }
+
+    return found ? total.toString() : undefined;
+}
+
+/**
+ * MsgPerformAction amounts are format-dependent: cash uses USDC micro-units,
+ * while sit-and-go and tournament games use chips. The transaction payload
+ * does not carry the game format, so hiding this ambiguous amount is safer
+ * than labelling chips as USDC.
+ */
+export function getDisplayableActionAmount(messageType: string, amount?: string): string | undefined {
+    return messageType === "MsgPerformAction" ? undefined : amount;
+}
+
 /**
  * Format a transaction for display purposes
  * Prioritizes action over messageType and cleans up the display text

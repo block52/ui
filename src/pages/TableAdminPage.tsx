@@ -16,13 +16,9 @@ import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX } from "../constants/blindLevels";
 import { isTournamentFormat, getGameFormat, toGameFormat } from "../utils/gameFormatUtils";
+import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
 import type { AdvancedSngParams } from "../utils/sngAdvancedParams";
-
-// Game creation fee in base units (1 usdc = 0.000001 USDC)
-// This matches GameCreationCost in pokerchain/x/poker/types/types.go
-const GAME_CREATION_FEE_BASE = 1;
-const GAME_CREATION_FEE_USDC = GAME_CREATION_FEE_BASE / Math.pow(10, USDC_DECIMALS);
 
 /**
  * TableAdminPage - Admin interface for creating and managing poker tables
@@ -152,8 +148,6 @@ export default function TableAdminPage() {
         return balance ? parseInt(balance.amount) : 0;
     }, [cosmosWallet.balance]);
 
-    // Check if user has enough USDC for game creation
-    const hasEnoughUsdc = usdcBalance >= GAME_CREATION_FEE_BASE;
     const usdcBalanceFormatted = (usdcBalance / Math.pow(10, USDC_DECIMALS)).toFixed(6);
 
     // Paid table name (poker-vm#337): normalize to the chain's canonical form so the
@@ -161,7 +155,26 @@ export default function TableAdminPage() {
     const normalizedTableName = useMemo(() => normalizeTableName(tableName), [tableName]);
     const tableNameError = useMemo(() => validateTableName(tableName), [tableName]);
     const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
-    const insufficientForName = tableNameFeeUsd > usdcBalance / Math.pow(10, USDC_DECIMALS);
+
+    // Table creation fee = 10 big blinds (pokerchain#378, ui#690), priced from the
+    // exact values handleCreateTable submits. null = the chain could not price it.
+    const creationFeeMicro = useMemo(
+        () =>
+            computeTableCreationFeeMicro(
+                gameFormat,
+                parseFloat(smallBlind),
+                parseFloat(bigBlind),
+                isTournamentFormat(gameFormat) ? parseFloat(tournamentBuyIn) : calculatedMinBuyIn,
+                isTournamentFormat(gameFormat) ? startingStack : undefined
+            ),
+        [gameFormat, smallBlind, bigBlind, tournamentBuyIn, calculatedMinBuyIn, startingStack]
+    );
+    const creationFeeFormatted = creationFeeMicro === null ? "—" : formatMicroAsUsdc(creationFeeMicro.toString(), 6);
+    const totalCostMicro = creationFeeMicro === null ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
+    const totalCostFormatted = totalCostMicro === null ? "—" : formatMicroAsUsdc(totalCostMicro.toString(), 6);
+    // Enough for the creation fee AND any name fee — the chain debits both.
+    const hasEnoughUsdc = totalCostMicro !== null && BigInt(usdcBalance) >= totalCostMicro;
+    const insufficientForName = totalCostMicro !== null && normalizedTableName.length > 0 && BigInt(usdcBalance) < totalCostMicro;
 
     // Transform fetched games to TableData format - memoized to prevent infinite loops
     const tables: TableData[] = useMemo(() => {
@@ -241,6 +254,8 @@ export default function TableAdminPage() {
                 setCreatedGameAddress(result.gameId);
                 setShowSuccessModal(true);
                 setTableName("");
+                // The chain just debited the creation (+ name) fee — show the real balance.
+                void cosmosWallet.refreshBalance();
 
                 // Wait a moment then reload tables
                 setTimeout(() => {
@@ -365,8 +380,8 @@ export default function TableAdminPage() {
                     {/* Creation Fee Info */}
                     <div className="bg-gray-900 rounded-lg p-3 mb-4 border border-gray-700">
                         <div className="flex items-center justify-between">
-                            <span className="text-gray-400 text-sm">Table Creation Fee:</span>
-                            <span className="text-white font-mono text-sm">{GAME_CREATION_FEE_USDC.toFixed(6)} USDC</span>
+                            <span className="text-gray-400 text-sm">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds):</span>
+                            <span className="text-white font-mono text-sm">{creationFeeFormatted} USDC</span>
                         </div>
                     </div>
 
@@ -410,7 +425,8 @@ export default function TableAdminPage() {
                                 <div>
                                     <p className="text-red-300 font-semibold mb-1">Insufficient USDC Balance</p>
                                     <p className="text-red-400/80 text-sm mb-3">
-                                        You need at least {GAME_CREATION_FEE_USDC.toFixed(6)} USDC to create a table.
+                                        You need {totalCostFormatted} USDC to create this table ({CREATION_FEE_BIG_BLINDS.toString()} big blinds
+                                        {normalizedTableName.length > 0 ? " plus the name fee" : ""}).
                                         Your current balance is ${usdcBalanceFormatted} USDC.
                                     </p>
                                     <Link

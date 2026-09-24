@@ -37,3 +37,13 @@ export const BLIND_LEVELS: BlindLevel[] = [
  * Default blind level index (0.50 / 1.00)
  */
 export const DEFAULT_BLIND_LEVEL_INDEX = 5;
+
+/**
+ * Sit & Go starting blinds, in CHIPS (not dollars) — the presets /admin/tables
+ * offers. Used by the dashboard's Create New Table form (ui#690).
+ */
+export const SNG_BLINDS: ReadonlyArray<{ smallBlind: number; bigBlind: number }> = [
+    { smallBlind: 10, bigBlind: 20 },
+    { smallBlind: 25, bigBlind: 50 },
+    { smallBlind: 50, bigBlind: 100 }
+];

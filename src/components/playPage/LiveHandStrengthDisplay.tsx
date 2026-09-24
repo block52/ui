@@ -22,11 +22,14 @@ const LiveHandStrengthDisplay: React.FC = () => {
         return null;
     }
 
-    // Phones (both orientations) have no persistent footer bar — sit just above
-    // the on-demand action-bar zone, clear of the home indicator. Desktop/tablet
-    // keep the 160px fixed footer.
+    // Sit clear of the action bar in both layouts: its height plus a small gap.
+    // Desktop's footer is 160px (hence 168px). On phones the on-demand action
+    // bar measures 161px once it is showing bet sizing, so the old 100px put
+    // this bubble INSIDE it — "A high" sat on top of the bet buttons (#684).
+    // Both offsets are the bar's own height + 8px; the phone one adds the home
+    // indicator, which the bar also pads for.
     const isCompactMobile = viewportMode === "mobile-portrait" || viewportMode === "mobile-landscape";
-    const bottomStyle = isCompactMobile ? { bottom: "calc(env(safe-area-inset-bottom) + 100px)" } : { bottom: "168px" };
+    const bottomStyle = isCompactMobile ? { bottom: "calc(env(safe-area-inset-bottom) + 169px)" } : { bottom: "168px" };
 
     return (
         <div style={bottomStyle} className="fixed right-4 bg-black/80 backdrop-blur-sm p-3 rounded-lg border border-blue-500/20 shadow-lg z-50">

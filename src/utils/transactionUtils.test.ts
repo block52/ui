@@ -5,7 +5,9 @@ import {
     formatTransferDirection,
     getTransferDirectionClass,
     formatShortHash,
-    formatGameId
+    formatGameId,
+    getDisplayableActionAmount,
+    sumUsdcTransferEvents
 } from "./transactionUtils";
 
 describe("transactionUtils", () => {
@@ -152,6 +154,26 @@ describe("transactionUtils", () => {
 
         it("should return empty string for empty string", () => {
             expect(formatGameId("")).toBe("");
+        });
+    });
+
+    describe("transaction amount safety", () => {
+        it("sums separate USDC transfer events", () => {
+            expect(
+                sumUsdcTransferEvents([
+                    { type: "transfer", attributes: [{ key: "amount", value: "1usdc" }] },
+                    { type: "transfer", attributes: [{ key: "amount", value: "300000usdc" }] }
+                ])
+            ).toBe("300001");
+        });
+
+        it("does not label format-dependent action amounts as USDC", () => {
+            expect(getDisplayableActionAmount("MsgPerformAction", "25")).toBeUndefined();
+            expect(getDisplayableActionAmount("MsgJoinGame", "1000000")).toBe("1000000");
+        });
+
+        it("returns no amount when no USDC transfer event exists", () => {
+            expect(sumUsdcTransferEvents([{ type: "message", attributes: [{ key: "amount", value: "25" }] }])).toBeUndefined();
         });
     });
 });

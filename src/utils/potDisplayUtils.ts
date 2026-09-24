@@ -7,6 +7,10 @@ export interface PotDisplayValues {
     mainPot: string;
     isTournamentStyle: boolean;
     isPreflop: boolean;
+    /** False while the pot is empty (new-hand setup, before blinds are in) — "Total Pot: 0" is noise (#639). */
+    showTotalPot: boolean;
+    /** Main Pot is a second row only when it tells you something: post-flop AND different from Total Pot (#639). */
+    showMainPot: boolean;
 }
 
 /**
@@ -51,6 +55,8 @@ export function formatPotDisplay(
         totalPot: totalPotFormatted,
         mainPot: mainPotFormatted,
         isTournamentStyle,
-        isPreflop
+        isPreflop,
+        showTotalPot: totalPotRaw > 0n,
+        showMainPot: !isPreflop && mainPotRaw > 0n && mainPotRaw !== totalPotRaw
     };
 }

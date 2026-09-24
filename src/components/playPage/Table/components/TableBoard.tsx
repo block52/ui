@@ -115,9 +115,11 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 {/* Hide pot display when sit-and-go is waiting for players */}
                 {!isSitAndGoWaitingForPlayers && (
                     <>
-                        <TotalPotDisplay amount={potDisplayValues.totalPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
-                        {/* Only show Main Pot when not in preflop (i.e., when community cards are dealt) */}
-                        {!potDisplayValues.isPreflop && (
+                        {potDisplayValues.showTotalPot && (
+                            <TotalPotDisplay amount={potDisplayValues.totalPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                        )}
+                        {/* Main Pot only post-flop, and only when it differs from Total Pot (#639) */}
+                        {potDisplayValues.showMainPot && (
                             <MainPotDisplay amount={potDisplayValues.mainPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
                         )}
                     </>

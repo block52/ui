@@ -13,7 +13,8 @@ import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
 import { useGameStateContext } from "../context/GameStateContext";
 import { formatAmount } from "../utils/accountUtils";
-import { TexasHoldemRound, PlayerActionType } from "@block52/poker-vm-sdk";
+import { TexasHoldemRound, PlayerActionType, NonPlayerActionType } from "@block52/poker-vm-sdk";
+import { getActionLine } from "./ActionsLog.utils";
 
 jest.mock("react-router-dom", () => ({ useParams: () => ({ id: "0xtable" }) }));
 jest.mock("../hooks/game/useGameProgress");
@@ -44,11 +45,14 @@ function action(index: number, over: Record<string, unknown> = {}) {
 }
 
 /** Fresh array identities each call, as a new WS snapshot produces. */
-function withLog(actions: ReturnType<typeof action>[], over: { round?: TexasHoldemRound; winners?: unknown[] } = {}) {
+function withLog(
+    actions: ReturnType<typeof action>[],
+    over: { round?: TexasHoldemRound; winners?: unknown[]; gameFormat?: string } = {}
+) {
     mockedProgress.mockReturnValue({ previousActions: actions.map(a => ({ ...a })) } as any);
     mockedContext.mockReturnValue({
         gameState: { round: over.round ?? TexasHoldemRound.PREFLOP, previousActions: actions },
-        gameFormat: "cash"
+        gameFormat: over.gameFormat ?? "cash"
     } as any);
     mockedWinner.mockReturnValue({ winnerInfo: (over.winners ?? null) as any, winnerBySeat: new Map(), error: null } as any);
 }
@@ -92,6 +96,64 @@ describe("ActionsLog", () => {
             render(<ActionsLog />);
 
             expect(screen.queryByText(/WINS/)).not.toBeInTheDocument();
+        });
+    });
+
+    // ui#660: the rendered rows formatted their own amounts, so the monetary-action
+    // fix reached only the copy-to-clipboard log. The panel kept showing an SNG's
+    // 100,000 uUSDC buy-in as "Join 100,000 chips" beside a 1,500-chip stack.
+    // These assert the REAL formatter, so the unmocked path is what is checked.
+    describe("amount units in the rendered rows", () => {
+        const realFormat = jest.requireActual("../utils/accountUtils").formatAmount;
+        beforeEach(() => mockedFormatAmount.mockImplementation(realFormat));
+
+        it("shows an SNG buy-in in USDC, not tournament chips", () => {
+            withLog([action(1, { action: NonPlayerActionType.JOIN, amount: "100000" })], { gameFormat: "sit-and-go" });
+            render(<ActionsLog />);
+
+            expect(screen.getByText(/Join \$0\.10/)).toBeInTheDocument();
+            expect(screen.queryByText(/100,000 chips/)).not.toBeInTheDocument();
+        });
+
+        it("keeps SNG blind posts in chips", () => {
+            withLog([action(1, { action: PlayerActionType.SMALL_BLIND, amount: "25" })], { gameFormat: "sit-and-go" });
+            render(<ActionsLog />);
+
+            expect(screen.getByText(/Post Small Blind 25 chips/)).toBeInTheDocument();
+        });
+
+        it("shows an SNG leave payout in USDC", () => {
+            withLog([action(1, { action: NonPlayerActionType.LEAVE, amount: "180000" })], { gameFormat: "sit-and-go" });
+            render(<ActionsLog />);
+
+            expect(screen.getByText(/Leave \$0\.18/)).toBeInTheDocument();
+        });
+
+        it("leaves cash-game amounts unchanged", () => {
+            withLog([action(1, { action: NonPlayerActionType.JOIN, amount: "1000000" })]);
+            render(<ActionsLog />);
+
+            expect(screen.getByText(/Join \$1\.00/)).toBeInTheDocument();
+        });
+
+        it("prints no amount for a zero-amount action", () => {
+            // `amount` is a STRING, so the old `action.amount &&` guard let "0"
+            // through and the panel read "Check 0 chips".
+            withLog([action(1, { action: PlayerActionType.CHECK, amount: "0" })], { gameFormat: "sit-and-go" });
+            render(<ActionsLog />);
+
+            expect(screen.getByText("Check")).toBeInTheDocument();
+            expect(screen.queryByText(/0 chips/)).not.toBeInTheDocument();
+        });
+
+        it("renders the same units the clipboard log uses", () => {
+            // The two paths diverging is the actual defect here.
+            const join = action(1, { action: NonPlayerActionType.JOIN, amount: "100000" });
+            withLog([join], { gameFormat: "sit-and-go" });
+            render(<ActionsLog />);
+
+            expect(getActionLine(join as any, true)).toContain("Join $0.10");
+            expect(screen.getByText(/Join \$0\.10/)).toBeInTheDocument();
         });
     });
 
