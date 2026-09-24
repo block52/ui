@@ -102,14 +102,6 @@ export function usePlayerLegalActions(): PlayerLegalActionsResult {
             let actionTurnIndex: number = 0;
             if (hasElements(currentPlayer.legalActions)) {
                 const firstActionIndex = currentPlayer.legalActions[0].index;
-
-                // Verify that all actions have the same index (for debugging)
-                const allSameIndex = currentPlayer.legalActions.every((action: LegalActionDTO) => action.index === firstActionIndex);
-
-                if (!allSameIndex) {
-                    // Actions have different indices - use first one
-                }
-
                 actionTurnIndex = firstActionIndex;
             }
 
