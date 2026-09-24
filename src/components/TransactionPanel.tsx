@@ -12,7 +12,8 @@ import {
     formatShortHash,
     formatGameId,
     getDisplayableActionAmount,
-    sumUsdcTransferEvents
+    sumUsdcTransferEvents,
+    type TransferEvent
 } from "../utils/transactionUtils";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { isEmpty, hasElements } from "../utils/guards";
@@ -38,12 +39,59 @@ interface TransactionPanelProps {
     usdcBalance: string;
 }
 
-export interface TransactionResponse {
-    pagination: any;
-    total: string;
-    tx_responses: any[];
-    txs?: any[]; // Include txs for message parsing
+/** A coin amount as the REST gateway serialises it — the value is a string, not a number. */
+interface Coin {
+    denom: string;
+    amount: string;
 }
+
+/**
+ * One message inside a transaction body.
+ *
+ * Only `@type` is always present; every other field belongs to a particular
+ * message type, so they are optional and narrowed at the use site. `amount` is
+ * genuinely two shapes: a scalar on MsgPerformAction, a coin array on MsgSend.
+ */
+interface CosmosTxMessage {
+    "@type": string;
+    action?: string;
+    amount?: string | Coin[];
+    game_id?: string;
+    buy_in?: string;
+    from_address?: string;
+}
+
+/** The decoded transaction body, as returned in the parallel `txs` array. */
+interface CosmosTx {
+    body?: { messages?: CosmosTxMessage[] };
+}
+
+/**
+ * One element of `tx_responses`.
+ *
+ * This is the REST gateway's JSON shape, NOT cosmjs-types' `TxResponse`. The
+ * gateway emits snake_case and serialises numerics as strings: `height` here is
+ * a string we `parseInt`, where cosmjs-types models it as a `bigint` (and
+ * `raw_log` as `rawLog`). Importing that type would need a cast at every
+ * access, which is how `any` grew here in the first place.
+ */
+export interface CosmosTxResponse {
+    txhash: string;
+    height: string;
+    timestamp: string;
+    code: number;
+    events?: TransferEvent[];
+}
+
+export interface TransactionResponse {
+    pagination: { next_key: string | null; total: string } | null;
+    total: string;
+    tx_responses: CosmosTxResponse[];
+    txs?: CosmosTx[]; // Include txs for message parsing
+}
+
+/** A response entry joined to its decoded body from the parallel `txs` array. */
+type TxWithBody = CosmosTxResponse & { tx?: CosmosTx };
 
 /**
  * TransactionPanel - Shows recent transactions for the connected wallet
@@ -76,25 +124,25 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
             ]);
 
             // Combine tx_responses with their txs for message type extraction
-            const sentTxs = (sentResponse.tx_responses || []).map((tx: any, i: number) => ({
+            const sentTxs: TxWithBody[] = (sentResponse.tx_responses || []).map((tx, i) => ({
                 ...tx,
                 tx: sentResponse.txs?.[i]
             }));
-            const receivedTxs = (receivedResponse.tx_responses || []).map((tx: any, i: number) => ({
+            const receivedTxs: TxWithBody[] = (receivedResponse.tx_responses || []).map((tx, i) => ({
                 ...tx,
                 tx: receivedResponse.txs?.[i]
             }));
 
             // Combine and deduplicate transactions by hash
             const allTxs = [...sentTxs, ...receivedTxs];
-            const uniqueTxs = Array.from(new Map(allTxs.map((tx: any) => [tx.txhash, tx])).values());
+            const uniqueTxs = Array.from(new Map(allTxs.map(tx => [tx.txhash, tx])).values());
 
             // Sort by height (descending) and take first 6
-            uniqueTxs.sort((a: any, b: any) => parseInt(b.height) - parseInt(a.height));
+            uniqueTxs.sort((a, b) => parseInt(b.height) - parseInt(a.height));
             const recentTxs = uniqueTxs.slice(0, 6);
 
             // Extract message type and details for display
-            const formattedTxs: Transaction[] = recentTxs.map((tx: any) => {
+            const formattedTxs: Transaction[] = recentTxs.map(tx => {
                 let messageType = "Transaction";
                 let action: string | undefined;
                 let amount: string | undefined;
@@ -112,7 +160,7 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                     // Extract poker action details
                     if (msgType.includes("MsgPerformAction")) {
                         action = msg.action;
-                        amount = getDisplayableActionAmount("MsgPerformAction", msg.amount);
+                        amount = getDisplayableActionAmount("MsgPerformAction", typeof msg.amount === "string" ? msg.amount : undefined);
                         gameId = msg.game_id;
                     } else if (msgType.includes("MsgJoinGame")) {
                         action = "join";
@@ -125,8 +173,8 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                         action = "create";
                         gameId = msg.game_id;
                     } else if (msgType.includes("MsgSend")) {
-                        // Bank transfer
-                        const coins = msg.amount?.[0];
+                        // Bank transfer — MsgSend carries a coin array, not a scalar
+                        const coins = Array.isArray(msg.amount) ? msg.amount[0] : undefined;
                         if (coins) {
                             transferAmount = coins.amount;
                             transferDirection = msg.from_address === address ? "sent" : "received";
@@ -138,8 +186,8 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                 if (!transferAmount && tx.events) {
                     transferAmount = sumUsdcTransferEvents(tx.events);
                     if (transferAmount) {
-                        const transferEvent = tx.events.find((e: any) => e.type === "transfer");
-                        const recipientAttr = transferEvent?.attributes?.find((a: any) => a.key === "recipient");
+                        const transferEvent = tx.events.find(e => e.type === "transfer");
+                        const recipientAttr = transferEvent?.attributes?.find(a => a.key === "recipient");
                         transferDirection = recipientAttr?.value === address ? "received" : "sent";
                     }
                 }
@@ -159,7 +207,7 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
             });
 
             setTransactions(formattedTxs);
-        } catch (err: any) {
+        } catch (err: unknown) {
             console.error("Error fetching transactions:", err);
             setError("Failed to load transactions");
         } finally {

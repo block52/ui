@@ -4,7 +4,7 @@
 
 import { truncateMiddle } from "./stringUtils";
 
-interface TransferEvent {
+export interface TransferEvent {
     type?: string;
     attributes?: Array<{ key?: string; value?: string }>;
 }
