@@ -1,5 +1,5 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, isCappedAllInCall, isShortShoveRaise, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, isCappedAllInCall, isShortShoveRaise, shouldShowShowdownBar, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -262,6 +262,31 @@ describe("pockerActionUtils", () => {
             expect(flags.hasBetAction).toBe(false);
             expect(flags.hasRaiseAction).toBe(false);
             expect(flags.hasCheckAction).toBe(false);
+        });
+    });
+
+    describe("shouldShowShowdownBar (#697/#678)", () => {
+        const base = { hasShowAction: true, hasMuckAction: true, isUsersTurn: true, controlsPending: false };
+
+        it("shows the bar for the pending player who is offered SHOW/MUCK on their turn", () => {
+            expect(shouldShowShowdownBar(base)).toBe(true);
+        });
+
+        it("shows the bar when only SHOW is offered", () => {
+            expect(shouldShowShowdownBar({ ...base, hasMuckAction: false })).toBe(true);
+        });
+
+        it("hides the bar for a seat that is NOT the actor even if SHOW is in its legal actions (#697)", () => {
+            // An auto-revealed seat can carry a stale SHOW flag but is not nextToAct.
+            expect(shouldShowShowdownBar({ ...base, isUsersTurn: false })).toBe(false);
+        });
+
+        it("hides the bar once the player has submitted, until the next snapshot (#678)", () => {
+            expect(shouldShowShowdownBar({ ...base, controlsPending: true })).toBe(false);
+        });
+
+        it("hides the bar when neither SHOW nor MUCK is offered", () => {
+            expect(shouldShowShowdownBar({ ...base, hasShowAction: false, hasMuckAction: false })).toBe(false);
         });
     });
 });

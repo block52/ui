@@ -83,6 +83,21 @@ export const getActionFlags = (legalActions: LegalActionDTO[]): ActionFlags => (
     hasNewHandAction: hasAction(legalActions, NonPlayerActionType.NEW_HAND)
 });
 
+// Whether the showdown SHOW/MUCK bar should render for this seat.
+//
+// In the sequenced clockwise showdown (poker-vm#2140) the engine offers SHOW/MUCK
+// only to the single pending losing-hand player — the one who is nextToAct. A
+// forced/auto reveal flips other contesting seats to SHOWING with no recorded
+// action, so they are never the actor and must NOT see the bar (ui#697). We also
+// hide it the instant this player submits, until the next snapshot confirms the
+// new legal actions (ui#678 / #650): controlsPending true ⇒ hidden.
+export const shouldShowShowdownBar = (args: {
+    hasShowAction: boolean;
+    hasMuckAction: boolean;
+    isUsersTurn: boolean;
+    controlsPending: boolean;
+}): boolean => (args.hasShowAction || args.hasMuckAction) && args.isUsersTurn && !args.controlsPending;
+
 export type ActionFlags = {
     hasSmallBlindAction: boolean;
     hasBigBlindAction: boolean;

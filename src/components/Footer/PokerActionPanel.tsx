@@ -12,6 +12,7 @@ import {
     getUserPlayer,
     isCappedAllInCall,
     isShortShoveRaise,
+    shouldShowShowdownBar,
     validRaiseAmount
 } from "../../utils/pockerActionUtils";
 import { formatDisplayAmount } from "../../utils/numberUtils";
@@ -526,8 +527,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                 {/* Only show other buttons if deal button is not showing */}
                 {!hideOtherButtons && (
                     <>
-                        {/* Showdown Buttons */}
-                        {(hasMuckAction || hasShowAction) && !controlsPending && (
+                        {/* Showdown Buttons — gated on isUsersTurn like every other
+                            control (ui#697). In the sequenced clockwise showdown
+                            (poker-vm#2140) the engine offers SHOW/MUCK only to the single
+                            pending losing-hand player (nextToAct); a forced/auto reveal
+                            flips a seat to SHOWING with no action and is never the actor.
+                            Without this gate an auto-revealed seat still rendered a Show
+                            button. `!controlsPending` additionally hides the bar the
+                            instant this player submits, until the next snapshot (ui#678,
+                            mirroring #650). */}
+                        {shouldShowShowdownBar({ hasShowAction, hasMuckAction, isUsersTurn, controlsPending }) && (
                             <ShowdownButtons
                                 canMuck={hasMuckAction}
                                 canShow={hasShowAction}
