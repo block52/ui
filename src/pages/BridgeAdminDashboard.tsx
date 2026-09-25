@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { truncateMiddle } from "../utils/stringUtils";
 import { isEmpty, isBlank, hasContent } from "../utils/guards";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
@@ -446,8 +446,14 @@ export default function BridgeAdminDashboard() {
 
     // Stats
     const totalDeposits = deposits.length;
-    const processedCount = deposits.filter(d => d.status === "processed").length;
-    const pendingCount = deposits.filter(d => d.status === "pending").length;
+    const { processedCount, pendingCount } = useMemo(() => {
+        const counts = { processedCount: 0, pendingCount: 0 };
+        for (const deposit of deposits) {
+            if (deposit.status === "processed") counts.processedCount++;
+            if (deposit.status === "pending") counts.pendingCount++;
+        }
+        return counts;
+    }, [deposits]);
     const totalPages = totalDepositsFound > 0 ? Math.ceil(totalDepositsFound / itemsPerPage) : 1;
     const hasNextPage = currentPage < totalPages;
     const hasPrevPage = currentPage > 1;
