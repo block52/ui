@@ -16,6 +16,7 @@ const productionNodes = NETWORK_PRESETS.filter(n => n.name !== "Localhost");
 interface NodeInfo {
     status: "checking" | "online" | "offline";
     blockHeight: string | null;
+    isValidator: boolean;
 }
 
 interface ValidatorInfo {
@@ -58,29 +59,6 @@ export default function NodesPage() {
         }
     }, [cosmosApiFactory]);
 
-    // Check if a moniker matches a validator
-    // Handles variations like "Texas Hodl" matching "validator-texashodl"
-    const isValidator = useCallback(
-        (moniker: string): boolean => {
-            if (!moniker || isEmpty(validators)) return false;
-            // Normalize: lowercase, remove spaces/dashes/underscores
-            const normalize = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, "");
-            const normalizedMoniker = normalize(moniker);
-            return validators.some(v => {
-                const normalizedValidator = normalize(v.moniker);
-                // Check if either contains the other, or if they share significant overlap
-                return (
-                    normalizedValidator.includes(normalizedMoniker) ||
-                    normalizedMoniker.includes(normalizedValidator) ||
-                    // Also check for partial matches like "texashodl" in "validator-texashodl"
-                    normalizedValidator.replace("validator", "").includes(normalizedMoniker.replace("validator", "")) ||
-                    normalizedMoniker.replace("validator", "").includes(normalizedValidator.replace("validator", ""))
-                );
-            });
-        },
-        [validators]
-    );
-
     // Check node status and get block height
     const checkNode = useCallback(async (network: NetworkEndpoints): Promise<NodeInfo> => {
         try {
@@ -89,12 +67,27 @@ export default function NodesPage() {
                 sdk_block?: { header?: { height?: string } };
             };
             const header = data.block?.header || data.sdk_block?.header;
+            let isValidator = false;
+            try {
+                const rpcUrl = network.rpc.endsWith("/") ? network.rpc : `${network.rpc}/`;
+                const statusResponse = await fetch(`${rpcUrl}status`, { signal: AbortSignal.timeout(5000) });
+                if (statusResponse.ok) {
+                    const statusData = (await statusResponse.json()) as {
+                        result?: { validator_info?: { voting_power?: string | number } };
+                    };
+                    const votingPower = Number(statusData.result?.validator_info?.voting_power ?? 0);
+                    isValidator = Number.isFinite(votingPower) && votingPower > 0;
+                }
+            } catch {
+                // The node is still online when its validator status cannot be read.
+            }
             return {
                 status: "online",
-                blockHeight: header?.height || null
+                blockHeight: header?.height || null,
+                isValidator
             };
         } catch {
-            return { status: "offline", blockHeight: null };
+            return { status: "offline", blockHeight: null, isValidator: false };
         }
     }, [cosmosApiFactory]);
 
@@ -103,7 +96,7 @@ export default function NodesPage() {
         // Set all to checking
         const initialInfo: Record<string, NodeInfo> = {};
         productionNodes.forEach(n => {
-            initialInfo[n.name] = { status: "checking", blockHeight: null };
+            initialInfo[n.name] = { status: "checking", blockHeight: null, isValidator: false };
         });
         setNodeInfo(initialInfo);
 
@@ -193,8 +186,8 @@ export default function NodesPage() {
     const totalNodes = productionNodes.length + discoveredNodes.length;
 
     // Count validators and sync nodes (sync = non-validator nodes)
-    const presetValidatorCount = productionNodes.filter(n => isValidator(n.name)).length;
-    const discoveredValidatorCount = discoveredNodes.filter(n => isValidator(n.moniker)).length;
+    const presetValidatorCount = productionNodes.filter(n => nodeInfo[n.name]?.isValidator).length;
+    const discoveredValidatorCount = discoveredNodes.filter(n => n.isValidator).length;
     const totalValidators = validators.length; // Use actual validator count from API
     const totalSyncNodes = totalNodes - (presetValidatorCount + discoveredValidatorCount);
 
@@ -274,7 +267,7 @@ export default function NodesPage() {
                                         const info = nodeInfo[network.name];
                                         const status = info?.status || "checking";
                                         const blockHeight = info?.blockHeight;
-                                        const nodeIsValidator = isValidator(network.name);
+                                        const nodeIsValidator = info?.isValidator ?? false;
 
                                         return (
                                             <tr key={network.name} className="hover:bg-gray-700/50 transition-colors">
@@ -372,7 +365,7 @@ export default function NodesPage() {
                                     <tbody className="divide-y divide-gray-700">
                                         {discoveredNodes.map(node => {
                                             const added = isNodeAdded(node);
-                                            const nodeIsValidator = isValidator(node.moniker);
+                                            const nodeIsValidator = node.isValidator ?? false;
                                             return (
                                                 <tr key={node.id} className="hover:bg-gray-700/50 transition-colors">
                                                     <td className="px-6 py-4 whitespace-nowrap">
