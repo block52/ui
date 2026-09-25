@@ -88,7 +88,7 @@ interface AllInEquityResult {
  */
 export function useAllInEquity(): AllInEquityResult {
     const { gameState } = useGameStateContext();
-    const { showingPlayers } = useShowingCardsByAddress();
+    const { showingBySeat } = useShowingCardsByAddress();
 
     const [equities, setEquities] = useState<Map<number, number>>(new Map());
     const [isLoading, setIsLoading] = useState(false);
@@ -125,14 +125,6 @@ export function useAllInEquity(): AllInEquityResult {
      * Seat index of showingPlayers so the visible-cards loop below is O(1)
      * per player instead of re-scanning showingPlayers per seat (#2455).
      */
-    const showingPlayerBySeat = useMemo(() => {
-        const bySeat = new Map<number, { seat: number; holeCards?: string[] }>();
-        if (showingPlayers) {
-            for (const sp of showingPlayers) bySeat.set(sp.seat, sp);
-        }
-        return bySeat;
-    }, [showingPlayers]);
-
     /**
      * Get players with visible cards (from showingPlayers or game state)
      */
@@ -143,7 +135,7 @@ export function useAllInEquity(): AllInEquityResult {
 
         for (const player of activePlayers) {
             // Check if player is showing cards
-            const showingPlayer = showingPlayerBySeat.get(player.seat);
+            const showingPlayer = showingBySeat.get(player.seat);
             if (showingPlayer?.holeCards && showingPlayer.holeCards.length === 2) {
                 visible.push({ seat: player.seat, cards: showingPlayer.holeCards });
                 continue;
@@ -162,7 +154,7 @@ export function useAllInEquity(): AllInEquityResult {
         }
 
         return visible;
-    }, [activePlayers, showingPlayerBySeat, gameState?.players]);
+    }, [activePlayers, showingBySeat, gameState?.players]);
 
     /**
      * Seats that have visible cards — membership test for the all-in gate

@@ -55,7 +55,7 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         if (!shouldShowEquity || !equities.has(index)) return null;
         return equities.get(index) ?? null;
     }, [shouldShowEquity, equities, index]);
-    const { showingPlayers } = useShowingCardsByAddress();
+    const { showingBySeat } = useShowingCardsByAddress();
     const { dealerSeat } = useDealerPosition();
 
     // Check if this seat is the dealer
@@ -88,17 +88,10 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
     }, [winnerBySeat, index]);
 
     // Check if this player is showing cards
-    const isShowingCards = React.useMemo(() => {
-        if (!showingPlayers || !playerData) return false;
-        return showingPlayers.some((p: { seat: number }) => p.seat === index);
-    }, [showingPlayers, playerData, index]);
+    const isShowingCards = showingBySeat.has(index);
 
     // Get the showing cards for this player if available
-    const showingCards = React.useMemo(() => {
-        if (!isShowingCards || !showingPlayers) return null;
-        const playerShowingCards = showingPlayers.find((p: { seat: number; holeCards: string[] }) => p.seat === index);
-        return playerShowingCards ? playerShowingCards.holeCards : null;
-    }, [isShowingCards, showingPlayers, index]);
+    const showingCards = showingBySeat.get(index)?.holeCards ?? null;
 
     const selectedAvatarUrl = React.useMemo(() => {
         return getAvatarForAddress(playerData?.address, playerData?.avatar);
