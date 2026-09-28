@@ -37,9 +37,9 @@ export const useDeleteGame = (): UseDeleteGameReturn => {
                 toast.success("Table deleted successfully!");
 
                 return txHash;
-            } catch (err: any) {
+            } catch (err) {
                 console.error("❌ Failed to delete game:", err);
-                const message = err.message || "Failed to delete table";
+                const message = err instanceof Error ? err.message : "Failed to delete table";
                 setError(new Error(message));
                 toast.error(message);
                 return null;

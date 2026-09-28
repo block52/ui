@@ -71,9 +71,9 @@ export const useCosmosWallet = (): UseCosmosWalletReturn => {
 
             const balances = await client.getAllBalances(address);
             setBalance(balances);
-        } catch (err: any) {
+        } catch (err) {
             console.error("Error fetching balance:", err);
-            setError(err.message);
+            setError(err instanceof Error ? err.message : "Failed to fetch balance");
         } finally {
             setIsLoading(false);
         }
@@ -105,9 +105,9 @@ export const useCosmosWallet = (): UseCosmosWalletReturn => {
 
             // Update state
             setAddress(addr);
-        } catch (err: any) {
+        } catch (err) {
             console.error("Error importing seed phrase:", err);
-            setError(err.message);
+            setError(err instanceof Error ? err.message : "Failed to import seed phrase");
             throw err;
         } finally {
             setIsLoading(false);
@@ -140,9 +140,9 @@ export const useCosmosWallet = (): UseCosmosWalletReturn => {
             await refreshBalance();
 
             return txHash;
-        } catch (err: any) {
+        } catch (err) {
             console.error(`❌ Failed to send ${denom}:`, err);
-            throw new Error(err.message || `Failed to send ${denom}`);
+            throw new Error(err instanceof Error ? err.message : `Failed to send ${denom}`);
         }
     }, [address, currentNetwork, refreshBalance]);
 

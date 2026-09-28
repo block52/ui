@@ -190,17 +190,18 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
 
             // Refresh cosmos balance in the background
             setTimeout(() => refetchAccount(), 2000);
-        } catch (err: any) {
+        } catch (err) {
             console.error("[WithdrawalModal] Withdrawal error:", err);
+            const message = err instanceof Error ? err.message : "";
 
-            if (err.message?.includes("insufficient")) {
+            if (message.includes("insufficient")) {
                 setError("Insufficient balance for withdrawal");
-            } else if (err.message?.includes("network")) {
+            } else if (message.includes("network")) {
                 setError("Network error. Please try again");
-            } else if (err.message?.includes("rejected")) {
+            } else if (message.includes("rejected")) {
                 setError("Transaction rejected by user");
             } else {
-                setError(err.message || "Failed to initiate withdrawal");
+                setError(message || "Failed to initiate withdrawal");
             }
             setStep("input");
         }
@@ -228,9 +229,9 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
             await withdraw(withdrawalInfo.nonce, withdrawalInfo.baseAddress, BigInt(withdrawalInfo.amount), hexSignature);
 
             // The hook will trigger isWithdrawConfirmed when done
-        } catch (err: any) {
+        } catch (err) {
             console.error("[WithdrawalModal] Ethereum tx error:", err);
-            setError(err.message || "Failed to complete withdrawal on Ethereum");
+            setError(err instanceof Error ? err.message : "Failed to complete withdrawal on Ethereum");
             setStep("ready_to_complete");
         }
     };

@@ -98,8 +98,8 @@ export default function BlockDetailPage() {
                 const blockData = await cosmosClient.getBlock(parseInt(height));
                 setBlock(blockData as unknown as CosmosBlock);
                 setError(null);
-            } catch (err: any) {
-                setError(err.message || "Failed to fetch block");
+            } catch (err) {
+                setError(err instanceof Error ? err.message : "Failed to fetch block");
                 console.error("Error fetching block:", err);
             } finally {
                 setLoading(false);

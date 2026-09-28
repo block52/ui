@@ -2,6 +2,7 @@
  * @jest-environment node
  */
 import { PaymentApi } from "../apis/Api";
+import { httpErrorMessage } from "../apis/HTTPClient";
 import type { PaymentData } from "../types/payment";
 
 interface HotWalletInfo {
@@ -64,8 +65,8 @@ describe("Payment API E2E Tests", () => {
                     currency: "usdterc20",
                     cosmosAddress: "b521hg93rsm2f5v3zlepf20ru88uweajt3nf492s2p"
                 });
-            } catch (error: any) {
-                expect(error.error).toBe("Amount too small");
+            } catch (error) {
+                expect(httpErrorMessage(error, "")).toBe("Amount too small");
             }
         });
 
