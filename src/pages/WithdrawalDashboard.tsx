@@ -278,9 +278,15 @@ export default function WithdrawalDashboard() {
 
     // Stats
     const totalWithdrawals = withdrawals.length;
-    const pendingCount = withdrawals.filter(w => w.status === "pending").length;
-    const signedCount = withdrawals.filter(w => w.status === "signed").length;
-    const completedCount = withdrawals.filter(w => w.status === "completed").length;
+    const { pendingCount, signedCount, completedCount } = useMemo(() => {
+        const counts = { pendingCount: 0, signedCount: 0, completedCount: 0 };
+        for (const withdrawal of withdrawals) {
+            if (withdrawal.status === "pending") counts.pendingCount++;
+            if (withdrawal.status === "signed") counts.signedCount++;
+            if (withdrawal.status === "completed") counts.completedCount++;
+        }
+        return counts;
+    }, [withdrawals]);
 
     // Handle opening the signature modal
     const handleViewSignature = (withdrawal: Withdrawal) => {
