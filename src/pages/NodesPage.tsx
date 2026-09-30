@@ -9,6 +9,19 @@ import { DiscoveredNode, discoverNodes, probeNodes, getCachedNodes, cacheNodes, 
 import { isEmpty, hasElements } from "../utils/guards";
 import ValidatorEarningsPanel from "../components/explorer/ValidatorEarningsPanel";
 import { useValidatorBonds } from "../hooks/game/useValidatorBonds";
+import { useChainOverview } from "../hooks/nodes/useChainOverview";
+import { NetworkInfoPanel } from "../components/nodes/NetworkInfoPanel";
+import { RunNodePanel } from "../components/nodes/RunNodePanel";
+import { BecomeValidatorPanel } from "../components/nodes/BecomeValidatorPanel";
+
+type NodesTab = "nodes" | "network" | "run" | "validator";
+
+const TABS: { id: NodesTab; label: string }[] = [
+    { id: "nodes", label: "Nodes" },
+    { id: "network", label: "Network & Genesis" },
+    { id: "run", label: "Run a Node" },
+    { id: "validator", label: "Become a Validator" }
+];
 
 // Filter out localhost for production view
 const productionNodes = NETWORK_PRESETS.filter(n => n.name !== "Localhost");
@@ -25,6 +38,8 @@ interface ValidatorInfo {
 }
 
 export default function NodesPage() {
+    const [tab, setTab] = useState<NodesTab>("nodes");
+    const { overview, isLoading: isOverviewLoading, error: overviewError, refresh: refreshOverview } = useChainOverview();
     const { addDiscoveredNetwork, discoveredNetworks } = useNetwork();
     const cosmosApiFactory = useCosmosApiFactory();
     const [discoveredNodes, setDiscoveredNodes] = useState<DiscoveredNode[]>([]);
@@ -205,6 +220,33 @@ export default function NodesPage() {
                 {/* Header */}
                 <ExplorerHeader title="Network Nodes" />
 
+                {/* Portal tabs */}
+                <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-700">
+                    {TABS.map(t => (
+                        <button
+                            key={t.id}
+                            onClick={() => setTab(t.id)}
+                            className={`px-4 py-2 text-sm font-medium -mb-px border-b-2 transition-colors ${
+                                tab === t.id ? "border-blue-500 text-white" : "border-transparent text-gray-400 hover:text-gray-200"
+                            }`}
+                        >
+                            {t.label}
+                        </button>
+                    ))}
+                </div>
+
+                {tab !== "nodes" && (
+                    <div className="mb-8">
+                        {isOverviewLoading && !overview && <LoadingSpinner />}
+                        {overviewError && <p className="text-red-400 text-sm mb-4">Could not load chain info: {overviewError}</p>}
+                        {overview && tab === "network" && <NetworkInfoPanel overview={overview} />}
+                        {overview && tab === "run" && <RunNodePanel overview={overview} />}
+                        {overview && tab === "validator" && <BecomeValidatorPanel overview={overview} onBonded={refreshOverview} />}
+                    </div>
+                )}
+
+                {tab === "nodes" && (
+                <>
                 {/* Stats Cards */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                     <div className="bg-gray-800 border border-gray-700 rounded-lg p-4">
@@ -468,6 +510,9 @@ export default function NodesPage() {
                         </div>
                     )}
                 </div>
+
+                </>
+                )}
 
                 {/* Powered by Block52 */}
                 <div className="fixed bottom-4 left-4 flex items-center z-10 opacity-30">

@@ -49,6 +49,11 @@ export class CosmosApi extends HTTPClient {
     public getLatestBlock = (signal?: AbortSignal) => this.get("/cosmos/base/tendermint/v1beta1/blocks/latest", { signal });
     public getNodeInfo = (signal?: AbortSignal) => this.get("/cosmos/base/tendermint/v1beta1/node_info", { signal });
     public getSyncing = (signal?: AbortSignal) => this.get("/cosmos/base/tendermint/v1beta1/syncing", { signal });
+    public getBlockByHeight = (height: number) => this.get(`/cosmos/base/tendermint/v1beta1/blocks/${height}`);
+    public getStakingParams = () => this.get("/cosmos/staking/v1beta1/params");
+    public getSlashingParams = () => this.get("/cosmos/slashing/v1beta1/params");
+    /** Poker module params, incl. min_validator_bond (USDC micro-units, enforced in the ante handler). */
+    public getPokerParams = () => this.get("/block52/pokerchain/poker/v1/params");
 }
 
 export class IndexerApi extends HTTPClient {
