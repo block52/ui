@@ -14,6 +14,7 @@ import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { usePaymentApi } from "../context/PaymentApiContext";
+import { httpErrorMessage } from "../apis/HTTPClient";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 
 /**
@@ -196,7 +197,7 @@ export default function BridgeAdminDashboard() {
                         amountFormatted: formatMicroAsUsdc(amount.toString(), 6),
                         status: "loading" // Will check processing status next
                     });
-                } catch (err: any) {
+                } catch (err) {
                     console.error(`Failed to query deposit ${i}:`, err);
                     // If we get an error, likely reached the end
                     setTotalDepositsFound(i);
@@ -223,9 +224,9 @@ export default function BridgeAdminDashboard() {
 
             // Now check processing status for each deposit
             await checkProcessingStatus(newDeposits);
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to load deposits:", err);
-            toast.error(`Failed to load deposits: ${err.message}`);
+            toast.error(`Failed to load deposits: ${err instanceof Error ? err.message : "Unknown error"}`);
         } finally {
             setIsLoading(false);
         }
@@ -270,9 +271,9 @@ export default function BridgeAdminDashboard() {
                     setDeposits(prev => prev.map(d => (d.index === depositIndex ? { ...d, status: "processed" as const } : d)));
                 }
             }, 2000);
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to process deposit:", err);
-            const errorMessage = err.message || "Unknown error occurred";
+            const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
             toast.error(`Failed: ${errorMessage}`);
 
             // Update deposit status to show error
@@ -348,9 +349,9 @@ export default function BridgeAdminDashboard() {
             } else {
                 toast.error(response.message || "Bridge failed");
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Manual bridge error:", err);
-            toast.error(`Bridge failed: ${err.error}`);
+            toast.error(`Bridge failed: ${httpErrorMessage(err, "Unknown error")}`);
         } finally {
             setIsManualBridging(false);
         }
@@ -368,9 +369,9 @@ export default function BridgeAdminDashboard() {
             } else {
                 toast.error(response.message || "Approval failed");
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Approve error:", err);
-            toast.error(`Approval failed: ${err.error}`);
+            toast.error(`Approval failed: ${httpErrorMessage(err, "Unknown error")}`);
         } finally {
             setIsApproving(false);
         }
@@ -419,9 +420,9 @@ export default function BridgeAdminDashboard() {
 
                 // Small delay between transactions
                 await new Promise(resolve => setTimeout(resolve, 1000));
-            } catch (err: any) {
+            } catch (err) {
                 console.error(`Failed to process deposit ${deposit.index}:`, err);
-                setDeposits(prev => prev.map(d => (d.index === deposit.index ? { ...d, status: "error" as const, errorMessage: err.message } : d)));
+                setDeposits(prev => prev.map(d => (d.index === deposit.index ? { ...d, status: "error" as const, errorMessage: err instanceof Error ? err.message : "Unknown error" } : d)));
                 failCount++;
             }
         }

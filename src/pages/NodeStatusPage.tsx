@@ -144,13 +144,13 @@ export default function NodeStatusPage() {
                 error: online ? null : "Node is not responding",
                 lastChecked: new Date()
             });
-        } catch (err: any) {
+        } catch (err) {
             setStatus({
                 online: false,
                 nodeInfo: null,
                 latestBlock: null,
                 syncStatus: null,
-                error: err.message || "Failed to connect to node",
+                error: err instanceof Error ? err.message : "Failed to connect to node",
                 lastChecked: new Date()
             });
         } finally {

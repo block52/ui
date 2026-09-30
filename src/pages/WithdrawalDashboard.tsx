@@ -95,9 +95,9 @@ export default function WithdrawalDashboard() {
             }));
 
             setWithdrawals(mappedWithdrawals);
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to load withdrawals:", err);
-            toast.error(`Failed to load withdrawals: ${err.message}`);
+            toast.error(`Failed to load withdrawals: ${err instanceof Error ? err.message : "Unknown error"}`);
         } finally {
             setIsLoading(false);
         }
@@ -153,9 +153,9 @@ export default function WithdrawalDashboard() {
             setTimeout(() => {
                 loadWithdrawals();
             }, 2000);
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to initiate withdrawal:", err);
-            toast.error(`Failed: ${err.message}`);
+            toast.error(`Failed: ${err instanceof Error ? err.message : "Unknown error"}`);
         } finally {
             setIsInitiating(false);
         }
@@ -193,9 +193,9 @@ export default function WithdrawalDashboard() {
                     <div className="text-sm mt-1">Waiting for confirmation...</div>
                 </div>
             );
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to complete withdrawal:", err);
-            const errorMessage = err.message || "Unknown error occurred";
+            const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
             toast.error(`Failed: ${errorMessage}`);
             setProcessingNonce(null);
         }

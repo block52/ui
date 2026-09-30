@@ -71,8 +71,8 @@ export const useNftRegistration = (): UseNftRegistrationReturn => {
                 );
 
                 return txHash;
-            } catch (err: any) {
-                const message = err.message || "Failed to register NFT avatar";
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "Failed to register NFT avatar";
                 console.error("[useNftRegistration] Registration failed:", err);
                 setRegistrationError(message);
                 throw err;

@@ -62,9 +62,9 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
             setError("");
             await onDeal(finalEntropy);
             onClose();
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to deal:", err);
-            setError(err.message || "Failed to deal cards");
+            setError(err instanceof Error ? err.message : "Failed to deal cards");
         } finally {
             setIsDealing(false);
         }

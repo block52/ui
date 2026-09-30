@@ -201,9 +201,9 @@ const Dashboard: React.FC = () => {
                 // The chain just debited the creation (+ name) fee — show the real balance.
                 void cosmosWallet.refreshBalance();
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error("Error creating game:", error);
-            setCreateGameError(error.message || "An unexpected error occurred");
+            setCreateGameError(error instanceof Error ? error.message : "An unexpected error occurred");
         }
     };
 

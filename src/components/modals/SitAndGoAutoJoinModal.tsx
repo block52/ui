@@ -219,9 +219,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 //     }
                 // }, 3000);
             }, 1500);
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ Failed to join Sit & Go:", error);
-            setBuyInError(error.message || "Failed to join table");
+            setBuyInError(error instanceof Error ? error.message : "Failed to join table");
         } finally {
             setIsJoining(false);
         }
