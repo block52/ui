@@ -1178,10 +1178,10 @@
   resolved "https://registry.npmjs.org/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@block52/poker-vm-sdk@1.4.1":
-  version "1.4.1"
-  resolved "https://registry.yarnpkg.com/@block52/poker-vm-sdk/-/poker-vm-sdk-1.4.1.tgz#9d1e34b4d92ba56cda83fcba4f9542fa2a594a98"
-  integrity sha512-rEbmTO/ReJWlqpiPZivTXB2mgxA9vgBoEAIOqjjh5DDNAgxCz+ytXQ6X++7oCkmve7Tk0bPfA8RJ+TcK22cevA==
+"@block52/poker-vm-sdk@1.5.1":
+  version "1.5.1"
+  resolved "https://registry.yarnpkg.com/@block52/poker-vm-sdk/-/poker-vm-sdk-1.5.1.tgz#d43f4969872023a90ef0786bd00a490026db12c1"
+  integrity sha512-EUY531jwjLUshUUiagF5huRcl4peOFZYYDj84bezSYmA4WKUp+N/pnOMzBlSFUq7S+GSukO+ZBk0M+WjWhdR2Q==
   dependencies:
     "@bufbuild/protobuf" "^2.10.0"
     "@cosmjs/amino" "^0.32.4"

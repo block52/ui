@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { isNetworkError } from "../../apis/HTTPClient";
 import { useParams, useNavigate } from "react-router-dom";
 import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
@@ -82,15 +83,16 @@ export default function AddressPage() {
                     // Don't fail the whole query if transactions fail
                     setTransactions([]);
                 }
-            } catch (err: any) {
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "";
                 let errorMessage = "Failed to fetch address data";
 
-                if (err.message?.includes("timeout")) {
+                if (message.includes("timeout")) {
                     errorMessage = "Request timeout - network may be slow";
-                } else if (err.code === "ERR_NETWORK" || err.message?.includes("ECONNREFUSED")) {
+                } else if (isNetworkError(err) || message.includes("ECONNREFUSED")) {
                     errorMessage = `Cannot connect to ${currentNetwork.name}`;
-                } else if (err.message) {
-                    errorMessage = err.message;
+                } else if (message) {
+                    errorMessage = message;
                 }
 
                 setError(errorMessage);

@@ -182,8 +182,8 @@ export const useNewTable = (): UseNewTableReturn => {
             } else {
                 return null;
             }
-        } catch (err: any) {
-            const errorMessage = err.message || "Failed to create game on blockchain";
+        } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : "Failed to create game on blockchain";
             setError(new Error(errorMessage));
             return null;
         } finally {

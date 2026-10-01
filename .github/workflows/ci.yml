@@ -28,6 +28,14 @@ jobs:
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
+      # ESLint's no-explicit-any is off, so nothing else stops these coming back (ui#713).
+      - name: "No catch (err: any)"
+        run: |
+          if git grep -nE 'catch \([A-Za-z_$][A-Za-z0-9_$]*: *any\)' -- src; then
+            echo "::error::Use a bare catch (err) and narrow with instanceof Error — see CLAUDE.md §5."
+            exit 1
+          fi
+
       - name: Build
         run: yarn build
 

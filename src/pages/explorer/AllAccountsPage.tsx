@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, use } from "react";
+import { isNetworkError } from "../../apis/HTTPClient";
 import { useNavigate } from "react-router-dom";
 import { fromBech32, toBech32 } from "@cosmjs/encoding";
 import { getCosmosClient } from "../../utils/cosmos/client";
@@ -194,15 +195,16 @@ export default function AllAccountsPage() {
             const validAccounts = accountsWithBalances.filter(a => a.address);
 
             setAccounts(validAccounts);
-        } catch (err: any) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "";
             let errorMessage = "Failed to fetch accounts";
 
-            if (err.message?.includes("timeout")) {
+            if (message.includes("timeout")) {
                 errorMessage = "Request timeout - network may be slow";
-            } else if (err.code === "ERR_NETWORK" || err.message?.includes("ECONNREFUSED")) {
+            } else if (isNetworkError(err) || message.includes("ECONNREFUSED")) {
                 errorMessage = `Cannot connect to ${currentNetwork.name}`;
-            } else if (err.message) {
-                errorMessage = err.message;
+            } else if (message) {
+                errorMessage = message;
             }
 
             setError(errorMessage);

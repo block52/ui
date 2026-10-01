@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { isNetworkError, httpStatusText } from "../../apis/HTTPClient";
 import { getCosmosClient, clearCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { truncateHash, formatTimestampRelative, formatProposerAddress } from "../../utils/formatUtils";
@@ -60,31 +61,32 @@ export default function BlocksPage() {
             );
             setBlocks(sortedBlocks as unknown as CosmosBlock[]);
             setError(null);
-        } catch (err: any) {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "";
             // Provide detailed, network-specific error messages
             let errorMessage = "Failed to fetch blocks";
             let suggestion = "";
 
             // Determine error type and provide helpful guidance
-            if (err.message?.includes("timeout")) {
+            if (message.includes("timeout")) {
                 errorMessage = "Request timeout after 10 seconds";
                 if (currentNetwork.name === "Localhost") {
                     suggestion = " - Check if 'ignite chain serve' is running";
                 } else {
                     suggestion = " - Production network may be slow. Try localhost for development or retry in a moment";
                 }
-            } else if (err.code === "ERR_NETWORK" || err.message?.includes("ECONNREFUSED")) {
+            } else if (isNetworkError(err) || message.includes("ECONNREFUSED")) {
                 errorMessage = `Cannot connect to ${currentNetwork.name}`;
                 if (currentNetwork.name === "Localhost") {
                     suggestion = " - Run 'ignite chain serve' in the pokerchain directory";
                 } else {
                     suggestion = " - Network may be down. Try selecting a different network";
                 }
-            } else if (err.response) {
-                errorMessage = `Server error: ${err.response.status} - ${err.response.statusText}`;
+            } else if (httpStatusText(err)) {
+                errorMessage = `Server error: ${httpStatusText(err)}`;
                 suggestion = " - The node may be restarting or under maintenance";
-            } else if (err.message) {
-                errorMessage = err.message;
+            } else if (message) {
+                errorMessage = message;
             }
 
             const fullMessage = errorMessage + suggestion;

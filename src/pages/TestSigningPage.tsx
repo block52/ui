@@ -149,12 +149,12 @@ export default function TestSigningPage() {
                     restEndpoint: currentNetwork.rest
                 }
             });
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ Failed to initialize:", error);
             addResult({
                 functionName: "Initialize SigningCosmosClient",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         } finally {
             setIsInitializing(false);
@@ -186,12 +186,12 @@ export default function TestSigningPage() {
                 message: `Address: ${address}`,
                 data: { address }
             });
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ getWalletAddress() failed:", error);
             addResult({
                 functionName: "getWalletAddress()",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         }
     };
@@ -251,12 +251,12 @@ export default function TestSigningPage() {
             setSuccessMessage(`Successfully sent ${dollarAmount} ${sendDenom.toUpperCase()}!`);
             setSuccessTxHash(txHash);
             setShowSuccessModal(true);
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ sendTokens() failed:", error);
             addResult({
                 functionName: "sendTokens()",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         }
     };
@@ -328,12 +328,12 @@ export default function TestSigningPage() {
                     timeout
                 }
             });
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ createGame() failed:", error);
             addResult({
                 functionName: "createGame()",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         }
     };
@@ -379,12 +379,12 @@ export default function TestSigningPage() {
                 txHash,
                 data: { gameId, seat, buyInAmount }
             });
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ joinGame() failed:", error);
             addResult({
                 functionName: "joinGame()",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         }
     };
@@ -430,12 +430,12 @@ export default function TestSigningPage() {
                 txHash,
                 data: { gameId, action, amount: actionAmount }
             });
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ performAction() failed:", error);
             addResult({
                 functionName: "performAction()",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         }
     };
@@ -465,12 +465,12 @@ export default function TestSigningPage() {
                 message: `Found ${games.length} game(s)!`,
                 data: { count: games.length, games }
             });
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ queryGames() failed:", error);
             addResult({
                 functionName: "queryGames()",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         }
     };
@@ -515,12 +515,12 @@ export default function TestSigningPage() {
                     gameState
                 }
             });
-        } catch (error: any) {
+        } catch (error) {
             console.error("❌ queryGameState() failed:", error);
             addResult({
                 functionName: "queryGameState()",
                 status: "error",
-                message: error.message
+                message: error instanceof Error ? error.message : "Unknown error"
             });
         }
     };

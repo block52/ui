@@ -69,9 +69,9 @@ export default function ManualBridgeTrigger() {
                 });
                 toast.success("Deposit data retrieved successfully!");
             }
-        } catch (err: any) {
+        } catch (err) {
             console.error("Failed to query deposit:", err);
-            const errorMessage = err.message || "Unknown error occurred";
+            const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
             setError(`Query failed: ${errorMessage}`);
             toast.error(`Query failed: ${errorMessage}`);
         } finally {
@@ -122,14 +122,14 @@ export default function ManualBridgeTrigger() {
                         setTxHash(hash);
                         toast.success(`Deposit ${index} processed successfully!`);
                     }
-                } catch (err: any) {
+                } catch {
                     // If we can't fetch details, still show the hash but with a warning
                     setTxHash(hash);
                     toast.warning(`Deposit processed (hash: ${hash.substring(0, 10)}...), but couldn't verify details. Check explorer.`);
                 }
             }, 2000);
-        } catch (err: any) {
-            let errorMessage = err.message || "Unknown error occurred";
+        } catch (err) {
+            let errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
 
             // Add more helpful error messages for common issues
             if (errorMessage.includes("not valid JSON") || errorMessage.includes("<html>")) {

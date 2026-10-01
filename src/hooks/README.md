@@ -510,6 +510,17 @@ const {
 
 ---
 
+## 🖧 Node Portal Hooks (`hooks/nodes/`)
+
+Back the `/nodes` self-service portal (Network & Genesis, Run a Node, Become a Validator).
+
+- **`useChainOverview()`**: one live snapshot of node info, height, staking/slashing/poker params (incl. `min_validator_bond`) and the bonded validator set. Nothing is defaulted.
+- **`useGenesisInfo()`**: fetches the served `public/genesis.json`, SHA-256s the bytes in the browser, and checks them against `GENESIS_SHA256` (`constants/chainNetwork.ts`).
+- **`useStateSyncTrust(latestHeight)`**: a `[statesync]` trust height just below the latest snapshot, plus that block's hash in hex.
+- **`useCreateValidator()`**: bonds a validator from the Block52 wallet via the SDK's `SigningCosmosClient.createValidator`.
+
+Pure logic (pubkey parsing, fault tolerance, power share, config snippets) lives in `utils/nodePortal.ts`, which is unit-tested.
+
 ## 🎨 Animation Hooks (`hooks/animations/`)
 
 Hooks for managing UI animations and transitions.
