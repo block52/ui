@@ -90,6 +90,24 @@ export default function BridgeAdminDashboard() {
     const [manualCosmosAddress, setManualCosmosAddress] = useState("");
     const [manualAmount, setManualAmount] = useState("");
     const [isManualBridging, setIsManualBridging] = useState(false);
+    // Admin key for the proxy's hot-wallet routes. Kept in sessionStorage only, so it
+    // is gone when the tab closes; storage can be unavailable (private mode), so guard it.
+    const [adminKey, setAdminKey] = useState<string>(() => {
+        try {
+            return sessionStorage.getItem(STORAGE_KEYS.bridgeAdminKey) ?? "";
+        } catch {
+            return "";
+        }
+    });
+    const handleAdminKeyChange = (value: string) => {
+        setAdminKey(value);
+        try {
+            if (value) sessionStorage.setItem(STORAGE_KEYS.bridgeAdminKey, value);
+            else sessionStorage.removeItem(STORAGE_KEYS.bridgeAdminKey);
+        } catch {
+            // sessionStorage unavailable: the key still lives in memory for this page
+        }
+    };
     const [isApproving, setIsApproving] = useState(false);
     const [showManualBridge, setShowManualBridge] = useState(false);
     const [hotWalletInfo, setHotWalletInfo] = useState<HotWalletInfo | null>(null);
@@ -330,13 +348,21 @@ export default function BridgeAdminDashboard() {
             return;
         }
 
+        if (!adminKey) {
+            toast.error("Enter the admin key first");
+            return;
+        }
+
         setIsManualBridging(true);
 
         try {
-            const response = (await paymentApi.manualBridge({
-                cosmosAddress: manualCosmosAddress,
-                amount: manualAmount
-            })) as ManualBridgeResponse;
+            const response = (await paymentApi.manualBridge(
+                {
+                    cosmosAddress: manualCosmosAddress,
+                    amount: manualAmount
+                },
+                adminKey
+            )) as ManualBridgeResponse;
 
             if (response.success) {
                 toast.success(`Bridge successful! TX: ${response.txHash.slice(0, 10)}...`);
@@ -359,9 +385,13 @@ export default function BridgeAdminDashboard() {
 
     // Handle approve bridge
     const handleApproveBridge = async () => {
+        if (!adminKey) {
+            toast.error("Enter the admin key first");
+            return;
+        }
         setIsApproving(true);
         try {
-            const response = (await paymentApi.approveBridge()) as ApproveBridgeResponse;
+            const response = (await paymentApi.approveBridge(adminKey)) as ApproveBridgeResponse;
 
             if (response.success) {
                 toast.success(response.message);
@@ -546,7 +576,7 @@ export default function BridgeAdminDashboard() {
                                                 ) : (
                                                     <button
                                                         onClick={handleApproveBridge}
-                                                        disabled={isApproving}
+                                                        disabled={isApproving || !adminKey}
                                                         className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white text-xs font-semibold rounded transition-colors flex items-center gap-1"
                                                     >
                                                         {isApproving ? (
@@ -564,6 +594,19 @@ export default function BridgeAdminDashboard() {
                                     ) : (
                                         <div className="text-gray-500 text-sm">Loading...</div>
                                     )}
+                                </div>
+
+                                {/* Admin key: the proxy refuses hot-wallet routes without it */}
+                                <div className="bg-gray-900/50 rounded-lg p-4">
+                                    <label className="text-gray-400 text-xs block mb-1">Admin key (kept for this tab only)</label>
+                                    <input
+                                        type="password"
+                                        autoComplete="off"
+                                        value={adminKey}
+                                        onChange={e => handleAdminKeyChange(e.target.value)}
+                                        placeholder="X-Admin-Key"
+                                        className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-mono focus:border-purple-500 focus:outline-none"
+                                    />
                                 </div>
 
                                 {/* Manual Bridge Form */}
@@ -596,7 +639,7 @@ export default function BridgeAdminDashboard() {
                                         </div>
                                         <button
                                             type="submit"
-                                            disabled={isManualBridging || !manualCosmosAddress || !manualAmount}
+                                            disabled={isManualBridging || !manualCosmosAddress || !manualAmount || !adminKey}
                                             className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                                         >
                                             {isManualBridging ? (

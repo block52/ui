@@ -13,8 +13,11 @@ export class PaymentApi extends HTTPClient {
     public getPaymentStatus = (paymentId: string) => this.get(`/api/nowpayments/payment/${paymentId}`);
     public getDepositSession = (userAddress: string) => this.get(`/deposit-sessions/user/${userAddress}`);
     public getHotWalletInfo = () => this.get("/api/nowpayments/hot-wallet-info");
-    public manualBridge = (data: { cosmosAddress: string; amount: string }) => this.post("/api/nowpayments/manual-bridge", data);
-    public approveBridge = () => this.post("/api/nowpayments/approve-bridge");
+    /** Admin only: spends from the hot wallet. The proxy rejects it without a valid X-Admin-Key. */
+    public manualBridge = (data: { cosmosAddress: string; amount: string }, adminKey: string) =>
+        this.post("/api/nowpayments/manual-bridge", data, { headers: { "X-Admin-Key": adminKey } });
+    /** Admin only: sets the hot wallet's bridge allowance. Requires X-Admin-Key. */
+    public approveBridge = (adminKey: string) => this.post("/api/nowpayments/approve-bridge", undefined, { headers: { "X-Admin-Key": adminKey } });
     public createDepositSession = (data: { userAddress: string; depositAddress: string }) => this.post("/deposit-sessions", data);
 }
 

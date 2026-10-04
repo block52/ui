@@ -51,7 +51,8 @@ describe("Payment API E2E Tests", () => {
 
     describe("Approve Bridge", () => {
         it("should approve the bridge successfully", async () => {
-            const response = (await paymentApi.approveBridge()) as ApproveBridgeResponse;
+            // Admin-only route: needs the proxy's ADMIN_API_KEY to pass.
+            const response = (await paymentApi.approveBridge(process.env.BRIDGE_ADMIN_KEY ?? "")) as ApproveBridgeResponse;
             expect(response).toBeDefined();
             expect(response.success).toBe(true);
         });
