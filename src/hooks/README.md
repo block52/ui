@@ -426,22 +426,6 @@ const {
 - `sendTokens(recipient, amount, denom)` - Send tokens
 - `refreshBalance()` - Refresh balance from chain
 
-#### `useUserWallet()`
-Ethereum wallet connection for deposits/withdrawals.
-
-```typescript
-const {
-  address,
-  balance,
-  connect,
-  disconnect,
-  isConnected
-} = useUserWallet();
-```
-
-**Chain:** Ethereum (or L2)
-**Use Case:** Bridge deposits/withdrawals
-
 ### Deposit & Bridge Hooks (`hooks/DepositPage/`)
 
 #### `useDepositUSDC()`

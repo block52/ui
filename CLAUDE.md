@@ -573,7 +573,7 @@ The app integrates two wallet types:
    - Handles game transactions (bet, fold, join, etc.)
    - Token: USDC (6 decimals)
 
-2. **Ethereum Wallet** (`useUserWallet()`) - For deposits/withdrawals
+2. **Ethereum Wallet** (`useUserWalletConnect()`) - For deposits/withdrawals
    - Connected via @reown/appkit (WalletConnect)
    - Bridge deposits from Ethereum to Cosmos
    - Bridge withdrawals from Cosmos to Ethereum

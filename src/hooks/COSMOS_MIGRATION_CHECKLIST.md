@@ -134,7 +134,7 @@ This document tracks which hooks have been migrated to use Cosmos SDK vs old PVM
   - Location: `/src/hooks/playerActions/sitIn.ts`
 
 - [ ] **`leaveTable.ts`** - Leave a game
-  - Current: Uses old PVM RPC client (`getClient()`)
+  - Migrated: uses the Cosmos client (`withMoneyMoverRetry`); the old `getClient()` stub was deleted (#718)
   - **SDK Method**: ❌ No `leaveGame()` method in SDK
   - **Workaround**: Use `SigningCosmosClient.performAction(gameId, "leave", 0n)` if supported
   - **TODO**: Check if blockchain supports "leave" action or needs separate message type
