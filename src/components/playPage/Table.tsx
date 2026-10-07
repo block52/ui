@@ -43,6 +43,7 @@
  * - ActionsLog: Game history
  */
 
+import { buildHandShareUrl } from "../../utils/handReplay";
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
 import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
 import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
@@ -698,8 +699,9 @@ const Table = React.memo(() => {
 
     useEffect(() => {
         if (id) {
-            if (hasReplayParams && replayHandParam !== null && replayActionParam !== null) {
-                // Replay mode: fetch point-in-time snapshot from chain, no WebSocket.
+            if (hasReplayParams && replayHandParam !== null) {
+                // Read-only replay, no WebSocket: the hand's final state, or a point
+                // in the current hand when ?index= is given.
                 loadHistoricalState(id, replayHandParam, replayActionParam);
             } else if (hasWallet) {
                 // Live mode: only subscribe once we have a wallet — subscribing without
@@ -1166,9 +1168,9 @@ const Table = React.memo(() => {
             return;
         }
         try {
-             const actions = gameState?.previousActions ?? [];
-            const latestActionIndex = hasElements(actions) ? actions[actions.length - 1].index : 0;
-            const shareUrl = `${window.location.origin}/table/${id}?hand=${handNumber}&index=${latestActionIndex}`;
+             // `?hand=N` opens the hand's final state, so the link keeps working after
+            // the hand ends (an `&index=` link only resolves while the hand is live).
+            const shareUrl = buildHandShareUrl(window.location.origin, id, handNumber);
             await navigator.clipboard.writeText(shareUrl);
             toast.success("Hand link copied to clipboard!", {
                 position: "top-right",
@@ -1177,7 +1179,7 @@ const Table = React.memo(() => {
         } catch {
             toast.error("Failed to copy share URL.");
         }
-    }, [id, handNumber, gameState?.previousActions]);
+    }, [id, handNumber]);
 
     // Memoize event handlers to prevent re-renders
     const handleLobbyClick = useCallback(() => {
@@ -1292,12 +1294,14 @@ const Table = React.memo(() => {
             {/* Replay mode banner */}
             {isReplayMode && replayHandNumber != null && (
                 <div
-                    className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-center gap-4 py-2 px-4 text-sm"
-                    style={{ background: "rgba(214, 60, 94, 0.9)", color: "#fff" }}
+                    // Bottom pill: the table header (also z-[100], later in the DOM) covered
+                    // a top banner, and replay mode has no action panel down here.
+                    className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[150] flex items-center justify-center gap-4 py-2 px-4 text-sm rounded-full shadow-lg"
+                    style={{ background: "rgba(214, 60, 94, 0.95)", color: "#fff" }}
                 >
                     <span>
                         Viewing hand #{replayHandNumber}
-                        {replayActionIndex != null ? ` at action ${replayActionIndex}` : ""}
+                        {replayActionIndex != null ? ` at action ${replayActionIndex}` : " · final state (read-only)"}
                     </span>
                     <button
                         onClick={clearReplayParams}
@@ -1615,6 +1619,8 @@ const Table = React.memo(() => {
             )}
 
             {/* All Table Modals */}
+            {/* Read-only replay: no join/leave/countdown/result modals (they act on the live table). */}
+            {!isReplayMode && (
             <TableModals
                 showCountdown={showCountdown}
                 gameStartTime={gameStartTime}
@@ -1636,9 +1642,11 @@ const Table = React.memo(() => {
                 currentPlayerStack={currentPlayerData?.stack || "0"}
                 isInActiveHand={isGameInProgress && currentUserSeat > 0}
             />
+            )}
 
             {/* No-wallet overlay — blurs the table and walks the user through wallet setup */}
-            {!hasWallet && <NoWalletOverlay onWalletReady={handleWalletReady} />}
+            {/* Replay is read-only and must work without a wallet (poker-vm#2025). */}
+            {!hasWallet && !isReplayMode && <NoWalletOverlay onWalletReady={handleWalletReady} />}
         </div>
         </SitOutIntentProvider>
     );
