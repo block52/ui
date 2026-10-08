@@ -20,6 +20,8 @@ export const STORAGE_KEYS = {
     bridgeSortOrder: "bridge_sort_order",
     /** Bridge admin dashboard page size. */
     bridgeItemsPerPage: "bridge_items_per_page",
+    /** Admin key for the proxy's hot-wallet routes (X-Admin-Key). sessionStorage only: cleared with the tab. */
+    bridgeAdminKey: "bridge_admin_key",
     /** Bearer token injected by HTTPClient on secure requests. */
     authToken: "token",
     /** Whether the viewer has dismissed the upcoming Sit & Go welcome modal. */
