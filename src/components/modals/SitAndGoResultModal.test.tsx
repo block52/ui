@@ -125,7 +125,7 @@ describe("SitAndGoResultModal", () => {
         expect(localStorage.getItem(`viewed_sng_result_${TABLE_ID}_${USER_ADDRESS.toLowerCase()}`)).toBe("true");
     });
 
-    it("paid finisher: shows Claim (not Leave); claim calls onClaim then the button dismisses", async () => {
+    it("paid finisher: shows Claim (not Leave); claim calls onClaim then shows Return to Table", async () => {
         const onClaim = jest.fn().mockResolvedValue(undefined);
         mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
         render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} />);
@@ -136,10 +136,12 @@ describe("SitAndGoResultModal", () => {
 
         fireEvent.click(claimBtn);
         await waitFor(() => expect(onClaim).toHaveBeenCalledTimes(1));
-        await waitFor(() => expect(claimBtn).toHaveTextContent(/paid!/i));
+        await waitFor(() => expect(claimBtn).toHaveTextContent("Return to Table"));
 
-        // The "Paid!" button now dismisses the modal (no chain leave).
+        // Clicking "Return to Table" dismisses the modal (no chain leave), and
+        // does not trigger another collection attempt.
         fireEvent.click(screen.getByTestId("sng-result-claim-winnings-btn"));
+        expect(onClaim).toHaveBeenCalledTimes(1);
         expect(localStorage.getItem(`viewed_sng_result_${TABLE_ID}_${USER_ADDRESS.toLowerCase()}`)).toBe("true");
     });
 
