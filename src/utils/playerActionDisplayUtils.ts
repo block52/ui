@@ -1,4 +1,4 @@
-import { LegalActionDTO, NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
+import { LegalActionDTO, NonPlayerActionType, PlayerStatus, isCashFormat } from "@block52/poker-vm-sdk";
 import { SIT_IN_METHOD_POST_NOW } from "../hooks/playerActions";
 
 export type PlayerActionDisplay =
@@ -22,6 +22,18 @@ export interface PlayerActionDisplayInput {
     // When false (default), a would-be sit-in panel becomes "auto-sit-in" — the UI
     // sits the player in on seat-select. When true, the sit-in method radios show.
     sitInOptions?: boolean;
+    /** The table's format. Sit-out options are offered on cash tables only (ui#730). */
+    gameFormat: string | undefined;
+}
+
+/**
+ * Whether players may voluntarily sit out ("Sit Out Next Hand" / "Next Big Blind").
+ * Cash tables only: in a Sit & Go or tournament everyone with chips is dealt into
+ * every hand until eliminated (ui#730). An unknown format (still loading) answers
+ * false, so the options can never flash up on a tournament table.
+ */
+export function allowsVoluntarySitOut(gameFormat: string | undefined): boolean {
+    return isCashFormat(gameFormat);
 }
 
 /**
@@ -97,8 +109,8 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
         return { kind: "sit-in-options" };
     }
 
-    // 4. Sit-out button
-    if (hasSitOutAction) {
+    // 4. Sit-out button (cash tables only, even if the engine offers SIT_OUT: ui#730)
+    if (hasSitOutAction && allowsVoluntarySitOut(input.gameFormat)) {
         return { kind: "sit-out-button" };
     }
 

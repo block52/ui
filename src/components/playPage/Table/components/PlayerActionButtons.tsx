@@ -98,7 +98,8 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
         totalSeatedPlayers,
         handNumber,
         hasActivePlayers,
-        sitInOptions
+        sitInOptions,
+        gameFormat
     });
 
     // Auto-drive (ui#550, sitInOptions OFF by default): when the panel resolves to
