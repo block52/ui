@@ -18,6 +18,7 @@ import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import styles from "./TableHeader.module.css";
@@ -290,7 +291,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                 <span className="hidden sm:inline">Share</span>
                             </button>
                             <a
-                                href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(`${window.location.origin}/explorer/hand/${tableId}/${handNumber}`)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
+                                href={buildShareOnXUrl(buildHandShareUrl(window.location.origin, tableId, handNumber))}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 title="Share on X"

@@ -8,6 +8,7 @@ import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { isEmpty, hasElements, hasContent } from "../../utils/guards";
+import { buildHandShareUrl, buildShareOnXUrl } from "../../utils/handReplay";
 import styles from "./HandPage.module.css";
 
 // ---- Types ----
@@ -426,7 +427,11 @@ export default function HandPage() {
                                         </div>
                                     )}
                                     <a
-                                        href={`https://x.com/intent/tweet?text=${encodeURIComponent("Check out this poker hand on Block52!")}&url=${encodeURIComponent(`${window.location.origin}/explorer/hand/${gameId}${selectedHand ? `?hand=${selectedHand.hand_number}` : ""}`)}&hashtags=${encodeURIComponent("Block52,Poker,OnChainPoker")}`}
+                                        href={buildShareOnXUrl(
+                                            selectedHand && gameId
+                                                ? buildHandShareUrl(window.location.origin, gameId, selectedHand.hand_number)
+                                                : `${window.location.origin}/explorer/hand/${gameId}`
+                                        )}
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         title="Share on X"

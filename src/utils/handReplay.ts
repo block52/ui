@@ -88,6 +88,17 @@ export function buildHandShareUrl(origin: string, tableId: string, handNumber: n
 }
 
 /**
+ * "Share on X" intent for a link. Hands are shared as their table replay
+ * (buildHandShareUrl), never as the indexer-backed /explorer/hand/ page, which
+ * fails until the hand is indexed (ui#735, regression of #326).
+ */
+export function buildShareOnXUrl(url: string): string {
+    const text = encodeURIComponent("Check out this poker hand on Block52!");
+    const hashtags = encodeURIComponent("Block52,Poker,OnChainPoker");
+    return `https://x.com/intent/tweet?text=${text}&url=${encodeURIComponent(url)}&hashtags=${hashtags}`;
+}
+
+/**
  * Networks to try for history, in order: the current one, then the official Block52
  * node, which keeps ~30 days of state (some nodes prune everything, e.g. Texas Hodl).
  * Localhost is never swapped for mainnet.
