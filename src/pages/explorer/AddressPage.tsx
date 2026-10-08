@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { isNetworkError } from "../../apis/HTTPClient";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { microToUsdc } from "../../constants/currency";
@@ -9,9 +9,18 @@ import { formatTimestampRelative } from "../../utils/formatUtils";
 import { isEmpty, hasElements } from "../../utils/guards";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
+import {
+    ExplorerEmpty,
+    ExplorerError,
+    ExplorerLoading,
+    ExplorerPanel,
+    ExplorerReloadButton,
+    ExplorerSearchInput
+} from "../../components/explorer/ExplorerPanel";
 import styles from "./AddressPage.module.css";
 import { TransactionResponse } from "../../components/TransactionPanel";
 import { useCosmosApi } from "../../context/CosmosApiContext";
+import { copyToClipboard } from "../../components/playPage/Table/utils";
 
 export default function AddressPage() {
     const { address: urlAddress } = useParams<{ address: string }>();
@@ -106,8 +115,15 @@ export default function AddressPage() {
         [address, currentNetwork]
     );
 
-    const handleKeyPress = (e: React.KeyboardEvent) => {
-        if (e.key === "Enter") {
+    // Searching opens that address's URL, so the page (and a shared link) always
+    // reflects the viewed address; the URL effect below does the fetch.
+    const submitSearch = () => {
+        const next = address.trim();
+        if (next && next === urlAddress) {
+            handleSearch(next);
+        } else if (next) {
+            navigate(`/explorer/address/${next}`);
+        } else {
             handleSearch();
         }
     };
@@ -145,165 +161,145 @@ export default function AddressPage() {
         return `${value.toFixed(6)} ${formatDenom(denom)}`;
     };
 
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard
-            .writeText(text)
-            .then(() => {
-                alert("Copied to clipboard!");
-            })
-            .catch(err => {
-                console.error("Failed to copy:", err);
-                alert("Failed to copy address");
-            });
-    };
+    // Reloads the address being viewed (same icon and place as the other explorer lists).
+    const reload = urlAddress ? <ExplorerReloadButton onClick={() => handleSearch(urlAddress)} busy={loading} label="Reload address" /> : null;
+
+    const tabClass = (tab: "balances" | "transactions") =>
+        `px-3 py-2 text-sm font-semibold border-b-2 transition-colors ${activeTab === tab ? styles.tabActive : styles.tabInactive}`;
 
     return (
-        <div className="min-h-screen p-8 relative">
+        <div className="min-h-screen p-4 sm:p-8 relative">
             <AnimatedBackground />
 
-            <div className="max-w-7xl mx-auto relative z-10">
+            <div className="max-w-5xl mx-auto relative z-10">
                 {/* Explorer Navigation Header */}
                 <ExplorerHeader title="Block Explorer" />
 
-                {/* Search Card */}
-                <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl mb-6 ${styles.containerCard}`}>
-                    <div className="space-y-4">
-                        <div className="flex gap-3">
-                            <input
-                                type="text"
-                                value={address}
-                                onChange={e => setAddress(e.target.value)}
-                                onKeyDown={handleKeyPress}
-                                placeholder="Enter Block 52 address (e.g., b521234...)"
-                                className={`flex-1 px-4 py-3 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${styles.searchInput}`}
-                            />
-                            {address && (
-                                <button
-                                    onClick={() => copyToClipboard(address)}
-                                    className={`px-4 py-3 rounded-lg text-white font-medium transition-all hover:opacity-90 ${styles.copyButton}`}
-                                >
-                                    Copy
-                                </button>
-                            )}
-                        </div>
-                        <button
-                            onClick={() => handleSearch()}
-                            disabled={loading}
-                            className={`w-full px-6 py-3 rounded-lg text-white font-bold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${loading ? styles.searchButtonLoading : styles.searchButtonReady}`}
-                        >
-                            {loading ? "Searching..." : "Search Address"}
-                        </button>
-                    </div>
-                </div>
+                <ExplorerSearchInput value={address} onChange={setAddress} placeholder="Search by address (b52…)" onSubmit={submitSearch} busy={loading} />
 
-                {/* Error Display */}
-                {error && (
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl mb-6 ${styles.containerCard} ${styles.errorContainer}`}>
-                        <p className="text-red-400 text-center">{error}</p>
+                {/* Address header */}
+                {urlAddress && (
+                    <div className={`backdrop-blur-md px-4 py-3 sm:px-5 sm:py-4 rounded-xl mb-4 ${styles.containerCard}`}>
+                        <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Address</p>
+                        <div className="flex items-start gap-2">
+                            <p className="flex-1 min-w-0 font-mono text-sm sm:text-base text-white break-all">{urlAddress}</p>
+                            <button
+                                type="button"
+                                onClick={() => copyToClipboard(urlAddress, "Address copied")}
+                                title="Copy address"
+                                aria-label="Copy address"
+                                className={`shrink-0 p-1.5 rounded-md transition-colors ${styles.iconButton}`}
+                            >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                    />
+                                </svg>
+                            </button>
+                        </div>
+                        <Link to={`/players/${urlAddress}`} className={`inline-block mt-2 text-sm hover:underline ${styles.link}`}>
+                            Player profile →
+                        </Link>
                     </div>
                 )}
 
-                {/* Results */}
-                {!loading && !error && (hasElements(balances) || hasElements(transactions)) && (
-                    <>
-                        {/* Tabs */}
-                        <div className={`backdrop-blur-md p-2 rounded-xl shadow-2xl mb-6 flex gap-2 ${styles.containerCard}`}>
-                            <button
-                                onClick={() => setActiveTab("balances")}
-                                className={`flex-1 px-6 py-3 rounded-lg font-bold transition-all hover:opacity-90 ${activeTab === "balances" ? styles.tabActive : styles.tabInactive}`}
-                            >
-                                Balances
-                            </button>
-                            <button
-                                onClick={() => setActiveTab("transactions")}
-                                className={`flex-1 px-6 py-3 rounded-lg font-bold transition-all hover:opacity-90 ${activeTab === "transactions" ? styles.tabActive : styles.tabInactive}`}
-                            >
-                                Transactions
-                            </button>
-                        </div>
-
-                        {/* Balances Tab */}
-                        {activeTab === "balances" && (
-                            <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard}`}>
-                                <h2 className="text-2xl font-bold text-white mb-4">Token Balances</h2>
-                                {isEmpty(balances) ? (
-                                    <p className="text-gray-400 text-center py-8">No balances found for this address</p>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {balances.map((balance, index) => (
-                                            <div key={index} className={`p-4 rounded-lg ${styles.balanceItemCard}`}>
-                                                <div className="flex justify-between items-center">
-                                                    <div>
-                                                        <p className="text-white font-bold">{formatDenom(balance.denom)}</p>
-                                                    </div>
-                                                    <div className="text-right">
-                                                        <p className="text-gray-400 text-sm">Amount</p>
-                                                        <p className="text-white font-bold text-lg">{formatAmount(balance.amount, balance.denom)}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
+                {/* One results panel for every state: prompt, loading, error, empty, data.
+                    Like the other explorer lists, it carries a reload action once there is something to reload. */}
+                {!urlAddress ? (
+                    <ExplorerPanel header="Address">
+                        <ExplorerEmpty>Enter a Block52 address above to see its balances and transactions.</ExplorerEmpty>
+                    </ExplorerPanel>
+                ) : loading ? (
+                    <ExplorerPanel header="Address" action={reload}>
+                        <ExplorerLoading label="Loading address…" />
+                    </ExplorerPanel>
+                ) : error ? (
+                    <ExplorerPanel header="Address" action={reload}>
+                        <ExplorerError>{error}</ExplorerError>
+                    </ExplorerPanel>
+                ) : isEmpty(balances) && isEmpty(transactions) ? (
+                    <ExplorerPanel header="Address" action={reload}>
+                        <ExplorerEmpty>No balances or transactions for this address yet.</ExplorerEmpty>
+                    </ExplorerPanel>
+                ) : (
+                    <ExplorerPanel
+                        action={reload}
+                        header={
+                            <div className="flex gap-2 -mb-px" role="tablist">
+                                <button
+                                    role="tab"
+                                    aria-selected={activeTab === "balances"}
+                                    onClick={() => setActiveTab("balances")}
+                                    className={tabClass("balances")}
+                                >
+                                    Balances
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={activeTab === "transactions"}
+                                    onClick={() => setActiveTab("transactions")}
+                                    className={tabClass("transactions")}
+                                >
+                                    Transactions{hasElements(transactions) ? ` (${transactions.length})` : ""}
+                                </button>
                             </div>
-                        )}
-
-                        {/* Transactions Tab */}
-                        {activeTab === "transactions" && (
-                            <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard}`}>
-                                <h2 className="text-2xl font-bold text-white mb-4">Transaction History</h2>
-                                {isEmpty(transactions) ? (
-                                    <p className="text-gray-400 text-center py-8">No transactions found for this address</p>
+                        }
+                    >
+                        <div className="p-3 sm:p-4">
+                            {/* Balances Tab */}
+                            {activeTab === "balances" &&
+                                (isEmpty(balances) ? (
+                                    <ExplorerEmpty>No balances for this address.</ExplorerEmpty>
                                 ) : (
-                                    <div className="space-y-3">
+                                    <ul className="divide-y divide-white/5">
+                                        {balances.map((balance, index) => (
+                                            <li key={index} className="flex justify-between items-center py-2">
+                                                <span className="text-sm text-gray-300">{formatDenom(balance.denom)}</span>
+                                                <span className="font-mono text-sm sm:text-base text-white">{formatAmount(balance.amount, balance.denom)}</span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ))}
+
+                            {/* Transactions Tab */}
+                            {activeTab === "transactions" &&
+                                (isEmpty(transactions) ? (
+                                    <ExplorerEmpty>No transactions for this address.</ExplorerEmpty>
+                                ) : (
+                                    <ul className="space-y-2">
                                         {transactions.map((tx: any, index) => {
                                             const currentAddress = urlAddress || address;
                                             return (
-                                                <div
+                                                <li
                                                     key={index}
                                                     onClick={() =>
                                                         navigate(`/explorer/tx/${tx.txhash}`, {
                                                             state: { fromAddress: currentAddress }
                                                         })
                                                     }
-                                                    className={`p-4 rounded-lg cursor-pointer hover:opacity-80 transition-all ${styles.txItemCard}`}
+                                                    className={`px-3 py-2 rounded-lg cursor-pointer transition-colors ${styles.txItemCard}`}
                                                 >
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="flex-1">
-                                                            <p className="text-gray-400 text-sm">Transaction Hash</p>
-                                                            <p className="text-white font-mono text-sm break-all">{tx.txhash}</p>
-                                                        </div>
-                                                        <div
-                                                            className={`px-3 py-1 rounded-full text-xs font-bold ml-4 ${tx.code === 0 ? styles.txStatusSuccess : styles.txStatusFailed}`}
+                                                    <div className="flex justify-between items-center gap-3">
+                                                        <p className="flex-1 min-w-0 font-mono text-xs sm:text-sm text-white truncate">{tx.txhash}</p>
+                                                        <span
+                                                            className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${tx.code === 0 ? styles.txStatusSuccess : styles.txStatusFailed}`}
                                                         >
                                                             {tx.code === 0 ? "Success" : "Failed"}
-                                                        </div>
+                                                        </span>
                                                     </div>
-                                                    <div className="grid grid-cols-2 gap-4 text-sm">
-                                                        <div>
-                                                            <p className="text-gray-400">Block Height</p>
-                                                            <p className="text-white">{tx.height}</p>
-                                                        </div>
-                                                        <div>
-                                                            <p className="text-gray-400">Timestamp</p>
-                                                            <p className="text-white">{formatTimestampRelative(tx.timestamp)}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                    <p className="mt-1 text-xs text-gray-400">
+                                                        Block {tx.height} · {formatTimestampRelative(tx.timestamp)}
+                                                    </p>
+                                                </li>
                                             );
                                         })}
-                                    </div>
-                                )}
-                            </div>
-                        )}
-                    </>
-                )}
-
-                {/* No Results */}
-                {!loading && !error && isEmpty(balances) && isEmpty(transactions) && urlAddress && (
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-center">No data found for this address</p>
-                    </div>
+                                    </ul>
+                                ))}
+                        </div>
+                    </ExplorerPanel>
                 )}
             </div>
         </div>

@@ -1,0 +1,21 @@
+.panel {
+    background-color: color-mix(in srgb, var(--ui-bg-dark) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+}
+
+.panelHeader {
+    border-bottom: 1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent);
+}
+
+.spinner {
+    border-color: var(--brand-primary);
+}
+
+.searchInput {
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 80%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
+}
+
+.searchButton {
+    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, transparent) 100%);
+}
