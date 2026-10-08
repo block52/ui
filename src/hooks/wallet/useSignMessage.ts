@@ -9,7 +9,12 @@ import { useSignMessage as useWagmiSignMessage } from "wagmi";
 import { useCallback, useMemo } from "react";
 
 interface UseSignMessageReturn {
-    signMessage: (message: string) => Promise<string>;
+    /**
+     * Signs `message`. Pass `account` to require that address: without it the
+     * wallet signs with whichever account it has selected, which may not be
+     * the address the app shows (ui#733).
+     */
+    signMessage: (message: string, account?: string) => Promise<string>;
     isPending: boolean;
     error: Error | null;
 }
@@ -18,8 +23,8 @@ export const useSignMessage = (): UseSignMessageReturn => {
     const { signMessageAsync, isPending, error } = useWagmiSignMessage();
 
     const signMessage = useCallback(
-        async (message: string): Promise<string> => {
-            const signature = await signMessageAsync({ message });
+        async (message: string, account?: string): Promise<string> => {
+            const signature = await signMessageAsync(account ? { message, account: account as `0x${string}` } : { message });
             return signature;
         },
         [signMessageAsync]

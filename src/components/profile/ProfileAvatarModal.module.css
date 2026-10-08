@@ -10,6 +10,10 @@
   padding: 4px;
   overflow-y: auto;
   display: grid;
+  /* One column that may shrink: without minmax(0, …) the widest child (a long
+     address or tx hash in an error) set the width and the dialog scrolled
+     sideways (ui#733). */
+  grid-template-columns: minmax(0, 1fr);
   gap: 12px;
 }
 
@@ -43,6 +47,7 @@
 
 .walletInput {
   flex: 1;
+  min-width: 0;
   padding: 10px 12px;
   border-radius: 10px;
   border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
@@ -141,6 +146,29 @@
   color: var(--ui-text-secondary);
   text-align: center;
   padding: 24px 0;
+  overflow-wrap: anywhere;
+}
+
+.noteText {
+  color: var(--ui-text-secondary);
+  font-size: 13px;
+  min-width: 0;
+}
+
+.fieldError {
+  color: var(--accent-danger);
+  font-size: 12px;
+}
+
+.inlineButton {
+  flex-shrink: 0;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #ffffff;
+  background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 78%, transparent) 100%);
+  cursor: pointer;
 }
 
 .searchInput {
