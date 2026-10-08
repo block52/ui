@@ -1,5 +1,6 @@
 import {
     buildHandShareUrl,
+    buildShareOnXUrl,
     handEndedQuery,
     handStartedQuery,
     parseGameRecordResponse,
@@ -110,5 +111,15 @@ describe("abci string-field codec", () => {
         expect(parseAbciStringResponse({ result: { response: { code: 0, value: b64 } } })).toBe('{"handNumber":20}');
         expect(() => parseAbciStringResponse({ result: { response: { code: 38, log: "version does not exist" } } })).toThrow("version does not exist");
         expect(() => parseAbciStringResponse({})).toThrow();
+    });
+});
+
+describe("buildShareOnXUrl (ui#735)", () => {
+    it("posts the hand's table replay link, never /explorer/hand/", () => {
+        const intent = new URL(buildShareOnXUrl(buildHandShareUrl("https://app.block52.xyz", "0xabc", 13)));
+        expect(intent.origin + intent.pathname).toBe("https://x.com/intent/tweet");
+        expect(intent.searchParams.get("url")).toBe("https://app.block52.xyz/table/0xabc?hand=13");
+        expect(intent.searchParams.get("text")).toBe("Check out this poker hand on Block52!");
+        expect(intent.searchParams.get("hashtags")).toBe("Block52,Poker,OnChainPoker");
     });
 });
