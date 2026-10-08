@@ -4,7 +4,8 @@ import type {
     PlayerSearchParams,
     PlayersListResponse,
     PlayerProfile,
-    PlayerSessionsResponse
+    PlayerSessionsResponse,
+    PlayerHandsResponse
 } from "../types/players";
 
 export class PaymentApi extends HTTPClient {
@@ -88,6 +89,9 @@ export class IndexerApi extends HTTPClient {
     public getPlayerProfile = (address: string) => this.get<PlayerProfile>(`/api/v1/players/${encodeURIComponent(address)}/stats`);
     public getPlayerSessions = (address: string, limit = 20, offset = 0) =>
         this.get<PlayerSessionsResponse>(`/api/v1/players/${encodeURIComponent(address)}/sessions?limit=${limit}&offset=${offset}`);
+    // Hands a wallet played, newest first (ui#721).
+    public getPlayerHands = (address: string, limit: number, offset: number) =>
+        this.get<PlayerHandsResponse>(`/api/v1/players/${encodeURIComponent(address)}/hands?limit=${limit}&offset=${offset}`);
 }
 
 // Serialize player-directory query params, omitting empty values.

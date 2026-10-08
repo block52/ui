@@ -8,6 +8,8 @@ import { getCardImageUrl } from "../../utils/cardImages";
 import { hasElements } from "../../utils/guards";
 import type { HandDetail, HandListItem, HandListResponse } from "./types";
 import { useIndexerApi } from "../../context/IndexerApiContext";
+import { useIndexerStatus } from "../../hooks/player/useIndexerStatus";
+import { describeHandLoadError } from "../../utils/handHistory";
 
 export default function HandReplayPage() {
     const { gameId, handNumber } = useParams<{ gameId: string; handNumber: string }>();
@@ -16,7 +18,10 @@ export default function HandReplayPage() {
     const [hands, setHands] = useState<HandListItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    // The failed hand lookup, described at render time against the indexer's progress.
+    const [loadError, setLoadError] = useState<unknown>(null);
     const indexerApi = useIndexerApi();
+    const indexerStatus = useIndexerStatus();
 
     const fetchHand = useCallback(async () => {
         if (!gameId) {
@@ -28,6 +33,7 @@ export default function HandReplayPage() {
         try {
             setLoading(true);
             setError(null);
+            setLoadError(null);
 
             // Always fetch the hands list for this game
             try {
@@ -52,7 +58,8 @@ export default function HandReplayPage() {
             setLoading(false);
         } catch (err) {
             console.error("Error fetching hand:", err);
-            setError("Unable to load hand data. Please check the URL and try again.");
+            setLoadError(err);
+            setError(describeHandLoadError(err, handNumber ?? "", null));
             setLoading(false);
         }
     }, [gameId, handNumber]);
@@ -131,7 +138,17 @@ export default function HandReplayPage() {
                 ) : error ? (
                     <div className="text-center py-12">
                         <div className="bg-red-900/30 rounded-lg p-6 border border-red-700 inline-block">
-                            <p className="text-lg text-red-300">{error}</p>
+                            <p className="text-lg text-red-300 max-w-xl">
+                                {loadError !== null && handNumber ? describeHandLoadError(loadError, handNumber, indexerStatus) : error}
+                            </p>
+                            {gameId && handNumber && (
+                                <p className="mt-3 text-sm text-gray-300">
+                                    The table replay reads the hand from the chain instead:{" "}
+                                    <Link to={`/table/${gameId}?hand=${handNumber}`} className="text-blue-300 hover:underline">
+                                        open hand #{handNumber} on the table
+                                    </Link>
+                                </p>
+                            )}
                             <button onClick={fetchHand} className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition-colors">
                                 Retry
                             </button>

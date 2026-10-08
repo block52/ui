@@ -106,3 +106,27 @@ export interface PlayerSessionsResponse {
     data: PlayerSession[];
     pagination: Pagination;
 }
+
+/**
+ * One finished hand a wallet played (indexer GET /api/v1/players/:address/hands,
+ * ui#721). Money is in the table's units: chips for Sit & Go/tournament,
+ * micro-USDC for cash.
+ */
+export interface PlayerHand {
+    game_id: string;
+    hand_number: number;
+    seat: number;
+    /** The player's status at the hand's end ("" if they have since left). */
+    status: string;
+    won_amount: number;
+    block_height: number;
+    /** Block time of the hand's end. */
+    ended_at?: string;
+    community_cards: string[];
+    winner_count: number;
+}
+
+export interface PlayerHandsResponse {
+    data: PlayerHand[];
+    pagination: Pagination;
+}
