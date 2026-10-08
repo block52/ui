@@ -2,15 +2,27 @@ import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { formatAmount } from "../../utils/accountUtils";
+import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { WinnerInfo, WinnerInfoReturn } from "../../types/index";
 import { hasElements } from "../../utils/guards";
 
 /**
+ * Format a won amount the way the action log formats bets (ui#727): SNG and
+ * tournament amounts are chips ("1,240 chips"), cash amounts are micro-USDC.
+ * Converting chips as micro-USDC turned a 120-chip win into "0.00".
+ */
+export function formatWinAmount(amount: string, isTournament: boolean): string {
+    return isTournament ? formatAmount(amount, undefined, true) : formatUSDCToSimpleDollars(amount);
+}
+
+/**
  * Extract winner information from game state
  * @param gameData The parsed game data
+ * @param isTournament Whether amounts are chips (SNG/tournament) rather than USDC
  * @returns Array of winner information or null if no winners
  */
-function getWinnerInfo(gameData: TexasHoldemStateDTO) {
+function getWinnerInfo(gameData: TexasHoldemStateDTO, isTournament: boolean) {
     if (!gameData) return null;
 
     // Check for explicit winners array in the game data
@@ -30,7 +42,7 @@ function getWinnerInfo(gameData: TexasHoldemStateDTO) {
                 seat: winner.seat ?? player?.seat ?? 0,
                 address: winner.address,
                 amount: winner.amount.toString(),
-                formattedAmount: formatUSDCToSimpleDollars(winner.amount.toString()),
+                formattedAmount: formatWinAmount(winner.amount.toString(), isTournament),
                 winType: hasElements(winner.cards) ? "showdown" : "uncontested",
                 description: winner.description,
                 handName: winner.name,
@@ -50,7 +62,8 @@ function getWinnerInfo(gameData: TexasHoldemStateDTO) {
  */
 export const useWinnerInfo = (): WinnerInfoReturn => {
     // Get game state directly from Context - no additional WebSocket connections
-    const { gameState, isLoading, error } = useGameStateContext();
+    const { gameState, gameFormat, isLoading, error } = useGameStateContext();
+    const isTournament = isTournamentFormat(gameFormat);
 
     // Content fingerprint of everything getWinnerInfo actually reads, so the
     // result is recomputed when the WINNERS change rather than on every render.
@@ -93,7 +106,7 @@ export const useWinnerInfo = (): WinnerInfoReturn => {
 
         try {
             // Process winner information
-            const winners = getWinnerInfo(gameState);
+            const winners = getWinnerInfo(gameState, isTournament);
             // Build the seat index once so per-seat consumers do O(1) lookups
             // instead of each re-scanning winnerInfo by seat (#2455).
             const winnerBySeat = new Map<number, WinnerInfo>();
@@ -116,5 +129,5 @@ export const useWinnerInfo = (): WinnerInfoReturn => {
             };
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [fingerprint, isLoading, error]);
+    }, [fingerprint, isTournament, isLoading, error]);
 };
