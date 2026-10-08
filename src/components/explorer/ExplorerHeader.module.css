@@ -1,6 +1,11 @@
 .navCard {
-    min-width: 180px;
     max-width: 220px;
+}
+
+@media (min-width: 640px) {
+    .navCard {
+        min-width: 180px;
+    }
 }
 
 .navCardActive {

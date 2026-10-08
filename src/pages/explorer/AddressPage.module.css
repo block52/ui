@@ -3,47 +3,47 @@
     border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
 }
 
-.searchInput {
-    background-color: color-mix(in srgb, var(--ui-bg-medium) 80%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
-    box-shadow: 0 0 20px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+
+.iconButton {
+    color: color-mix(in srgb, #ffffff 70%, transparent);
+    background-color: color-mix(in srgb, var(--brand-primary) 12%, transparent);
 }
 
-.copyButton {
-    background-color: color-mix(in srgb, var(--brand-primary) 50%, transparent);
-    border: 1px solid var(--brand-primary);
+.iconButton:hover {
+    color: #ffffff;
+    background-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
 }
 
-.searchButtonReady {
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, transparent) 100%);
+.link {
+    color: var(--brand-primary);
 }
 
-.searchButtonLoading {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--ui-bg-dark) 50%, transparent) 0%, color-mix(in srgb, var(--ui-bg-dark) 30%, transparent) 100%);
-}
 
-.errorContainer {
-    border: 2px solid var(--accent-danger);
-}
+
+
 
 .tabActive {
-    background-color: var(--brand-primary);
+    border-color: var(--brand-primary);
     color: #ffffff;
 }
 
 .tabInactive {
-    background-color: transparent;
+    border-color: transparent;
+    color: color-mix(in srgb, #ffffff 55%, transparent);
+}
+
+.tabInactive:hover {
     color: #ffffff;
 }
 
-.balanceItemCard {
-    background-color: color-mix(in srgb, var(--ui-bg-medium) 50%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-}
 
 .txItemCard {
     background-color: color-mix(in srgb, var(--ui-bg-medium) 50%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent);
+}
+
+.txItemCard:hover {
+    border-color: color-mix(in srgb, var(--brand-primary) 45%, transparent);
 }
 
 .txStatusSuccess {
