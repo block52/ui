@@ -316,34 +316,41 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 {/* Right Section */}
                 <div className="flex items-center z-10 mr-1 sm:mr-3">
                     {/* Settings gear icon */}
-                    <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md mr-1 sm:mr-2 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
+                    <button
+                        type="button"
+                        className={`grid place-items-center w-8 h-8 sm:w-9 sm:h-9 cursor-pointer transition-colors duration-200 rounded-btn mr-1 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
                         onClick={onToggleSettings}
                         title="Toggle Settings"
+                        aria-label="Toggle settings"
+                        aria-pressed={openSettings}
                     >
-                        <IoSettingsOutline size={14} />
-                    </span>
-                    <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
+                        <IoSettingsOutline size={18} />
+                    </button>
+                    <button
+                        type="button"
+                        className={`grid place-items-center w-8 h-8 sm:w-9 sm:h-9 cursor-pointer transition-colors duration-200 rounded-btn ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
                         onClick={onCloseSideBar}
                         title="Toggle Action Log"
+                        aria-label="Toggle action log"
+                        aria-pressed={openSidebar}
                     >
-                        {openSidebar ? <LuPanelLeftOpen size={14} /> : <LuPanelLeftClose size={14} />}
-                    </span>
+                        {openSidebar ? <LuPanelLeftOpen size={18} /> : <LuPanelLeftClose size={18} />}
+                    </button>
                     {/* Only show Leave Table button if user is seated — and never
                         for SNG, where the roster is frozen once play starts
                         (poker-vm#2343) and leave/claim is handled by the SNG
                         modals (block52/ui#465). */}
                     {currentPlayerData && !(gameFormat && isSitAndGoFormat(gameFormat)) && (
-                        <span
-                            className={`text-xs sm:text-[16px] cursor-pointer flex items-center gap-0.5 transition-colors duration-300 ml-2 sm:ml-3 ${styles.leaveTableButton}`}
+                        <button
+                            type="button"
+                            className={`h-8 sm:h-9 px-3 cursor-pointer flex items-center gap-2 rounded-btn border text-xs sm:text-sm font-semibold transition-colors duration-200 ml-2 sm:ml-3 ${styles.leaveTableButton}`}
                             onClick={handleLeaveTableClick}
                             title="Leave Table"
                         >
-                            <span className="hidden sm:inline">Leave Table</span>
+                            <span className="hidden sm:inline">Leave table</span>
                             <span className="sm:hidden">Leave</span>
-                            <RxExit size={12} />
-                        </span>
+                            <RxExit size={16} />
+                        </button>
                     )}
                 </div>
             </div>

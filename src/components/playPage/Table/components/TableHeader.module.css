@@ -75,9 +75,13 @@
 }
 
 .leaveTableButton {
-    color: rgb(var(--ink-muted));
+    color: #fca5a5;
+    background-color: transparent;
+    border-color: color-mix(in srgb, var(--accent-danger) 55%, transparent);
 }
 
 .leaveTableButton:hover {
-    color: #f87171;
+    color: #ffffff;
+    background-color: var(--accent-danger);
+    border-color: var(--accent-danger);
 }
