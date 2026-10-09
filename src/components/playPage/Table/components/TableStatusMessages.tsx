@@ -69,14 +69,14 @@ export const TableStatusMessages: React.FC<TableStatusMessagesProps> = ({
 
     const getMessageStyle = (msg: TableStatusMessage): string => {
         if (msg.kind === "seat-label") {
-            if (viewportMode === "desktop") return "bg-black bg-opacity-60 text-left";
-            if (isMobileLandscape) return "bg-black bg-opacity-50 text-left break-words";
-            return "bg-black bg-opacity-50 text-center";
+            if (viewportMode === "desktop") return "bg-surface-card/80 border border-line text-left";
+            if (isMobileLandscape) return "bg-surface-card/70 border border-line text-left break-words";
+            return "bg-surface-card/70 border border-line text-center";
         }
         // your-turn, waiting-for-player, hand-complete
-        if (viewportMode === "desktop") return "bg-black bg-opacity-80 text-left";
-        if (isMobileLandscape) return "bg-black bg-opacity-70 text-left break-words";
-        return "bg-black bg-opacity-70 text-center";
+        if (viewportMode === "desktop") return "bg-surface-card/90 border border-line text-left";
+        if (isMobileLandscape) return "bg-surface-card/85 border border-line text-left break-words";
+        return "bg-surface-card/85 border border-line text-center";
     };
 
     const renderMessageContent = (msg: TableStatusMessage): React.ReactNode => {
@@ -106,7 +106,7 @@ export const TableStatusMessages: React.FC<TableStatusMessagesProps> = ({
             {messages.map((msg) => (
                 <div
                     key={msg.kind}
-                    className={`text-white px-3 py-2 rounded-lg text-xs sm:text-sm backdrop-blur-sm ${getMessageStyle(msg)}`}
+                    className={`text-ink-body px-3 py-2 rounded-xl text-xs sm:text-sm backdrop-blur-sm ${getMessageStyle(msg)}`}
                 >
                     {renderMessageContent(msg)}
                 </div>

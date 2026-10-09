@@ -9,7 +9,9 @@ import { ethers } from "ethers";
 import { formatMicroAsUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
 import { base64ToHex } from "../utils/encodingUtils";
-import { AnimatedBackground } from "../components/common/AnimatedBackground";
+import { Modal } from "../components/common/Modal";
+import { Card, CardHeader, PillButton, StatStrip } from "../components/ui";
+import { amountInputClass, fieldInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
 import { useWithdraw } from "../hooks/wallet/useWithdraw";
@@ -302,115 +304,142 @@ export default function WithdrawalDashboard() {
         }
     }, [selectedWithdrawal?.signature]);
 
+    const statusPillClass: Record<Withdrawal["status"], string> = {
+        pending: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+        signed: "bg-brand/15 text-brand-light border-brand/30",
+        completed: "bg-emerald-500/10 text-emerald-400 border-emerald-500/30",
+        error: "bg-red-500/10 text-red-400 border-red-500/30"
+    };
+    const statusLabel: Record<Withdrawal["status"], string> = {
+        pending: "Pending",
+        signed: "Signed",
+        completed: "Completed",
+        error: "Error"
+    };
+
+    const thClass = "px-5 py-3 text-xs font-medium uppercase tracking-[0.1em] text-ink-muted whitespace-nowrap";
+    const iconButtonClass =
+        "shrink-0 w-11 h-11 sm:w-9 sm:h-9 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
+
+    const copyIcon = (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+            />
+        </svg>
+    );
+    const eyeIcon = (
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth="2"
+                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+            />
+        </svg>
+    );
+
+    const renderCompleteButton = (withdrawal: Withdrawal, withTitle: boolean) => (
+        <PillButton
+            size="sm"
+            onClick={() => handleCompleteWithdrawal(withdrawal)}
+            disabled={processingNonce === withdrawal.nonce || !isConnected || !baseAddress}
+            title={withTitle && (!isConnected || !baseAddress) ? "Connect your Ethereum wallet first" : undefined}
+            className="min-h-11 sm:min-h-9"
+        >
+            {processingNonce === withdrawal.nonce ? "Completing..." : "Complete on Ethereum"}
+        </PillButton>
+    );
+
     return (
-        <div className="min-h-screen p-8 relative">
-            <AnimatedBackground />
-            <div className="max-w-7xl mx-auto relative z-10">
+        <div className="min-h-screen bg-surface-page">
+            <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
                 {/* Header */}
-                <div className="mb-8 text-center">
-                    <h1 className="text-4xl font-bold text-white mb-2">USDC Withdrawals</h1>
-                    <p className="text-gray-400">
+                <div>
+                    <h1 className="m-0 text-[28px] font-semibold text-ink">USDC Withdrawals</h1>
+                    <p className="mt-1 mb-0 text-ink-muted">
                         Withdraw USDC from Block52 to Ethereum
-                        <span className="ml-2 font-mono text-sm text-gray-500">({bridgeContractAddress})</span>
+                        <span className="ml-2 font-mono text-xs text-ink-muted/80 break-all">({bridgeContractAddress})</span>
                     </p>
                 </div>
 
+                {/* Stats */}
+                <StatStrip
+                    items={[
+                        { label: "Total Withdrawals", value: totalWithdrawals },
+                        { label: "Pending", value: pendingCount },
+                        { label: "Signed (Ready)", value: signedCount },
+                        { label: "Completed", value: completedCount, tone: "good" }
+                    ]}
+                />
+
                 {/* Wallet Status */}
-                <div className="mb-6 bg-gray-800 rounded-lg p-4 border border-gray-700">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <p className="text-gray-400 text-sm mb-1">Block52 Wallet</p>
-                            <p className="text-white font-mono text-sm">
+                <Card>
+                    <CardHeader title="Wallets" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-5">
+                        <div className={insetBoxClass}>
+                            <p className="m-0 mb-1 text-xs uppercase tracking-[0.08em] text-ink-muted">Block52 Wallet</p>
+                            <p className={`m-0 font-mono text-sm break-all ${cosmosWallet.address ? "text-ink" : "text-ink-muted"}`}>
                                 {cosmosWallet.address ? cosmosWallet.address : "Not connected"}
                             </p>
                         </div>
-                        <div>
-                            <p className="text-gray-400 text-sm mb-1">Ethereum Wallet</p>
-                            <p className="text-white font-mono text-sm">{baseAddress ? baseAddress : "Not connected"}</p>
+                        <div className={insetBoxClass}>
+                            <p className="m-0 mb-1 text-xs uppercase tracking-[0.08em] text-ink-muted">Ethereum Wallet</p>
+                            <p className={`m-0 font-mono text-sm break-all ${baseAddress ? "text-ink" : "text-ink-muted"}`}>
+                                {baseAddress ? baseAddress : "Not connected"}
+                            </p>
                         </div>
                     </div>
-                </div>
+                </Card>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                        <p className="text-gray-400 text-sm mb-1">Total Withdrawals</p>
-                        <p className="text-2xl font-bold text-white">{totalWithdrawals}</p>
-                    </div>
-                    <div className="bg-yellow-900/30 rounded-lg p-4 border border-yellow-700">
-                        <p className="text-yellow-400 text-sm mb-1">Pending</p>
-                        <p className="text-2xl font-bold text-yellow-300">{pendingCount}</p>
-                    </div>
-                    <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-700">
-                        <p className="text-blue-400 text-sm mb-1">Signed (Ready)</p>
-                        <p className="text-2xl font-bold text-blue-300">{signedCount}</p>
-                    </div>
-                    <div className="bg-green-900/30 rounded-lg p-4 border border-green-700">
-                        <p className="text-green-400 text-sm mb-1">Completed</p>
-                        <p className="text-2xl font-bold text-green-300">{completedCount}</p>
-                    </div>
-                </div>
-
-                {/* Controls */}
-                <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
-                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <button
-                                onClick={() => setShowInitiateModal(true)}
-                                disabled={!cosmosWallet.address}
-                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-                            >
-                                + New Withdrawal
-                            </button>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <label className="text-white text-sm">Filter:</label>
+                {/* Withdrawals */}
+                <Card>
+                    <CardHeader
+                        title="Withdrawals"
+                        actions={
+                            <>
+                                <label htmlFor="withdrawal-filter" className="text-ink-muted text-sm">
+                                    Filter:
+                                </label>
                                 <select
+                                    id="withdrawal-filter"
                                     value={filter}
                                     onChange={e => setFilter(e.target.value as any)}
-                                    className="px-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white"
+                                    className="h-11 sm:h-9 px-3 rounded-xl bg-surface-raised border border-line-strong text-ink text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 [color-scheme:dark]"
                                 >
                                     <option value="all">All</option>
                                     <option value="pending">Pending</option>
                                     <option value="signed">Signed</option>
                                     <option value="completed">Completed</option>
                                 </select>
-                            </div>
-
-                            <button
-                                onClick={loadWithdrawals}
-                                disabled={isLoading}
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-600"
-                            >
-                                {isLoading ? "Loading..." : "Refresh"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Withdrawals Table */}
-                <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+                                <PillButton variant="outline" size="sm" onClick={loadWithdrawals} disabled={isLoading} className="min-h-11 sm:min-h-9">
+                                    {isLoading ? "Loading..." : "Refresh"}
+                                </PillButton>
+                                <PillButton size="sm" onClick={() => setShowInitiateModal(true)} disabled={!cosmosWallet.address} className="min-h-11 sm:min-h-9">
+                                    + New Withdrawal
+                                </PillButton>
+                            </>
+                        }
+                    />
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-900">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Nonce</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">
-                                        Ethereum Address
-                                    </th>
-                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-400 tracking-wider">
-                                        Amount (USDC)
-                                    </th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-400 tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-400 tracking-wider">Action</th>
+                        <table className="w-full min-w-[760px]">
+                            <thead>
+                                <tr className="border-b border-line">
+                                    <th className={`${thClass} text-left`}>Nonce</th>
+                                    <th className={`${thClass} text-left`}>Ethereum Address</th>
+                                    <th className={`${thClass} text-right`}>Amount (USDC)</th>
+                                    <th className={`${thClass} text-center`}>Status</th>
+                                    <th className={`${thClass} text-center`}>Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-700">
+                            <tbody className="divide-y divide-line">
                                 {isEmpty(filteredWithdrawals) ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                                        <td colSpan={5} className="px-5 py-12 text-center text-ink-muted text-sm">
                                             {isLoading
                                                 ? "Loading withdrawals..."
                                                 : !cosmosWallet.address
@@ -420,121 +449,67 @@ export default function WithdrawalDashboard() {
                                     </tr>
                                 ) : (
                                     filteredWithdrawals.map(withdrawal => (
-                                        <tr key={withdrawal.nonce} className="hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-white font-mono text-sm" title={withdrawal.nonce}>
+                                        <tr key={withdrawal.nonce} className="hover:bg-surface-hover transition-colors">
+                                            <td className="px-5 py-4 whitespace-nowrap">
+                                                <span className="text-ink font-mono text-sm" title={withdrawal.nonce}>
                                                     #{truncateMiddle(withdrawal.nonce, 10, 4)}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-white font-mono text-sm">
-                                                        {withdrawal.baseAddress}
-                                                    </span>
+                                            <td className="px-5 py-4">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-ink-body font-mono text-sm">{withdrawal.baseAddress}</span>
                                                     <button
+                                                        type="button"
                                                         onClick={() => copyToClipboard(withdrawal.baseAddress, "Address copied!")}
-                                                        className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                                                        className={iconButtonClass}
+                                                        aria-label="Copy address"
                                                     >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path
-                                                                strokeLinecap="round"
-                                                                strokeLinejoin="round"
-                                                                strokeWidth="2"
-                                                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                            />
-                                                        </svg>
+                                                        {copyIcon}
                                                     </button>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                <span className="text-white font-semibold">{withdrawal.amountFormatted} USDC</span>
+                                            <td className="px-5 py-4 whitespace-nowrap text-right tabular-nums">
+                                                <span className="text-ink font-semibold">{withdrawal.amountFormatted} USDC</span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
-                                                {withdrawal.status === "pending" && (
-                                                    <span className="text-sm text-yellow-400">Pending</span>
-                                                )}
-                                                {withdrawal.status === "signed" && (
-                                                    <span className="text-sm text-blue-400">Signed</span>
-                                                )}
-                                                {withdrawal.status === "completed" && (
-                                                    <span className="text-sm text-green-400">Completed</span>
-                                                )}
-                                                {withdrawal.status === "error" && (
-                                                    <span className="text-sm text-red-400 cursor-help" title={withdrawal.errorMessage}>
-                                                        Error
-                                                    </span>
-                                                )}
+                                            <td className="px-5 py-4 whitespace-nowrap text-center">
+                                                <span
+                                                    className={`inline-flex items-center h-6 px-2.5 rounded-full border text-xs font-medium ${statusPillClass[withdrawal.status]} ${withdrawal.status === "error" ? "cursor-help" : ""}`}
+                                                    title={withdrawal.status === "error" ? withdrawal.errorMessage : undefined}
+                                                >
+                                                    {statusLabel[withdrawal.status]}
+                                                </span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            <td className="px-5 py-4 whitespace-nowrap text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     {withdrawal.status === "signed" ? (
                                                         <>
+                                                            {renderCompleteButton(withdrawal, false)}
                                                             <button
-                                                                onClick={() => handleCompleteWithdrawal(withdrawal)}
-                                                                disabled={
-                                                                    processingNonce === withdrawal.nonce || !isConnected || !baseAddress
-                                                                }
-                                                                className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-                                                            >
-                                                                {processingNonce === withdrawal.nonce
-                                                                    ? "Completing..."
-                                                                    : "Complete on Ethereum"}
-                                                            </button>
-                                                            <button
+                                                                type="button"
                                                                 onClick={() => handleViewSignature(withdrawal)}
-                                                                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-sm font-medium rounded-lg transition-colors"
+                                                                className={iconButtonClass}
                                                                 title="View signature details"
+                                                                aria-label="View signature details"
                                                             >
-                                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                    <path
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        strokeWidth="2"
-                                                                        d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                                    />
-                                                                    <path
-                                                                        strokeLinecap="round"
-                                                                        strokeLinejoin="round"
-                                                                        strokeWidth="2"
-                                                                        d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                                    />
-                                                                </svg>
+                                                                {eyeIcon}
                                                             </button>
                                                         </>
                                                     ) : withdrawal.status === "pending" ? (
                                                         // Redeemable now: the signature is fetched from a validator on click.
-                                                        <button
-                                                            onClick={() => handleCompleteWithdrawal(withdrawal)}
-                                                            disabled={processingNonce === withdrawal.nonce || !isConnected || !baseAddress}
-                                                            title={!isConnected || !baseAddress ? "Connect your Ethereum wallet first" : undefined}
-                                                            className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-                                                        >
-                                                            {processingNonce === withdrawal.nonce ? "Completing..." : "Complete on Ethereum"}
-                                                        </button>
+                                                        renderCompleteButton(withdrawal, true)
                                                     ) : withdrawal.status === "completed" && withdrawal.signature ? (
-                                                        <button
+                                                        <PillButton
+                                                            variant="outline"
+                                                            size="sm"
                                                             onClick={() => handleViewSignature(withdrawal)}
-                                                            className="px-3 py-2 bg-gray-700 hover:bg-gray-600 text-gray-300 hover:text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-1"
                                                             title="View signature details"
+                                                            className="min-h-11 sm:min-h-9"
                                                         >
-                                                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth="2"
-                                                                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                                                />
-                                                                <path
-                                                                    strokeLinecap="round"
-                                                                    strokeLinejoin="round"
-                                                                    strokeWidth="2"
-                                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                                />
-                                                            </svg>
+                                                            {eyeIcon}
                                                             View Sig
-                                                        </button>
+                                                        </PillButton>
                                                     ) : (
-                                                        <span className="text-gray-500 text-sm">—</span>
+                                                        <span className="text-ink-muted text-sm">—</span>
                                                     )}
                                                 </div>
                                             </td>
@@ -544,19 +519,19 @@ export default function WithdrawalDashboard() {
                             </tbody>
                         </table>
                     </div>
-                </div>
+                </Card>
 
                 {/* Info Box */}
-                <div className="mt-6 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                    <h3 className="text-blue-200 font-semibold mb-2">How Withdrawals Work</h3>
-                    <ul className="text-blue-300 text-sm space-y-1 list-disc list-inside">
+                <div className={`${noticeClass.info} !p-4`}>
+                    <h3 className="m-0 mb-2 text-sm font-semibold text-ink">How Withdrawals Work</h3>
+                    <ul className="m-0 pl-4 space-y-1 list-disc text-ink-soft text-sm">
                         <li>
-                            <strong>Step 1 (Block52):</strong> Send a withdrawal request signed by your cosmos address
+                            <strong className="text-ink">Step 1 (Block52):</strong> Send a withdrawal request signed by your cosmos address
                             with your Ethereum address in the message. The validator then signs the withdrawal payload
                             for the deposit contract.
                         </li>
                         <li>
-                            <strong>Step 2 (Ethereum):</strong> Once the validator has signed, call the deposit
+                            <strong className="text-ink">Step 2 (Ethereum):</strong> Once the validator has signed, call the deposit
                             contract withdraw function on Ethereum using MetaMask.
                         </li>
                         <li>Pending withdrawals auto-refresh every 5 seconds until the validator signs.</li>
@@ -565,74 +540,74 @@ export default function WithdrawalDashboard() {
                 </div>
             </div>
 
-            {/* Powered by Block52 */}
-            <div className="fixed bottom-4 left-4 flex items-center z-10 opacity-30">
-                <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                    <div className="text-left mb-1">
-                        <span className="text-xs text-white font-medium tracking-wide  ">POWERED BY</span>
-                    </div>
-                    <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
-                </div>
-            </div>
-
             {/* Initiate Withdrawal Modal */}
-            {showInitiateModal && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-gray-800 rounded-lg p-6 max-w-md w-full border border-gray-700">
-                        <h2 className="text-2xl font-bold text-white mb-4">Initiate Withdrawal</h2>
+            <Modal
+                isOpen={showInitiateModal}
+                onClose={() => {
+                    setShowInitiateModal(false);
+                    setWithdrawalAmount("");
+                }}
+                title="Initiate Withdrawal"
+                isProcessing={isInitiating}
+                widthClass="w-[28rem]"
+            >
+                <div className="space-y-4">
+                    <div>
+                        <label htmlFor="withdrawal-eth-address" className={fieldLabelClass}>
+                            Ethereum Address
+                        </label>
+                        <input
+                            id="withdrawal-eth-address"
+                            type="text"
+                            value={withdrawalBaseAddress}
+                            onChange={e => setWithdrawalBaseAddress(e.target.value)}
+                            placeholder="0x..."
+                            className={`${fieldInputClass} font-mono text-sm`}
+                        />
+                        <p className="mt-1.5 mb-0 text-ink-muted text-xs">USDC will be sent to this address on Ethereum</p>
+                    </div>
 
-                        <div className="space-y-4">
-                            <div>
-                                <label className="block text-white text-sm font-semibold mb-2">Ethereum Address</label>
-                                <input
-                                    type="text"
-                                    value={withdrawalBaseAddress}
-                                    onChange={e => setWithdrawalBaseAddress(e.target.value)}
-                                    placeholder="0x..."
-                                    className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white font-mono text-sm"
-                                />
-                                <p className="text-gray-400 text-xs mt-1">
-                                    USDC will be sent to this address on Ethereum
-                                </p>
-                            </div>
-
-                            <div>
-                                <label className="block text-white text-sm font-semibold mb-2">Amount (USDC)</label>
-                                <input
-                                    type="number"
-                                    step="0.000001"
-                                    min="0"
-                                    value={withdrawalAmount}
-                                    onChange={e => setWithdrawalAmount(e.target.value)}
-                                    placeholder="0.00"
-                                    className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white text-lg font-semibold"
-                                />
-                                <p className="text-gray-400 text-xs mt-1">Amount of USDC to withdraw from Block52</p>
-                            </div>
-                        </div>
-
-                        <div className="flex gap-3 mt-6">
-                            <button
-                                onClick={() => {
-                                    setShowInitiateModal(false);
-                                    setWithdrawalAmount("");
-                                }}
-                                disabled={isInitiating}
-                                className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={handleInitiateWithdrawal}
-                                disabled={isInitiating || !withdrawalBaseAddress || !withdrawalAmount}
-                                className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-                            >
-                                {isInitiating ? "Initiating..." : "Initiate Withdrawal"}
-                            </button>
-                        </div>
+                    <div>
+                        <label htmlFor="withdrawal-amount" className={fieldLabelClass}>
+                            Amount (USDC)
+                        </label>
+                        <input
+                            id="withdrawal-amount"
+                            type="number"
+                            step="0.000001"
+                            min="0"
+                            value={withdrawalAmount}
+                            onChange={e => setWithdrawalAmount(e.target.value)}
+                            placeholder="0.00"
+                            className={amountInputClass}
+                        />
+                        <p className="mt-1.5 mb-0 text-ink-muted text-xs">Amount of USDC to withdraw from Block52</p>
                     </div>
                 </div>
-            )}
+
+                <div className="flex gap-3 mt-6">
+                    <PillButton
+                        variant="outline"
+                        size="lg"
+                        className="flex-1"
+                        onClick={() => {
+                            setShowInitiateModal(false);
+                            setWithdrawalAmount("");
+                        }}
+                        disabled={isInitiating}
+                    >
+                        Cancel
+                    </PillButton>
+                    <PillButton
+                        size="lg"
+                        className="flex-1"
+                        onClick={handleInitiateWithdrawal}
+                        disabled={isInitiating || !withdrawalBaseAddress || !withdrawalAmount}
+                    >
+                        {isInitiating ? "Initiating..." : "Initiate Withdrawal"}
+                    </PillButton>
+                </div>
+            </Modal>
 
             {/* Signature Modal */}
             <SignatureModal

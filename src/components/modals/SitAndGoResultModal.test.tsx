@@ -2,6 +2,12 @@ import React from "react";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SitAndGoResultModal } from "./SitAndGoResultModal";
 
+// The shared Modal pulls in colorConfig (import.meta.env), which Jest cannot
+// parse; render a plain passthrough since only the content is under test.
+jest.mock("../common/Modal", () => ({
+    Modal: ({ children }: { children: React.ReactNode }) => <div role="dialog">{children}</div>,
+}));
+
 // Mock the data hook — the modal's trigger logic depends entirely on
 // what getPlayerResult returns. By varying the mock per test we can
 // drive all four states (not-finished, paid, unpaid, winner) without

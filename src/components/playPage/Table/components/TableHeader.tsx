@@ -22,6 +22,7 @@ import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handRepla
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import styles from "./TableHeader.module.css";
+import { pillClass } from "../../../ui";
 
 export const formatBlindCountdown = (secondsRemaining: number): string => {
     // Negative = overtime (hand still running past the level end); show the
@@ -140,9 +141,9 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 </div>
 
                 {/* Left Section - Table button and Network selector */}
-                <div className="flex items-center space-x-2 sm:space-x-4 z-[9999] relative">
+                <div className="flex items-center space-x-2 sm:space-x-3 z-[9999] relative min-w-0 whitespace-nowrap">
                     <span
-                        className="text-white text-sm sm:text-[24px] cursor-pointer hover:text-[#ffffff] transition-colors duration-300 font-bold"
+                        className="text-white text-sm sm:text-[24px] cursor-pointer hover:text-[#ffffff] transition-colors duration-300 font-bold flex-shrink-0"
                         onClick={handleLobbyClick}
                     >
                         {/* Named tables (poker-vm#337) show their name; unnamed fall back to the truncated id. */}
@@ -152,25 +153,32 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     {/* Copy Table Link Button */}
                     <button
                         onClick={handleCopyTableLink}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border ${styles.copyTableButton}`}
+                        className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[40px] h-10 px-2.5 lg:px-3 rounded-full text-sm font-semibold transition-colors duration-200 border ${styles.copyTableButton}`}
                         title="Copy table link to clipboard"
+                        aria-label="Copy table link"
                     >
                         <FaCopy size={12} />
-                        <span className="hidden sm:inline">Copy Table Link</span>
-                        <span className="sm:hidden">Copy Link</span>
+                        <span className="hidden lg:inline">Copy Table Link</span>
                     </button>
                     {/* QR Code Button */}
                     <button
                         onClick={() => setShowQR(true)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border ${styles.copyTableButton}`}
+                        className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[40px] h-10 px-2.5 xl:px-3 rounded-full text-sm font-semibold transition-colors duration-200 border ${styles.copyTableButton}`}
                         title="Show QR code for table link"
+                        aria-label="Share via QR code"
                     >
                         <FaQrcode size={12} />
-                        <span className="hidden sm:inline">Share via QR Code</span>
+                        <span className="hidden xl:inline">Share via QR Code</span>
                     </button>
+                    {/* Compact player count for the middle widths where the full pill below does not fit */}
+                    {gameOptions && gameOptions.minPlayers && gameOptions.maxPlayers && (
+                        <div className={`hidden md:flex xl:hidden flex-shrink-0 items-center px-3 h-8 rounded-full text-sm font-semibold tabular-nums ${styles.gameFormatContainer} ${styles.secondaryText}`}>
+                            {tableActivePlayers.length}/{gameOptions.maxPlayers}
+                        </div>
+                    )}
                     {/* Game Format & Variant Display - Desktop Only */}
                     {gameOptions && (
-                        <div className={`hidden md:flex items-center ml-4 px-3 py-1 rounded-lg ${styles.gameFormatContainer}`}>
+                        <div className={`hidden xl:flex flex-shrink-0 items-center ml-2 px-3 py-1 rounded-full ${styles.gameFormatContainer}`}>
                             <span className={`text-sm font-semibold ${styles.brandText}`}>
                                 {gameFormat ? `${formatGameFormatDisplay(gameFormat)} • ` : ""}
                                 Texas Hold'em
@@ -185,8 +193,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 </div>
 
                 {/* Right Section - Wallet info */}
-                <div className="flex items-center z-10 min-w-0">
-                    <div className={`flex items-center rounded-lg py-1 px-1 sm:px-2 mr-1 sm:mr-3 min-w-0 ${styles.walletInfo}`}>
+                <div className="flex items-center z-10 min-w-0 whitespace-nowrap flex-shrink-0">
+                    <div className={`flex items-center rounded-full py-1 px-2 sm:px-3 mr-1 sm:mr-3 min-w-0 ${styles.walletInfo}`}>
                         {isBalanceLoading ? (
                             <span className="text-xs sm:text-sm">Loading...</span>
                         ) : (
@@ -218,7 +226,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                     <div>
                                         <p className="text-white font-medium text-[10px] sm:text-xs">
                                             ${balanceFormatted}
-                                            <span className="text-[8px] sm:text-[10px] ml-1 text-gray-400">USDC</span>
+                                            <span className="text-[8px] sm:text-[10px] ml-1 text-ink-muted">USDC</span>
                                         </p>
                                     </div>
                                     {/* Refresh button */}
@@ -309,14 +317,14 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 <div className="flex items-center z-10 mr-1 sm:mr-3">
                     {/* Settings gear icon */}
                     <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 mr-1 sm:mr-2 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
+                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md mr-1 sm:mr-2 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
                         onClick={onToggleSettings}
                         title="Toggle Settings"
                     >
                         <IoSettingsOutline size={14} />
                     </span>
                     <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
+                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded-md ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
                         onClick={onCloseSideBar}
                         title="Toggle Action Log"
                     >
@@ -356,7 +364,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     </div>
                     <button
                         onClick={() => setShowQR(false)}
-                        className="w-full py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold hover:bg-gray-600 transition-colors"
+                        className={pillClass("outline", "sm", "w-full")}
                     >
                         Close
                     </button>

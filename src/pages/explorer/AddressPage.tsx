@@ -7,17 +7,15 @@ import { microToUsdc } from "../../constants/currency";
 import { Coin } from "./types";
 import { formatTimestampRelative } from "../../utils/formatUtils";
 import { isEmpty, hasElements } from "../../utils/guards";
-import { AnimatedBackground } from "../../components/common/AnimatedBackground";
-import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import {
     ExplorerEmpty,
     ExplorerError,
     ExplorerLoading,
+    ExplorerPage,
     ExplorerPanel,
     ExplorerReloadButton,
     ExplorerSearchInput
 } from "../../components/explorer/ExplorerPanel";
-import styles from "./AddressPage.module.css";
 import { TransactionResponse } from "../../components/TransactionPanel";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { copyToClipboard } from "../../components/playPage/Table/utils";
@@ -165,30 +163,27 @@ export default function AddressPage() {
     const reload = urlAddress ? <ExplorerReloadButton onClick={() => handleSearch(urlAddress)} busy={loading} label="Reload address" /> : null;
 
     const tabClass = (tab: "balances" | "transactions") =>
-        `px-3 py-2 text-sm font-semibold border-b-2 transition-colors ${activeTab === tab ? styles.tabActive : styles.tabInactive}`;
+        `px-3 py-3.5 text-sm border-b-2 transition-colors ${
+            activeTab === tab ? "border-brand text-ink font-semibold" : "border-transparent text-ink-muted font-medium hover:text-ink"
+        }`;
 
     return (
-        <div className="min-h-screen p-4 sm:p-8 relative">
-            <AnimatedBackground />
-
-            <div className="max-w-5xl mx-auto relative z-10">
-                {/* Explorer Navigation Header */}
-                <ExplorerHeader title="Block Explorer" />
+        <ExplorerPage>
 
                 <ExplorerSearchInput value={address} onChange={setAddress} placeholder="Search by address (b52…)" onSubmit={submitSearch} busy={loading} />
 
                 {/* Address header */}
                 {urlAddress && (
-                    <div className={`backdrop-blur-md px-4 py-3 sm:px-5 sm:py-4 rounded-xl mb-4 ${styles.containerCard}`}>
-                        <p className="text-xs uppercase tracking-wide text-gray-400 mb-1">Address</p>
+                    <div className={"px-4 py-3 sm:px-5 sm:py-4 rounded-2xl mb-4 bg-surface-card border border-line"}>
+                        <p className="text-xs uppercase tracking-wide text-ink-muted mb-1">Address</p>
                         <div className="flex items-start gap-2">
-                            <p className="flex-1 min-w-0 font-mono text-sm sm:text-base text-white break-all">{urlAddress}</p>
+                            <p className="flex-1 min-w-0 font-mono text-sm sm:text-base text-ink break-all">{urlAddress}</p>
                             <button
                                 type="button"
                                 onClick={() => copyToClipboard(urlAddress, "Address copied")}
                                 title="Copy address"
                                 aria-label="Copy address"
-                                className={`shrink-0 p-1.5 rounded-md transition-colors ${styles.iconButton}`}
+                                className={"shrink-0 -m-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-soft hover:text-ink hover:bg-surface-hover transition-colors"}
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path
@@ -200,7 +195,7 @@ export default function AddressPage() {
                                 </svg>
                             </button>
                         </div>
-                        <Link to={`/players/${urlAddress}`} className={`inline-block mt-2 text-sm hover:underline ${styles.link}`}>
+                        <Link to={`/players/${urlAddress}`} className={"inline-flex items-center min-h-11 -mb-2 text-sm text-brand-light hover:underline"}>
                             Player profile →
                         </Link>
                     </div>
@@ -254,11 +249,11 @@ export default function AddressPage() {
                                 (isEmpty(balances) ? (
                                     <ExplorerEmpty>No balances for this address.</ExplorerEmpty>
                                 ) : (
-                                    <ul className="divide-y divide-white/5">
+                                    <ul className="divide-y divide-line">
                                         {balances.map((balance, index) => (
-                                            <li key={index} className="flex justify-between items-center py-2">
-                                                <span className="text-sm text-gray-300">{formatDenom(balance.denom)}</span>
-                                                <span className="font-mono text-sm sm:text-base text-white">{formatAmount(balance.amount, balance.denom)}</span>
+                                            <li key={index} className="flex justify-between items-center py-2.5">
+                                                <span className="text-sm text-ink-soft">{formatDenom(balance.denom)}</span>
+                                                <span className="font-mono text-sm sm:text-base text-ink">{formatAmount(balance.amount, balance.denom)}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -280,17 +275,17 @@ export default function AddressPage() {
                                                             state: { fromAddress: currentAddress }
                                                         })
                                                     }
-                                                    className={`px-3 py-2 rounded-lg cursor-pointer transition-colors ${styles.txItemCard}`}
+                                                    className={"px-3 py-2.5 rounded-xl cursor-pointer transition-colors bg-surface-raised border border-line hover:border-brand/50"}
                                                 >
                                                     <div className="flex justify-between items-center gap-3">
-                                                        <p className="flex-1 min-w-0 font-mono text-xs sm:text-sm text-white truncate">{tx.txhash}</p>
+                                                        <p className="flex-1 min-w-0 font-mono text-xs sm:text-sm text-ink truncate">{tx.txhash}</p>
                                                         <span
-                                                            className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${tx.code === 0 ? styles.txStatusSuccess : styles.txStatusFailed}`}
+                                                            className={`shrink-0 px-2 py-0.5 rounded-full text-xs font-semibold ${tx.code === 0 ? "bg-emerald-400/15 text-emerald-400" : "bg-red-400/15 text-red-400"}`}
                                                         >
                                                             {tx.code === 0 ? "Success" : "Failed"}
                                                         </span>
                                                     </div>
-                                                    <p className="mt-1 text-xs text-gray-400">
+                                                    <p className="mt-1 text-xs text-ink-muted">
                                                         Block {tx.height} · {formatTimestampRelative(tx.timestamp)}
                                                     </p>
                                                 </li>
@@ -301,7 +296,6 @@ export default function AddressPage() {
                         </div>
                     </ExplorerPanel>
                 )}
-            </div>
-        </div>
+        </ExplorerPage>
     );
 }

@@ -7,8 +7,6 @@ import useAllowance from "../../hooks/wallet/useAllowance";
 import useDecimal from "../../hooks/wallet/useDecimals";
 import useApprove from "../../hooks/wallet/useApprove";
 import spinner from "../../assets/spinning-circles.svg";
-import btcLogo from "../../assets/crypto/btc.svg";
-import usdcLogo from "../../assets/crypto/usdc.svg";
 import useWalletBalance from "../../hooks/wallet/useWalletBalance";
 import { toast } from "react-toastify";
 import { COSMOS_BRIDGE_ADDRESS } from "../../config/constants";
@@ -22,7 +20,10 @@ import { DEFAULT_DEPOSIT_CURRENCY } from "../../config/depositCurrencies";
 import PaymentDisplay from "./CryptoPayment/PaymentDisplay";
 import PaymentStatusMonitor from "./CryptoPayment/PaymentStatusMonitor";
 import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
-import styles from "./DepositCore.module.css";
+import { PillButton, SegmentedControl } from "../ui";
+import { ModalFooter } from "./ModalFooter";
+import { AmountPresets } from "./AmountPresets";
+import { amountInputClass, fieldLabelClass, inlinePillClass, insetBoxClass, noticeClass, optionCardClass } from "./walletFormClasses";
 import { DepositCountdown } from "../common";
 
 type DepositMethod = "crypto" | "usdc";
@@ -31,7 +32,24 @@ import type { PaymentData } from "../../types/payment";
 import type { DepositCoreProps } from "./types";
 import { usePaymentApi } from "../../context/PaymentApiContext";
 
-const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector = true }) => {
+const AMOUNT_PRESETS = [
+    { label: "$10", value: "10" },
+    { label: "$25", value: "25" },
+    { label: "$50", value: "50" },
+    { label: "$100", value: "100" }
+] as const;
+
+const METHOD_OPTIONS = [
+    { value: "crypto", label: "Pay with crypto" },
+    { value: "usdc", label: "Web3 wallet" }
+] as const;
+
+const METHOD_NOTES: Record<DepositMethod, string> = {
+    crypto: "BTC, ETH, USDT or USDC (fees apply)",
+    usdc: "USDC or USDT (ERC20)"
+};
+
+const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ onSuccess, onCancel, showMethodSelector = true }) => {
     const BRIDGE_ADDRESS = COSMOS_BRIDGE_ADDRESS;
 
     // Token selection for Web3 deposit (USDC or USDT)
@@ -240,40 +258,29 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
         setAmount("0");
     };
 
+    const isDepositing = isDepositPending || isPending;
+    const isApproving = isLoading || isApprovePending;
+
+
+    const numberInputClass = "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
+    const cryptoBelowMin = +amount > 0 && +amount < 10;
+    const isPaymentTerminal = ["finished", "failed", "expired", "refunded"].includes(paymentStatus);
+
+    const cancelButton = onCancel ? (
+        <PillButton variant="ghost" size="lg" onClick={onCancel} className="w-full">
+            Cancel
+        </PillButton>
+    ) : null;
+
     return (
-        <div className="space-y-4">
+        <div className="flex flex-col gap-4">
             {!paymentData ? (
                 <>
                     {/* Deposit Method Selector */}
                     {showMethodSelector && (
-                        <div className="mb-4">
-                            <label className="block text-sm font-medium text-gray-400 mb-3">Select a deposit method</label>
-                            <div className="grid grid-cols-2 gap-3">
-                                <button
-                                    onClick={() => setDepositMethod("crypto")}
-                                    className={`p-3 rounded-lg border transition-all ${
-                                        depositMethod === "crypto" ? `${styles.methodSelected}` : "border-gray-600 bg-gray-900 hover:border-gray-500"
-                                    }`}
-                                >
-                                    <div className="text-center">
-                                        <img src={btcLogo} alt="BTC" className="w-8 h-8 rounded-full mx-auto mb-1" />
-                                        <div className="text-sm font-semibold text-white">Pay with Crypto</div>
-                                        <div className="text-xs text-gray-400 mt-1">BTC, ETH, USDT or USDC (fees apply)</div>
-                                    </div>
-                                </button>
-                                <button
-                                    onClick={() => setDepositMethod("usdc")}
-                                    className={`p-3 rounded-lg border transition-all ${
-                                        depositMethod === "usdc" ? `${styles.methodSelected}` : "border-gray-600 bg-gray-900 hover:border-gray-500"
-                                    }`}
-                                >
-                                    <div className="text-center">
-                                        <img src={usdcLogo} alt="USDC" className="w-8 h-8 rounded-full mx-auto mb-1" />
-                                        <div className="text-sm font-semibold text-white">Deposit via Web3</div>
-                                        <div className="text-xs text-gray-400 mt-1">USDC or USDT (ERC20)</div>
-                                    </div>
-                                </button>
-                            </div>
+                        <div>
+                            <SegmentedControl options={METHOD_OPTIONS} value={depositMethod} onChange={setDepositMethod} ariaLabel="Deposit method" fullWidth />
+                            <p className="text-xs text-ink-muted mt-2">{METHOD_NOTES[depositMethod]}</p>
                         </div>
                     )}
 
@@ -283,190 +290,167 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
                             <CurrencySelector selectedCurrency={selectedCurrency} onCurrencySelect={setSelectedCurrency} />
 
                             {/* Amount Input */}
-                            <div className="my-4">
-                                <label htmlFor="amount" className="block text-sm font-medium text-gray-400 mb-2">
+                            <div>
+                                <label htmlFor="amount" className={fieldLabelClass}>
                                     Amount (USD)
                                 </label>
-                                <input
-                                    id="amount"
-                                    type="number"
-                                    value={amount}
-                                    onChange={e => setAmount(e.target.value)}
-                                    className="w-full p-3 border border-gray-600 bg-gray-900 text-white rounded-lg focus:border-blue-500 focus:outline-none"
-                                    placeholder="0.00"
-                                    min="10"
-                                />
-                                <p className="text-xs text-gray-400 mt-2">Minimum: $10 USD</p>
+                                <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-ink-muted pointer-events-none" aria-hidden="true">
+                                        $
+                                    </span>
+                                    <input
+                                        id="amount"
+                                        type="number"
+                                        inputMode="decimal"
+                                        value={amount}
+                                        onChange={e => setAmount(e.target.value)}
+                                        onFocus={e => e.target.select()}
+                                        className={`${amountInputClass} pl-9 pr-16 ${numberInputClass}`}
+                                        placeholder="0.00"
+                                        min="10"
+                                        autoFocus
+                                        aria-describedby="amount-help"
+                                    />
+                                    <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-ink-muted pointer-events-none">USD</span>
+                                </div>
+                                <div className="mt-3">
+                                    <AmountPresets presets={AMOUNT_PRESETS} current={amount} onPick={setAmount} />
+                                </div>
+                                <p id="amount-help" className={`text-xs mt-2 ${cryptoBelowMin ? "text-red-400" : "text-ink-muted"}`}>
+                                    Minimum: $10 USD
+                                </p>
                                 {+amount >= 10 && (
-                                    <div className="mt-3 p-2 rounded bg-gray-800/50 text-xs">
-                                        <div className="flex justify-between text-gray-300 font-medium">
-                                            <span>You receive</span>
-                                            <span className="text-green-400">${(+amount).toFixed(2)} USDC</span>
-                                        </div>
+                                    <div className={`mt-3 flex items-center justify-between gap-3 ${insetBoxClass}`}>
+                                        <span className="text-xs uppercase tracking-[0.08em] text-ink-muted">You receive</span>
+                                        <span className="font-semibold tabular-nums text-emerald-400">${(+amount).toFixed(2)} USDC</span>
                                     </div>
                                 )}
                             </div>
 
                             {/* Fee Notice */}
-                            <div className="mb-3 p-2 rounded-lg bg-yellow-900/20 border border-yellow-500/30 text-yellow-400 text-xs">
+                            <div className={noticeClass.warning}>
                                 This method uses a third-party payment processor. A processing fee applies and will be shown before you confirm.
                             </div>
 
                             {/* Info Box */}
-                            <div className="mb-4 p-3 rounded-lg bg-blue-900/20 border border-blue-500/50 text-blue-400 text-xs">
-                                <p className="font-semibold mb-1">How it works:</p>
-                                <ol className="list-decimal list-inside space-y-1 text-blue-400/80">
+                            <details className="group rounded-xl border border-line bg-surface-raised">
+                                <summary className="flex items-center justify-between min-h-11 px-4 cursor-pointer list-none text-sm font-medium text-ink-soft hover:text-ink [&::-webkit-details-marker]:hidden">
+                                    How crypto deposits work
+                                    <svg className="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 8l5 5 5-5" />
+                                    </svg>
+                                </summary>
+                                <ol className="list-decimal list-inside space-y-1 px-4 pb-3 text-xs leading-relaxed text-ink-soft">
                                     <li>Select your cryptocurrency</li>
                                     <li>Enter USD amount to deposit</li>
                                     <li>Send crypto to the payment address</li>
                                     <li>Funds auto-convert to USDC and appear in your wallet</li>
                                 </ol>
-                            </div>
+                            </details>
 
                             {/* Deposit Button */}
-                            <button
-                                onClick={handleCreateCryptoPayment}
-                                className={`w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-3 ${styles.primaryGradientButton} ${
-                                    +amount < 10 || creatingPayment ? "opacity-50 cursor-not-allowed" : ""
-                                }`}
-                                disabled={+amount < 10 || creatingPayment}
-                            >
-                                {creatingPayment ? "Processing..." : "Deposit Now"}
-                                {creatingPayment && <img src={spinner} className="w-5 h-5" alt="loading" />}
-                            </button>
+                            <ModalFooter>
+                                <PillButton size="lg" className="w-full" onClick={handleCreateCryptoPayment} disabled={+amount < 10 || creatingPayment}>
+                                    {creatingPayment ? "Processing..." : "Deposit Now"}
+                                    {creatingPayment && <img src={spinner} className="w-5 h-5" alt="loading" />}
+                                </PillButton>
+                                {cancelButton}
+                            </ModalFooter>
                         </>
                     ) : (
                         <>
                             {/* USDC Direct Deposit Flow */}
-                            {!isConnected && (
-                                <button
-                                    className={`w-full py-3 rounded-lg text-white font-semibold mb-4 transition-all hover:opacity-90 ${styles.primaryGradientButton}`}
-                                    onClick={open}
-                                >
-                                    Connect Your Web3 Wallet
-                                </button>
-                            )}
-
                             {address && (
-                                <>
-                                    <div className="mb-2 p-3 rounded-lg bg-gray-900 border border-gray-700">
-                                        <p className="text-gray-400 text-sm mb-1">Connected Address</p>
-                                        <p className="text-white font-mono text-sm break-all">{address}</p>
+                                <div className={`flex items-center gap-3 ${insetBoxClass}`}>
+                                    <div className="flex-1 min-w-0">
+                                        <p className="text-xs uppercase tracking-[0.08em] text-ink-muted mb-1">Connected address</p>
+                                        <p className="text-ink font-mono text-sm break-all">{address}</p>
                                     </div>
-                                    <button
-                                        onClick={disconnect}
-                                        className="w-full mb-4 py-2.5 px-3 rounded-lg text-white font-semibold bg-gradient-to-br from-red-500 to-red-600 hover:from-red-400 hover:to-red-500 transition duration-300 shadow-md"
-                                    >
-                                        Disconnect Wallet
-                                    </button>
-                                </>
+                                    <PillButton variant="outline" size="sm" onClick={disconnect} className="shrink-0 hover:!bg-red-500/10 hover:!text-red-400 hover:!border-red-500/40">
+                                        Disconnect
+                                    </PillButton>
+                                </div>
                             )}
 
                             {/* Token Selector */}
                             {isConnected && (
-                                <div className="mb-4">
-                                    <label className="block text-sm font-medium text-gray-400 mb-2">Select Token</label>
-                                    <div className="grid grid-cols-2 gap-2">
-                                        <button
-                                            onClick={() => setSelectedToken("USDC")}
-                                            className={`p-2 rounded-lg border transition-all text-center ${
-                                                selectedToken === "USDC"
-                                                    ? `${styles.tokenSelected} text-white`
-                                                    : "border-gray-600 bg-gray-900 text-gray-400 hover:border-gray-500"
-                                            }`}
-                                        >
-                                            <div className="text-sm font-semibold">USDC</div>
-                                            <div className="text-xs text-gray-400">Direct deposit</div>
+                                <div>
+                                    <span className={fieldLabelClass}>Token</span>
+                                    <div className="grid grid-cols-2 gap-3">
+                                        <button type="button" aria-pressed={selectedToken === "USDC"} onClick={() => setSelectedToken("USDC")} className={optionCardClass(selectedToken === "USDC")}>
+                                            <div className="text-sm font-semibold text-ink">USDC</div>
+                                            <div className="text-xs text-ink-muted">Direct deposit</div>
                                         </button>
-                                        <button
-                                            onClick={() => setSelectedToken("USDT")}
-                                            className={`p-2 rounded-lg border transition-all text-center ${
-                                                selectedToken === "USDT"
-                                                    ? `${styles.tokenSelected} text-white`
-                                                    : "border-gray-600 bg-gray-900 text-gray-400 hover:border-gray-500"
-                                            }`}
-                                        >
-                                            <div className="text-sm font-semibold">USDT</div>
-                                            <div className="text-xs text-gray-400">Auto-swaps to USDC</div>
+                                        <button type="button" aria-pressed={selectedToken === "USDT"} onClick={() => setSelectedToken("USDT")} className={optionCardClass(selectedToken === "USDT")}>
+                                            <div className="text-sm font-semibold text-ink">USDT</div>
+                                            <div className="text-xs text-ink-muted">Auto-swaps to USDC</div>
                                         </button>
                                     </div>
                                 </div>
                             )}
 
-                            {hasValue(balance) && (
-                                <div className="mb-4 p-3 rounded-lg bg-gray-900 border border-gray-700 flex items-center justify-between">
-                                    <span className="text-gray-400 text-sm">Web3 Wallet Balance</span>
-                                    <span className="text-white font-semibold">
-                                        ${formatUSDCToSimpleDollars(balance)} {selectedToken}
-                                    </span>
-                                </div>
-                            )}
+                            {selectedToken === "USDT" && <div className={noticeClass.info}>USDT will be automatically swapped to USDC via Uniswap on deposit.</div>}
 
-                            {selectedToken === "USDT" && (
-                                <div className="mb-4 p-2 rounded-lg bg-blue-900/20 border border-blue-500/30 text-blue-400 text-xs">
-                                    USDT will be automatically swapped to USDC via Uniswap on deposit.
+                            <div>
+                                <div className="flex items-baseline justify-between gap-3 mb-2">
+                                    <label htmlFor="usdc-amount" className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">
+                                        Amount to deposit ({selectedToken})
+                                    </label>
+                                    {hasValue(balance) && (
+                                        <span className="text-xs text-ink-muted tabular-nums">
+                                            Available ${formatUSDCToSimpleDollars(balance)} {selectedToken}
+                                        </span>
+                                    )}
                                 </div>
-                            )}
-
-                            <div className="mb-4">
-                                <label htmlFor="usdc-amount" className="block text-sm font-medium text-gray-400 mb-2">
-                                    Amount to Deposit ({selectedToken})
-                                </label>
                                 <div className="relative">
+                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-ink-muted pointer-events-none" aria-hidden="true">
+                                        $
+                                    </span>
                                     <input
                                         id="usdc-amount"
                                         type="number"
+                                        inputMode="decimal"
                                         value={amount}
                                         onChange={e => setAmount(e.target.value)}
-                                        className="w-full p-3 pr-16 border border-gray-600 bg-gray-900 text-white rounded-lg focus:border-blue-500 focus:outline-none"
+                                        onFocus={e => e.target.select()}
+                                        className={`${amountInputClass} pl-9 pr-28 ${numberInputClass}`}
                                         placeholder="0.00"
+                                        aria-describedby="usdc-amount-help"
                                     />
-                                    <button
-                                        onClick={() => {
-                                            if (hasValue(balance) && decimals) {
-                                                setAmount(formatUSDCToSimpleDollars(balance));
-                                            }
-                                        }}
-                                        className={`absolute right-3 top-1/2 -translate-y-1/2 text-sm font-semibold transition-colors hover:opacity-80 ${styles.maxButton}`}
-                                    >
-                                        MAX
-                                    </button>
+                                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                                        <span className="text-sm font-medium text-ink-muted pointer-events-none">{selectedToken}</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                if (hasValue(balance) && decimals) {
+                                                    setAmount(formatUSDCToSimpleDollars(balance));
+                                                }
+                                            }}
+                                            className={inlinePillClass}
+                                        >
+                                            MAX
+                                        </button>
+                                    </div>
                                 </div>
+                                <div className="mt-3">
+                                    <AmountPresets presets={AMOUNT_PRESETS} current={amount} onPick={setAmount} />
+                                </div>
+                                {isConnected && +amount === 0 && (
+                                    <p id="usdc-amount-help" className="text-xs mt-2 text-ink-muted">
+                                        Enter an amount to continue.
+                                    </p>
+                                )}
                             </div>
 
                             {/* Cosmos Address Display */}
-                            <div className="mb-4 p-3 rounded-lg bg-gray-900 border border-gray-700">
-                                <div className="text-sm text-gray-400">
-                                    {cosmosWallet.address ? "b52USDC will be minted to your Block52 address:" : "⚠️ No Block52 wallet found"}
+                            <div className={cosmosWallet.address ? insetBoxClass : noticeClass.warning}>
+                                <div className={cosmosWallet.address ? "text-xs uppercase tracking-[0.08em] text-ink-muted mb-1" : "font-semibold mb-1"}>
+                                    {cosmosWallet.address ? "b52USDC will be minted to your Block52 address" : "No Block52 wallet found"}
                                 </div>
-                                <div className="text-xs font-mono text-gray-300 truncate">
+                                <div className={`text-xs font-mono truncate ${cosmosWallet.address ? "text-ink-soft" : ""}`}>
                                     {cosmosWallet.address || "Visit /wallet to generate a Block52 wallet first"}
                                 </div>
                             </div>
-
-                            {allowed ? (
-                                <button
-                                    onClick={handleDeposit}
-                                    className={`w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-3 ${styles.successGradientButton} ${
-                                        +amount === 0 ? "opacity-50 cursor-not-allowed" : ""
-                                    }`}
-                                    disabled={+amount === 0 || isDepositPending || isPending || isCountingDown}
-                                >
-                                    {isDepositPending || isPending ? "Depositing..." : "Deposit"}
-                                    {(isDepositPending || isPending) && <img src={spinner} className="w-5 h-5" alt="loading" />}
-                                </button>
-                            ) : (
-                                <button
-                                    onClick={handleApprove}
-                                    className={`w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 flex items-center justify-center gap-3 ${styles.primaryGradientButton} ${
-                                        +amount === 0 ? "opacity-50 cursor-not-allowed" : ""
-                                    }`}
-                                    disabled={+amount === 0 || isApprovePending || isLoading}
-                                >
-                                    {isLoading || isApprovePending ? "Approving..." : "Approve Deposit"}
-                                    {(isLoading || isApprovePending) && <img src={spinner} className="w-5 h-5" alt="loading" />}
-                                </button>
-                            )}
 
                             {isCountingDown && (
                                 <DepositCountdown
@@ -476,6 +460,30 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
                                     }}
                                 />
                             )}
+
+                            <ModalFooter>
+                                {!isConnected ? (
+                                    <PillButton size="lg" className="w-full" onClick={open}>
+                                        Connect Your Web3 Wallet
+                                    </PillButton>
+                                ) : allowed ? (
+                                    <PillButton
+                                        size="lg"
+                                        className="w-full"
+                                        onClick={handleDeposit}
+                                        disabled={+amount === 0 || isDepositPending || isPending || isCountingDown}
+                                    >
+                                        {isDepositing ? "Depositing..." : "Deposit"}
+                                        {isDepositing && <img src={spinner} className="w-5 h-5" alt="loading" />}
+                                    </PillButton>
+                                ) : (
+                                    <PillButton size="lg" className="w-full" onClick={handleApprove} disabled={+amount === 0 || isApprovePending || isLoading}>
+                                        {isApproving ? "Approving..." : "Approve Deposit"}
+                                        {isApproving && <img src={spinner} className="w-5 h-5" alt="loading" />}
+                                    </PillButton>
+                                )}
+                                {cancelButton}
+                            </ModalFooter>
                         </>
                     )}
                 </>
@@ -490,19 +498,17 @@ const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, showMethodSelector
                         priceAmount={paymentData.price_amount}
                     />
 
-                    <div className="my-4">
-                        <PaymentStatusMonitor paymentId={paymentData.payment_id} onPaymentComplete={handlePaymentComplete} onStatusChange={setPaymentStatus} />
-                    </div>
+                    <PaymentStatusMonitor paymentId={paymentData.payment_id} onPaymentComplete={handlePaymentComplete} onStatusChange={setPaymentStatus} />
 
-                    {/* New Payment Button - only show when payment is terminal */}
-                    {["finished", "failed", "expired", "refunded"].includes(paymentStatus) && (
-                        <button
-                            onClick={handleNewPayment}
-                            className={`w-full py-3 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${styles.primaryGradientButton}`}
-                        >
-                            Create New Payment
-                        </button>
-                    )}
+                    <ModalFooter>
+                        {/* New Payment Button - only show when payment is terminal */}
+                        {isPaymentTerminal && (
+                            <PillButton size="lg" className="w-full" onClick={handleNewPayment}>
+                                Create New Payment
+                            </PillButton>
+                        )}
+                        {cancelButton}
+                    </ModalFooter>
                 </>
             )}
         </div>

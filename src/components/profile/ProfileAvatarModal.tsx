@@ -153,7 +153,6 @@ export const ProfileAvatarModal: React.FC = () => {
             isOpen={isDrawerOpen}
             onClose={closeDrawer}
             title="Select Profile Avatar"
-            titleIcon="🖼"
             widthClass="w-[640px]"
             className={styles.modalSurface}
             patternId="avatar-modal-pattern"
@@ -291,7 +290,7 @@ export const ProfileAvatarModal: React.FC = () => {
                         </button>
                     )}
                     <button
-                        className={isRegistering ? styles.footerSecondaryButton : justRegistered ? styles.footerSuccessButton : styles.footerDangerButton}
+                        className={isRegistering ? styles.footerCloseButton : justRegistered ? styles.footerSuccessButton : styles.footerCloseButton}
                         onClick={closeDrawer}
                         disabled={isRegistering}
                     >

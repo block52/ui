@@ -3,18 +3,10 @@ import { useNavigate } from "react-router-dom";
 
 import { useNetwork } from "../context/NetworkContext";
 import { formatTimestampRelative } from "../utils/formatUtils";
-import { microToUsdc } from "../constants/currency";
-import styles from "./TransactionPanel.module.css";
-import {
-    formatTransactionLabel,
-    formatTransferDirection,
-    getTransferDirectionClass,
-    formatShortHash,
-    formatGameId,
-    getDisplayableActionAmount,
-    sumUsdcTransferEvents,
-    type TransferEvent
-} from "../utils/transactionUtils";
+import { formatTransactionLabel, formatShortHash, getDisplayableActionAmount, sumUsdcTransferEvents, type TransferEvent } from "../utils/transactionUtils";
+import { transactionFlow, formatSignedUsdc, joinDetail, TransactionFlow } from "../utils/transactionRow";
+import { tableDisplayName } from "../utils/lobbyTables";
+import { Card } from "./ui";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { isEmpty, hasElements } from "../utils/guards";
 
@@ -37,7 +29,36 @@ interface Transaction {
 interface TransactionPanelProps {
     cosmosWalletAddress: string | null;
     usdcBalance: string;
+    /** Opens the deposit flow; powers the empty state's "Make your first deposit". */
+    onDeposit?: () => void;
 }
+
+const ghostIconClass =
+    "w-11 h-11 lg:w-9 lg:h-9 grid place-items-center rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
+
+/** Round icon tone: green in, red failed, neutral otherwise. */
+const iconToneClass = (flow: TransactionFlow, failed: boolean): string => {
+    if (failed) return "bg-red-400/15 text-red-400";
+    if (flow === "in") return "bg-emerald-400/15 text-emerald-400";
+    return "bg-surface-hover text-ink-body";
+};
+
+/** Arrow into the wallet (down-left) or out of it (up-right). */
+const FlowIcon: React.FC<{ incoming: boolean }> = ({ incoming }) => (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {incoming ? (
+            <>
+                <path d="M17 7 7 17" />
+                <path d="M17 17H7V7" />
+            </>
+        ) : (
+            <>
+                <path d="M7 17 17 7" />
+                <path d="M7 7h10v10" />
+            </>
+        )}
+    </svg>
+);
 
 /** A coin amount as the REST gateway serialises it — the value is a string, not a number. */
 interface Coin {
@@ -97,7 +118,7 @@ type TxWithBody = CosmosTxResponse & { tx?: CosmosTx };
  * TransactionPanel - Shows recent transactions for the connected wallet
  * Displays the last 6 transactions
  */
-const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress, usdcBalance }) => {
+const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress, usdcBalance, onDeposit }) => {
     const navigate = useNavigate();
     const { currentNetwork } = useNetwork();
     const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -226,110 +247,117 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
     }
 
     return (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
+        <Card>
             {/* Header */}
-            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex items-center justify-between">
-                <h2 className="text-xl font-bold text-white">Recent Transactions</h2>
+            <div className="flex items-center justify-between gap-2 pl-5 pr-3 lg:pr-4 pt-3 lg:pt-4 pb-1 lg:pb-2">
+                <h2 className="m-0 text-[17px] lg:text-lg font-semibold text-ink">Recent Transactions</h2>
                 <button
+                    type="button"
                     onClick={fetchTransactions}
                     disabled={loading}
-                    className={`p-2 rounded-lg text-white transition-all hover:opacity-90 disabled:opacity-50 ${styles.refreshButton}`}
+                    className={ghostIconClass}
                     title="Refresh transactions"
+                    aria-label="Refresh transactions"
                 >
-                    <svg className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth="2"
-                            d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-                        />
+                    <svg
+                        className={`w-[18px] h-[18px] ${loading ? "animate-spin" : ""}`}
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M21 12a9 9 0 1 1-3-6.7L21 8" />
+                        <path d="M21 3v5h-5" />
                     </svg>
                 </button>
             </div>
 
             {/* Content */}
-            <div className="p-4">
-                {loading && isEmpty(transactions) ? (
-                    <div className="flex items-center justify-center py-8">
-                        <svg className="animate-spin h-6 w-6 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path
-                                className="opacity-75"
-                                fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                            ></path>
-                        </svg>
-                    </div>
-                ) : error ? (
-                    <div className="text-center py-6">
-                        <p className="text-gray-400 text-sm">{error}</p>
-                        <button onClick={fetchTransactions} className={`mt-2 text-sm transition-colors hover:opacity-80 ${styles.primaryText}`}>
-                            Try again
-                        </button>
-                    </div>
-                ) : isEmpty(transactions) ? (
-                    <div className="text-center py-6">
-                        <svg className="w-10 h-10 mx-auto text-gray-600 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="1.5"
-                                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                            />
-                        </svg>
-                        <p className="text-gray-400 text-sm">No transactions yet</p>
-                    </div>
-                ) : (
-                    <div className="space-y-2">
-                        {transactions.map(tx => (
-                            <div
-                                key={tx.txhash}
-                                onClick={() => navigate(`/explorer/tx/${tx.txhash}`)}
-                                className="p-3 rounded-lg bg-gray-900 border border-gray-700 cursor-pointer hover:bg-gray-700/50 transition-colors"
-                            >
-                                <div className="flex items-center justify-between mb-1">
-                                    <span className="text-white text-sm font-medium">{formatTransactionLabel(tx.action, tx.messageType)}</span>
-                                    <span className={`text-xs px-2 py-0.5 rounded-full ${tx.code === 0 ? styles.statusSuccess : styles.statusFailed}`}>
-                                        {tx.code === 0 ? "Success" : "Failed"}
-                                    </span>
-                                </div>
-                                {/* Action/Transfer Details */}
-                                {(tx.amount || tx.transferAmount) && (
-                                    <div className="flex items-center gap-2 mb-1">
-                                        {tx.transferDirection && (
-                                            <span className={`text-xs ${getTransferDirectionClass(tx.transferDirection)}`}>
-                                                {formatTransferDirection(tx.transferDirection)}
-                                            </span>
-                                        )}
-                                        <span className={`text-sm font-medium ${styles.primaryText}`}>
-                                            {microToUsdc(tx.amount || tx.transferAmount || "0")} USDC
-                                        </span>
-                                        {tx.gameId && <span className="text-xs text-gray-500">Game: {formatGameId(tx.gameId)}</span>}
-                                    </div>
-                                )}
-                                <div className="flex items-center justify-between">
-                                    <span className="text-gray-400 text-xs font-mono">{formatShortHash(tx.txhash)}</span>
-                                    <span className="text-gray-500 text-xs">{formatTimestampRelative(tx.timestamp)}</span>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                )}
-
-                {/* View All Link */}
-                {hasElements(transactions) && cosmosWalletAddress && (
-                    <button
-                        onClick={() => navigate(`/explorer/address/${cosmosWalletAddress}`)}
-                        className={`w-full mt-4 text-center text-sm transition-all hover:opacity-80 flex items-center justify-center gap-2 ${styles.primaryText}`}
-                    >
-                        <span>View All Transactions</span>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
-                        </svg>
+            {loading && isEmpty(transactions) ? (
+                <div aria-busy="true" aria-label="Loading transactions">
+                    {[0, 1, 2].map(i => (
+                        <div key={i} className="flex items-center gap-3 px-5 py-3 border-t border-line animate-pulse">
+                            <span className="w-[34px] h-[34px] rounded-full bg-surface-hover flex-none" />
+                            <span className="flex-1 flex flex-col gap-2">
+                                <span className="h-3.5 w-24 rounded bg-surface-hover" />
+                                <span className="h-3 w-36 rounded bg-surface-raised" />
+                            </span>
+                            <span className="h-3.5 w-14 rounded bg-surface-raised" />
+                        </div>
+                    ))}
+                </div>
+            ) : error ? (
+                <div className="px-6 py-6 text-center border-t border-line">
+                    <p className="m-0 text-red-400 text-sm">{error}</p>
+                    <button type="button" onClick={fetchTransactions} className="mt-2 min-h-11 px-3 text-sm font-medium text-brand-light hover:underline">
+                        Try again
                     </button>
-                )}
-            </div>
-        </div>
+                </div>
+            ) : isEmpty(transactions) ? (
+                <div className="px-6 py-6 flex flex-col items-center gap-2 text-center border-t border-line">
+                    <p className="m-0 text-ink-body font-medium">No transactions yet</p>
+                    <p className="m-0 text-ink-muted text-sm leading-snug max-w-[260px]">Deposits, buy-ins and payouts will show up here.</p>
+                    {onDeposit && (
+                        <button type="button" onClick={onDeposit} className="mt-1 min-h-11 px-3 text-sm font-medium text-brand-light hover:underline">
+                            Make your first deposit
+                        </button>
+                    )}
+                </div>
+            ) : (
+                <ul className="m-0 p-0 list-none">
+                    {transactions.map(tx => {
+                        const failed = tx.code !== 0;
+                        const flow = transactionFlow(tx);
+                        const label = formatTransactionLabel(tx.action, tx.messageType);
+                        const amountMicro = tx.amount || tx.transferAmount;
+                        const detail = joinDetail(
+                            tx.gameId ? tableDisplayName(tx.gameId) : formatShortHash(tx.txhash, 6, 4),
+                            formatTimestampRelative(tx.timestamp)
+                        );
+                        return (
+                            <li key={tx.txhash} className="border-t border-line">
+                                <button
+                                    type="button"
+                                    onClick={() => navigate(`/explorer/tx/${tx.txhash}`)}
+                                    className="w-full flex items-center gap-3 px-5 py-3 text-left hover:bg-surface-raised transition-colors"
+                                >
+                                    <span className={`flex-none w-8 h-8 lg:w-[34px] lg:h-[34px] rounded-full grid place-items-center ${iconToneClass(flow, failed)}`}>
+                                        <FlowIcon incoming={flow === "in"} />
+                                    </span>
+                                    <span className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                        <span className={`font-medium truncate ${failed ? "text-ink-muted" : "text-ink"}`}>{failed ? `${label} failed` : label}</span>
+                                        <span className="text-xs text-ink-muted truncate">{detail}</span>
+                                    </span>
+                                    {amountMicro && (
+                                        <span
+                                            className={`flex-none font-semibold tabular-nums ${
+                                                failed ? "text-ink-muted line-through" : flow === "in" ? "text-emerald-400" : "text-ink-body"
+                                            }`}
+                                        >
+                                            {formatSignedUsdc(amountMicro, failed ? "neutral" : flow)}
+                                        </span>
+                                    )}
+                                </button>
+                            </li>
+                        );
+                    })}
+                </ul>
+            )}
+
+            {/* View All Link */}
+            {hasElements(transactions) && (
+                <button
+                    type="button"
+                    onClick={() => navigate(`/explorer/address/${cosmosWalletAddress}`)}
+                    className="w-full block px-5 py-3.5 border-t border-line text-left text-sm font-medium text-brand-light hover:bg-surface-raised transition-colors"
+                >
+                    View all transactions
+                </button>
+            )}
+        </Card>
     );
 };
 

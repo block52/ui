@@ -3,27 +3,52 @@ import { useNavigate } from "react-router-dom";
 import { generateWallet as generateWalletSDK, createWalletFromMnemonic as createWalletSDK, getAddressFromMnemonic } from "@block52/poker-vm-sdk";
 import { setCosmosMnemonic, setCosmosAddress, getCosmosMnemonic, getCosmosAddress, clearCosmosData, isValidSeedPhrase } from "../utils/cosmos";
 import { clearCosmosClient } from "../utils/cosmos/client";
-import { AnimatedBackground } from "./common/AnimatedBackground";
+import { Card, PillButton } from "./ui";
+import { fieldLabelClass, insetBoxClass, noticeClass } from "./modals/walletFormClasses";
+import { CopyIcon, WarningIcon } from "./modals/walletIcons";
 import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
-import styles from "./CosmosWalletPage.module.css";
+import { toast } from "react-toastify";
+import { ConfirmDialog } from "./modals/ConfirmDialog";
 
-// Seed phrase word grid component
+// Seed phrase word grid: numbered chips on surface-raised
 const SeedPhraseGrid = ({ mnemonic, hidden = false }: { mnemonic: string; hidden?: boolean }) => {
     const words = mnemonic.split(" ");
     return (
-        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+        <ol className="m-0 p-0 list-none grid grid-cols-2 sm:grid-cols-3 gap-2">
             {words.map((word, index) => (
-                <div
-                    key={index}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg font-mono text-sm ${styles.seedWordCard}`}
-                >
-                    <span className={`text-xs ${styles.seedWordIndex}`}>{index + 1}.</span>
-                    <span className="text-white">{hidden ? "••••" : word}</span>
-                </div>
+                <li key={index} className="flex items-center gap-2 px-3 h-11 rounded-xl bg-surface-raised border border-line font-mono text-sm">
+                    <span className="w-6 text-xs text-ink-muted tabular-nums">{index + 1}</span>
+                    <span className="text-ink truncate">{hidden ? "••••" : word}</span>
+                </li>
             ))}
-        </div>
+        </ol>
     );
 };
+
+/** Read-only value with a copy icon button. */
+const CopyField = ({ label, value, onCopy }: { label: string; value: string; onCopy: () => void }) => (
+    <div>
+        <span className={fieldLabelClass}>{label}</span>
+        <div className={`flex items-center gap-2 pr-1.5 ${insetBoxClass}`}>
+            <p className="flex-1 min-w-0 m-0 font-mono text-sm text-ink break-all">{value}</p>
+            <button
+                type="button"
+                onClick={onCopy}
+                aria-label={`Copy ${label.toLowerCase()}`}
+                className="shrink-0 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+            >
+                <CopyIcon />
+            </button>
+        </div>
+    </div>
+);
+
+const SectionHeading = ({ title, text }: { title: string; text?: string }) => (
+    <div className="mb-4">
+        <h2 className="m-0 text-[17px] font-semibold text-ink">{title}</h2>
+        {text && <p className="m-0 mt-1 text-sm text-ink-muted">{text}</p>}
+    </div>
+);
 
 const CosmosWalletPage = () => {
     const navigate = useNavigate();
@@ -31,6 +56,7 @@ const CosmosWalletPage = () => {
     const [mnemonic, setMnemonic] = useState<string>("");
     const [address, setAddress] = useState<string>("");
     const [isGenerating, setIsGenerating] = useState(false);
+    const [showClearConfirm, setShowClearConfirm] = useState(false);
     const [importMnemonic, setImportMnemonic] = useState("");
     const [error, setError] = useState<string>("");
     const [showMnemonic, setShowMnemonic] = useState(false);
@@ -136,282 +162,189 @@ const CosmosWalletPage = () => {
         }
     };
 
-    // Clear wallet
-    const handleClearWallet = () => {
-        if (window.confirm("Are you sure you want to clear your wallet? Make sure you have saved your seed phrase!")) {
-            clearCosmosData();
-            // Drop both cached clients so derived keys don't outlive the wallet.
-            clearCosmosClient();
-            setMnemonic("");
-            setAddress("");
-            setShowMnemonic(false);
-            // Update state to show generate/import UI
-            setExistingMnemonic(null);
-            setExistingAddress(null);
-        }
+    // Clear wallet: asks first (ConfirmDialog), clears once confirmed
+    const handleClearWallet = () => setShowClearConfirm(true);
+
+    const confirmClearWallet = () => {
+        setShowClearConfirm(false);
+        clearCosmosData();
+        // Drop both cached clients so derived keys don't outlive the wallet.
+        clearCosmosClient();
+        setMnemonic("");
+        setAddress("");
+        setShowMnemonic(false);
+        // Update state to show generate/import UI
+        setExistingMnemonic(null);
+        setExistingAddress(null);
     };
 
     // Copy to clipboard
     const copyToClipboard = (text: string, label: string) => {
         navigator.clipboard.writeText(text);
-        alert(`${label} copied to clipboard!`);
+        toast.success(`${label} copied to clipboard`);
     };
 
     // Show loading state while checking localStorage
     if (isLoading) {
         return (
-            <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden p-8 pt-24 pb-24">
-                <AnimatedBackground />
-                <div className="relative z-10 w-full max-w-xl mx-auto text-center">
-                    <div className="animate-pulse">
-                        <div className={`w-12 h-12 mx-auto mb-4 rounded-full ${styles.loadingDot}`}></div>
-                        <p className="text-white">Loading wallet...</p>
-                    </div>
-                </div>
+            <div className="min-h-screen bg-surface-page grid place-items-center p-8">
+                <p role="status" className="text-ink-muted animate-pulse">
+                    Loading wallet...
+                </p>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden p-8 pt-24 pb-24">
-            {/* Animated background (same as other pages) */}
-            <AnimatedBackground />
+        <div className="min-h-screen bg-surface-page text-ink-body px-4 sm:px-8 py-8 pb-24">
+            <div className="w-full max-w-xl mx-auto flex flex-col gap-4">
+                <div className="mb-2">
+                    <h1 className="m-0 text-[28px] font-semibold text-ink">Block52 Wallet Manager</h1>
+                    <p className="m-0 mt-1 text-sm text-ink-muted">Generate or import a wallet to receive deposits and play poker</p>
+                </div>
 
-            {/* Content */}
-            <div className="relative z-10 w-full max-w-xl mx-auto mb-6">
-                <h1 className="text-3xl font-bold text-white mb-2 text-center">Block52 Wallet Manager</h1>
-                <p className={`text-center mb-6 text-sm ${styles.textSecondary}`}>
-                    Generate or import a wallet to receive deposits and play poker
-                </p>
-            </div>
-
-            <div className="relative z-10 w-full max-w-xl mx-auto">
                 {/* Existing Wallet Display */}
                 {existingAddress && (
-                    <div
-                        className={`backdrop-blur-sm rounded-xl p-5 mb-4 border shadow-lg ${styles.mainCard}`}
-                    >
-                        <h2 className="text-xl font-bold text-white mb-4">Current Wallet</h2>
+                    <Card className="p-5 sm:p-6">
+                        <SectionHeading title="Current Wallet" />
                         <div className="space-y-4">
-                            <div>
-                                <label className={`text-sm ${styles.textSecondary}`}>Address</label>
-                                <div className="flex gap-2 items-center mt-1">
-                                    <input
-                                        type="text"
-                                        value={existingAddress}
-                                        readOnly
-                                        className={`flex-1 text-white px-4 py-2 rounded-lg border font-mono text-sm ${styles.inputField}`}
-                                    />
-                                    <button
-                                        onClick={() => copyToClipboard(existingAddress, "Address")}
-                                        className={`text-white px-4 py-2 rounded-lg transition-all hover:opacity-80 ${styles.primaryButton}`}
-                                    >
-                                        Copy
-                                    </button>
-                                </div>
-                            </div>
+                            <CopyField label="Address" value={existingAddress} onCopy={() => copyToClipboard(existingAddress, "Address")} />
 
                             {existingMnemonic && (
                                 <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <label className={`text-sm ${styles.textSecondary}`}>Seed Phrase</label>
+                                    <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Seed phrase</span>
                                         <div className="flex gap-2">
-                                            <button
-                                                onClick={() => setShowMnemonic(!showMnemonic)}
-                                                className={`text-white px-3 py-1 rounded-lg transition-all hover:opacity-80 text-sm ${styles.secondaryButton}`}
-                                            >
+                                            <PillButton variant="outline" size="sm" onClick={() => setShowMnemonic(!showMnemonic)}>
                                                 {showMnemonic ? "Hide" : "Show"}
-                                            </button>
-                                            <button
-                                                onClick={() => copyToClipboard(existingMnemonic, "Seed Phrase")}
-                                                className={`text-white px-3 py-1 rounded-lg transition-all hover:opacity-80 text-sm ${styles.primaryButton}`}
-                                            >
+                                            </PillButton>
+                                            <PillButton variant="outline" size="sm" onClick={() => copyToClipboard(existingMnemonic, "Seed Phrase")}>
                                                 Copy
-                                            </button>
+                                            </PillButton>
                                         </div>
                                     </div>
                                     <SeedPhraseGrid mnemonic={existingMnemonic} hidden={!showMnemonic} />
                                 </div>
                             )}
 
-                            <div className="flex flex-col space-y-3 mt-4">
-                                <button
-                                    onClick={() => navigate("/")}
-                                    className={`w-full text-white px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-80 ${styles.primaryButton}`}
-                                >
+                            <div className="flex flex-col gap-2 pt-2">
+                                <PillButton size="lg" className="w-full" onClick={() => navigate("/")}>
                                     Return to Dashboard
-                                </button>
-                                <button
+                                </PillButton>
+                                <PillButton
+                                    variant="ghost"
+                                    size="lg"
+                                    className="w-full hover:!text-red-400"
                                     onClick={handleClearWallet}
-                                    className={`w-full text-white px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-80 ${styles.dangerButton}`}
                                 >
                                     Clear Wallet
-                                </button>
+                                </PillButton>
                             </div>
                         </div>
-                    </div>
+                    </Card>
                 )}
 
                 {/* Generate New Wallet */}
                 {!existingAddress && (
-                    <div
-                        className={`backdrop-blur-sm rounded-xl p-5 mb-4 border shadow-lg ${styles.mainCard}`}
-                    >
-                        <h2 className="text-xl font-bold text-white mb-3">Generate New Wallet</h2>
-                        <p className={`mb-4 text-sm ${styles.textSecondary}`}>
-                            Create a new Block52 wallet with a 24-word seed phrase. This will be saved in your browser.
-                        </p>
+                    <Card className="p-5 sm:p-6">
+                        <SectionHeading title="Generate New Wallet" text="Create a new Block52 wallet with a 24-word seed phrase. This will be saved in your browser." />
 
-                        <button
-                            onClick={generateWalletHandler}
-                            disabled={isGenerating}
-                            className={`w-full text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-80 ${styles.primaryButton}`}
-                        >
+                        <PillButton size="lg" className="w-full" onClick={generateWalletHandler} disabled={isGenerating}>
                             {isGenerating ? "Generating..." : "Generate New Wallet"}
-                        </button>
+                        </PillButton>
 
                         {mnemonic && (
                             <div className="mt-6 space-y-4">
-                                <div
-                                    className={`rounded-xl p-4 ${styles.warningCard}`}
-                                >
-                                    <p className={`font-semibold ${styles.warningText}`}>⚠️ Important!</p>
-                                    <p className={`text-sm mt-2 ${styles.warningTextMuted}`}>
-                                        Write down your seed phrase and store it safely. This is the only way to recover your wallet.
-                                    </p>
+                                <div role="alert" className="flex items-start gap-3 p-4 rounded-xl border border-amber-500/30 bg-amber-500/10 text-amber-300">
+                                    <WarningIcon className="w-5 h-5 shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="m-0 font-semibold">Important</p>
+                                        <p className="m-0 mt-1 text-sm text-amber-300/80">
+                                            Write down your seed phrase and store it safely. This is the only way to recover your wallet.
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div>
-                                    <div className="flex justify-between items-center mb-2">
-                                        <label className={`text-sm ${styles.textSecondary}`}>Your Seed Phrase</label>
-                                        <button
-                                            onClick={() => copyToClipboard(mnemonic, "Seed Phrase")}
-                                            className={`text-white px-3 py-1 rounded-lg transition-all hover:opacity-80 text-sm ${styles.primaryButton}`}
-                                        >
+                                    <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
+                                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Your seed phrase</span>
+                                        <PillButton variant="outline" size="sm" onClick={() => copyToClipboard(mnemonic, "Seed Phrase")}>
                                             Copy
-                                        </button>
+                                        </PillButton>
                                     </div>
                                     <SeedPhraseGrid mnemonic={mnemonic} />
                                 </div>
 
-                                <div>
-                                    <label className={`text-sm ${styles.textSecondary}`}>Your Address</label>
-                                    <input
-                                        type="text"
-                                        value={address}
-                                        readOnly
-                                        className={`w-full text-white px-4 py-2 rounded-lg border font-mono text-sm mt-1 ${styles.inputField}`}
-                                    />
-                                    <button
-                                        onClick={() => copyToClipboard(address, "Address")}
-                                        className={`mt-2 text-white px-4 py-2 rounded-lg transition-all hover:opacity-80 ${styles.primaryButton}`}
-                                    >
-                                        Copy Address
-                                    </button>
-                                </div>
+                                <CopyField label="Your address" value={address} onCopy={() => copyToClipboard(address, "Address")} />
                             </div>
                         )}
-                    </div>
+                    </Card>
                 )}
 
                 {/* Import Existing Wallet */}
                 {!existingAddress && (
-                    <div
-                        className={`backdrop-blur-sm rounded-xl p-5 border shadow-lg ${styles.mainCard}`}
-                    >
-                        <h2 className="text-xl font-bold text-white mb-3">Import Existing Wallet</h2>
-                        <p className={`mb-4 text-sm ${styles.textSecondary}`}>
-                            Import an existing wallet using your 12 or 24-word seed phrase.
-                        </p>
+                    <Card className="p-5 sm:p-6">
+                        <SectionHeading title="Import Existing Wallet" text="Import an existing wallet using your 12 or 24-word seed phrase." />
 
                         <div className="space-y-4">
                             <div>
-                                <label className={`text-sm ${styles.textSecondary}`}>Seed Phrase</label>
+                                <label htmlFor="import-seed" className={fieldLabelClass}>
+                                    Seed phrase
+                                </label>
                                 <textarea
+                                    id="import-seed"
                                     value={importMnemonic}
                                     onChange={e => setImportMnemonic(e.target.value)}
                                     placeholder="Enter your seed phrase (12 or 24 words)"
                                     rows={3}
-                                    className={`w-full text-white px-4 py-3 rounded-lg border font-mono text-sm mt-1 placeholder-gray-500 ${styles.inputField}`}
+                                    autoComplete="off"
+                                    spellCheck={false}
+                                    className="w-full px-4 py-3 rounded-xl bg-surface-raised border border-line text-ink font-mono text-sm placeholder:text-ink-muted/70 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/40"
                                 />
                             </div>
 
-                            <button
-                                onClick={handleImportWallet}
-                                disabled={isGenerating || !importMnemonic.trim()}
-                                className={`w-full text-white px-6 py-3 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all hover:opacity-80 ${styles.primaryButton}`}
-                            >
+                            <PillButton size="lg" className="w-full" onClick={handleImportWallet} disabled={isGenerating || !importMnemonic.trim()}>
                                 {isGenerating ? "Importing..." : "Import Wallet"}
-                            </button>
+                            </PillButton>
                         </div>
-                    </div>
+                    </Card>
                 )}
 
                 {/* Web3 Wallet Panel */}
-                <div
-                    className={`backdrop-blur-sm rounded-xl p-5 mt-4 border shadow-lg ${styles.mainCard}`}
-                >
-                    <h2 className="text-xl font-bold text-white mb-4">Web3 Wallet</h2>
+                <Card className="p-5 sm:p-6">
+                    <SectionHeading title="Web3 Wallet" text={isWeb3Connected && web3Address ? undefined : "Connect your Web3 wallet for deposits and withdrawals."} />
                     {isWeb3Connected && web3Address ? (
                         <div className="space-y-4">
-                            <div>
-                                <label className={`text-sm ${styles.textSecondary}`}>Connected Address</label>
-                                <div className="flex gap-2 items-center mt-1">
-                                    <input
-                                        type="text"
-                                        value={web3Address}
-                                        readOnly
-                                        className={`flex-1 text-white px-4 py-2 rounded-lg border font-mono text-sm ${styles.inputField}`}
-                                    />
-                                    <button
-                                        onClick={() => copyToClipboard(web3Address, "Web3 Address")}
-                                        className={`text-white px-4 py-2 rounded-lg transition-all hover:opacity-80 ${styles.primaryButton}`}
-                                    >
-                                        Copy
-                                    </button>
-                                </div>
-                            </div>
-                            <button
-                                onClick={() => disconnectWeb3()}
-                                className={`w-full text-white px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-80 ${styles.dangerButton}`}
-                            >
+                            <CopyField label="Connected address" value={web3Address} onCopy={() => copyToClipboard(web3Address, "Web3 Address")} />
+                            <PillButton variant="outline" size="lg" className="w-full" onClick={() => disconnectWeb3()}>
                                 Disconnect Web3 Wallet
-                            </button>
+                            </PillButton>
                         </div>
                     ) : (
-                        <div>
-                            <p className={`mb-4 text-sm ${styles.textSecondary}`}>
-                                Connect your Web3 wallet for deposits and withdrawals.
-                            </p>
-                            <button
-                                onClick={() => openWeb3Wallet()}
-                                className={`w-full text-white px-6 py-3 rounded-xl font-semibold transition-all hover:opacity-80 ${styles.primaryButton}`}
-                            >
-                                Connect Your Web3 Wallet
-                            </button>
-                        </div>
+                        <PillButton size="lg" className="w-full" onClick={() => openWeb3Wallet()}>
+                            Connect Your Web3 Wallet
+                        </PillButton>
                     )}
-                </div>
+                </Card>
 
                 {/* Error Display */}
                 {error && (
-                    <div
-                        className={`mt-6 rounded-xl p-4 ${styles.errorCard}`}
-                    >
-                        <p className={styles.errorText}>{error}</p>
+                    <div role="alert" className={noticeClass.error}>
+                        {error}
                     </div>
                 )}
             </div>
 
-            {/* Powered by Block52 */}
-            <div className="fixed bottom-4 left-4 flex items-center z-20 opacity-30">
-                <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                    <div className="text-left mb-1">
-                        <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
-                    </div>
-                    <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
-                </div>
-            </div>
+            <ConfirmDialog
+                isOpen={showClearConfirm}
+                title="Clear your wallet?"
+                message="This removes the wallet from this browser. Your funds stay on the chain, but only your seed phrase can bring the wallet back."
+                warning="Make sure you have saved your seed phrase before you continue."
+                confirmLabel="Clear wallet"
+                tone="danger"
+                onConfirm={confirmClearWallet}
+                onCancel={() => setShowClearConfirm(false)}
+            />
         </div>
     );
 };

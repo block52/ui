@@ -1,45 +1,30 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { Link } from "react-router-dom";
+import type { BlockResponse } from "@block52/poker-vm-sdk";
 import { isNetworkError, httpStatusText } from "../../apis/HTTPClient";
 import { getCosmosClient, clearCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
-import { truncateHash, formatTimestampRelative, formatProposerAddress } from "../../utils/formatUtils";
-import { LoadingSpinner } from "../../components/common/LoadingSpinner";
-import { AnimatedBackground } from "../../components/common/AnimatedBackground";
-import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
+import { formatTimestampRelative, formatProposerAddress } from "../../utils/formatUtils";
+import { truncateMiddle } from "../../utils/stringUtils";
+import { addressColor, averageBlockTimeSeconds, countDistinct } from "../../utils/explorerStats";
+import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPage, ExplorerPanel, explorerRowClass, explorerThClass } from "../../components/explorer/ExplorerPanel";
+import { PillButton, StatStrip, StatItem } from "../../components/ui";
 import { isEmpty, hasElements } from "../../utils/guards";
 
-// Define block response type locally to match Cosmos API response
-interface CosmosBlockResponse {
-    block_id: {
-        hash: string;
-        parts: { total: number; hash: string };
-    };
-    block: {
-        header: {
-            version: { block: string; app: string };
-            chain_id: string;
-            height: string;
-            time: string;
-            proposer_address: string;
-        };
-        data: { txs: string[] };
-    };
-    sdk_block?: {
-        header: {
-            height: string;
-            time: string;
-            proposer_address: string;
-        };
-        data: { txs: string[] };
-    };
-}
+const BLOCK_COUNT = 50;
+const REFRESH_MS = 10000;
 
-type CosmosBlock = CosmosBlockResponse;
+/** Proposer as a b52 address, or null when the header carries none. */
+const proposerOf = (block: BlockResponse): string | null => {
+    const raw = block.block.header.proposer_address;
+    return raw ? formatProposerAddress(raw) : null;
+};
 
 export default function BlocksPage() {
-    const [blocks, setBlocks] = useState<CosmosBlock[]>([]);
+    const [blocks, setBlocks] = useState<BlockResponse[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [onlyWithTxs, setOnlyWithTxs] = useState(false);
     const { currentNetwork } = useNetwork();
 
     const fetchBlocks = useCallback(async () => {
@@ -54,12 +39,10 @@ export default function BlocksPage() {
                 throw new Error("Block52 client not initialized.");
             }
 
-            const recentBlocks = await cosmosClient.getLatestBlocks(50);
+            const recentBlocks = await cosmosClient.getLatestBlocks(BLOCK_COUNT);
             // Sort blocks by height in descending order (newest first)
-            const sortedBlocks = recentBlocks.sort((a, b) =>
-                parseInt(b.block.header.height) - parseInt(a.block.header.height)
-            );
-            setBlocks(sortedBlocks as unknown as CosmosBlock[]);
+            const sortedBlocks = [...recentBlocks].sort((a, b) => parseInt(b.block.header.height) - parseInt(a.block.header.height));
+            setBlocks(sortedBlocks);
             setError(null);
         } catch (err) {
             const message = err instanceof Error ? err.message : "";
@@ -93,7 +76,7 @@ export default function BlocksPage() {
 
             // Graceful degradation: Keep old blocks if we have cached data
             if (hasElements(blocks)) {
-                setError(`⚠️ Network unavailable - showing cached data. ${fullMessage}`);
+                setError(`Network unavailable - showing cached data. ${fullMessage}`);
             } else {
                 setError(fullMessage);
                 console.error("Error fetching blocks:", err);
@@ -114,7 +97,7 @@ export default function BlocksPage() {
         fetchBlocks();
 
         // Auto-refresh every 10 seconds (reduced frequency to minimize re-renders)
-        const interval = setInterval(fetchBlocks, 10000);
+        const interval = setInterval(fetchBlocks, REFRESH_MS);
 
         return () => {
             clearInterval(interval);
@@ -123,147 +106,145 @@ export default function BlocksPage() {
         };
     }, [currentNetwork, fetchBlocks]);
 
-    if (loading && isEmpty(blocks)) {
-        return (
-            <div className="min-h-screen flex items-center justify-center relative">
-                <AnimatedBackground />
-                <div className="bg-gray-800 border border-gray-700 p-8 rounded-lg shadow-2xl text-center relative z-10">
-                    <div className="flex justify-center mb-4">
-                        <LoadingSpinner size="xl" className="text-blue-500" />
-                    </div>
-                    <h2 className="text-2xl font-bold text-white">Loading blocks...</h2>
-                </div>
-            </div>
-        );
-    }
+    // Summary numbers, computed only from the blocks actually loaded.
+    const stats = useMemo((): StatItem[] => {
+        const latest = blocks[0];
+        const avg = averageBlockTimeSeconds(blocks.map(b => b.block.header.time));
+        const txCount = blocks.reduce((sum, b) => sum + b.block.data.txs.length, 0);
+        const proposers = countDistinct(blocks.map(b => proposerOf(b) ?? ""));
+        return [
+            { label: "Latest block", value: latest ? `#${Number(latest.block.header.height).toLocaleString()}` : "—", tone: latest ? "default" : "muted" },
+            { label: "Block time", value: avg === null ? "—" : `~${avg.toFixed(1)} s`, tone: avg === null ? "muted" : "default" },
+            { label: `Txs, last ${blocks.length} blocks`, value: txCount.toLocaleString() },
+            { label: "Proposers", value: proposers.toLocaleString(), suffix: proposers === 1 ? "validator" : "validators" }
+        ];
+    }, [blocks]);
 
-    if (error && isEmpty(blocks)) {
-        return (
-            <div className="min-h-screen p-8 relative">
-                <AnimatedBackground />
-                <div className="max-w-7xl mx-auto relative z-10">
-                    {/* Header */}
-                    <ExplorerHeader />
+    const visibleBlocks = useMemo(() => (onlyWithTxs ? blocks.filter(b => hasElements(b.block.data.txs)) : blocks), [blocks, onlyWithTxs]);
 
-                    {/* Error Card */}
-                    <div className="flex justify-center">
-                        <div className="bg-gray-800 border border-gray-700 p-8 rounded-lg shadow-2xl text-center max-w-lg">
-                            <div className="flex justify-center mb-4">
-                                <svg className="h-16 w-16 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                            </div>
-                            <h2 className="text-2xl font-bold text-white mb-4">Error: {error}</h2>
-                            <p className="text-gray-300 mb-4">Make sure your Block52 blockchain is running</p>
-                            <p className="text-sm text-gray-400 mb-6">Try selecting a different network from the dropdown above</p>
+    const retryButton = (
+        <PillButton variant="outline" size="sm" onClick={() => fetchBlocks()} disabled={loading}>
+            {loading ? "Retrying…" : "Retry"}
+        </PillButton>
+    );
 
-                            {/* Retry Button */}
-                            <button
-                                onClick={() => fetchBlocks()}
-                                disabled={loading}
-                                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-                            >
-                                {loading ? "Retrying..." : "🔄 Retry Connection"}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
+    const filterControls = (
+        <div className="flex flex-wrap items-center gap-x-5 gap-y-1 text-sm font-normal text-ink-soft">
+            <label className="flex items-center gap-2 min-h-11 cursor-pointer">
+                <input type="checkbox" checked={onlyWithTxs} onChange={e => setOnlyWithTxs(e.target.checked)} className="w-4 h-4 accent-brand" />
+                Only blocks with transactions
+            </label>
+            {!error && (
+                <span className="flex items-center gap-1.5 text-emerald-400">
+                    <span className="w-[7px] h-[7px] rounded-full bg-emerald-400" aria-hidden="true" />
+                    Live
+                </span>
+            )}
+        </div>
+    );
 
     return (
-        <div className="min-h-screen p-8 relative">
-            <AnimatedBackground />
-            <div className="max-w-7xl mx-auto relative z-10">
-                {/* Header */}
-                <ExplorerHeader />
+        <ExplorerPage>
+            {/* First load / first-load failure: no data yet, so no stats or table. */}
+            {isEmpty(blocks) ? (
+                <ExplorerPanel header="Latest blocks" action={error ? retryButton : undefined}>
+                    {loading && !error ? (
+                        <ExplorerLoading label="Loading blocks…" />
+                    ) : error ? (
+                        <>
+                            <ExplorerError>{error}</ExplorerError>
+                            <p className="pb-6 px-4 -mt-3 text-center text-sm text-ink-muted">
+                                Make sure your Block52 blockchain is running, or select a different network from the header.
+                            </p>
+                        </>
+                    ) : (
+                        <ExplorerEmpty>No blocks yet.</ExplorerEmpty>
+                    )}
+                </ExplorerPanel>
+            ) : (
+                <div className="flex flex-col gap-6">
+                    <StatStrip items={stats} />
 
-                {/* Blocks Table */}
-                <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-                    <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-900">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Height</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Block Hash</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Transactions</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Proposer</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Time</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-gray-700">
-                                {blocks.map(block => (
-                                    <tr key={block.block.header.height} className="hover:bg-gray-700/50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-blue-400 font-bold">#{block.block.header.height}</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <a
-                                                href={`/explorer/block/${block.block.header.height}`}
-                                                className="font-mono text-xs text-blue-400 hover:text-blue-300 cursor-pointer transition-colors break-all block"
-                                                title="Click to view block details"
-                                            >
-                                                {block.block_id.hash}
-                                            </a>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            {isEmpty(block.block.data.txs) ? (
-                                                <span className="text-gray-400">0 txs</span>
-                                            ) : (
-                                                <span className="text-green-400 font-semibold">
-                                                    {block.block.data.txs.length} tx{block.block.data.txs.length > 1 ? "s" : ""}
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="font-mono text-xs text-blue-400" title={block.block.header.proposer_address || ""}>
-                                                {truncateHash(formatProposerAddress(block.block.header.proposer_address || ""))}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <span className="text-xs text-gray-400">{formatTimestampRelative(block.block.header.time)}</span>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Error Display */}
-                {error && (
-                    <div className="mb-6 bg-red-900/30 border-2 border-red-700 rounded-lg p-4">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-3">
-                                <svg className="h-6 w-6 flex-shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                <span className="text-red-200 font-semibold">Error: {error}</span>
-                            </div>
-
-                            {/* Retry Button */}
-                            <button
-                                onClick={() => fetchBlocks()}
-                                disabled={loading}
-                                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-semibold text-sm transition-colors whitespace-nowrap"
-                            >
-                                {loading ? "⏳" : "🔄 Retry"}
-                            </button>
+                    {/* Refresh failed, but cached blocks are still shown below. */}
+                    {error && (
+                        <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-2xl border border-red-400/40 bg-red-400/10">
+                            <span className="text-sm text-red-300">{error}</span>
+                            {retryButton}
                         </div>
-                    </div>
-                )}
-            </div>
+                    )}
 
-            {/* Powered by Block52 */}
-            <div className="fixed bottom-4 left-4 flex items-center z-10 opacity-30">
-                <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                    <div className="text-left mb-1">
-                        <span className="text-xs text-white font-medium tracking-wide  ">POWERED BY</span>
-                    </div>
-                    <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
+                    <ExplorerPanel header={<h2 className="m-0 text-[17px] font-semibold text-ink">Latest blocks</h2>} action={filterControls}>
+                        {isEmpty(visibleBlocks) ? (
+                            <ExplorerEmpty>None of the last {blocks.length} blocks have transactions.</ExplorerEmpty>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full border-collapse text-sm">
+                                    <thead>
+                                        <tr>
+                                            <th className={explorerThClass}>Height</th>
+                                            <th className={`${explorerThClass} hidden md:table-cell`}>Block hash</th>
+                                            <th className={explorerThClass}>Txs</th>
+                                            <th className={explorerThClass}>Proposer</th>
+                                            <th className={`${explorerThClass} text-right`}>Age</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {visibleBlocks.map(block => {
+                                            const height = block.block.header.height;
+                                            const txCount = block.block.data.txs.length;
+                                            const proposer = proposerOf(block);
+                                            return (
+                                                <tr key={height} className={explorerRowClass}>
+                                                    <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
+                                                        <Link
+                                                            to={`/explorer/block/${height}`}
+                                                            className="inline-flex items-center min-h-11 -my-3 font-semibold tabular-nums text-ink hover:text-brand-light"
+                                                        >
+                                                            #{Number(height).toLocaleString()}
+                                                        </Link>
+                                                    </td>
+                                                    <td className="hidden md:table-cell px-4 sm:px-5 py-3 whitespace-nowrap font-mono text-[13px] text-ink-muted" title={block.block_id.hash}>
+                                                        {truncateMiddle(block.block_id.hash, 8, 8, "…")}
+                                                    </td>
+                                                    <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
+                                                        <span
+                                                            className={`inline-block min-w-6 px-2 py-0.5 rounded-full text-center text-xs font-semibold tabular-nums ${
+                                                                txCount > 0 ? "bg-emerald-400/15 text-emerald-400" : "bg-surface-raised text-ink-muted"
+                                                            }`}
+                                                        >
+                                                            {txCount}
+                                                        </span>
+                                                    </td>
+                                                    <td className="px-4 sm:px-5 py-3 whitespace-nowrap">
+                                                        {proposer ? (
+                                                            <span className="flex items-center gap-2" title={proposer}>
+                                                                <span
+                                                                    className="w-2.5 h-2.5 rounded-[3px] shrink-0"
+                                                                    style={{ backgroundColor: addressColor(proposer) }}
+                                                                    aria-hidden="true"
+                                                                />
+                                                                <span className="font-mono text-[13px] text-ink-soft">{truncateMiddle(proposer, 8, 6, "…")}</span>
+                                                            </span>
+                                                        ) : (
+                                                            <span className="text-ink-muted">—</span>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-4 sm:px-5 py-3 whitespace-nowrap text-right text-ink-muted tabular-nums">
+                                                        {formatTimestampRelative(block.block.header.time)}
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                        <div className="px-4 sm:px-5 py-3.5 border-t border-line text-sm text-ink-muted">
+                            Showing the latest {blocks.length} blocks · new blocks appear at the top every few seconds
+                        </div>
+                    </ExplorerPanel>
                 </div>
-            </div>
-        </div>
+            )}
+        </ExplorerPage>
     );
 }

@@ -97,69 +97,73 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
     return (
         <div
-            className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/70"
+            className="fixed inset-0 z-[9999] flex items-end sm:items-center justify-center sm:p-4 bg-black/70 backdrop-blur-sm"
             onClick={onClose}
         >
             <div
-                className="bg-[#1a1f2e] rounded-2xl shadow-2xl border border-gray-700 w-[800px] max-h-[90vh] overflow-y-auto"
+                className="bg-surface-card rounded-2xl shadow-2xl border border-line w-[800px] max-w-[95vw] max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}
             >
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-700">
-                    <h2 className="text-xl font-bold text-white">Chip Debug Panel</h2>
+                <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-b border-line">
+                    <h2 className="m-0 text-[17px] font-semibold text-ink">Chip Debug Panel</h2>
                     <button
+                        type="button"
                         onClick={onClose}
-                        className="text-gray-400 hover:text-white text-2xl leading-none"
+                        aria-label="Close"
+                        className="-mr-2.5 shrink-0 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
                     >
-                        ×
+                        <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                            <path strokeLinecap="round" d="M5 5l10 10M15 5L5 15" />
+                        </svg>
                     </button>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-5 sm:p-6 space-y-6">
                     {/* Live preview with dark table-like background */}
-                    <div className="bg-[#0d1a2d] rounded-xl p-8 flex flex-col items-center gap-6">
-                        <span className="text-gray-400 text-sm">Live Preview (actual Chip component)</span>
+                    <div className="bg-surface-raised border border-line rounded-xl p-6 sm:p-8 flex flex-col items-center gap-6">
+                        <span className="text-ink-muted text-xs uppercase tracking-[0.08em]">Live Preview (actual Chip component)</span>
                         <div className="flex items-center justify-center min-h-[60px]">
                             <Chip amount={totalUsdc} />
                         </div>
-                        <div className="text-gray-500 text-xs">
+                        <div className="text-ink-muted text-xs font-mono">
                             Total: ${totalDollars.toFixed(2)} | Actions: {liveAmounts.length} | USDC: {totalUsdc}
                         </div>
                     </div>
 
                     {/* Custom input */}
                     <div>
-                        <label className="text-gray-300 text-sm font-medium block mb-2">
+                        <label className="block mb-2 text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">
                             Custom amounts (dollar values, comma-separated for multiple actions):
                         </label>
                         <input
                             type="text"
                             value={customAmounts}
                             onChange={e => handleCustomChange(e.target.value)}
-                            className="w-full bg-[#0d1a2d] border border-gray-600 rounded-lg px-4 py-2 text-white font-mono focus:border-blue-500 focus:outline-none"
+                            className="w-full h-11 px-4 rounded-xl bg-surface-raised border border-line-strong text-ink font-mono text-sm placeholder:text-ink-muted/70 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/30"
                             placeholder="e.g. 50  or  25, 130, 500"
                         />
-                        <p className="text-gray-500 text-xs mt-1">
+                        <p className="text-ink-muted text-xs mt-1.5">
                             Single value = one bet. Comma-separated = multiple betting actions (blind, call, raise).
                         </p>
                     </div>
 
                     {/* Presets grid */}
                     <div>
-                        <span className="text-gray-300 text-sm font-medium block mb-2">Presets:</span>
-                        <div className="grid grid-cols-3 gap-2">
+                        <span className="block mb-2 text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Presets:</span>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
                             {PRESETS.map((preset, i) => (
                                 <button
                                     key={i}
                                     onClick={() => handlePresetClick(i)}
-                                    className={`text-left px-3 py-2 rounded-lg border text-sm transition-colors ${
+                                    className={`text-left px-3 py-2 min-h-11 rounded-xl border text-sm transition-colors ${
                                         activePresetIndex === i
-                                            ? "bg-blue-900/40 border-blue-500 text-white"
-                                            : "bg-[#0d1a2d] border-gray-700 text-gray-300 hover:border-gray-500"
+                                            ? "bg-brand/10 border-brand text-ink"
+                                            : "bg-surface-raised border-line text-ink-soft hover:border-line-strong"
                                     }`}
                                 >
                                     <div className="font-medium">{preset.label}</div>
-                                    <div className="text-xs text-gray-500">{preset.description}</div>
+                                    <div className="text-xs text-ink-muted">{preset.description}</div>
                                 </button>
                             ))}
                         </div>
@@ -167,26 +171,26 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
 
                     {/* Decomposition breakdown */}
                     <div>
-                        <span className="text-gray-300 text-sm font-medium block mb-2">Breakdown:</span>
-                        <div className="bg-[#0d1a2d] rounded-lg p-4 space-y-3">
+                        <span className="block mb-2 text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Breakdown:</span>
+                        <div className="bg-surface-raised border border-line rounded-xl p-4 space-y-3">
                             {breakdownPerAction.map((action, ai) => (
-                                <div key={ai} className="border-b border-gray-800 pb-2 last:border-0 last:pb-0">
-                                    <div className="text-xs text-gray-400 mb-1">
+                                <div key={ai} className="border-b border-line pb-2 last:border-0 last:pb-0">
+                                    <div className="text-xs text-ink-muted mb-1">
                                         Action {ai + 1}: ${action.dollars.toFixed(2)}
                                         {action.dollars < 1 && " → floors to $0 → fallback white chip"}
                                     </div>
                                     <div className="flex gap-3 flex-wrap">
                                         {action.stacks.map((stack: ChipStackEntry, si: number) => (
-                                            <div key={si} className="flex items-center gap-1.5 bg-gray-800/50 rounded px-2 py-1">
-                                                <div className={`w-3 h-3 rounded-full border border-gray-600 ${chipColorClass(stack.color)}`} />
-                                                <span className="text-white text-xs font-mono">
+                                            <div key={si} className="flex items-center gap-1.5 bg-surface-hover rounded-lg px-2 py-1">
+                                                <div className={`w-3 h-3 rounded-full border border-line-strong ${chipColorClass(stack.color)}`} />
+                                                <span className="text-ink text-xs font-mono">
                                                     {stack.visibleCount}×${stack.value}
                                                 </span>
-                                                <span className="text-gray-500 text-xs">
+                                                <span className="text-ink-muted text-xs">
                                                     {stack.color}
                                                 </span>
                                                 {stack.count > stack.visibleCount && (
-                                                    <span className="text-yellow-500 text-xs">
+                                                    <span className="text-amber-300 text-xs">
                                                         (actual: {stack.count})
                                                     </span>
                                                 )}
@@ -197,7 +201,7 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                             ))}
 
                             {/* Summary */}
-                            <div className="pt-2 border-t border-gray-700 text-xs text-gray-400 flex gap-4">
+                            <div className="pt-2 border-t border-line text-xs text-ink-muted font-mono flex flex-wrap gap-x-4 gap-y-1">
                                 <span>Total stacks (columns): {breakdownPerAction.reduce((sum, a) => sum + a.stacks.length, 0)}</span>
                                 <span>Total visible chips: {breakdownPerAction.reduce((sum, a) => sum + a.stacks.reduce((s: number, st: ChipStackEntry) => s + st.visibleCount, 0), 0)}</span>
                             </div>

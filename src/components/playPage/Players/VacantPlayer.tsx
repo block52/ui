@@ -31,6 +31,13 @@ import { hasElements } from "../../../utils/guards";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
+import { ModalFooter } from "../../modals/ModalFooter";
+import { AmountPresets } from "../../modals/AmountPresets";
+import { amountInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "../../modals/walletFormClasses";
+import { Modal } from "../../common/Modal";
+import { PillButton } from "../../ui";
+import { getBlindsForDisplay } from "../../../utils/gameFormatUtils";
+import { GameFormat } from "@block52/poker-vm-sdk";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
@@ -223,6 +230,47 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             [isUserAlreadyPlaying, canJoinThisSeat, index]
         );
 
+        // Close handler for the modal chrome (backdrop, Escape, close button, Cancel).
+        // Modal ignores these while isProcessing (isJoining), as the old backdrop did.
+        const closeBuyInModal = useCallback(() => setShowBuyInModal(false), []);
+
+        // View-only: subtitle under the title, e.g. "Cash game · $0.01 / $0.02 blinds"
+        const modalSubtitle = useMemo(() => {
+            const { stakeLabel } = getBlindsForDisplay(isSitAndGo ? GameFormat.SIT_AND_GO : GameFormat.CASH, gameOptions?.smallBlind, gameOptions?.bigBlind);
+            return `${isSitAndGo ? "Sit & Go" : "Cash game"}${stakeLabel ? ` · ${stakeLabel} blinds` : ""}`;
+        }, [isSitAndGo, gameOptions?.smallBlind, gameOptions?.bigBlind]);
+
+        // Quick-amount stops derived only from min/max/big blind, never above the
+        // player's balance. Picking one sets the amount exactly as the slider does.
+        const presets = useMemo(() => {
+            if (isSitAndGo) return [];
+            const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
+            const balanceNum = usdcBalance ? microToUsdc(usdcBalance.amount) : 0;
+            const cap = Math.min(maxBuyInNum, Math.floor(balanceNum * 100) / 100);
+            const candidates = [{ label: "Min", amount: minBuyInNum }];
+            if (bigBlindValue > 0) {
+                candidates.push({ label: "50 BB", amount: bigBlindValue * 50 }, { label: "100 BB", amount: bigBlindValue * 100 });
+            }
+            candidates.push({ label: "Max", amount: cap });
+            const seen = new Set<string>();
+            // Walk from the end so "Max" / "Min" win over a duplicate "100 BB".
+            return candidates
+                .filter(c => c.amount >= minBuyInNum && c.amount <= cap)
+                .map(c => ({ label: c.label, value: formatDollars(c.amount) }))
+                .reverse()
+                .filter(c => {
+                    if (seen.has(c.value)) return false;
+                    seen.add(c.value);
+                    return true;
+                })
+                .reverse();
+        }, [isSitAndGo, cosmosWallet.balance, minBuyInNum, maxBuyInNum, bigBlindValue]);
+
+        const pickPreset = useCallback((value: string) => {
+            setBuyInAmount(value);
+            setBuyInAmountDisplay(value);
+        }, []);
+
         // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
         const handleDepositClick = useCallback(() => {
             setShowBuyInModal(false); // Ensure buy-in modal is closed
@@ -257,37 +305,60 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 {showBuyInModal &&
                     gameOptions &&
                     createPortal(
-                        <div className="fixed inset-0 z-50 flex items-center justify-center">
-                            {/* Backdrop */}
-                            <div className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm" onClick={() => !isJoining && setShowBuyInModal(false)} />
-
-                            {/* Modal */}
-                            <div className={`relative p-8 rounded-xl w-96 shadow-2xl ${styles.modalContainer}`}>
-                                <h3 className="text-2xl font-bold mb-4 text-white text-center">{isSitAndGo ? "Sit & Go Buy-In" : "Cash Game Buy-In"}</h3>
-
+                        <Modal
+                            isOpen
+                            onClose={closeBuyInModal}
+                            title={isSitAndGo ? "Sit & Go Buy-In" : "Cash Game Buy-In"}
+                            subtitle={modalSubtitle}
+                            isProcessing={isJoining}
+                            widthClass="w-[26rem]"
+                        >
+                            <div className="space-y-4">
                                 {/* Buy-In Amount - Fixed for Sit & Go, Input for Cash Game */}
                                 {isSitAndGo ? (
                                     // Sit & Go: Fixed buy-in amount
-                                    <div className={`mb-6 p-4 rounded-lg border-2 ${styles.fixedBuyInPanel}`}>
-                                        <div className="text-center">
-                                            <div className="text-xs text-gray-400 mb-1">Required Buy-In</div>
-                                            <div className="text-3xl font-bold text-white">${formatUSDCToSimpleDollars(gameOptions.minBuyIn)}</div>
-                                            <div className="text-xs text-gray-400 mt-1">Fixed amount for this tournament</div>
-                                        </div>
+                                    <div className="px-4 py-4 rounded-xl border border-brand/40 bg-brand/10 text-center">
+                                        <div className="text-xs text-ink-muted mb-1">Required Buy-In</div>
+                                        <div className="text-3xl font-semibold tabular-nums text-ink">${formatUSDCToSimpleDollars(gameOptions.minBuyIn)}</div>
+                                        <div className="text-xs text-ink-muted mt-1">Fixed amount for this tournament</div>
                                     </div>
                                 ) : (
                                     // Cash Game: Editable buy-in amount
-                                    <div className="mb-6">
-                                        <label className="block text-xs text-gray-400 mb-2">Buy-In Amount</label>
+                                    <div>
+                                        <label htmlFor="vacant-buyin-amount" className={fieldLabelClass}>
+                                            Buy-In Amount
+                                        </label>
+                                        <div className="relative">
+                                            <span
+                                                className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-ink-muted pointer-events-none"
+                                                aria-hidden="true"
+                                            >
+                                                $
+                                            </span>
+                                            <input
+                                                id="vacant-buyin-amount"
+                                                type="number"
+                                                inputMode="decimal"
+                                                autoFocus
+                                                value={parseFloat(buyInAmountDisplay) ? buyInAmountDisplay : "0"}
+                                                onChange={e => {
+                                                    setBuyInAmount(e.target.value);
+                                                    setBuyInAmountDisplay(e.target.value);
+                                                }}
+                                                placeholder="Enter amount"
+                                                className={`${amountInputClass} pl-9 ${joinError || exceedsBalance ? "border-red-500/60" : ""}`}
+                                                step={bigBlindValue.toString()}
+                                                min={minBuyInNum.toString()}
+                                                max={maxBuyInNum.toString()}
+                                                aria-invalid={Boolean(joinError) || exceedsBalance}
+                                            />
+                                        </div>
 
                                         {/* Slider with min/max labels */}
-                                        <div className="mb-3">
-                                            <div className="flex justify-between text-xs text-gray-400 mb-2">
-                                                <span>${formatDollars(minBuyInNum)}</span>
-                                                <span>${formatDollars(maxBuyInNum)}</span>
-                                            </div>
+                                        <div className="mt-2">
                                             <input
                                                 type="range"
+                                                aria-label="Buy-in amount slider"
                                                 value={sliderValue}
                                                 onChange={e => {
                                                     const val = parseFloat(e.target.value);
@@ -301,31 +372,25 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                 min={minBuyInNum.toString()}
                                                 max={maxBuyInNum.toString()}
                                                 step={bigBlindValue.toString()}
-                                                className={`w-full h-2 rounded-lg appearance-none cursor-pointer ${styles.buyInSlider}`}
+                                                className={`block w-full h-11 ${styles.buyInSlider}`}
                                             />
+                                            <div className="flex justify-between text-xs tabular-nums text-ink-muted">
+                                                <span>${formatDollars(minBuyInNum)}</span>
+                                                <span>${formatDollars(maxBuyInNum)}</span>
+                                            </div>
                                         </div>
 
-                                        {/* Manual input below slider */}
-                                        <input
-                                            type="number"
-                                            value={parseFloat(buyInAmountDisplay) ? buyInAmountDisplay : "0"}
-                                            onChange={e => {
-                                                setBuyInAmount(e.target.value);
-                                                setBuyInAmountDisplay(e.target.value);
-                                            }}
-                                            placeholder="Enter amount"
-                                            className={`w-full px-4 py-2 rounded-lg text-white text-center text-lg ${styles.buyInInput}`}
-                                            step={bigBlindValue.toString()}
-                                            min={minBuyInNum.toString()}
-                                            max={maxBuyInNum.toString()}
-                                        />
+                                        {hasElements(presets) && (
+                                            <div className="mt-3">
+                                                <AmountPresets presets={presets} current={buyInAmountDisplay} onPick={pickPreset} disabled={isJoining} />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
                                 {/* User Balance */}
-                                <div className="mb-6">
-                                    <div className="text-xs text-gray-400 mb-2">Your USDC Balance:</div>
-                                    {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
+                                {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
+                                <div className={`${insetBoxClass} divide-y divide-line py-1`} aria-label="Wallet balance">
                                     {hasElements(cosmosWallet.balance) ? (
                                         cosmosWallet.balance.map((balance, idx) => {
                                             if (balance.denom === "usdc") {
@@ -333,77 +398,89 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                 const buyInValue = parseDollars(buyInAmount) || 0;
                                                 const exceedsBalance = buyInValue > usdcAmount;
                                                 return (
-                                                    <div key={idx} className={`p-3 rounded-lg ${styles.balanceCard}`}>
-                                                        <div className="flex justify-between items-center">
-                                                            <span className="text-white font-semibold">USDC</span>
-                                                            <span className={`text-lg font-bold ${exceedsBalance ? "text-red-400" : "text-white"}`}>
-                                                                ${formatDollars(usdcAmount)}
-                                                            </span>
-                                                        </div>
+                                                    <div key={idx} className="flex items-center justify-between gap-3 py-1.5">
+                                                        <span className="text-sm text-ink-muted">Your USDC balance</span>
+                                                        <span className={`text-sm font-semibold tabular-nums ${exceedsBalance ? "text-red-400" : "text-ink"}`}>
+                                                            ${formatDollars(usdcAmount)}
+                                                        </span>
                                                     </div>
                                                 );
                                             }
                                             return null;
                                         })
                                     ) : (
-                                        <div className={`p-3 rounded-lg ${styles.balanceCard}`}>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-white font-semibold">USDC</span>
-                                                <span className={`text-lg font-bold ${exceedsBalance ? "text-red-400" : "text-white"}`}>$0.00</span>
-                                            </div>
+                                        <div className="flex items-center justify-between gap-3 py-1.5">
+                                            <span className="text-sm text-ink-muted">Your USDC balance</span>
+                                            <span className={`text-sm font-semibold tabular-nums ${exceedsBalance ? "text-red-400" : "text-ink"}`}>$0.00</span>
                                         </div>
                                     )}
+                                    {!isSitAndGo && (
+                                        <>
+                                            <div className="flex items-center justify-between gap-3 py-1.5">
+                                                <span className="text-sm text-ink-muted">Min / max buy-in</span>
+                                                <span className="text-sm font-semibold tabular-nums text-ink">
+                                                    ${formatDollars(minBuyInNum)} / ${formatDollars(maxBuyInNum)}
+                                                </span>
+                                            </div>
+                                            <div className="flex items-center justify-between gap-3 py-1.5">
+                                                <span className="text-sm text-ink-muted">Big blind</span>
+                                                <span className="text-sm font-semibold tabular-nums text-ink">${formatDollars(bigBlindValue)}</span>
+                                            </div>
+                                        </>
+                                    )}
+                                    <div className="flex items-center justify-between gap-3 py-1.5">
+                                        <span className="text-sm text-ink-muted">Seat</span>
+                                        <span className="text-sm font-semibold tabular-nums text-ink">{index}</span>
+                                    </div>
                                 </div>
+
+                                {/* Insufficient funds: keeps the existing Top Up handler */}
+                                {exceedsBalance && (
+                                    <div className={`${noticeClass.warning} flex flex-col gap-3`} role="status">
+                                        <span>Your game wallet balance is below this buy-in. Top up to continue.</span>
+                                        <PillButton variant="outline" size="md" className="w-full" onClick={handleDepositClick}>
+                                            Top Up Game Wallet
+                                        </PillButton>
+                                    </div>
+                                )}
 
                                 {/* Error Message */}
-                                {joinError && <div className={`mb-4 p-3 rounded-lg text-sm ${styles.errorCard}`}>⚠️ {joinError}</div>}
-
-                                {/* Action Buttons */}
-                                <div className="flex flex-col space-y-3">
-                                    <button
-                                        onClick={handleBuyInConfirm}
-                                        disabled={isJoining || exceedsBalance}
-                                        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 flex items-center justify-center ${styles.confirmButton} ${
-                                            exceedsBalance ? styles.confirmButtonDisabled : ""
-                                        }`}
-                                    >
-                                        {isJoining ? (
-                                            <>
-                                                <svg
-                                                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                                                    xmlns="http://www.w3.org/2000/svg"
-                                                    fill="none"
-                                                    viewBox="0 0 24 24"
-                                                >
-                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                                    <path
-                                                        className="opacity-75"
-                                                        fill="currentColor"
-                                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                                    ></path>
-                                                </svg>
-                                                Joining...
-                                            </>
-                                        ) : (
-                                            `Confirm & Join Seat ${index}`
-                                        )}
-                                    </button>
-                                    <button
-                                        onClick={handleDepositClick}
-                                        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 flex items-center justify-center ${styles.confirmButton}`}
-                                    >
-                                        Top Up Game Wallet
-                                    </button>
-                                    <button
-                                        onClick={() => setShowBuyInModal(false)}
-                                        className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 ${styles.cancelButton}`}
-                                        disabled={isJoining}
-                                    >
-                                        Cancel
-                                    </button>
-                                </div>
+                                {joinError && (
+                                    <div role="alert" className={noticeClass.error}>
+                                        {joinError}
+                                    </div>
+                                )}
                             </div>
-                        </div>,
+
+                            {/* Action Buttons */}
+                            <ModalFooter>
+                                <PillButton size="lg" className="w-full" onClick={handleBuyInConfirm} disabled={isJoining || exceedsBalance}>
+                                    {isJoining ? (
+                                        <>
+                                            <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                <path
+                                                    className="opacity-75"
+                                                    fill="currentColor"
+                                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                                ></path>
+                                            </svg>
+                                            Joining...
+                                        </>
+                                    ) : (
+                                        `Confirm & Join Seat ${index}`
+                                    )}
+                                </PillButton>
+                                {!exceedsBalance && (
+                                    <PillButton variant="outline" size="lg" className="w-full" onClick={handleDepositClick}>
+                                        Top Up Game Wallet
+                                    </PillButton>
+                                )}
+                                <PillButton variant="ghost" size="lg" className="w-full" onClick={closeBuyInModal} disabled={isJoining}>
+                                    Cancel
+                                </PillButton>
+                            </ModalFooter>
+                        </Modal>,
                         document.body
                     )}
 

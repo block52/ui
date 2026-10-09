@@ -5,12 +5,14 @@
  * Colors can be customized via environment variables with fallback defaults.
  */
 
+import { hexToRgbChannels, mixHex } from "./colorMath";
+
 // Brand Colors
 export const colors = {
   // Primary and Secondary Brand Colors
   brand: {
-    primary: import.meta.env.VITE_BRAND_COLOR_PRIMARY || "#3b82f6",
-    secondary: import.meta.env.VITE_BRAND_COLOR_SECONDARY || "#1a2639",
+    primary: import.meta.env.VITE_BRAND_COLOR_PRIMARY || "#7c3aed",
+    secondary: import.meta.env.VITE_BRAND_COLOR_SECONDARY || "#12131c",
   },
 
   // Table Background Colors
@@ -24,11 +26,11 @@ export const colors = {
 
   // Animation Colors (for gradient backgrounds)
   animation: {
-    color1: import.meta.env.VITE_ANIM_COLOR_1 || "#3d59a1",
-    color2: import.meta.env.VITE_ANIM_COLOR_2 || "#2a488f",
-    color3: import.meta.env.VITE_ANIM_COLOR_3 || "#4263af",
-    color4: import.meta.env.VITE_ANIM_COLOR_4 || "#1e346b",
-    color5: import.meta.env.VITE_ANIM_COLOR_5 || "#324f97",
+    color1: import.meta.env.VITE_ANIM_COLOR_1 || "#221d3a",
+    color2: import.meta.env.VITE_ANIM_COLOR_2 || "#1a1830",
+    color3: import.meta.env.VITE_ANIM_COLOR_3 || "#1e1a36",
+    color4: import.meta.env.VITE_ANIM_COLOR_4 || "#14131f",
+    color5: import.meta.env.VITE_ANIM_COLOR_5 || "#191729",
   },
 
   // Accent Colors
@@ -42,10 +44,10 @@ export const colors = {
 
   // UI Element Colors
   ui: {
-    bgDark: import.meta.env.VITE_UI_BG_DARK || "#1f2937",
-    bgMedium: import.meta.env.VITE_UI_BG_MEDIUM || "#374151",
-    borderColor: import.meta.env.VITE_UI_BORDER_COLOR || "rgba(59,130,246,0.2)",
-    textSecondary: import.meta.env.VITE_UI_TEXT_SECONDARY || "#9ca3af", // gray-400 equivalent
+    bgDark: import.meta.env.VITE_UI_BG_DARK || "#161722",
+    bgMedium: import.meta.env.VITE_UI_BG_MEDIUM || "#232636",
+    borderColor: import.meta.env.VITE_UI_BORDER_COLOR || "#262938",
+    textSecondary: import.meta.env.VITE_UI_TEXT_SECONDARY || "#8e90a6"
   },
 };
 
@@ -75,6 +77,8 @@ export const generateCSSVariables = (): string => {
     :root {
       --brand-primary: ${colors.brand.primary};
       --brand-primary-10: ${hexToRgba(colors.brand.primary, 0.1)};
+      --brand-primary-rgb: ${hexToRgbChannels(colors.brand.primary)};
+      --brand-primary-light-rgb: ${hexToRgbChannels(mixHex(colors.brand.primary, "#ffffff", 0.35))};
       --brand-secondary: ${colors.brand.secondary};
       --table-bg-gradient-start: ${colors.table.bgGradientStart};
       --table-bg-gradient-mid: ${colors.table.bgGradientMid};

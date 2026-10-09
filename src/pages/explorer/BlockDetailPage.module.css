@@ -1,71 +1,72 @@
 .containerCard {
-    background-color: color-mix(in srgb, var(--ui-bg-dark) 80%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #161722;
+    border: 1px solid #262938;
 }
 
 .headerCard {
-    background: linear-gradient(135deg, color-mix(in srgb, var(--brand-primary) 20%, transparent) 0%, color-mix(in srgb, var(--brand-secondary) 20%, transparent) 100%);
-    border-bottom: 2px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
+    background-color: #1c1e2b;
+    border-bottom: 1px solid #262938;
 }
 
 .brandText {
-    color: var(--brand-primary);
+    color: rgb(var(--brand-primary-light-rgb));
 }
 
 .brandTextHover:hover {
-    color: var(--accent-glow);
+    text-decoration: underline;
 }
 
 .successText {
-    color: var(--accent-success);
+    color: #34d399;
 }
 
 .dangerText {
-    color: var(--accent-danger);
+    color: #f87171;
 }
 
 .secondaryBrandText {
-    color: var(--brand-secondary);
+    color: #b4b6c8;
 }
 
 .primaryButton {
-    background-color: var(--brand-primary);
+    background-color: rgb(var(--brand-primary-rgb));
     color: #ffffff;
 }
 
 .primaryButton:hover {
-    background-color: var(--brand-secondary);
+    background-color: rgb(var(--brand-primary-rgb) / 0.9);
 }
 
 .subtleBrandButton {
-    background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
-    color: var(--brand-primary);
-    border: 1px solid var(--brand-primary);
+    background-color: transparent;
+    color: #f5f5f7;
+    border: 1px solid #2c2f45;
 }
 
 .subtleBrandButton:hover {
-    background-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
+    background-color: #232636;
 }
 
 .txCard {
-    background-color: color-mix(in srgb, var(--brand-primary) 5%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #1c1e2b;
+    border: 1px solid #262938;
 }
 
 .txHeader {
-    border-bottom: 1px solid color-mix(in srgb, var(--brand-primary) 10%, transparent);
+    border-bottom: 1px solid #262938;
 }
 
 .copyRawButton {
-    background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
-    color: var(--brand-primary);
+    background-color: transparent;
+    color: #f5f5f7;
+    border: 1px solid #2c2f45;
 }
 
 .copyRawButton:hover {
-    background-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
+    background-color: #232636;
 }
 
 .rawDataBox {
-    background-color: color-mix(in srgb, var(--ui-bg-dark) 50%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #12131c;
+    border: 1px solid #262938;
 }

@@ -1,5 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Modal } from "../common";
+import { ModalFooter } from "./ModalFooter";
+import { PillButton } from "../ui/PillButton";
+import { fieldLabelClass, insetBoxClass, noticeClass } from "./walletFormClasses";
 import { hasContent } from "../../utils/guards";
 import {
     parseAdvancedSngParams,
@@ -68,36 +71,39 @@ const AdvancedSngParamsModal: React.FC<AdvancedSngParamsModalProps> = ({ isOpen,
         <Modal
             isOpen={isOpen}
             onClose={handleClose}
-            title="Advanced Options (Custom Params)"
-            titleIcon="⚙"
+            title="Advanced Options"
+            subtitle="Override any Sit & Go setting with a JSON object."
+            titleIcon={<SlidersIcon />}
             widthClass="w-[640px]"
-            patternId="hexagons-advanced-sng"
         >
-            <p className="text-gray-400 text-xs mb-3">
-                Paste a JSON object to override any Sit &amp; Go setting. Recognised fields:{" "}
-                {ADVANCED_SNG_FIELDS.map((field, i) => (
-                    <React.Fragment key={field}>
-                        {i > 0 && ", "}
-                        <code className="text-blue-300">{field}</code>
-                    </React.Fragment>
-                ))}
-                . Blinds &amp; stacks are in chips; buy-in is in USDC.
-            </p>
-
+            <label htmlFor="advanced-sng-json" className={fieldLabelClass}>
+                Custom params (JSON)
+            </label>
             <textarea
+                id="advanced-sng-json"
                 value={jsonText}
                 onChange={e => setJsonText(e.target.value)}
                 spellCheck={false}
                 rows={9}
                 placeholder={PLACEHOLDER}
-                className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm font-mono resize-y focus:outline-none focus:border-blue-500"
+                className="w-full px-4 py-3 rounded-xl bg-surface-raised border border-line text-ink placeholder:text-ink-muted/70 text-sm font-mono resize-y focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/40 transition-colors"
             />
+            <p className="mt-2 mb-0 text-xs text-ink-muted leading-relaxed">
+                Recognised fields:{" "}
+                {ADVANCED_SNG_FIELDS.map((field, i) => (
+                    <React.Fragment key={field}>
+                        {i > 0 && ", "}
+                        <code className="text-brand-light">{field}</code>
+                    </React.Fragment>
+                ))}
+                . Blinds &amp; stacks are in chips; buy-in is in USDC.
+            </p>
 
             {/* Validation errors */}
             {showErrors && (
-                <div className="mt-3 bg-red-900/30 border border-red-700 rounded-lg p-3">
-                    <p className="text-red-300 text-xs font-semibold mb-1">Validation errors:</p>
-                    <ul className="text-red-400/90 text-xs space-y-0.5 list-disc list-inside">
+                <div role="alert" className={`mt-3 ${noticeClass.error}`}>
+                    <p className="m-0 text-xs font-semibold mb-1">Validation errors:</p>
+                    <ul className="m-0 text-xs space-y-0.5 list-disc list-inside">
                         {parseResult.errors.map((err, i) => (
                             <li key={i}>{err}</li>
                         ))}
@@ -106,72 +112,73 @@ const AdvancedSngParamsModal: React.FC<AdvancedSngParamsModalProps> = ({ isOpen,
             )}
 
             {/* Preview */}
-            <div className="mt-4">
-                <p className="text-gray-300 text-sm font-semibold mb-2">
+            <div className="mt-5">
+                <p className={`${fieldLabelClass} !mb-2`}>
                     Preview {parseResult.isValid && hasContent(jsonText.trim()) ? "(with custom params)" : "(current settings)"}
                 </p>
 
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-3">
-                    <div className="bg-gray-900/50 rounded-lg p-2 border border-gray-700">
-                        <p className="text-gray-500 text-[10px] uppercase">Runners</p>
-                        <p className="text-green-400 text-sm font-medium">{preview.runners}</p>
+                    <div className={insetBoxClass}>
+                        <p className="m-0 text-ink-muted text-[10px] uppercase tracking-[0.08em]">Runners</p>
+                        <p className="m-0 mt-0.5 text-ink text-sm font-semibold tabular-nums">{preview.runners}</p>
                     </div>
-                    <div className="bg-gray-900/50 rounded-lg p-2 border border-gray-700">
-                        <p className="text-gray-500 text-[10px] uppercase">Starting Stack</p>
-                        <p className="text-green-400 text-sm font-medium">{preview.startingStack.toLocaleString()}</p>
+                    <div className={insetBoxClass}>
+                        <p className="m-0 text-ink-muted text-[10px] uppercase tracking-[0.08em]">Starting Stack</p>
+                        <p className="m-0 mt-0.5 text-ink text-sm font-semibold tabular-nums">{preview.startingStack.toLocaleString()}</p>
                     </div>
-                    <div className="bg-gray-900/50 rounded-lg p-2 border border-gray-700">
-                        <p className="text-gray-500 text-[10px] uppercase">Buy-In</p>
-                        <p className="text-green-400 text-sm font-medium">${preview.buyIn.toFixed(2)}</p>
+                    <div className={insetBoxClass}>
+                        <p className="m-0 text-ink-muted text-[10px] uppercase tracking-[0.08em]">Buy-In</p>
+                        <p className="m-0 mt-0.5 text-emerald-400 text-sm font-semibold tabular-nums">${preview.buyIn.toFixed(2)}</p>
                     </div>
-                    <div className="bg-gray-900/50 rounded-lg p-2 border border-gray-700">
-                        <p className="text-gray-500 text-[10px] uppercase">Chips In Play</p>
-                        <p className="text-green-400 text-sm font-medium">{preview.totalChipsInPlay.toLocaleString()}</p>
+                    <div className={insetBoxClass}>
+                        <p className="m-0 text-ink-muted text-[10px] uppercase tracking-[0.08em]">Chips In Play</p>
+                        <p className="m-0 mt-0.5 text-ink text-sm font-semibold tabular-nums">{preview.totalChipsInPlay.toLocaleString()}</p>
                     </div>
                 </div>
 
-                <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700 max-h-52 overflow-y-auto">
-                    <table className="w-full text-xs">
+                <div className="rounded-xl bg-surface-raised border border-line p-3 max-h-52 overflow-auto">
+                    <table className="w-full text-xs tabular-nums">
                         <thead>
-                            <tr className="text-gray-400 border-b border-gray-700">
-                                <th className="text-left py-1.5 px-2">Level</th>
-                                <th className="text-left py-1.5 px-2">Small Blind</th>
-                                <th className="text-left py-1.5 px-2">Big Blind</th>
-                                <th className="text-left py-1.5 px-2">Duration</th>
+                            <tr className="text-ink-muted border-b border-line">
+                                <th className="text-left font-medium py-1.5 px-2">Level</th>
+                                <th className="text-left font-medium py-1.5 px-2">Small Blind</th>
+                                <th className="text-left font-medium py-1.5 px-2">Big Blind</th>
+                                <th className="text-left font-medium py-1.5 px-2">Duration</th>
                             </tr>
                         </thead>
-                        <tbody className="text-gray-300">
+                        <tbody className="text-ink-soft">
                             {preview.levels.map(level => (
-                                <tr key={level.level} className={level.level === 1 ? "bg-green-900/20" : ""}>
+                                <tr key={level.level} className={level.level === 1 ? "bg-brand/10 text-ink" : ""}>
                                     <td className="py-1.5 px-2">{level.level}</td>
                                     <td className="py-1.5 px-2">{level.smallBlind.toLocaleString()}</td>
                                     <td className="py-1.5 px-2">{level.bigBlind.toLocaleString()}</td>
-                                    <td className="py-1.5 px-2">{level.durationMinutes} min</td>
+                                    <td className="py-1.5 px-2 whitespace-nowrap">{level.durationMinutes} min</td>
                                 </tr>
                             ))}
                         </tbody>
                     </table>
-                    <p className="text-gray-500 text-[10px] mt-2">* Blinds double each level. Level 1 is highlighted.</p>
+                    <p className="m-0 text-ink-muted text-[10px] mt-2">* Blinds double each level. Level 1 is highlighted.</p>
                 </div>
             </div>
 
-            <div className="flex gap-3 mt-5">
-                <button
-                    onClick={handleApply}
-                    disabled={!parseResult.isValid}
-                    className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-sm"
-                >
+            <ModalFooter>
+                <PillButton onClick={handleApply} disabled={!parseResult.isValid} size="lg" className="w-full">
                     Apply to Form
-                </button>
-                <button
-                    onClick={handleClose}
-                    className="px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-                >
+                </PillButton>
+                <PillButton variant="ghost" onClick={handleClose} className="w-full">
                     Cancel
-                </button>
-            </div>
+                </PillButton>
+            </ModalFooter>
         </Modal>
     );
 };
+
+const SlidersIcon: React.FC = () => (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+        <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
+        <circle cx="16" cy="7" r="2" />
+        <circle cx="8" cy="17" r="2" />
+    </svg>
+);
 
 export default AdvancedSngParamsModal;

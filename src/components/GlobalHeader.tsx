@@ -50,18 +50,20 @@ const NetworkStatusAndSelector: React.FC<{ latestBlockHeight: string | null; has
         {latestBlockHeight && (
             <Link
                 to={`/explorer/block/${latestBlockHeight}`}
-                className={`flex items-center gap-2 px-3 py-1.5 rounded-lg hover:opacity-80 transition-opacity ${styles.blockHeightLink}`}
+                className={`flex items-center gap-1.5 hover:text-ink transition-colors ${styles.blockHeightText}`}
             >
-                <div className={`w-2 h-2 rounded-full animate-pulse ${hasError ? "bg-red-400" : "bg-green-400"}`}></div>
-                <span className={`text-sm font-mono ${styles.blockHeightText}`}>
-                    #{latestBlockHeight}
-                </span>
+                <div className={`w-2 h-2 rounded-full animate-pulse ${hasError ? "bg-red-400" : "bg-emerald-400"}`}></div>
+                <span className="text-sm tabular-nums">#{latestBlockHeight}</span>
             </Link>
         )}
 
         <NetworkSelector />
     </>
 );
+
+/** Tables lives at /admin/tables, and the lobby at "/" is the same screen, so both highlight it. */
+const isItemActive = (pathname: string, itemPath: string): boolean =>
+    pathname === itemPath || (itemPath === "/admin/tables" && pathname === "/");
 
 export const GlobalHeader: React.FC = () => {
     const location = useLocation();
@@ -136,29 +138,31 @@ export const GlobalHeader: React.FC = () => {
         <header
             className={`sticky top-0 z-40 w-full ${styles.headerShell}`}
         >
-            <div className="container mx-auto px-4 py-3">
+            <div className="w-full px-4 lg:px-8 py-3.5">
                 {/* Desktop Layout: 3-column flexbox with logo+nav on left, network status on right */}
                 <div className="hidden lg:flex items-center justify-between">
                     {/* Left: Logo + Navigation */}
-                    <div className="flex items-center gap-6">
+                    <div className="flex items-center gap-7">
                         <Link to="/" className="hover:opacity-80 transition-opacity flex items-center">
                             <LogoComponent />
                         </Link>
 
                         {/* Desktop Navigation */}
-                        <nav className="flex items-center gap-1">
+                        <nav className="flex items-center gap-[22px]">
                             {menuItems.map(item => (
                                 <Link
                                     key={item.path}
                                     to={item.path}
                                     target={item.newTab ? "_blank" : undefined}
                                     rel={item.newTab ? "noopener noreferrer" : undefined}
-                                    className={`${item.iconOnly ? "px-2" : "px-3"} py-2 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-80 flex items-center gap-1.5 ${location.pathname === item.path ? styles.navItemActive : styles.navItemInactive}`}
+                                    aria-current={isItemActive(location.pathname, item.path) ? "page" : undefined}
+                                    className={`relative px-1 py-2 text-sm transition-colors flex items-center after:absolute after:left-0 after:right-0 after:-bottom-[18px] after:h-0.5 after:rounded-full after:transition-opacity ${
+                                        isItemActive(location.pathname, item.path)
+                                            ? `${styles.navLinkActive} after:bg-brand after:opacity-100`
+                                            : `${styles.navLinkInactive} after:bg-brand after:opacity-0 hover:after:opacity-40`
+                                    }`}
                                     title={item.iconOnly ? item.label : undefined}
                                 >
-                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
-                                    </svg>
                                     {!item.iconOnly && item.label}
                                     {item.badge && (
                                         <span
@@ -207,10 +211,15 @@ export const GlobalHeader: React.FC = () => {
 
                         {/* Mobile Menu Button */}
                         <button
+                            type="button"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
-                            className={`p-2 rounded-lg hover:opacity-80 transition-opacity ${styles.mobileMenuButton}`}
+                            aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+                            aria-expanded={isMenuOpen}
+                            className={`w-11 h-11 grid place-items-center rounded-full border transition-colors ${
+                                isMenuOpen ? "bg-surface-hover border-line-strong text-ink" : "border-transparent text-ink-soft hover:bg-surface-hover hover:text-ink"
+                            }`}
                         >
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                 {isMenuOpen ? (
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
                                 ) : (
@@ -222,34 +231,64 @@ export const GlobalHeader: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Mobile Navigation Menu */}
+                {/* Mobile Navigation Menu: floats over the page instead of pushing it down */}
                 {isMenuOpen && (
-                    <nav className={`lg:hidden mt-4 pb-2 border-t pt-4 ${styles.mobileMenuNav}`}>
-                        <div className="flex flex-col gap-2">
-                            {[...menuItems, ...adminMenuItems].map(item => (
+                    <div className="lg:hidden absolute inset-x-0 top-full">
+                        <button
+                            type="button"
+                            aria-label="Close menu"
+                            onClick={() => setIsMenuOpen(false)}
+                            className="absolute inset-x-0 top-0 h-screen bg-black/60 backdrop-blur-sm cursor-default"
+                        />
+                        <nav aria-label="Main" className="relative bg-surface-card border-b border-line shadow-[0_24px_60px_rgba(0,0,0,0.55)] p-3 flex flex-col gap-1">
+                            {menuItems.map(item => {
+                                const active = isItemActive(location.pathname, item.path);
+                                return (
+                                    <Link
+                                        key={item.path}
+                                        to={item.path}
+                                        target={item.newTab ? "_blank" : undefined}
+                                        rel={item.newTab ? "noopener noreferrer" : undefined}
+                                        onClick={() => setIsMenuOpen(false)}
+                                        aria-current={active ? "page" : undefined}
+                                        className={`flex items-center gap-3 min-h-[52px] px-3 rounded-xl transition-colors ${
+                                            active ? "bg-brand/10 text-ink" : "text-ink-body hover:bg-surface-hover"
+                                        }`}
+                                    >
+                                        <span className={`w-9 h-9 rounded-lg grid place-items-center flex-none ${active ? "bg-brand/20 text-brand-light" : "bg-surface-raised text-ink-muted"}`}>
+                                            <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                            </svg>
+                                        </span>
+                                        <span className="flex-1 text-[15px] font-medium">{item.label}</span>
+                                        {item.badge && (
+                                            <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${styles.badgePill}`}>{item.badge}</span>
+                                        )}
+                                        {active && <span className="w-1.5 h-1.5 rounded-full bg-brand" aria-hidden="true" />}
+                                    </Link>
+                                );
+                            })}
+
+                            <div className="my-1 border-t border-line" />
+
+                            {adminMenuItems.map(item => (
                                 <Link
                                     key={item.path}
                                     to={item.path}
-                                    target={item.newTab ? "_blank" : undefined}
-                                    rel={item.newTab ? "noopener noreferrer" : undefined}
                                     onClick={() => setIsMenuOpen(false)}
-                                    className={`px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 hover:opacity-80 flex items-center gap-2 ${location.pathname === item.path ? styles.navItemActive : styles.navItemInactive}`}
+                                    aria-current={isItemActive(location.pathname, item.path) ? "page" : undefined}
+                                    className="flex items-center gap-3 min-h-[44px] px-3 rounded-xl text-sm text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors"
                                 >
-                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
-                                    </svg>
+                                    <span className="w-9 h-9 grid place-items-center flex-none">
+                                        <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={item.icon} />
+                                        </svg>
+                                    </span>
                                     {item.label}
-                                    {item.badge && (
-                                        <span
-                                            className={`ml-auto px-2 py-0.5 rounded text-xs font-semibold ${styles.badgePill}`}
-                                        >
-                                            {item.badge}
-                                        </span>
-                                    )}
                                 </Link>
                             ))}
-                        </div>
-                    </nav>
+                        </nav>
+                    </div>
                 )}
             </div>
         </header>

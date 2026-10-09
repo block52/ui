@@ -1,101 +1,53 @@
-.modalContainer {
-    background-color: var(--ui-bg-dark);
-    border: 1px solid var(--ui-border-color);
-}
-
-.closeButton {
-    background-color: var(--ui-bg-medium);
-}
-
-.suitClub {
-    color: var(--brand-primary);
-}
-
-.suitDiamond {
-    color: var(--accent-danger);
-}
-
-.dividerPrimary {
-    background: linear-gradient(to right, transparent, var(--brand-primary), transparent);
-}
-
-.balanceCard {
-    background-color: color-mix(in srgb, var(--ui-bg-dark) 60%, transparent);
-    border: 1px solid var(--brand-primary-10);
-}
-
-.selectField {
-    background-color: var(--ui-bg-medium);
-    border: 1px solid var(--ui-text-secondary);
-}
-
-.fixedBuyInPanel {
-    background-color: var(--ui-bg-medium);
-    border-color: var(--brand-primary);
-}
-
+/* Buy-in slider: brand track + thumb. The input is h-11 (44px) so the touch area is
+   generous; the visible track stays 6px. */
 .buyInSlider {
-    background-color: var(--ui-bg-medium);
-    accent-color: var(--brand-primary);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
 }
 
-.buyInInput {
-    background-color: var(--ui-bg-medium);
-    border: 1px solid var(--ui-border-color);
+.buyInSlider:focus-visible {
+    outline: 2px solid rgb(var(--brand-primary-light-rgb));
+    outline-offset: 2px;
+    border-radius: 9999px;
 }
 
-.buyInInput:focus {
-    border-color: var(--brand-primary);
+.buyInSlider::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: #2c2f45;
 }
 
-.errorText {
-    color: var(--accent-danger);
+.buyInSlider::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: #2c2f45;
 }
 
-.waitCheckbox {
-    accent-color: var(--brand-primary);
-    background-color: var(--ui-bg-medium);
-    border-color: var(--ui-text-secondary);
+.buyInSlider::-moz-range-progress {
+    height: 6px;
+    border-radius: 9999px;
+    background: rgb(var(--brand-primary-rgb));
 }
 
-.cancelButton {
-    background-color: var(--ui-text-secondary);
+.buyInSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+    border-radius: 9999px;
+    background: rgb(var(--brand-primary-rgb));
+    border: 3px solid #f5f5f7;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
-.cancelButton:hover {
-    background-color: var(--ui-bg-medium);
-}
-
-.viewTableButton {
-    background: var(--brand-primary);
-}
-
-.viewTableButton:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.takeSeatButton {
-    background: linear-gradient(to bottom right, var(--brand-primary), var(--brand-secondary));
-}
-
-.takeSeatButtonDisabled {
-    background: var(--brand-primary);
-}
-
-.takeSeatButton:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-}
-
-.balanceError {
-    color: var(--accent-danger);
-}
-
-.depositLink {
-    color: var(--brand-primary);
-}
-
-.noteText {
-    color: var(--ui-text-secondary);
+.buyInSlider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: rgb(var(--brand-primary-rgb));
+    border: 3px solid #f5f5f7;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }

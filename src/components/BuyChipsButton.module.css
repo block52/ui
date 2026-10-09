@@ -1,11 +1,17 @@
 .topUpEnabled {
-    background: linear-gradient(to right, var(--brand-primary), var(--brand-secondary));
+    background: #1c1e2b;
+    border-color: var(--brand-primary);
     cursor: pointer;
     opacity: 1;
 }
 
+.topUpEnabled:hover {
+    background: var(--brand-primary);
+}
+
 .topUpDisabled {
-    background: var(--ui-bg-medium);
+    background: #161722;
+    border-color: #262938;
     cursor: not-allowed;
     opacity: 0.5;
 }

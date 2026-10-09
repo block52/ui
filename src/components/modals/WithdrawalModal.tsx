@@ -9,7 +9,13 @@ import { base64ToHex } from "../../utils/encodingUtils";
 import { useWithdrawalSignature } from "../../hooks/wallet/useWithdrawalSignature";
 import { describeWithdrawError } from "../../utils/withdrawalSignature";
 import { useWithdraw } from "../../hooks/wallet/useWithdraw";
-import styles from "./WithdrawalModal.module.css";
+import { Modal } from "../common/Modal";
+import { PillButton } from "../ui";
+import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
+import { amountInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "./walletFormClasses";
+import { ModalFooter } from "./ModalFooter";
+import { AmountPresets, type AmountPreset } from "./AmountPresets";
+import { CheckIcon, CopyIcon, SpinnerRing } from "./walletIcons";
 
 // ethers is still used for address validation in handleWithdraw
 
@@ -46,6 +52,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
     const { currentNetwork } = useNetwork();
     const { withdraw, hash: withdrawHash, isWithdrawConfirmed, withdrawError } = useWithdraw();
     const fetchWithdrawalSignature = useWithdrawalSignature();
+    const { copy, copied } = useCopyToClipboard();
 
     const balanceInUSDC = useMemo(() => {
         const usdcBalanceEntry = cosmosBalance.find(b => b.denom === "usdc");
@@ -271,221 +278,278 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
     if (!isOpen) return null;
 
     const balanceDisplay = balanceInUSDC.toFixed(2);
+    const walletConnected = Boolean(isWeb3Connected && web3Address);
+
+    // Quick amounts: rounded DOWN to whole cents so a preset never exceeds the balance.
+    const presetValue = (fraction: number): string => (Math.floor(balanceInUSDC * fraction * 100 + 1e-9) / 100).toFixed(2);
+    const presets: ReadonlyArray<AmountPreset> = [
+        { label: "25%", value: presetValue(0.25) },
+        { label: "50%", value: presetValue(0.5) },
+        { label: "75%", value: presetValue(0.75) },
+        { label: "Max", value: presetValue(1) }
+    ];
+    const amountEntered = amount !== "";
+    const amountInvalid = amountEntered && !validateAmount(amount);
+    const amountProblem = Number(amount) < 0.01 ? "Minimum withdrawal amount is 0.01 USDC" : "Invalid amount or insufficient balance";
+    const canPickAmount = walletConnected && balanceInUSDC >= 0.01;
+
+    const stepBadge = (done: boolean, active: boolean, label: string) => (
+        <span
+            className={`w-7 h-7 shrink-0 rounded-full grid place-items-center text-xs font-semibold ${
+                done ? "bg-emerald-500/15 text-emerald-400" : active ? "bg-brand text-white" : "bg-surface-hover text-ink-muted"
+            }`}
+        >
+            {done ? <CheckIcon className="w-4 h-4" /> : label}
+        </span>
+    );
 
     return (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center ${styles.overlay}`}>
-            <div className={`rounded-xl p-6 w-full max-w-md mx-4 ${styles.modalContainer}`}>
-                <h2 className="text-2xl font-bold mb-4 text-white">Withdraw Funds</h2>
-
-                {/* Step indicator */}
-                <div className="mb-4 flex items-center justify-center gap-2">
-                    <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            step === "input" || step === "initiating" || step === "waiting_signature" ? "bg-blue-600 text-white" : "bg-green-600 text-white"
-                        }`}
-                    >
-                        1
-                    </div>
-                    <div
-                        className={`w-12 h-0.5 ${
-                            step === "ready_to_complete" || step === "completing_eth" || step === "done" ? "bg-green-600" : "bg-gray-600"
-                        }`}
-                    />
-                    <div
-                        className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${
-                            step === "ready_to_complete" || step === "completing_eth"
-                                ? "bg-blue-600 text-white"
-                                : step === "done"
-                                  ? "bg-green-600 text-white"
-                                  : "bg-gray-600 text-gray-400"
-                        }`}
-                    >
-                        2
-                    </div>
-                </div>
-                <div className="mb-4 flex justify-between text-xs text-gray-400 px-2">
-                    <span>Block52 Chain</span>
-                    <span>Ethereum</span>
-                </div>
-
-                {/* Error Message */}
-                {error && (
-                    <div className={`mb-4 p-3 rounded-lg ${styles.dangerAlert}`}>
-                        <p className={styles.textDanger}>{error}</p>
-                    </div>
-                )}
-
-                {/* ─── STEP: Input ─────────────────────────────────────── */}
-                {step === "input" && (
-                    <>
-                        <div className={`mb-4 p-3 rounded-lg ${styles.surfaceMuted}`}>
-                            <p className={`text-sm ${styles.textSecondary}`}>Available Balance</p>
-                            <p className={`text-xl font-bold ${styles.textPrimary}`}>${balanceDisplay} USDC</p>
+        <Modal
+            isOpen={isOpen}
+            onClose={onClose}
+            title="Withdraw"
+            subtitle="Move USDC from Block52 to Ethereum"
+            widthClass="w-full max-w-[460px]"
+            error={error || null}
+            isProcessing={step === "initiating" || step === "completing_eth"}
+            closeOnBackdropClick={false}
+            closeOnEscape={false}
+        >
+            {/* ─── STEP: Input ─────────────────────────────────────── */}
+            {step === "input" && (
+                <>
+                    <div className="space-y-4">
+                        {/* Route */}
+                        <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2" aria-label="Withdrawal route">
+                            <div className={`${insetBoxClass} min-w-0`}>
+                                <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-ink-muted">From</p>
+                                <p className="m-0 mt-0.5 text-sm font-semibold text-ink truncate">Block52 chain</p>
+                            </div>
+                            <svg className="w-5 h-5 text-ink-muted" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M4 10h12m-4-4l4 4-4 4" />
+                            </svg>
+                            <div className={`${insetBoxClass} min-w-0`}>
+                                <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-ink-muted">To</p>
+                                <p className="m-0 mt-0.5 text-sm font-semibold text-ink truncate">Ethereum</p>
+                            </div>
                         </div>
 
-                        {!isWeb3Connected || !web3Address ? (
-                            <div className="mb-4">
-                                <p className={`text-sm mb-3 ${styles.textSecondary}`}>
-                                    Connect your Web3 wallet to withdraw funds. The withdrawal will be sent to your connected wallet address.
-                                </p>
-                                <button
-                                    onClick={() => openWalletConnect()}
-                                    className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition hover:opacity-90 ${styles.primaryActionButton}`}
-                                >
-                                    Connect Your Web3 Wallet
-                                </button>
+                        {/* Available */}
+                        <div className="text-center py-1">
+                            <p className="m-0 text-xs uppercase tracking-[0.08em] text-ink-muted">Available</p>
+                            <p className="m-0 mt-1 text-3xl font-bold tabular-nums text-ink">
+                                ${balanceDisplay} <span className="text-sm font-medium text-ink-muted">USDC</span>
+                            </p>
+                        </div>
+
+                        {/* Step 1 */}
+                        <section className={`p-4 rounded-2xl border ${walletConnected ? "border-line bg-surface-card" : "border-brand/40 bg-brand/5"}`} aria-label="Step 1">
+                            <div className="flex items-center gap-3">
+                                {stepBadge(walletConnected, !walletConnected, "1")}
+                                <h3 className="m-0 text-sm font-semibold text-ink">Connect an Ethereum wallet</h3>
                             </div>
-                        ) : (
-                            <div className="mb-4">
-                                <label className={`block text-sm mb-2 ${styles.textSecondary}`}>Withdrawal Address</label>
-                                <div className={`p-3 rounded-lg ${styles.surfacePrimarySoft}`}>
-                                    <p className={`font-mono text-sm ${styles.textPrimary}`}>{web3Address}</p>
+                            {!walletConnected || !web3Address ? (
+                                <div className="mt-3 space-y-3">
+                                    <p className="m-0 text-sm text-ink-soft">
+                                        Connect your Web3 wallet to withdraw funds. The withdrawal will be sent to your connected wallet address.
+                                    </p>
+                                    <PillButton size="lg" className="w-full" onClick={() => openWalletConnect()}>
+                                        Connect Your Web3 Wallet
+                                    </PillButton>
                                 </div>
-                                <p className="text-xs mt-1 text-gray-500">Funds will be sent to your connected Web3 wallet</p>
+                            ) : (
+                                <div className="mt-3">
+                                    <span className={fieldLabelClass}>Withdrawal address</span>
+                                    <div className={`flex items-center gap-2 pr-1.5 ${insetBoxClass}`}>
+                                        <span className="shrink-0 text-emerald-400" aria-hidden="true">
+                                            <CheckIcon />
+                                        </span>
+                                        <p className="flex-1 min-w-0 m-0 font-mono text-sm text-ink break-all">{web3Address}</p>
+                                        <button
+                                            type="button"
+                                            onClick={() => copy(web3Address, "Address copied to clipboard!")}
+                                            aria-label={copied ? "Address copied" : "Copy withdrawal address"}
+                                            className={`shrink-0 w-11 h-11 grid place-items-center rounded-full transition-colors hover:bg-surface-hover ${copied ? "text-emerald-400" : "text-ink-muted hover:text-ink"}`}
+                                        >
+                                            {copied ? <CheckIcon /> : <CopyIcon />}
+                                        </button>
+                                    </div>
+                                    <div className="mt-1.5 flex items-center justify-between gap-2">
+                                        <p className="m-0 text-xs text-ink-muted">Funds will be sent to your connected Web3 wallet</p>
+                                        <PillButton variant="ghost" size="sm" className="shrink-0 h-11 sm:h-9" onClick={() => openWalletConnect()}>
+                                            Change
+                                        </PillButton>
+                                    </div>
+                                </div>
+                            )}
+                        </section>
+
+                        {/* Step 2 */}
+                        <section
+                            className={`p-4 rounded-2xl border transition-opacity ${walletConnected ? "border-brand/40 bg-brand/5" : "border-line bg-surface-card opacity-60"}`}
+                            aria-label="Step 2"
+                            aria-disabled={!walletConnected}
+                        >
+                            <div className="flex items-center gap-3">
+                                {stepBadge(false, walletConnected, "2")}
+                                <h3 className="m-0 text-sm font-semibold text-ink">Choose an amount and confirm</h3>
                             </div>
-                        )}
-
-                        {isWeb3Connected && web3Address && (
-                            <div className="mb-6">
-                                <label className={`block text-sm mb-2 ${styles.textSecondary}`}>Amount (USDC)</label>
-                                <input
-                                    type="number"
-                                    value={amount}
-                                    onChange={e => setAmount(e.target.value)}
-                                    placeholder="0.00"
-                                    step="0.01"
-                                    min="0"
-                                    max={balanceInUSDC}
-                                    className={`w-full px-3 py-2 rounded-lg focus:outline-none focus:ring-2 ${styles.amountInput}`}
-                                />
-                                <p className="text-xs text-gray-500 mt-1">Minimum: 0.01 USDC</p>
+                            <div className="mt-3 space-y-3">
+                                <div>
+                                    <label htmlFor="withdraw-amount" className={fieldLabelClass}>
+                                        Amount (USDC)
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-semibold text-ink-muted pointer-events-none" aria-hidden="true">
+                                            $
+                                        </span>
+                                        <input
+                                            id="withdraw-amount"
+                                            type="number"
+                                            inputMode="decimal"
+                                            value={amount}
+                                            onChange={e => setAmount(e.target.value)}
+                                            placeholder="0.00"
+                                            step="0.01"
+                                            min="0"
+                                            max={balanceInUSDC}
+                                            disabled={!walletConnected}
+                                            autoFocus={walletConnected}
+                                            aria-invalid={amountInvalid}
+                                            aria-describedby="withdraw-amount-help"
+                                            className={`${amountInputClass} pl-9 pr-28 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none disabled:cursor-not-allowed ${
+                                                amountInvalid ? "border-red-500/60 focus:border-red-400 focus:ring-red-500/30" : ""
+                                            }`}
+                                        />
+                                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium text-ink-muted pointer-events-none">USDC</span>
+                                    </div>
+                                    <p id="withdraw-amount-help" className={`m-0 mt-1.5 text-xs ${amountInvalid ? "text-red-400" : "text-ink-muted"}`}>
+                                        {amountInvalid ? amountProblem : `Available $${balanceDisplay} · Minimum: 0.01 USDC`}
+                                    </p>
+                                </div>
+                                <AmountPresets presets={presets} current={amount} onPick={setAmount} disabled={!canPickAmount} />
                             </div>
-                        )}
-
-                        <div className="flex flex-col space-y-3">
-                            <button
-                                onClick={handleWithdraw}
-                                className={`w-full py-2 px-4 rounded-lg font-semibold text-white transition hover:opacity-90 disabled:opacity-50 ${styles.primaryActionButton}`}
-                                disabled={!isWeb3Connected || !web3Address || !amount}
-                            >
-                                Withdraw
-                            </button>
-                            <button
-                                onClick={onClose}
-                                className={`w-full py-2 px-4 rounded-lg font-semibold text-white transition hover:opacity-80 ${styles.cancelActionButton}`}
-                            >
-                                Cancel
-                            </button>
-                        </div>
-                    </>
-                )}
-
-                {/* ─── STEP: Initiating cosmos tx ──────────────────────── */}
-                {step === "initiating" && (
-                    <div className="text-center py-8">
-                        <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4" />
-                        <p className="text-white font-semibold mb-2">Initiating Withdrawal</p>
-                        <p className="text-gray-400 text-sm">Signing withdrawal request on Block52 chain...</p>
+                        </section>
                     </div>
-                )}
 
-                {/* ─── STEP: Waiting for validator signature ───────────── */}
-                {step === "waiting_signature" && (
-                    <div className="text-center py-6">
-                        <div className="animate-spin w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4" />
-                        <p className="text-white font-semibold mb-2">Waiting for Validator Signature</p>
-                        <p className="text-gray-400 text-sm mb-4">
-                            Your withdrawal request has been submitted. Fetching a validator signature for the deposit contract...
-                        </p>
-                        {txHash && <p className="text-gray-500 text-xs font-mono mb-2">Cosmos Tx: {txHash.slice(0, 16)}...</p>}
-                        <p className="text-gray-600 text-xs">
+                    <ModalFooter>
+                        {walletConnected && (
+                            <PillButton size="lg" className="w-full" onClick={handleWithdraw} disabled={!isWeb3Connected || !web3Address || !amount}>
+                                Withdraw
+                            </PillButton>
+                        )}
+                        <PillButton variant="ghost" size="lg" className="w-full" onClick={onClose}>
+                            Cancel
+                        </PillButton>
+                    </ModalFooter>
+                </>
+            )}
+
+            {/* ─── STEP: Initiating cosmos tx ──────────────────────── */}
+            {step === "initiating" && (
+                <div role="status" className="text-center py-8">
+                    <SpinnerRing toneClass="border-brand" />
+                    <p className="text-ink font-semibold mb-2">Initiating Withdrawal</p>
+                    <p className="text-ink-muted text-sm">Signing withdrawal request on Block52 chain...</p>
+                </div>
+            )}
+
+            {/* ─── STEP: Waiting for validator signature ───────────── */}
+            {step === "waiting_signature" && (
+                <>
+                    <div role="status" className="text-center py-4">
+                        <SpinnerRing toneClass="border-amber-400" />
+                        <p className="text-ink font-semibold mb-2">Waiting for Validator Signature</p>
+                        <p className="text-ink-soft text-sm mb-4">Your withdrawal request has been submitted. Fetching a validator signature for the deposit contract...</p>
+                        {txHash && <p className={`m-0 mb-2 text-xs font-mono text-ink-muted break-all ${insetBoxClass}`}>Cosmos Tx: {txHash.slice(0, 16)}...</p>}
+                        <p className="text-ink-muted text-xs tabular-nums m-0">
                             Checking... ({pollCount} {pollCount === 1 ? "attempt" : "attempts"})
                         </p>
 
                         {pollCount > SLOW_POLL_THRESHOLD && (
-                            <div className={`mt-4 p-3 rounded-lg text-left ${styles.warningAlert}`}>
-                                <p className={`text-sm ${styles.textWarning}`}>
-                                    Signing is taking longer than expected. The validator may need additional time. You can wait here or check the Withdrawal
-                                    Dashboard later.
-                                </p>
+                            <div className={`mt-4 text-left text-sm ${noticeClass.warning}`}>
+                                Signing is taking longer than expected. The validator may need additional time. You can wait here or check the Withdrawal Dashboard
+                                later.
                             </div>
                         )}
-
-                        <button onClick={onClose} className="mt-4 text-sm text-gray-500 hover:text-gray-300 transition">
-                            Close (withdrawal will continue in background)
-                        </button>
                     </div>
-                )}
+                    <ModalFooter>
+                        <PillButton variant="ghost" size="lg" className="w-full !h-auto min-h-12 py-2 whitespace-normal" onClick={onClose}>
+                            Close (withdrawal will continue in background)
+                        </PillButton>
+                    </ModalFooter>
+                </>
+            )}
 
-                {/* ─── STEP: Ready to complete on Ethereum ─────────────── */}
-                {step === "ready_to_complete" && withdrawalInfo && (
-                    <div className="py-4">
-                        <div className={`mb-4 p-3 rounded-lg ${styles.successAlert}`}>
-                            <p className={`font-semibold ${styles.textSuccess}`}>Validator Signature Received</p>
-                            <p className={`text-sm mt-1 ${styles.textSecondary}`}>Your withdrawal is signed and ready to complete on Ethereum.</p>
-                        </div>
-
-                        <div className={`mb-4 p-3 rounded-lg ${styles.surfaceMuted}`}>
-                            <div className="space-y-2 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400">Amount:</span>
-                                    <span className="text-white font-semibold">{formatMicroAsUsdc(withdrawalInfo.amount, 6)} USDC</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-gray-400">To:</span>
-                                    <span className="text-white font-mono text-xs">
-                                        {withdrawalInfo.baseAddress.slice(0, 10)}...
-                                        {withdrawalInfo.baseAddress.slice(-8)}
-                                    </span>
-                                </div>
+            {/* ─── STEP: Ready to complete on Ethereum ─────────────── */}
+            {step === "ready_to_complete" && withdrawalInfo && (
+                <>
+                    <div className="space-y-4">
+                        <div className={`flex items-start gap-3 ${noticeClass.success}`}>
+                            <span className="shrink-0 w-6 h-6 rounded-full bg-emerald-500/15 grid place-items-center" aria-hidden="true">
+                                <CheckIcon className="w-4 h-4" />
+                            </span>
+                            <div>
+                                <p className="m-0 font-semibold">Validator Signature Received</p>
+                                <p className="m-0 mt-1 text-ink-soft">Your withdrawal is signed and ready to complete on Ethereum.</p>
                             </div>
                         </div>
 
-                        <div className="flex flex-col space-y-3">
-                            <button
-                                onClick={handleCompleteOnEthereum}
-                                className={`w-full py-3 px-4 rounded-lg font-semibold text-white transition hover:opacity-90 ${styles.primaryActionButton}`}
-                            >
-                                Complete on Ethereum
-                            </button>
-                            <p className="text-center text-sm text-gray-400">You can complete this withdrawal later from the Withdrawal Dashboard</p>
-                            <button
-                                onClick={onClose}
-                                className={`w-full py-2 px-4 rounded-lg font-semibold text-white transition hover:opacity-80 ${styles.cancelActionButton}`}
-                            >
-                                Close
-                            </button>
+                        <div className={`space-y-2 ${insetBoxClass}`}>
+                            <div className="flex items-baseline justify-between gap-3">
+                                <span className="text-xs uppercase tracking-[0.08em] text-ink-muted">Amount</span>
+                                <span className="text-xl font-semibold tabular-nums text-ink">{formatMicroAsUsdc(withdrawalInfo.amount, 6)} USDC</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3">
+                                <span className="text-xs uppercase tracking-[0.08em] text-ink-muted">To</span>
+                                <span className="text-ink font-mono text-xs">
+                                    {withdrawalInfo.baseAddress.slice(0, 10)}...
+                                    {withdrawalInfo.baseAddress.slice(-8)}
+                                </span>
+                            </div>
                         </div>
-                    </div>
-                )}
 
-                {/* ─── STEP: Completing on Ethereum ────────────────────── */}
-                {step === "completing_eth" && (
-                    <div className="text-center py-8">
-                        <div className="animate-spin w-12 h-12 border-4 border-green-500 border-t-transparent rounded-full mx-auto mb-4" />
-                        <p className="text-white font-semibold mb-2">Completing on Ethereum</p>
-                        <p className="text-gray-400 text-sm">Confirm the transaction in your wallet...</p>
+                        <p className="m-0 text-center text-xs text-ink-muted">You can complete this withdrawal later from the Withdrawal Dashboard</p>
                     </div>
-                )}
-
-                {/* ─── STEP: Done ──────────────────────────────────────── */}
-                {step === "done" && (
-                    <div className="py-4">
-                        <div className={`mb-4 p-4 rounded-lg ${styles.successAlert}`}>
-                            <p className={`text-lg font-bold ${styles.textSuccess}`}>Withdrawal Complete!</p>
-                            <p className={`text-sm mt-2 ${styles.textSecondary}`}>USDC has been transferred to your Ethereum wallet.</p>
-                            {ethTxHash && <p className="text-xs mt-2 font-mono text-gray-500">Eth Tx: {ethTxHash.slice(0, 16)}...</p>}
-                        </div>
-                        <button
-                            onClick={onClose}
-                            className={`w-full py-2 px-4 rounded-lg font-semibold text-white transition hover:opacity-90 ${styles.primaryActionButton}`}
-                        >
+                    <ModalFooter>
+                        <PillButton size="lg" className="w-full" onClick={handleCompleteOnEthereum}>
+                            Complete on Ethereum
+                        </PillButton>
+                        <PillButton variant="ghost" size="lg" className="w-full" onClick={onClose}>
                             Close
-                        </button>
+                        </PillButton>
+                    </ModalFooter>
+                </>
+            )}
+
+            {/* ─── STEP: Completing on Ethereum ────────────────────── */}
+            {step === "completing_eth" && (
+                <div role="status" className="text-center py-8">
+                    <SpinnerRing toneClass="border-emerald-400" />
+                    <p className="text-ink font-semibold mb-2">Completing on Ethereum</p>
+                    <p className="text-ink-muted text-sm">Confirm the transaction in your wallet...</p>
+                </div>
+            )}
+
+            {/* ─── STEP: Done ──────────────────────────────────────── */}
+            {step === "done" && (
+                <>
+                    <div role="status" className="text-center py-4">
+                        <span className="mx-auto mb-4 w-14 h-14 rounded-full bg-emerald-500/10 text-emerald-400 grid place-items-center" aria-hidden="true">
+                            <CheckIcon className="w-7 h-7" />
+                        </span>
+                        <p className="m-0 text-lg font-semibold text-ink">Withdrawal Complete!</p>
+                        <p className="m-0 mt-2 text-sm text-ink-soft">USDC has been transferred to your Ethereum wallet.</p>
+                        {ethTxHash && <p className={`m-0 mt-4 text-xs font-mono text-ink-muted break-all ${insetBoxClass}`}>Eth Tx: {ethTxHash.slice(0, 16)}...</p>}
                     </div>
-                )}
-            </div>
-        </div>
+                    <ModalFooter>
+                        <PillButton size="lg" className="w-full" onClick={onClose}>
+                            Close
+                        </PillButton>
+                    </ModalFooter>
+                </>
+            )}
+        </Modal>
     );
 };
 

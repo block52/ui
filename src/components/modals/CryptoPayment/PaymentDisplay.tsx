@@ -3,7 +3,8 @@ import { QRCodeSVG } from "qrcode.react";
 import type { PaymentDisplayProps } from "../types";
 import { toSmallestUnit, ethToWei } from "../../../utils/currencyUtils";
 import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
-import styles from "./PaymentDisplay.module.css";
+import { fieldLabelClass, insetBoxClass, noticeClass } from "../walletFormClasses";
+import { CheckIcon, CopyIcon, WarningIcon } from "../walletIcons";
 import { findDepositCurrency } from "../../../config/depositCurrencies";
 
 const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
@@ -56,101 +57,85 @@ const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
         return `${hours}h ${mins}m`;
     };
 
+    const expiresIn = formatExpiration(expiresAt);
+
     return (
         <div className="space-y-4">
-            {/* Payment Info Header */}
-            <div className="p-4 rounded-lg bg-gray-900 border border-gray-700">
-                <div className="text-center">
-                    <p className="text-gray-400 text-sm mb-1">Send Exactly</p>
-                    <p className="text-2xl font-bold text-white">
-                        {payAmount} <span className="text-lg">{displayName}</span>
-                    </p>
-                    <p className="text-gray-400 text-xs mt-1">{"\u2248"} ${priceAmount.toFixed(2)} USD</p>
+            {/* Payment facts */}
+            <div className={`${insetBoxClass} text-center py-4`}>
+                <p className="text-xs uppercase tracking-[0.08em] text-ink-muted mb-1.5">Send exactly</p>
+                <p className="text-[32px] leading-tight font-semibold text-ink tabular-nums break-all">
+                    {payAmount} <span className="text-lg text-ink-soft">{displayName}</span>
+                </p>
+                <p className="text-ink-muted text-xs mt-1 tabular-nums">{"\u2248"} ${priceAmount.toFixed(2)} USD</p>
+            </div>
+            <div className={`${insetBoxClass} space-y-2`}>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-ink-muted">Network</span>
+                    <span className="text-ink font-semibold">{networkName}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3 text-sm">
+                    <span className="text-ink-muted">Payment expires in</span>
+                    <span
+                        className={`px-2.5 py-0.5 rounded-full border text-xs font-semibold tabular-nums ${
+                            expiresIn === "Expired" ? "border-red-500/30 bg-red-500/10 text-red-400" : "border-amber-500/30 bg-amber-500/10 text-amber-300"
+                        }`}
+                    >
+                        {expiresIn}
+                    </span>
                 </div>
             </div>
 
-            {/* Network Warning Banner */}
-            <div className="p-3 rounded-lg bg-blue-900/20 border border-blue-500/50 flex items-start gap-2">
-                    <svg className="w-5 h-5 text-blue-400 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                        <path
-                            fillRule="evenodd"
-                            d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z"
-                            clipRule="evenodd"
-                        />
-                    </svg>
-                    <div className="flex-1">
-                        <p className="text-blue-400 text-sm font-semibold">
-                            Network: {networkName}
-                        </p>
-                        <p className="text-blue-400/70 text-xs mt-1">
-                            Only send {displayName} on the <strong>{networkName}</strong> network. Sending on the wrong network will result in lost funds.
-                        </p>
-                    </div>
-                </div>
+            {/* Network Warning */}
+            <div className={`flex items-start gap-2 ${noticeClass.warning}`}>
+                <WarningIcon className="w-4 h-4 flex-shrink-0 mt-px" />
+                <p>
+                    Only send {displayName} on the <strong className="text-amber-200">{networkName}</strong> network. Sending on the wrong network will result in lost funds. Send the exact
+                    amount to avoid payment failures. Partial payments may be lost.
+                </p>
+            </div>
 
             {/* QR Code */}
-            <div className="flex justify-center p-6 bg-white rounded-lg">
-                <QRCodeSVG
-                    value={qrValue}
-                    size={200}
-                    level="H"
-                    includeMargin={true}
-                    fgColor="#000000"
-                    bgColor="#FFFFFF"
-                />
+            <div className="flex justify-center">
+                <div className="p-2 bg-white rounded-xl">
+                    <QRCodeSVG value={qrValue} size={184} level="H" includeMargin={true} fgColor="#000000" bgColor="#FFFFFF" />
+                </div>
             </div>
 
             {/* Payment Address */}
-            <div className="space-y-2">
-                <label className="block text-sm font-medium text-gray-400">Payment Address</label>
-                <div className="relative">
-                    <input
-                        type="text"
-                        value={paymentAddress}
-                        readOnly
-                        className="w-full p-3 pr-20 border border-gray-600 bg-gray-900 text-white rounded-lg font-mono text-sm"
-                    />
+            <div>
+                <span className={fieldLabelClass}>Payment address</span>
+                <div className={`flex items-center gap-2 pr-1.5 ${insetBoxClass}`}>
+                    <p className="flex-1 min-w-0 m-0 font-mono text-sm text-ink break-all">{paymentAddress}</p>
                     <button
+                        type="button"
                         onClick={() => copy(paymentAddress, "Address copied to clipboard!")}
-                        className={`absolute right-2 top-1/2 -translate-y-1/2 px-3 py-1 rounded text-xs font-semibold transition-all text-white ${
-                            copied ? styles.copyButtonCopied : styles.copyButtonDefault
-                        }`}
+                        aria-label={copied ? "Address copied" : "Copy payment address"}
+                        className={`shrink-0 w-11 h-11 grid place-items-center rounded-full transition-colors hover:bg-surface-hover ${copied ? "text-emerald-400" : "text-ink-muted hover:text-ink"}`}
                     >
-                        {copied ? "✓ Copied" : "Copy"}
+                        {copied ? <CheckIcon /> : <CopyIcon />}
                     </button>
                 </div>
             </div>
 
-            {/* Expiration Warning */}
-            <div className="p-3 rounded-lg bg-yellow-900/20 border border-yellow-500/50 flex items-start gap-2">
-                <svg className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                        fillRule="evenodd"
-                        d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z"
-                        clipRule="evenodd"
-                    />
-                </svg>
-                <div className="flex-1">
-                    <p className="text-yellow-400 text-sm font-semibold">Payment Expires In: {formatExpiration(expiresAt)}</p>
-                    <p className="text-yellow-400/80 text-xs mt-1">
-                        Send the exact amount to avoid payment failures. Partial payments may be lost.
-                    </p>
-                </div>
-            </div>
-
             {/* Instructions */}
-            <div className="space-y-2 text-sm text-gray-400">
-                <p className="font-semibold text-white">How to complete payment:</p>
-                <ol className="list-decimal list-inside space-y-1 pl-2">
+            <details className="group rounded-xl border border-line bg-surface-raised">
+                <summary className="flex items-center justify-between min-h-11 px-4 cursor-pointer list-none text-sm font-medium text-ink-soft hover:text-ink [&::-webkit-details-marker]:hidden">
+                    How to complete payment
+                    <svg className="w-4 h-4 transition-transform group-open:rotate-180" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 8l5 5 5-5" />
+                    </svg>
+                </summary>
+                <ol className="list-decimal list-inside space-y-1 px-4 pb-3 text-sm text-ink-soft">
                     <li>Open your crypto wallet</li>
                     <li>Scan the QR code or copy the address above</li>
                     <li>
-                        Send exactly {payAmount} {displayName} on the <strong className="text-white">{networkName}</strong> network
+                        Send exactly {payAmount} {displayName} on the <strong className="text-ink">{networkName}</strong> network
                     </li>
                     <li>Wait for blockchain confirmation (5-15 minutes)</li>
                     <li>Your USDC will appear in your game wallet automatically</li>
                 </ol>
-            </div>
+            </details>
         </div>
     );
 };

@@ -6,7 +6,7 @@ import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
 import { copyToClipboard as copyToClipboardUtil } from "../utils/clipboard";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
-import { AnimatedBackground } from "../components/common/AnimatedBackground";
+import { Card, CardHeader, PillButton } from "../components/ui";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { AccountBalanceResponse, AccountsResponse, ValidatorsResponse } from "./explorer/AllAccountsPage";
 
@@ -201,143 +201,143 @@ export default function GenesisState() {
 
     if (loading) {
         return (
-            <div className="min-h-screen p-8 relative">
-                <AnimatedBackground />
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="text-center text-white text-xl">Loading genesis state...</div>
-                </div>
+            <div className="min-h-screen bg-surface-page text-ink-body">
+                <main className="max-w-[1376px] mx-auto px-4 py-6 sm:px-8 sm:py-8">
+                    <div className="text-center text-ink-muted text-lg">Loading genesis state...</div>
+                </main>
             </div>
         );
     }
 
     if (error) {
         return (
-            <div className="min-h-screen p-8 relative">
-                <AnimatedBackground />
-                <div className="max-w-7xl mx-auto relative z-10">
-                    <div className="bg-red-900/30 border border-red-500 rounded-lg p-6">
-                        <h2 className="text-red-400 text-xl font-bold mb-2">Error Loading Genesis State</h2>
-                        <p className="text-red-300">{error}</p>
-                        <button onClick={fetchGenesisState} className="mt-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg">
+            <div className="min-h-screen bg-surface-page text-ink-body">
+                <main className="max-w-[1376px] mx-auto px-4 py-6 sm:px-8 sm:py-8">
+                    <Card className="p-6 border-red-400/40">
+                        <h2 className="m-0 text-red-400 text-[17px] font-semibold mb-2">Error loading genesis state</h2>
+                        <p className="text-ink-soft break-words">{error}</p>
+                        <PillButton variant="outline" size="md" className="mt-4" onClick={fetchGenesisState}>
                             Retry
-                        </button>
-                    </div>
-                </div>
+                        </PillButton>
+                    </Card>
+                </main>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen p-8 relative">
-            <AnimatedBackground />
-            <div className="max-w-7xl mx-auto space-y-8 relative z-10">
+        <div className="min-h-screen bg-surface-page text-ink-body">
+            <main className="max-w-[1376px] mx-auto px-4 py-6 sm:px-8 sm:py-8 flex flex-col gap-6">
                 {/* Header */}
-                <div className="bg-gradient-to-r from-blue-900/40 to-purple-900/40 rounded-lg p-8 border border-blue-500/30 text-center">
-                    <h1 className="text-4xl font-bold text-white mb-2">🔷 Genesis State - Block 0</h1>
-                    <p className="text-gray-300">Initial blockchain state when the chain was started. Shows which accounts exist from genesis.</p>
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                    <div className="flex flex-col gap-1">
+                        <h1 className="m-0 text-[28px] font-semibold text-ink">Genesis state</h1>
+                        <span className="text-ink-muted">Block 0: the accounts that existed when the chain was started</span>
+                    </div>
+                    <PillButton variant="outline" size="md" onClick={fetchGenesisState}>
+                        Refresh
+                    </PillButton>
                 </div>
 
                 {/* Your Wallet Status */}
                 {cosmosAddress && (
-                    <div className={`rounded-lg p-6 border-2 ${myWalletInGenesis ? "bg-green-900/20 border-green-500" : "bg-yellow-900/20 border-yellow-500"}`}>
-                        <h2 className="text-xl font-bold text-white mb-3">🔐 Your Connected Wallet</h2>
-                        <div className="space-y-2">
-                            <div className="flex items-center gap-2">
-                                <span className="text-gray-400">Address:</span>
-                                <code className="text-white font-mono text-sm bg-black/30 px-2 py-1 rounded">{cosmosAddress}</code>
-                                <button onClick={() => copyToClipboard(cosmosAddress, "Address")} className="text-blue-400 hover:text-blue-300 text-sm">
-                                    📋 Copy
-                                </button>
+                    <Card className={myWalletInGenesis ? "border-emerald-400/40" : "border-amber-400/40"}>
+                        <CardHeader title="Your connected wallet" />
+                        <div className="p-5 space-y-3">
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-ink-muted">Address:</span>
+                                <code className="text-ink font-mono text-[13px] bg-surface-page px-2 py-1 rounded-lg break-all">{cosmosAddress}</code>
+                                <PillButton variant="ghost" size="sm" className="max-sm:h-11" onClick={() => copyToClipboard(cosmosAddress, "Address")}>
+                                    Copy
+                                </PillButton>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-gray-400 pl-3">Status:</span>
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="text-ink-muted">Status:</span>
                                 {myWalletInGenesis ? (
-                                    <span className="text-green-400 font-semibold">✅ In Genesis (has funds)</span>
+                                    <span className="text-emerald-400 font-semibold">In genesis (has funds)</span>
                                 ) : (
-                                    <span className="text-yellow-400 font-semibold">❌ NOT in Genesis (needs tokens)</span>
+                                    <span className="text-amber-400 font-semibold">Not in genesis (needs tokens)</span>
                                 )}
                             </div>
                             {!myWalletInGenesis && (
-                                <div className="mt-3 p-4 bg-yellow-900/30 border border-yellow-600 rounded">
-                                    <p className="text-yellow-200 text-sm">
-                                        💡 <strong>Tip:</strong> Your wallet doesn't have any tokens. Import one of the test account mnemonics below to get
+                                <div className="mt-3 p-4 bg-amber-400/10 border border-amber-400/30 rounded-xl">
+                                    <p className="text-amber-200 text-sm">
+                                        <strong>Tip:</strong> Your wallet doesn't have any tokens. Import one of the test account mnemonics below to get
                                         started!
                                     </p>
                                 </div>
                             )}
                         </div>
-                    </div>
+                    </Card>
                 )}
 
                 {/* Genesis Accounts */}
-                <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                    <h2 className="text-2xl font-bold text-white mb-4">📊 Genesis Accounts ({accounts.length})</h2>
-
-                    <div className="space-y-4">
+                <Card>
+                    <CardHeader title={`Genesis accounts (${accounts.length})`} />
+                    <div className="p-4 sm:p-5 space-y-3">
                         {accounts.map((account, index) => (
                             <div
                                 key={account.address}
-                                className={`bg-gray-900/50 rounded-lg p-5 border ${
-                                    isMyWallet(account.address)
-                                        ? "border-green-500 bg-green-900/10"
-                                        : account.isValidator
-                                          ? "border-purple-500 bg-purple-900/10"
-                                          : "border-gray-600"
+                                className={`bg-surface-raised rounded-xl p-4 sm:p-5 border ${
+                                    isMyWallet(account.address) ? "border-emerald-400/50" : account.isValidator ? "border-brand/50" : "border-line"
                                 }`}
                             >
                                 <div className="flex items-start justify-between mb-3">
-                                    <div>
+                                    <div className="min-w-0">
                                         <div className="flex items-center gap-2 mb-1">
-                                            <span className="text-lg font-bold text-white">
-                                                {account.isValidator ? "👑 Validator" : `Account ${index + 1}`}
+                                            <span className="text-[15px] font-semibold text-ink">
+                                                {account.isValidator ? "Validator" : `Account ${index + 1}`}
                                                 {account.moniker && ` - ${account.moniker}`}
                                             </span>
-                                            {isMyWallet(account.address) && <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">YOU</span>}
+                                            {isMyWallet(account.address) && (
+                                                <span className="px-2.5 py-0.5 bg-emerald-400/15 text-emerald-300 text-xs font-semibold rounded-full">You</span>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
-                                            <code className="text-sm text-gray-300 font-mono break-all">{account.address}</code>
-                                            <button
+                                            <code className="text-[13px] text-ink-soft font-mono break-all">{account.address}</code>
+                                            <PillButton
+                                                variant="ghost"
+                                                size="sm"
+                                                className="max-sm:h-11 flex-shrink-0"
                                                 onClick={() => copyToClipboard(account.address, "Address")}
-                                                className="text-blue-400 hover:text-blue-300 text-xs flex-shrink-0"
                                             >
-                                                📋
-                                            </button>
+                                                Copy
+                                            </PillButton>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Balances */}
                                 <div className="mt-3">
-                                    <h4 className="text-sm text-gray-400 mb-2">Balances:</h4>
+                                    <h4 className="text-xs uppercase tracking-[0.08em] text-ink-muted mb-2">Balances</h4>
                                     {hasElements(account.balances) ? (
                                         <div className="space-y-1">
                                             {account.balances.map(balance => (
                                                 <div key={balance.denom} className="flex items-center gap-2">
-                                                    <span className="text-white font-semibold">{formatAmount(balance.amount, balance.denom)}</span>
+                                                    <span className="text-ink font-semibold tabular-nums">{formatAmount(balance.amount, balance.denom)}</span>
                                                 </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        <span className="text-gray-500 text-sm">No balances</span>
+                                        <span className="text-ink-muted text-sm">No balances</span>
                                     )}
                                 </div>
 
                                 {/* Account metadata */}
-                                <div className="mt-3 flex gap-4 text-xs text-gray-500">
+                                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
                                     <span>Account #: {account.accountNumber}</span>
                                     <span>Sequence: {account.sequence}</span>
                                 </div>
                             </div>
                         ))}
                     </div>
-                </div>
+                </Card>
 
                 {/* Well-Known Test Accounts */}
-                <div className="bg-gradient-to-br from-purple-900/20 to-blue-900/20 rounded-lg p-6 border border-purple-500/30">
-                    <h2 className="text-2xl font-bold text-white mb-4">🔑 Well-Known Test Accounts</h2>
-                    <p className="text-gray-300 mb-4">These accounts are from config.yml. Import their mnemonics to get instant access to test tokens!</p>
-
-                    <div className="space-y-4">
+                <Card>
+                    <CardHeader title="Well-known test accounts" subtitle="From config.yml" />
+                    <div className="p-4 sm:p-5 space-y-3">
+                        <p className="text-ink-soft m-0">Import one of these mnemonics to get instant access to test tokens.</p>
                         {WELL_KNOWN_ACCOUNTS.map(wellKnown => {
                             const derivedAddress = derivedAddresses.get(wellKnown.name);
 
@@ -349,45 +349,55 @@ export default function GenesisState() {
                             return (
                                 <div
                                     key={wellKnown.name}
-                                    className={`bg-gray-900/50 rounded-lg p-4 border ${
-                                        isMyWalletAccount ? "border-green-500 bg-green-900/10" : genesisAccount ? "border-blue-500/50" : "border-gray-600"
+                                    className={`bg-surface-raised rounded-xl p-4 border ${
+                                        isMyWalletAccount ? "border-emerald-400/50" : genesisAccount ? "border-brand/40" : "border-line"
                                     }`}
                                 >
                                     <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="text-lg font-bold text-white capitalize">{wellKnown.name}</h3>
-                                                {isMyWalletAccount && <span className="px-2 py-1 bg-green-600 text-white text-xs rounded-full">YOU</span>}
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-wrap items-center gap-2 mb-1">
+                                                <h3 className="m-0 text-[15px] font-semibold text-ink capitalize">{wellKnown.name}</h3>
+                                                {isMyWalletAccount && (
+                                                    <span className="px-2.5 py-0.5 bg-emerald-400/15 text-emerald-300 text-xs font-semibold rounded-full">
+                                                        You
+                                                    </span>
+                                                )}
                                                 {genesisAccount ? (
-                                                    <span className="px-2 py-1 bg-blue-600 text-white text-xs rounded-full">✅ In Genesis</span>
+                                                    <span className="px-2.5 py-0.5 bg-brand/20 text-brand-light text-xs font-semibold rounded-full">
+                                                        In genesis
+                                                    </span>
                                                 ) : (
-                                                    <span className="px-2 py-1 bg-yellow-600 text-white text-xs rounded-full">⚠️ Not in Genesis</span>
+                                                    <span className="px-2.5 py-0.5 bg-amber-400/15 text-amber-300 text-xs font-semibold rounded-full">
+                                                        Not in genesis
+                                                    </span>
                                                 )}
                                             </div>
-                                            <p className="text-xs text-gray-400">Test account from config.yml</p>
+                                            <p className="text-xs text-ink-muted">Test account from config.yml</p>
 
                                             {/* Show derived address */}
                                             {derivedAddress && (
                                                 <div className="mt-2 flex items-start gap-2">
-                                                    <span className="text-xs text-gray-500 pt-1 flex-shrink-0">Address:</span>
-                                                    <code className="text-xs text-gray-300 font-mono bg-black/40 px-2 py-1 rounded break-all flex-1">
+                                                    <span className="text-xs text-ink-muted pt-1 flex-shrink-0">Address:</span>
+                                                    <code className="text-xs text-ink-soft font-mono bg-surface-page px-2 py-1 rounded-lg break-all flex-1">
                                                         {derivedAddress}
                                                     </code>
-                                                    <button
+                                                    <PillButton
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        className="max-sm:h-11 flex-shrink-0"
                                                         onClick={() => copyToClipboard(derivedAddress, `${wellKnown.name} address`)}
-                                                        className="text-blue-400 hover:text-blue-300 text-xs flex-shrink-0"
                                                     >
-                                                        📋
-                                                    </button>
+                                                        Copy
+                                                    </PillButton>
                                                 </div>
                                             )}
 
                                             {/* Show balances if account is in genesis */}
                                             {genesisAccount && hasElements(genesisAccount.balances) && (
                                                 <div className="mt-2">
-                                                    <span className="text-xs text-gray-500">Balances: </span>
+                                                    <span className="text-xs text-ink-muted">Balances: </span>
                                                     {genesisAccount.balances.map((bal, idx) => (
-                                                        <span key={bal.denom} className="text-xs text-green-400 font-semibold">
+                                                        <span key={bal.denom} className="text-xs text-emerald-400 font-semibold">
                                                             {formatAmount(bal.amount, bal.denom)}
                                                             {idx < genesisAccount.balances.length - 1 ? ", " : ""}
                                                         </span>
@@ -399,24 +409,26 @@ export default function GenesisState() {
 
                                     <div className="space-y-2">
                                         <div>
-                                            <label className="text-xs text-gray-400 mb-1 block">Mnemonic (BIP39):</label>
+                                            <label className="text-xs text-ink-muted mb-1 block">Mnemonic (BIP39):</label>
                                             <div className="flex items-start gap-2">
-                                                <code className="text-xs text-gray-300 font-mono bg-black/40 px-3 py-2 rounded flex-1 break-all">
+                                                <code className="text-xs text-ink-soft font-mono bg-surface-page px-3 py-2 rounded-lg flex-1 break-all">
                                                     {wellKnown.mnemonic}
                                                 </code>
-                                                <button
+                                                <PillButton
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="max-sm:h-11 flex-shrink-0"
                                                     onClick={() => copyToClipboard(wellKnown.mnemonic, `${wellKnown.name} mnemonic`)}
-                                                    className="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded whitespace-nowrap"
                                                 >
-                                                    📋 Copy
-                                                </button>
+                                                    Copy
+                                                </PillButton>
                                             </div>
                                         </div>
 
-                                        <div className="mt-2 p-3 bg-blue-900/20 border border-blue-600/30 rounded">
-                                            <p className="text-xs text-blue-200">
-                                                💡 <strong>How to use:</strong> Copy the mnemonic above and import it into your Keplr wallet or Block52 wallet
-                                                to access this test account.
+                                        <div className="mt-2 p-3 bg-brand/10 border border-brand/30 rounded-xl">
+                                            <p className="text-xs text-ink-soft m-0">
+                                                <strong className="text-ink">How to use:</strong> Copy the mnemonic above and import it into your Keplr wallet
+                                                or Block52 wallet to access this test account.
                                             </p>
                                         </div>
                                     </div>
@@ -424,153 +436,136 @@ export default function GenesisState() {
                             );
                         })}
                     </div>
-                </div>
+                </Card>
 
                 {/* Validators Info */}
                 {hasElements(validators) && (
-                    <div className="bg-gray-800/50 rounded-lg p-6 border border-gray-700">
-                        <h2 className="text-2xl font-bold text-white mb-4">👑 Validators ({validators.length})</h2>
-                        <div className="space-y-3">
+                    <Card>
+                        <CardHeader title={`Validators (${validators.length})`} />
+                        <div className="p-4 sm:p-5 space-y-3">
                             {validators.map(validator => (
-                                <div key={validator.operator_address} className="bg-purple-900/20 border border-purple-600/30 rounded-lg p-4">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <h3 className="text-white font-semibold">{validator.description?.moniker || "Unknown Validator"}</h3>
-                                            <code className="text-xs text-gray-400 font-mono">{validator.operator_address}</code>
+                                <div key={validator.operator_address} className="bg-surface-raised border border-line rounded-xl p-4">
+                                    <div className="flex flex-wrap items-center justify-between gap-3">
+                                        <div className="min-w-0">
+                                            <h3 className="m-0 text-ink font-semibold">{validator.description?.moniker || "Unknown Validator"}</h3>
+                                            <code className="text-xs text-ink-muted font-mono break-all">{validator.operator_address}</code>
                                         </div>
                                         <div className="text-right">
-                                            <div className="text-sm text-gray-400">Status</div>
+                                            <div className="text-sm text-ink-muted">Status</div>
                                             <div
                                                 className={`text-sm font-semibold ${
-                                                    validator.status === "BOND_STATUS_BONDED" ? "text-green-400" : "text-yellow-400"
+                                                    validator.status === "BOND_STATUS_BONDED" ? "text-emerald-400" : "text-amber-400"
                                                 }`}
                                             >
-                                                {validator.status === "BOND_STATUS_BONDED" ? "✅ Bonded" : "⚠️ Unbonded"}
+                                                {validator.status === "BOND_STATUS_BONDED" ? "Bonded" : "Unbonded"}
                                             </div>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
-                    </div>
+                    </Card>
                 )}
 
                 {/* Bridge State Export/Import Section */}
-                <div className="bg-orange-900/20 border border-orange-600/30 rounded-lg p-6">
-                    <h2 className="text-2xl font-bold text-orange-400 mb-4">🌉 Bridge State Export (For Chain Reset)</h2>
-
-                    <div className="bg-gray-800/50 border border-gray-700 rounded-lg p-4 mb-4">
-                        <h3 className="text-lg font-semibold text-white mb-2">⚠️ Why Export Bridge State?</h3>
-                        <ul className="list-disc list-inside text-sm text-gray-300 space-y-1">
-                            <li>
-                                Withdrawals are <strong>real USDC</strong> transactions on Ethereum
-                            </li>
-                            <li>If you reset the Block52 chain, withdrawal records will be lost</li>
-                            <li>But Ethereum still knows about those nonces - must preserve them!</li>
-                            <li>Export before reset, then import into new genesis to maintain integrity</li>
-                        </ul>
-                    </div>
-
-                    <div className="flex gap-4 mb-4">
-                        <button
-                            onClick={fetchBridgeState}
-                            disabled={loadingBridgeState}
-                            className="px-6 py-3 bg-orange-600 hover:bg-orange-700 text-white rounded-lg font-semibold disabled:opacity-50"
-                        >
-                            {loadingBridgeState ? "Loading..." : "📥 Load Current Bridge State"}
-                        </button>
-                    </div>
-
-                    {bridgeState && (
-                        <div className="space-y-4">
-                            {/* Stats */}
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-3">
-                                    <div className="text-sm text-gray-400">Withdrawal Requests</div>
-                                    <div className="text-2xl font-bold text-blue-400">{bridgeState.withdrawal_requests?.length || 0}</div>
-                                </div>
-                                <div className="bg-green-900/20 border border-green-600/30 rounded-lg p-3">
-                                    <div className="text-sm text-gray-400">Processed ETH Txs</div>
-                                    <div className="text-2xl font-bold text-green-400">{bridgeState.processed_eth_txs?.length || 0}</div>
-                                </div>
-                            </div>
-
-                            {/* Genesis JSON */}
-                            <div>
-                                <div className="flex items-center justify-between mb-2">
-                                    <h3 className="text-lg font-semibold text-white">📋 Genesis JSON (Poker Module State)</h3>
-                                    <button
-                                        onClick={() => copyToClipboard(JSON.stringify(bridgeState, null, 2), "Bridge state")}
-                                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-semibold text-sm"
-                                    >
-                                        📋 Copy JSON
-                                    </button>
-                                </div>
-                                <div className="bg-gray-900 border border-gray-700 rounded-lg p-4 overflow-x-auto">
-                                    <pre className="text-xs text-gray-300 font-mono">{JSON.stringify(bridgeState, null, 2)}</pre>
-                                </div>
-                            </div>
-
-                            {/* Instructions */}
-                            <div className="bg-blue-900/20 border border-blue-600/30 rounded-lg p-4">
-                                <h3 className="text-lg font-semibold text-blue-400 mb-3">📖 How to Import into New Genesis</h3>
-                                <ol className="list-decimal list-inside text-sm text-gray-300 space-y-2">
-                                    <li>
-                                        <strong>Copy the JSON above</strong> (click "Copy JSON" button)
-                                    </li>
-                                    <li>
-                                        <strong>Stop the chain</strong> (Ctrl+C in terminal)
-                                    </li>
-                                    <li>
-                                        <strong>Reset testnet data:</strong>
-                                        <code className="block bg-gray-800 text-xs p-2 mt-1 rounded font-mono">
-                                            ./run-local-testnet.sh → Option 7 (Clean & Reset)
-                                        </code>
-                                    </li>
-                                    <li>
-                                        <strong>Initialize new chain:</strong>
-                                        <code className="block bg-gray-800 text-xs p-2 mt-1 rounded font-mono">
-                                            ./run-local-testnet.sh → Option 1 (Initialize)
-                                        </code>
-                                    </li>
-                                    <li>
-                                        <strong>Edit genesis.json before starting:</strong>
-                                        <code className="block bg-gray-800 text-xs p-2 mt-1 rounded font-mono">
-                                            vi ~/.pokerchain-testnet/node1/config/genesis.json
-                                        </code>
-                                    </li>
-                                    <li>
-                                        <strong>Find the poker module section:</strong> Look for <code className="bg-gray-800 px-1">"poker": &#123;</code>
-                                    </li>
-                                    <li>
-                                        <strong>Paste the copied JSON</strong> into the poker module section (replace existing withdrawal_requests)
-                                    </li>
-                                    <li>
-                                        <strong>Save and start the chain</strong> → Option 2 (Start Node 1)
-                                    </li>
-                                </ol>
-                            </div>
+                <Card>
+                    <CardHeader title="Bridge state export" subtitle="For chain reset" />
+                    <div className="p-4 sm:p-5">
+                        <div className="bg-amber-400/10 border border-amber-400/30 rounded-xl p-4 mb-4">
+                            <h3 className="m-0 text-[15px] font-semibold text-ink mb-2">Why export bridge state?</h3>
+                            <ul className="list-disc list-inside text-sm text-ink-soft space-y-1">
+                                <li>
+                                    Withdrawals are <strong>real USDC</strong> transactions on Ethereum
+                                </li>
+                                <li>If you reset the Block52 chain, withdrawal records will be lost</li>
+                                <li>But Ethereum still knows about those nonces - must preserve them!</li>
+                                <li>Export before reset, then import into new genesis to maintain integrity</li>
+                            </ul>
                         </div>
-                    )}
-                </div>
 
-                {/* Refresh Button */}
-                <div className="flex justify-center">
-                    <button onClick={fetchGenesisState} className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold">
-                        🔄 Refresh Genesis State
-                    </button>
-                </div>
-            </div>
+                        <div className="flex gap-4 mb-4">
+                            <PillButton variant="primary" size="md" onClick={fetchBridgeState} disabled={loadingBridgeState}>
+                                {loadingBridgeState ? "Loading..." : "Load current bridge state"}
+                            </PillButton>
+                        </div>
 
-            {/* Powered by Block52 */}
-            <div className="fixed bottom-4 left-4 flex items-center z-10 opacity-30">
-                <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                    <div className="text-left mb-1">
-                        <span className="text-xs text-white font-medium tracking-wide  ">POWERED BY</span>
+                        {bridgeState && (
+                            <div className="space-y-4">
+                                {/* Stats */}
+                                <div className="grid grid-cols-2 gap-px bg-line border border-line rounded-2xl overflow-hidden">
+                                    <div className="bg-surface-card px-4 py-3">
+                                        <div className="text-xs uppercase tracking-[0.08em] text-ink-muted">Withdrawal requests</div>
+                                        <div className="text-2xl font-semibold text-ink tabular-nums">{bridgeState.withdrawal_requests?.length || 0}</div>
+                                    </div>
+                                    <div className="bg-surface-card px-4 py-3">
+                                        <div className="text-xs uppercase tracking-[0.08em] text-ink-muted">Processed ETH txs</div>
+                                        <div className="text-2xl font-semibold text-ink tabular-nums">{bridgeState.processed_eth_txs?.length || 0}</div>
+                                    </div>
+                                </div>
+
+                                {/* Genesis JSON */}
+                                <div>
+                                    <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                                        <h3 className="m-0 text-[15px] font-semibold text-ink">Genesis JSON (poker module state)</h3>
+                                        <PillButton
+                                            variant="outline"
+                                            size="sm"
+                                            className="max-sm:h-11"
+                                            onClick={() => copyToClipboard(JSON.stringify(bridgeState, null, 2), "Bridge state")}
+                                        >
+                                            Copy JSON
+                                        </PillButton>
+                                    </div>
+                                    <div className="bg-surface-page border border-line rounded-xl p-4 overflow-x-auto">
+                                        <pre className="text-xs text-ink-body font-mono">{JSON.stringify(bridgeState, null, 2)}</pre>
+                                    </div>
+                                </div>
+
+                                {/* Instructions */}
+                                <div className="bg-surface-raised border border-line rounded-xl p-4">
+                                    <h3 className="m-0 text-[15px] font-semibold text-ink mb-3">How to import into a new genesis</h3>
+                                    <ol className="list-decimal list-inside text-sm text-ink-soft space-y-2">
+                                        <li>
+                                            <strong>Copy the JSON above</strong> (click "Copy JSON" button)
+                                        </li>
+                                        <li>
+                                            <strong>Stop the chain</strong> (Ctrl+C in terminal)
+                                        </li>
+                                        <li>
+                                            <strong>Reset testnet data:</strong>
+                                            <code className="block bg-surface-page text-xs p-2 mt-1 rounded-lg font-mono break-all">
+                                                ./run-local-testnet.sh → Option 7 (Clean & Reset)
+                                            </code>
+                                        </li>
+                                        <li>
+                                            <strong>Initialize new chain:</strong>
+                                            <code className="block bg-surface-page text-xs p-2 mt-1 rounded-lg font-mono break-all">
+                                                ./run-local-testnet.sh → Option 1 (Initialize)
+                                            </code>
+                                        </li>
+                                        <li>
+                                            <strong>Edit genesis.json before starting:</strong>
+                                            <code className="block bg-surface-page text-xs p-2 mt-1 rounded-lg font-mono break-all">
+                                                vi ~/.pokerchain-testnet/node1/config/genesis.json
+                                            </code>
+                                        </li>
+                                        <li>
+                                            <strong>Find the poker module section:</strong> Look for{" "}
+                                            <code className="bg-surface-page px-1 rounded">"poker": &#123;</code>
+                                        </li>
+                                        <li>
+                                            <strong>Paste the copied JSON</strong> into the poker module section (replace existing withdrawal_requests)
+                                        </li>
+                                        <li>
+                                            <strong>Save and start the chain</strong> → Option 2 (Start Node 1)
+                                        </li>
+                                    </ol>
+                                </div>
+                            </div>
+                        )}
                     </div>
-                    <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
-                </div>
-            </div>
+                </Card>
+            </main>
         </div>
     );
 }

@@ -3,85 +3,6 @@
   border-color: var(--accent-success);
 }
 
-.passwordModal {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 90%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-}
-
-.passwordModalOverlay {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--brand-primary) 10%, transparent) 0%,
-    color-mix(in srgb, var(--brand-secondary) 10%, transparent) 100%
-  );
-}
-
-.passwordModalTopBar {
-  background: linear-gradient(90deg, var(--brand-primary), var(--accent-glow), var(--brand-primary));
-}
-
-.passwordIconCircle {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--brand-primary) 20%, transparent) 0%,
-    color-mix(in srgb, var(--brand-secondary) 20%, transparent) 100%
-  );
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
-}
-
-.brandPrimaryText {
-  color: var(--brand-primary);
-}
-
-.passwordInput {
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand-primary) 50%, transparent);
-}
-
-.passwordInput:focus {
-  border-color: var(--brand-primary);
-}
-
-.passwordSubmitButton {
-  background: linear-gradient(
-    135deg,
-    var(--brand-primary) 0%,
-    color-mix(in srgb, var(--brand-primary) 80%, transparent) 100%
-  );
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-}
-
-.passwordSubmitButton:hover {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--brand-primary) 90%, transparent) 0%,
-    color-mix(in srgb, var(--brand-primary) 70%, transparent) 100%
-  );
-}
-
-.brandPrimaryDot {
-  background-color: var(--brand-primary);
-}
-
-.modalPanel {
-  background-color: var(--ui-bg-dark);
-  border-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
-}
-
-.brandPrimaryBg {
-  background-color: var(--brand-primary);
-}
-
-.dangerWarningBox {
-  background-color: color-mix(in srgb, var(--accent-danger) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-danger) 30%, transparent);
-}
-
-.dangerText {
-  color: var(--accent-danger);
-}
-
 .successBg {
   background-color: var(--accent-success);
 }
@@ -113,23 +34,3 @@
   border: 1px solid var(--ui-border-color);
 }
 
-.modalTitleDivider {
-  height: 2px;
-  width: 100%;
-  margin-bottom: 16px;
-  opacity: 0.5;
-  background: linear-gradient(to right, transparent, var(--brand-primary), transparent);
-}
-
-.cancelBg {
-  background-color: var(--accent-danger);
-}
-
-.copyIconBtn {
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 60%, transparent);
-  color: var(--ui-text-secondary);
-}
-
-.copyIconBtnCopied {
-  color: var(--accent-success);
-}

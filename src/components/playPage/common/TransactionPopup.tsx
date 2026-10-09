@@ -33,7 +33,7 @@ const TransactionPopup: React.FC<TransactionPopupProps> = ({ txHash, onClose }) 
 
     return (
         <div className="fixed bottom-4 right-4 z-[9999] animate-slide-in-bottom-right">
-            <div className="bg-gray-800 border border-gray-700 rounded-lg shadow-2xl max-w-sm w-full">
+            <div className="bg-surface-card border border-line rounded-xl shadow-2xl max-w-sm w-full">
                 <div className="p-3">
                     {/* Header */}
                     <div className="flex items-center justify-between mb-2">
@@ -42,7 +42,7 @@ const TransactionPopup: React.FC<TransactionPopupProps> = ({ txHash, onClose }) 
                         </h3>
                         <button
                             onClick={onClose}
-                            className="text-gray-400 hover:text-white transition-colors"
+                            className="text-ink-muted hover:text-ink transition-colors"
                             title="Close"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -52,15 +52,15 @@ const TransactionPopup: React.FC<TransactionPopupProps> = ({ txHash, onClose }) 
                     </div>
 
                     {/* Transaction Hash */}
-                    <div className="bg-gray-900 rounded p-2 mb-2">
-                        <p className="text-gray-400 text-[10px] mb-1">Transaction Hash:</p>
+                    <div className="bg-surface-page border border-line rounded-lg p-2 mb-2">
+                        <p className="text-ink-muted text-[10px] mb-1">Transaction Hash:</p>
                         <div className="flex items-center gap-2">
                             <code className="text-green-400 text-xs font-mono break-all flex-1">
                                 {txHash}
                             </code>
                             <button
                                 onClick={() => copyToClipboard(txHash, "Transaction hash copied!")}
-                                className="p-2 text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                                className="p-2 text-ink-muted hover:text-ink transition-colors flex-shrink-0"
                                 title="Copy transaction hash"
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -74,13 +74,13 @@ const TransactionPopup: React.FC<TransactionPopupProps> = ({ txHash, onClose }) 
                     <div className="flex gap-2">
                         <Link
                             to={`/explorer/tx/${txHash}`}
-                            className="flex-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded transition-colors text-center"
+                            className="flex-1 px-3 py-1.5 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-full transition-colors text-center"
                         >
                             View on Explorer
                         </Link>
                         <button
                             onClick={onClose}
-                            className="flex-1 px-3 py-1.5 bg-gray-700 hover:bg-gray-600 text-white text-xs font-semibold rounded transition-colors"
+                            className="flex-1 px-3 py-1.5 border border-line-strong hover:bg-surface-hover text-ink text-xs font-semibold rounded-full transition-colors"
                         >
                             Close
                         </button>

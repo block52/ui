@@ -41,7 +41,7 @@
 }
 
 .seedWordCard {
-    background-color: color-mix(in srgb, var(--table-bg-base) 60%, transparent);
+    background-color: #12131c;
     border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
 }
 
@@ -54,7 +54,7 @@
 }
 
 .inputField {
-    background-color: color-mix(in srgb, var(--table-bg-base, #111827) 60%, transparent);
+    background-color: #12131c;
     border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
     color: white;
 }

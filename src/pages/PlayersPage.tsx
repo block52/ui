@@ -2,15 +2,12 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { microToUsdc } from "../constants/currency";
 import { truncateMiddle } from "../utils/stringUtils";
-import { AnimatedBackground } from "../components/common/AnimatedBackground";
-import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
-import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel, ExplorerReloadButton, ExplorerSearchInput } from "../components/explorer/ExplorerPanel";
+import { ExplorerPage, explorerRowClass, explorerThClass, ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel, ExplorerReloadButton, ExplorerSearchInput } from "../components/explorer/ExplorerPanel";
 import { isEmpty, hasElements } from "../utils/guards";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
 import { usePlayersDirectory } from "../hooks/player/usePlayersDirectory";
 import type { PlayerSortField } from "../types/players";
-import styles from "./explorer/AllAccountsPage.module.css";
 
 const PAGE_SIZE = 20;
 
@@ -67,11 +64,7 @@ export default function PlayersPage() {
     const sortArrow = (field: PlayerSortField) => (sort === field ? (order === "asc" ? " ↑" : " ↓") : "");
 
     return (
-        <div className="min-h-screen p-4 sm:p-8 relative">
-            <AnimatedBackground />
-
-            <div className="max-w-5xl mx-auto relative z-10">
-                <ExplorerHeader title="Players" />
+        <ExplorerPage title="Players">
 
                 <ExplorerSearchInput
                     value={searchInput}
@@ -95,29 +88,29 @@ export default function PlayersPage() {
                         <div className="overflow-x-auto" id="players-table-top">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className={styles.tableHeaderRow}>
-                                        <th className="hidden sm:table-cell px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap">#</th>
-                                        <th className="px-3 sm:px-4 py-2 text-left text-gray-400 font-semibold">Player</th>
+                                    <tr>
+                                        <th className={`${explorerThClass} hidden sm:table-cell`}>#</th>
+                                        <th className={explorerThClass}>Player</th>
                                         <th
-                                            className="hidden sm:table-cell px-3 sm:px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            className={`${explorerThClass} hidden sm:table-cell cursor-pointer hover:text-ink transition-colors`}
                                             onClick={() => toggleSort("vip_points")}
                                         >
                                             VIP{sortArrow("vip_points")}
                                         </th>
                                         <th
-                                            className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            className={`${explorerThClass} text-right whitespace-nowrap cursor-pointer hover:text-ink transition-colors`}
                                             onClick={() => toggleSort("total_hands")}
                                         >
                                             Hands{sortArrow("total_hands")}
                                         </th>
                                         <th
-                                            className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            className={`${explorerThClass} text-right whitespace-nowrap cursor-pointer hover:text-ink transition-colors`}
                                             onClick={() => toggleSort("net_profit")}
                                         >
                                             Net Profit{sortArrow("net_profit")}
                                         </th>
                                         <th
-                                            className="hidden sm:table-cell px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            className={`${explorerThClass} text-right hidden sm:table-cell cursor-pointer hover:text-ink transition-colors`}
                                             onClick={() => toggleSort("total_rake_contributed")}
                                         >
                                             Rake{sortArrow("total_rake_contributed")}
@@ -128,25 +121,25 @@ export default function PlayersPage() {
                                     {players.map((p, index) => (
                                         <tr
                                             key={p.player_address}
-                                            className={`border-t cursor-pointer hover:bg-white/5 transition-colors ${styles.tableRowBorder}`}
+                                            className={`${explorerRowClass} cursor-pointer`}
                                             onClick={() => navigate(`/players/${p.player_address}`)}
                                         >
-                                            <td className="hidden sm:table-cell px-4 py-2 text-gray-500">{(page - 1) * PAGE_SIZE + index + 1}</td>
-                                            <td className="px-3 sm:px-4 py-2">
-                                                <span className={`font-mono text-xs sm:text-sm hover:underline ${styles.brandText}`}>
+                                            <td className="hidden sm:table-cell px-4 py-2 text-ink-muted">{(page - 1) * PAGE_SIZE + index + 1}</td>
+                                            <td className="px-4 sm:px-5 py-3">
+                                                <span className={`font-mono text-xs sm:text-sm text-brand-light hover:underline`}>
                                                     {truncateMiddle(p.player_address, 12, 8)}
                                                 </span>
                                             </td>
-                                            <td className="hidden sm:table-cell px-3 sm:px-4 py-2">
+                                            <td className="hidden sm:table-cell px-4 sm:px-5 py-3">
                                                 <VipBadge tier={p.vip_tier} rakebackPct={p.rakeback_pct} />
                                             </td>
-                                            <td className="px-3 sm:px-4 py-2 text-right text-white">{p.total_hands.toLocaleString()}</td>
-                                            <td className="px-3 sm:px-4 py-2 text-right">
+                                            <td className="px-4 sm:px-5 py-3 text-right text-ink">{p.total_hands.toLocaleString()}</td>
+                                            <td className="px-4 sm:px-5 py-3 text-right">
                                                 <span className={p.net_profit >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
                                                     {formatUsd(p.net_profit)}
                                                 </span>
                                             </td>
-                                            <td className="hidden sm:table-cell px-4 py-2 text-right text-gray-300">{formatUsd(p.total_rake_contributed)}</td>
+                                            <td className="hidden sm:table-cell px-4 py-2 text-right text-ink-soft">{formatUsd(p.total_rake_contributed)}</td>
                                         </tr>
                                     ))}
                                 </tbody>
@@ -167,11 +160,10 @@ export default function PlayersPage() {
                 </ExplorerPanel>
 
                 {!loading && !error && hasElements(players) && (
-                    <div className="sm:hidden mt-4 text-center text-gray-400 text-sm">
+                    <div className="sm:hidden mt-4 text-center text-ink-muted text-sm">
                         Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, total)} of {total} players
                     </div>
                 )}
-            </div>
-        </div>
+        </ExplorerPage>
     );
 }

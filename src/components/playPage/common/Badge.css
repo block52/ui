@@ -61,7 +61,7 @@
   margin-right: 0.25rem;
   width: 1.25rem;
   height: 1.25rem;
-  background-color: #2563eb;
+  background-color: var(--brand-primary);
   border-radius: 9999px;
   display: flex;
   align-items: center;
@@ -72,7 +72,7 @@
 }
 
 .timer-extension-button:hover {
-  background-color: #3b82f6;
+  background-color: rgb(var(--brand-primary-light-rgb));
   transform: scale(1.1);
 }
 

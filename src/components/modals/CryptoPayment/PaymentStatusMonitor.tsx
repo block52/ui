@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import spinner from "../../../assets/spinning-circles.svg";
 import type { PaymentStatusMonitorProps } from "../types";
-import styles from "./PaymentStatusMonitor.module.css";
+import { insetBoxClass, noticeClass } from "../walletFormClasses";
+import { CheckIcon } from "../walletIcons";
 import { usePaymentApi } from "../../../context/PaymentApiContext";
 
 interface PaymentStatus {
@@ -58,17 +59,17 @@ const STATUS_VARIANTS = {
 type StatusVariant = (typeof STATUS_VARIANTS)[keyof typeof STATUS_VARIANTS];
 
 const STATUS_HEADER_CLASSES: Record<StatusVariant, string> = {
-    warning: styles.statusHeaderWarning,
-    primary: styles.statusHeaderPrimary,
-    success: styles.statusHeaderSuccess,
-    danger: styles.statusHeaderDanger
+    warning: "border-amber-500/30 bg-amber-500/10",
+    primary: "border-brand/30 bg-brand/10",
+    success: "border-emerald-500/30 bg-emerald-500/10",
+    danger: "border-red-500/30 bg-red-500/10"
 };
 
 const STATUS_ICON_CLASSES: Record<StatusVariant, string> = {
-    warning: styles.statusIconWarning,
-    primary: styles.statusIconPrimary,
-    success: styles.statusIconSuccess,
-    danger: styles.statusIconDanger
+    warning: "text-amber-300",
+    primary: "text-brand-light",
+    success: "text-emerald-400",
+    danger: "text-red-400"
 };
 
 const TERMINAL_STATUSES = ["finished", "failed", "refunded", "expired"];
@@ -145,7 +146,11 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
     }
 
     if (error) {
-        return <div className="p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-400 text-sm">{error}</div>;
+        return (
+            <div role="alert" className={noticeClass.error}>
+                {error}
+            </div>
+        );
     }
 
     if (!status) return null;
@@ -162,59 +167,71 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
     const isFailed = ["failed", "refunded", "expired"].includes(status.payment_status);
     const isProcessing = ["waiting", "confirming", "confirmed", "sending"].includes(status.payment_status);
 
+    const steps = [
+        { label: "Waiting for blockchain confirmation", active: status.payment_status === "waiting", done: status.payment_status !== "waiting", activeDot: "bg-amber-400" },
+        {
+            label: "Converting to USDC",
+            active: ["confirming", "confirmed"].includes(status.payment_status),
+            done: status.payment_status === "sending",
+            activeDot: "bg-brand"
+        },
+        { label: "Depositing to game wallet", active: status.payment_status === "sending", done: false, activeDot: "bg-emerald-400" }
+    ];
+
     return (
         <div className="space-y-4">
             {/* Status Header */}
-            <div className={`p-4 rounded-lg border ${styles.statusHeader} ${STATUS_HEADER_CLASSES[statusVariant]}`}>
-                <div className="flex items-center gap-3">
-                    {isProcessing && <img src={spinner} className="w-6 h-6" alt="loading" />}
-                    {isComplete && (
-                        <svg className={`w-6 h-6 ${STATUS_ICON_CLASSES[statusVariant]}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                    )}
-                    {isFailed && (
-                        <svg className={`w-6 h-6 ${STATUS_ICON_CLASSES[statusVariant]}`} fill="currentColor" viewBox="0 0 20 20">
-                            <path
-                                fillRule="evenodd"
-                                d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                                clipRule="evenodd"
-                            />
-                        </svg>
-                    )}
-                    <div className="flex-1">
-                        <p className={`font-semibold ${STATUS_ICON_CLASSES[statusVariant]}`}>{statusMessage}</p>
-                        <p className="text-xs text-gray-400 mt-1">Payment ID: {paymentId}</p>
+            {isComplete ? (
+                <div role="status" className="p-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-center">
+                    <div className="w-12 h-12 mx-auto mb-3 grid place-items-center rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
+                        <CheckIcon className="w-6 h-6" />
+                    </div>
+                    <p className="font-semibold text-emerald-400">{statusMessage}</p>
+                    <p className="text-xs text-ink-muted mt-2 font-mono break-all">Payment ID: {paymentId}</p>
+                </div>
+            ) : (
+                <div role="status" className={`p-4 rounded-xl border ${STATUS_HEADER_CLASSES[statusVariant]}`}>
+                    <div className="flex items-center gap-3">
+                        {isProcessing && <img src={spinner} className="w-6 h-6" alt="loading" />}
+                        {isFailed && (
+                            <svg className={`w-6 h-6 flex-shrink-0 ${STATUS_ICON_CLASSES[statusVariant]}`} fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                                <path
+                                    fillRule="evenodd"
+                                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                                    clipRule="evenodd"
+                                />
+                            </svg>
+                        )}
+                        <div className="flex-1 min-w-0">
+                            <p className={`font-semibold ${STATUS_ICON_CLASSES[statusVariant]}`}>{statusMessage}</p>
+                            <p className="text-xs text-ink-muted mt-1 font-mono break-all">Payment ID: {paymentId}</p>
+                        </div>
                     </div>
                 </div>
-            </div>
+            )}
 
             {/* Payment Details */}
             {status.actually_paid && (
-                <div className="p-3 rounded-lg bg-gray-900 border border-gray-700 space-y-2">
-                    <div className="flex justify-between text-sm">
-                        <span className="text-gray-400">Amount Paid</span>
-                        <span className="text-white font-semibold">
+                <div className={`space-y-2 ${insetBoxClass}`}>
+                    <div className="flex justify-between gap-3 text-sm">
+                        <span className="text-ink-muted">Amount Paid</span>
+                        <span className="text-ink font-semibold tabular-nums">
                             {status.actually_paid} {status.pay_currency?.toUpperCase()}
                         </span>
                     </div>
                     {status.outcome_amount && (
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-400">USDC Received</span>
-                            <span className="text-white font-semibold">${status.outcome_amount.toFixed(2)} USDC</span>
+                        <div className="flex justify-between gap-3 text-sm">
+                            <span className="text-ink-muted">USDC Received</span>
+                            <span className="text-ink font-semibold tabular-nums">${status.outcome_amount.toFixed(2)} USDC</span>
                         </div>
                     )}
                     {status.bridge_tx_hash && (
-                        <div className="pt-2 border-t border-gray-700">
+                        <div className="pt-2 border-t border-line">
                             <a
                                 href={`https://etherscan.io/tx/${status.bridge_tx_hash}`}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className={`text-xs font-mono hover:underline ${styles.baseScanLink}`}
+                                className="inline-flex items-center min-h-11 sm:min-h-0 text-xs font-mono text-brand-light hover:text-ink hover:underline"
                             >
                                 View on Etherscan ↗
                             </a>
@@ -225,24 +242,18 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
 
             {/* Processing Steps */}
             {isProcessing && (
-                <div className="space-y-2 text-sm">
-                    <div className={`flex items-center gap-2 ${status.payment_status === "waiting" ? "text-white" : "text-gray-500"}`}>
-                        <div className={`w-2 h-2 rounded-full ${status.payment_status === "waiting" ? "bg-yellow-500 animate-pulse" : "bg-gray-600"}`} />
-                        Waiting for blockchain confirmation
-                    </div>
-                    <div
-                        className={`flex items-center gap-2 ${["confirming", "confirmed", "sending"].includes(status.payment_status) ? "text-white" : "text-gray-500"}`}
-                    >
-                        <div
-                            className={`w-2 h-2 rounded-full ${["confirming", "confirmed"].includes(status.payment_status) ? "bg-blue-500 animate-pulse" : status.payment_status === "sending" ? "bg-blue-500" : "bg-gray-600"}`}
-                        />
-                        Converting to USDC
-                    </div>
-                    <div className={`flex items-center gap-2 ${status.payment_status === "sending" ? "text-white" : "text-gray-500"}`}>
-                        <div className={`w-2 h-2 rounded-full ${status.payment_status === "sending" ? "bg-green-500 animate-pulse" : "bg-gray-600"}`} />
-                        Depositing to game wallet
-                    </div>
-                </div>
+                <ol className={`space-y-2.5 text-sm ${insetBoxClass}`} aria-label="Payment progress">
+                    {steps.map(step => (
+                        <li key={step.label} className={`flex items-center gap-2.5 ${step.active ? "text-ink" : "text-ink-muted"}`} aria-current={step.active ? "step" : undefined}>
+                            {step.done ? (
+                                <CheckIcon className="w-3.5 h-3.5 text-emerald-400 flex-shrink-0" />
+                            ) : (
+                                <span className={`w-2 h-2 mx-[3px] rounded-full flex-shrink-0 ${step.active ? `${step.activeDot} animate-pulse` : "bg-line-strong"}`} />
+                            )}
+                            {step.label}
+                        </li>
+                    ))}
+                </ol>
             )}
         </div>
     );

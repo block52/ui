@@ -1,6 +1,10 @@
 import React from "react";
 import { copyToClipboard as copyToClipboardUtil } from "../../utils/clipboard";
 import { formatMicroAsUsdc } from "../../constants/currency";
+import { Modal } from "../common/Modal";
+import { PillButton } from "../ui";
+import { fieldLabelClass, insetBoxClass, noticeClass } from "./walletFormClasses";
+import { CopyIcon } from "./walletIcons";
 
 interface Withdrawal {
     nonce: string;
@@ -21,6 +25,33 @@ interface SignatureModalProps {
     signatureHex: string | null;
     bridgeContractAddress: string;
 }
+
+interface CopyFieldProps {
+    label: string;
+    value: string;
+    copyLabel: string;
+    onCopy: (text: string, label: string) => void;
+    valueClass?: string;
+    breakAll?: boolean;
+}
+
+/** Labelled inset box showing a mono value with a copy icon button. */
+const CopyField: React.FC<CopyFieldProps> = ({ label, value, copyLabel, onCopy, valueClass = "text-ink-body", breakAll = true }) => (
+    <div className="mb-4">
+        <span className={fieldLabelClass}>{label}</span>
+        <div className={`${insetBoxClass} flex items-start justify-between gap-3`}>
+            <code className={`text-sm font-mono tabular-nums min-w-0 ${breakAll ? "break-all" : "break-words"} ${valueClass}`}>{value}</code>
+            <button
+                type="button"
+                onClick={() => onCopy(value, copyLabel)}
+                aria-label={`Copy ${label}`}
+                className="shrink-0 w-10 h-10 -my-2 -mr-2 grid place-items-center rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+            >
+                <CopyIcon />
+            </button>
+        </div>
+    </div>
+);
 
 /**
  * SignatureModal - Displays raw signature data for debugging withdrawals
@@ -58,260 +89,155 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
 
     const sigComponents = parseSignatureComponents(signatureHex);
 
+    const statusClass =
+        withdrawal.status === "signed"
+            ? "text-brand-light"
+            : withdrawal.status === "completed"
+              ? "text-emerald-400"
+              : withdrawal.status === "pending"
+                ? "text-amber-400"
+                : "text-red-400";
+
     return (
-        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-            <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full border border-gray-700 max-h-[90vh] overflow-y-auto">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-white">Signature Details</h2>
-                    <button
-                        onClick={onClose}
-                        className="text-gray-400 hover:text-white transition-colors"
-                    >
-                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
-                    </button>
-                </div>
-
-                {/* Withdrawal Info */}
-                <div className="mb-6 bg-gray-900 rounded-lg p-4 border border-gray-700">
-                    <h3 className="text-sm font-semibold text-gray-400 mb-3 uppercase tracking-wider">
-                        Withdrawal Information
-                    </h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-400">Status:</span>
-                            <span className={`font-semibold ${
-                                withdrawal.status === "signed" ? "text-blue-400" :
-                                withdrawal.status === "completed" ? "text-green-400" :
-                                withdrawal.status === "pending" ? "text-yellow-400" :
-                                "text-red-400"
-                            }`}>
-                                {withdrawal.status.toUpperCase()}
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-400">Amount:</span>
-                            <span className="text-white font-semibold">
-                                {formatMicroAsUsdc(withdrawal.amount, 6)} USDC
-                            </span>
-                        </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-400">Amount (raw):</span>
-                            <span className="text-gray-300 font-mono text-sm">{withdrawal.amount}</span>
-                        </div>
+        <Modal isOpen={isOpen} onClose={onClose} title="Signature Details" widthClass="w-[672px]">
+            {/* Withdrawal Info */}
+            <div className={`${insetBoxClass} mb-5`}>
+                <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted mb-3">
+                    Withdrawal Information
+                </h3>
+                <div className="space-y-3">
+                    <div className="flex justify-between items-center gap-3">
+                        <span className="text-ink-muted text-sm">Status:</span>
+                        <span className={`font-semibold text-sm ${statusClass}`}>
+                            {withdrawal.status.toUpperCase()}
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center gap-3">
+                        <span className="text-ink-muted text-sm">Amount:</span>
+                        <span className="text-ink font-semibold tabular-nums">
+                            {formatMicroAsUsdc(withdrawal.amount, 6)} USDC
+                        </span>
+                    </div>
+                    <div className="flex justify-between items-center gap-3">
+                        <span className="text-ink-muted text-sm">Amount (raw):</span>
+                        <span className="text-ink-soft font-mono text-sm tabular-nums">{withdrawal.amount}</span>
                     </div>
                 </div>
+            </div>
 
-                {/* Nonce */}
-                <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                            Nonce
-                        </label>
-                        <button
-                            onClick={() => copyToClipboard(withdrawal.nonce, "Nonce")}
-                            className="text-xs text-blue-400 hover:text-blue-300"
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                        <code className="text-green-400 text-sm font-mono break-all">{withdrawal.nonce}</code>
-                    </div>
-                </div>
+            <CopyField label="Nonce" value={withdrawal.nonce} copyLabel="Nonce" onCopy={copyToClipboard} />
+            <CopyField
+                label="Receiver (Ethereum Address)"
+                value={withdrawal.baseAddress}
+                copyLabel="Address"
+                onCopy={copyToClipboard}
+            />
+            <CopyField
+                label="Cosmos Address"
+                value={withdrawal.cosmosAddress}
+                copyLabel="Cosmos address"
+                onCopy={copyToClipboard}
+            />
+            <CopyField
+                label="Bridge Contract Address"
+                value={bridgeContractAddress}
+                copyLabel="Contract address"
+                onCopy={copyToClipboard}
+                valueClass="text-brand-light"
+            />
 
-                {/* Receiver Address */}
-                <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                            Receiver (Ethereum Address)
-                        </label>
-                        <button
-                            onClick={() => copyToClipboard(withdrawal.baseAddress, "Address")}
-                            className="text-xs text-blue-400 hover:text-blue-300"
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                        <code className="text-green-400 text-sm font-mono">{withdrawal.baseAddress}</code>
-                    </div>
-                </div>
+            {/* Signature Section */}
+            {withdrawal.signature ? (
+                <>
+                    <div className="border-t border-line my-6" />
+                    <h3 className="text-base font-semibold text-ink mb-4">Validator Signature</h3>
 
-                {/* Cosmos Address */}
-                <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                            Cosmos Address
-                        </label>
-                        <button
-                            onClick={() => copyToClipboard(withdrawal.cosmosAddress, "Cosmos address")}
-                            className="text-xs text-blue-400 hover:text-blue-300"
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                        <code className="text-green-400 text-sm font-mono break-all">{withdrawal.cosmosAddress}</code>
-                    </div>
-                </div>
+                    <CopyField
+                        label="Signature (Base64)"
+                        value={withdrawal.signature}
+                        copyLabel="Base64 signature"
+                        onCopy={copyToClipboard}
+                    />
 
-                {/* Bridge Contract */}
-                <div className="mb-4">
-                    <div className="flex items-center justify-between mb-2">
-                        <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                            Bridge Contract Address
-                        </label>
-                        <button
-                            onClick={() => copyToClipboard(bridgeContractAddress, "Contract address")}
-                            className="text-xs text-blue-400 hover:text-blue-300"
-                        >
-                            Copy
-                        </button>
-                    </div>
-                    <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                        <code className="text-purple-400 text-sm font-mono">{bridgeContractAddress}</code>
-                    </div>
-                </div>
+                    {signatureHex && (
+                        <CopyField
+                            label="Signature (Hex)"
+                            value={signatureHex}
+                            copyLabel="Hex signature"
+                            onCopy={copyToClipboard}
+                        />
+                    )}
 
-                {/* Signature Section */}
-                {withdrawal.signature ? (
-                    <>
-                        <div className="border-t border-gray-700 my-6" />
-                        <h3 className="text-lg font-bold text-white mb-4">Validator Signature</h3>
-
-                        {/* Base64 Signature */}
+                    {sigComponents && (
                         <div className="mb-4">
-                            <div className="flex items-center justify-between mb-2">
-                                <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                                    Signature (Base64)
-                                </label>
-                                <button
-                                    onClick={() => copyToClipboard(withdrawal.signature!, "Base64 signature")}
-                                    className="text-xs text-blue-400 hover:text-blue-300"
-                                >
-                                    Copy
-                                </button>
-                            </div>
-                            <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                                <code className="text-yellow-400 text-sm font-mono break-all">
-                                    {withdrawal.signature}
-                                </code>
-                            </div>
-                        </div>
-
-                        {/* Hex Signature */}
-                        {signatureHex && (
-                            <div className="mb-4">
-                                <div className="flex items-center justify-between mb-2">
-                                    <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                                        Signature (Hex)
-                                    </label>
-                                    <button
-                                        onClick={() => copyToClipboard(signatureHex, "Hex signature")}
-                                        className="text-xs text-blue-400 hover:text-blue-300"
-                                    >
-                                        Copy
-                                    </button>
+                            <span className={fieldLabelClass}>Signature Components (r, s, v)</span>
+                            <div className={`${insetBoxClass} space-y-3`}>
+                                <div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-ink-muted text-xs">r:</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => copyToClipboard(sigComponents.r, "r component")}
+                                            aria-label="Copy r component"
+                                            className="w-10 h-10 -my-2 -mr-2 grid place-items-center rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                                        >
+                                            <CopyIcon />
+                                        </button>
+                                    </div>
+                                    <code className="text-ink-body text-xs font-mono break-all">{sigComponents.r}</code>
                                 </div>
-                                <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                                    <code className="text-orange-400 text-sm font-mono break-all">
-                                        {signatureHex}
+                                <div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-ink-muted text-xs">s:</span>
+                                        <button
+                                            type="button"
+                                            onClick={() => copyToClipboard(sigComponents.s, "s component")}
+                                            aria-label="Copy s component"
+                                            className="w-10 h-10 -my-2 -mr-2 grid place-items-center rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                                        >
+                                            <CopyIcon />
+                                        </button>
+                                    </div>
+                                    <code className="text-ink-body text-xs font-mono break-all">{sigComponents.s}</code>
+                                </div>
+                                <div>
+                                    <span className="text-ink-muted text-xs">v: </span>
+                                    <code className="text-ink-body text-sm font-mono tabular-nums">
+                                        {sigComponents.v} (0x{sigComponents.v.toString(16)})
                                     </code>
                                 </div>
                             </div>
-                        )}
-
-                        {/* Signature Components */}
-                        {sigComponents && (
-                            <div className="mb-4">
-                                <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider block mb-2">
-                                    Signature Components (r, s, v)
-                                </label>
-                                <div className="bg-gray-900 rounded-lg p-4 border border-gray-700 space-y-3">
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-500 text-xs">r:</span>
-                                            <button
-                                                onClick={() => copyToClipboard(sigComponents.r, "r component")}
-                                                className="text-xs text-blue-400 hover:text-blue-300"
-                                            >
-                                                Copy
-                                            </button>
-                                        </div>
-                                        <code className="text-cyan-400 text-xs font-mono break-all">
-                                            {sigComponents.r}
-                                        </code>
-                                    </div>
-                                    <div>
-                                        <div className="flex items-center justify-between">
-                                            <span className="text-gray-500 text-xs">s:</span>
-                                            <button
-                                                onClick={() => copyToClipboard(sigComponents.s, "s component")}
-                                                className="text-xs text-blue-400 hover:text-blue-300"
-                                            >
-                                                Copy
-                                            </button>
-                                        </div>
-                                        <code className="text-cyan-400 text-xs font-mono break-all">
-                                            {sigComponents.s}
-                                        </code>
-                                    </div>
-                                    <div>
-                                        <span className="text-gray-500 text-xs">v: </span>
-                                        <code className="text-cyan-400 text-sm font-mono">
-                                            {sigComponents.v} (0x{sigComponents.v.toString(16)})
-                                        </code>
-                                    </div>
-                                </div>
-                            </div>
-                        )}
-
-                        {/* Signature Length */}
-                        <div className="text-xs text-gray-500 mb-4">
-                            Signature length: {signatureHex ? signatureHex.length - 2 : 0} hex chars ({signatureHex ? (signatureHex.length - 2) / 2 : 0} bytes)
                         </div>
-                    </>
-                ) : (
-                    <div className="mb-4 p-4 bg-yellow-900/20 border border-yellow-700 rounded-lg">
-                        <p className="text-yellow-400 text-sm">
-                            No signature available. The validator has not signed this withdrawal yet.
-                        </p>
+                    )}
+
+                    {/* Signature Length */}
+                    <div className="text-xs text-ink-muted tabular-nums mb-4">
+                        Signature length: {signatureHex ? signatureHex.length - 2 : 0} hex chars ({signatureHex ? (signatureHex.length - 2) / 2 : 0} bytes)
                     </div>
-                )}
-
-                {/* Tx Hash if completed */}
-                {withdrawal.txHash && (
-                    <div className="mb-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <label className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
-                                Ethereum Tx Hash
-                            </label>
-                            <button
-                                onClick={() => copyToClipboard(withdrawal.txHash!, "Tx hash")}
-                                className="text-xs text-blue-400 hover:text-blue-300"
-                            >
-                                Copy
-                            </button>
-                        </div>
-                        <div className="bg-gray-900 rounded-lg p-3 border border-gray-700">
-                            <code className="text-green-400 text-sm font-mono break-all">{withdrawal.txHash}</code>
-                        </div>
-                    </div>
-                )}
-
-                {/* Close Button */}
-                <div className="mt-6">
-                    <button
-                        onClick={onClose}
-                        className="w-full px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white rounded-lg font-semibold transition-colors"
-                    >
-                        Close
-                    </button>
+                </>
+            ) : (
+                <div className={`mb-4 ${noticeClass.warning}`}>
+                    No signature available. The validator has not signed this withdrawal yet.
                 </div>
+            )}
+
+            {/* Tx Hash if completed */}
+            {withdrawal.txHash && (
+                <CopyField
+                    label="Ethereum Tx Hash"
+                    value={withdrawal.txHash}
+                    copyLabel="Tx hash"
+                    onCopy={copyToClipboard}
+                />
+            )}
+
+            {/* Close Button */}
+            <div className="mt-6">
+                <PillButton variant="outline" size="lg" className="w-full" onClick={onClose}>
+                    Close
+                </PillButton>
             </div>
-        </div>
+        </Modal>
     );
 };
 

@@ -166,22 +166,28 @@ const ActionsLog: React.FC = () => {
         );
     };
 
+    const rowBase = "flex min-h-[44px] items-center justify-between gap-3 border-b border-line px-4 py-2 text-sm transition-colors hover:bg-surface-hover";
+    const iconButtonBase =
+        "inline-flex h-10 w-10 items-center justify-center rounded-lg transition-colors hover:bg-surface-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand-light";
+
     // previousActions deliberately omitted — actionsFingerprint covers it.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     const actionRows = useMemo(
         () =>
             previousActions.map((action: ActionDTO, index: number) => (
-                <div key={index} className={`text-xs py-1 border-b ${styles.actionRow}`}>
-                    <div className="flex justify-between">
-                        <span className={styles.actionText}>
-                            {formatActionName(action.action)}
-                            {formatActionAmount(action, isTournamentFormat(gameFormat))}
-                        </span>
-                        <span className={`text-[10px] ${styles.secondaryText}`}>
-                            Seat {action.seat} · {formatRoundName(action.round)}
-                        </span>
-                    </div>
-                </div>
+                <li
+                    key={index}
+                    aria-current={index === previousActions.length - 1 ? "step" : undefined}
+                    className={`${rowBase} ${index === previousActions.length - 1 ? "bg-brand/10 shadow-[inset_2px_0_0_0] shadow-brand-light" : ""}`}
+                >
+                    <span className="min-w-0 break-words text-ink tabular-nums">
+                        {formatActionName(action.action)}
+                        {formatActionAmount(action, isTournamentFormat(gameFormat))}
+                    </span>
+                    <span className="flex-shrink-0 text-xs text-ink-muted">
+                        Seat {action.seat} · {formatRoundName(action.round)}
+                    </span>
+                </li>
             )),
         [actionsFingerprint, gameFormat]
     );
@@ -192,80 +198,86 @@ const ActionsLog: React.FC = () => {
         () =>
             showWinnerSummary
                 ? winnerInfo?.map((w, i) => (
-                      <div key={`winner-${i}`} className={`text-xs py-1 border-b ${styles.actionRow} ${styles.winnerRow}`}>
-                          <div className="flex justify-between">
-                              <span className={styles.winnerText}>
-                                  WINS {w.formattedAmount}
-                                  {w.description && ` — ${w.description}`}
-                                  {w.description && beatenDescription && ` over ${beatenDescription}`}
-                              </span>
-                              <span className={`text-[10px] ${styles.secondaryText}`}>
-                                  Seat {w.seat} · {w.winType === "showdown" ? "Showdown" : "Uncontested"}
-                              </span>
-                          </div>
-                      </div>
+                      <li key={`winner-${i}`} className={`${rowBase} bg-emerald-400/10`}>
+                          <span className="min-w-0 break-words font-bold text-emerald-400 tabular-nums">
+                              WINS {w.formattedAmount}
+                              {w.description && ` — ${w.description}`}
+                              {w.description && beatenDescription && ` over ${beatenDescription}`}
+                          </span>
+                          <span className="flex-shrink-0 text-xs text-ink-muted">
+                              Seat {w.seat} · {w.winType === "showdown" ? "Showdown" : "Uncontested"}
+                          </span>
+                      </li>
                   ))
                 : null,
         [showWinnerSummary, winnerInfo, beatenDescription]
     );
 
+    const copiedColor = "text-emerald-400";
+    const defaultColor = "text-brand-light";
+
     return (
-        <div
-            className={`rounded w-full h-full overflow-y-auto scrollbar-hide backdrop-blur-sm ${styles.container}`}
-        >
-            <div 
-                className={`flex justify-between items-center p-2 border-b ${styles.header}`}
-            >
-                <h3 className="text-sm font-semibold">History</h3>
-                <div className="flex gap-2">
+        <div className="flex h-full w-full flex-col text-ink">
+            <div className="flex h-14 flex-shrink-0 items-center justify-between border-b border-line px-4">
+                <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-muted">History</h3>
+                <div className="-mr-2 flex items-center gap-1">
                     <button
+                        type="button"
                         onClick={handleCopyLog}
                         title="Copy history to clipboard"
-                        className={`p-1.5 rounded hover:bg-white/10 transition-colors duration-200 ${copied ? styles.copyButtonCopied : styles.copyButtonDefault}`}
+                        aria-label="Copy history"
+                        className={`${iconButtonBase} ${copied ? copiedColor : defaultColor}`}
                     >
-                        {copied ? <FaCheck size={12} /> : <FaCopy size={12} />}
+                        {copied ? <FaCheck size={14} /> : <FaCopy size={14} />}
                     </button>
                     <button
+                        type="button"
                         onClick={handleCopyJSON}
                         title="Copy hand history as JSON"
-                        className={`p-1.5 rounded hover:bg-white/10 transition-colors duration-200 ${copiedJSON ? styles.copyButtonCopied : styles.copyButtonDefault}`}
+                        aria-label="Download history"
+                        className={`${iconButtonBase} ${copiedJSON ? copiedColor : defaultColor}`}
                     >
-                        {copiedJSON ? <FaCheck size={12} /> : <FaFileDownload size={12} />}
+                        {copiedJSON ? <FaCheck size={14} /> : <FaFileDownload size={14} />}
                     </button>
                     <button
+                        type="button"
                         onClick={handleShareHand}
                         title="Share hand replay URL"
-                        className={`p-1.5 rounded hover:bg-white/10 transition-colors duration-200 ${copiedShare ? styles.copyButtonCopied : styles.copyButtonDefault}`}
+                        aria-label="Share hand"
+                        className={`${iconButtonBase} ${copiedShare ? copiedColor : defaultColor}`}
                     >
-                        {copiedShare ? <FaCheck size={12} /> : <FaShare size={12} />}
+                        {copiedShare ? <FaCheck size={14} /> : <FaShare size={14} />}
                     </button>
                 </div>
             </div>
-            
-            {/* Previous hand's result, pinned above the current hand's actions */}
-            {showLastHandBlock && lastHandResult && (
-                <div className={`text-xs p-2 border-b ${styles.actionRow} ${styles.winnerRow}`}>
-                    <div className={`text-[10px] ${styles.secondaryText}`}>Last hand #{lastHandResult.handNumber}</div>
-                    {lastHandResult.lines.map((line, i) => (
-                        <div key={`last-hand-${i}`} className={styles.winnerText}>
-                            {line}
-                        </div>
-                    ))}
-                </div>
-            )}
 
-            {hasElements(previousActions) ? (
-                <div className="space-y-0.5 p-2">
-                    {actionRows}
-                    {winnerRows}
-                </div>
-            ) : (
-                <p
-                    className={`text-xs p-3 ${styles.secondaryText}`}
-                >
-                    No actions recorded yet.
-                </p>
-            )}
+            <div className={`flex-1 overflow-y-auto overflow-x-hidden ${styles.scroll}`}>
+                {/* Previous hand's result, pinned above the current hand's actions */}
+                {showLastHandBlock && lastHandResult && (
+                    <div className="border-b border-line bg-emerald-400/10 px-4 py-3 text-sm">
+                        <div className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
+                            Last hand #{lastHandResult.handNumber}
+                        </div>
+                        {lastHandResult.lines.map((line, i) => (
+                            <div key={`last-hand-${i}`} className="break-words font-bold text-emerald-400">
+                                {line}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {hasElements(previousActions) ? (
+                    <ul>
+                        {actionRows}
+                        {winnerRows}
+                    </ul>
+                ) : (
+                    <div className="flex flex-col items-center px-6 py-12 text-center">
+                        <p className="text-[15px] font-medium text-ink">No actions yet</p>
+                        <p className="mt-1 text-sm leading-snug text-ink-muted">No actions recorded yet.</p>
+                    </div>
+                )}
+            </div>
         </div>
     );
 };

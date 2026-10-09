@@ -26,7 +26,7 @@ export const ActionButton: React.FC<ActionButtonProps> = ({
         <button
             onClick={onClick}
             disabled={disabled || loading}
-            className={`${baseClass} ${className} flex items-center justify-center gap-1 rounded-lg border shadow-md backdrop-blur-sm transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
+            className={`${baseClass} ${className} flex items-center justify-center gap-1 rounded-full border shadow-md backdrop-blur-sm transition-all duration-200 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed`}
             data-action={action}
         >
             {loading ? (

@@ -29,18 +29,18 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
     };
 
     const inputFieldClassName = isInvalid
-        ? "bg-gray-700/80 text-red-400 border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-500/50"
-        : "bg-gray-700/80 text-white border-blue-500/30 focus:border-blue-500 focus:ring-1 focus:ring-blue-500/30";
+        ? "bg-surface-raised text-red-400 border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-500/50"
+        : "bg-surface-raised text-ink border-line-strong focus:border-brand focus:ring-1 focus:ring-brand/30";
 
     return (
         <div
-            className={`flex items-center bg-[#0f172a40] backdrop-blur-sm rounded-lg border border-[#3a546d]/50 shadow-inner ${
+            className={`flex items-center bg-surface-card/80 backdrop-blur-sm rounded-xl border border-line shadow-inner ${
                 isMobileLandscape ? "gap-1 px-1 py-0.5 h-8" : "space-x-2 lg:space-x-4 p-2 lg:p-3"
             }`}
         >
             {/* Min/Max text - placed first in mobile landscape */}
             {isMobileLandscape && (
-                <div className="flex items-center text-[9px] text-gray-400 whitespace-nowrap">
+                <div className="flex items-center text-[9px] text-ink-muted whitespace-nowrap">
                     <span>Min:{formatDisplayAmount(min, isTournament)}</span>
                     <span className="mx-1">/</span>
                     <span>Max:{formattedMax}</span>
@@ -52,7 +52,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider py-1 px-2 lg:px-4 rounded-lg border text-xs lg:text-sm transition-all duration-200"
+                        : "btn-slider py-1 px-2 lg:px-4 rounded-full border text-xs lg:text-sm transition-all duration-200"
                 }
                 onClick={onDecrement}
                 disabled={disabled}
@@ -70,11 +70,11 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 onChange={(e) => onChange(Number(e.target.value))}
                 className={
                     isMobileLandscape
-                        ? "flex-1 accent-[#64ffda] h-1 rounded-full transition-all duration-200"
-                        : "flex-1 accent-[#64ffda] h-2 rounded-full transition-all duration-200"
+                        ? "flex-1 accent-brand h-1 rounded-full transition-all duration-200"
+                        : "flex-1 accent-brand h-2 rounded-full transition-all duration-200"
                 }
                 style={{
-                    background: `linear-gradient(to right, #64ffda 0%, #64ffda ${percentage}%, #1e293b ${percentage}%, #1e293b 100%)`
+                    background: `linear-gradient(to right, var(--brand-primary) 0%, var(--brand-primary) ${percentage}%, #2c2f45 ${percentage}%, #2c2f45 100%)`
                 }}
                 disabled={disabled}
             />
@@ -84,7 +84,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider py-1 px-2 lg:px-4 rounded-lg border text-xs lg:text-sm transition-all duration-200"
+                        : "btn-slider py-1 px-2 lg:px-4 rounded-full border text-xs lg:text-sm transition-all duration-200"
                 }
                 onClick={onIncrement}
                 disabled={disabled}

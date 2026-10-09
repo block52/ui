@@ -37,7 +37,7 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
         <div className="min-h-screen relative flex items-center justify-center p-4">
             <AnimatedBackground />
             <div className="relative z-10 max-w-2xl w-full">
-                <div className="bg-gray-800/90 backdrop-blur-md rounded-xl border border-red-500/30 shadow-2xl overflow-hidden">
+                <div className="bg-surface-card rounded-2xl border border-red-500/30 shadow-2xl overflow-hidden">
                     {/* Header */}
                     <div className="bg-gradient-to-r from-red-600/20 to-red-800/20 px-6 py-4 border-b border-red-500/30">
                         <div className="flex items-center gap-3">
@@ -66,17 +66,17 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                     {/* Content */}
                     <div className="p-6 space-y-6">
                         {/* Error Message */}
-                        <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-                            <p className="text-gray-300">{error.message}</p>
+                        <div className="bg-surface-raised rounded-xl p-4 border border-line">
+                            <p className="text-ink-body">{error.message}</p>
                         </div>
 
                         {/* Missing Fields */}
                         {hasMissingFields ? (
                             <div>
-                                <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">
+                                <h3 className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider mb-3">
                                     Missing Required Fields
                                 </h3>
-                                <div className="bg-gray-900/50 rounded-lg border border-gray-700 divide-y divide-gray-700">
+                                <div className="bg-surface-raised rounded-xl border border-line divide-y divide-line">
                                     {missingFields.map((field, index) => (
                                         <div key={index} className="px-4 py-3 flex items-center gap-3">
                                             <span className="w-2 h-2 rounded-full bg-red-500"></span>
@@ -88,9 +88,9 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                         ) : null}
 
                         {/* Table ID */}
-                        <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-                            <p className="text-gray-400 text-xs mb-1">Table ID</p>
-                            <code className="text-blue-400 font-mono text-sm break-all">{tableId}</code>
+                        <div className="bg-surface-raised rounded-xl p-4 border border-line">
+                            <p className="text-ink-muted text-xs mb-1">Table ID</p>
+                            <code className="text-brand-light font-mono text-sm break-all">{tableId}</code>
                         </div>
 
                         {/* Raw Data Toggle */}
@@ -98,7 +98,7 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                             <div>
                                 <button
                                     onClick={() => setShowRawData(!showRawData)}
-                                    className="text-sm text-gray-400 hover:text-gray-300 flex items-center gap-2"
+                                    className="text-sm text-ink-muted hover:text-ink-body flex items-center gap-2"
                                 >
                                     <svg
                                         className={`w-4 h-4 transition-transform ${showRawData ? "rotate-90" : ""}`}
@@ -111,8 +111,8 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                                     {showRawData ? "Hide" : "Show"} Raw Data (Debug)
                                 </button>
                                 {showRawData && (
-                                    <div className="mt-3 bg-gray-900 rounded-lg p-4 border border-gray-700 overflow-auto max-h-64">
-                                        <pre className="text-xs text-gray-400 font-mono whitespace-pre-wrap">
+                                    <div className="mt-3 bg-surface-page rounded-xl p-4 border border-line overflow-auto max-h-64">
+                                        <pre className="text-xs text-ink-muted font-mono whitespace-pre-wrap">
                                             {JSON.stringify(error.rawData, null, 2)}
                                         </pre>
                                     </div>
@@ -122,10 +122,10 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                     </div>
 
                     {/* Actions */}
-                    <div className="px-6 py-4 bg-gray-900/50 border-t border-gray-700 flex gap-3">
+                    <div className="px-6 py-4 bg-surface-raised border-t border-line flex gap-3">
                         <button
                             onClick={handleBackToLobby}
-                            className="flex-1 px-4 py-3 bg-gray-700 hover:bg-gray-600 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 px-4 py-3 border border-line-strong hover:bg-surface-hover text-ink font-semibold rounded-full transition-colors flex items-center justify-center gap-2"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
@@ -134,7 +134,7 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                         </button>
                         <button
                             onClick={onRetry}
-                            className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
+                            className="flex-1 px-4 py-3 bg-brand hover:bg-brand/90 text-white font-semibold rounded-full transition-colors flex items-center justify-center gap-2"
                         >
                             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
@@ -150,7 +150,7 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                 </div>
 
                 {/* Help Text */}
-                <p className="text-center text-gray-500 text-sm mt-4">
+                <p className="text-center text-ink-muted text-sm mt-4">
                     This error indicates the blockchain returned incomplete game data.
                     <br />
                     Please report this issue if it persists.

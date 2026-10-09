@@ -10,7 +10,8 @@ import { formatMicroAsUsdc } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
 import { BRIDGE_DEPOSITS_ABI } from "../utils/bridge/abis";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
-import { AnimatedBackground } from "../components/common/AnimatedBackground";
+import { Card, CardHeader, PillButton, StatStrip } from "../components/ui";
+import { fieldInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { usePaymentApi } from "../context/PaymentApiContext";
@@ -453,101 +454,108 @@ export default function BridgeAdminDashboard() {
     const hasNextPage = currentPage < totalPages;
     const hasPrevPage = currentPage > 1;
 
+    const selectClass = `${fieldInputClass} h-11 w-auto py-0 pr-8 text-sm`;
+    const pagerClass = "h-11 sm:h-9 min-w-11 sm:min-w-9 px-4 rounded-full border border-line text-sm text-ink-body hover:bg-surface-hover disabled:text-ink-muted/50 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors";
+    const thClass = "px-5 py-3 text-xs font-medium uppercase tracking-[0.1em] text-ink-muted";
+
     return (
-        <div className="min-h-screen p-8 relative">
-            <AnimatedBackground />
-            <div className="max-w-7xl mx-auto relative z-10">
+        <div className="min-h-screen bg-surface-page">
+            <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
                 {/* Header */}
-                <div className="mb-8 text-center">
-                    <h1 className="text-4xl font-bold text-white mb-2">Bridge Admin Dashboard</h1>
-                    <p className="text-gray-400">
+                <div>
+                    <h1 className="m-0 text-[28px] font-semibold text-ink">Bridge Admin Dashboard</h1>
+                    <p className="mt-1 mb-0 text-ink-muted">
                         View and process Ethereum USDC bridge deposits
-                        <span className="ml-2 font-mono text-sm text-gray-500">({bridgeContractAddress})</span>
+                        <span className="ml-2 font-mono text-sm break-all">({bridgeContractAddress})</span>
                     </p>
                 </div>
 
                 {/* Configuration Error Warning */}
                 {configError && (
-                    <div className="mb-6 bg-red-900/30 border-2 border-red-700 rounded-lg p-4">
-                        <div className="flex items-start gap-3">
-                            <div className="flex-shrink-0 mt-0.5">
-                                <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth="2"
-                                        d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                    />
-                                </svg>
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-red-200 font-semibold mb-1">Configuration Required</h3>
-                                <p className="text-red-300 text-sm">{configError}</p>
-                                <div className="mt-2 text-red-300 text-xs font-mono bg-red-950/50 p-2 rounded">
-                                    Add to .env: VITE_MAINNET_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY"
-                                </div>
+                    <div className={`${noticeClass.error} flex items-start gap-3`}>
+                        <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                            <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                            />
+                        </svg>
+                        <div className="flex-1 min-w-0">
+                            <h3 className="m-0 mb-1 font-semibold text-red-300">Configuration Required</h3>
+                            <p className="m-0 text-sm">{configError}</p>
+                            <div className="mt-2 text-xs font-mono bg-surface-page/60 border border-line p-2 rounded-lg break-all">
+                                Add to .env: VITE_MAINNET_RPC_URL="https://eth-mainnet.g.alchemy.com/v2/YOUR_API_KEY"
                             </div>
                         </div>
                     </div>
                 )}
 
+                {/* Stats */}
+                <StatStrip
+                    items={[
+                        { label: "Total Deposits", value: totalDeposits },
+                        { label: "Processed", value: processedCount, tone: "good" },
+                        { label: "Pending", value: pendingCount, tone: pendingCount > 0 ? "default" : "muted" }
+                    ]}
+                />
+
                 {/* Manual Bridge Section - Collapsible */}
-                <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg mb-6 border border-purple-700 overflow-hidden">
+                <Card>
                     <button
+                        type="button"
                         onClick={() => setShowManualBridge(!showManualBridge)}
-                        className="w-full p-4 flex items-center justify-between text-left hover:bg-purple-900/20 transition-colors"
+                        aria-expanded={showManualBridge}
+                        className="w-full min-h-[56px] px-5 py-3 flex items-center justify-between gap-3 text-left hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand-light"
                     >
-                        <h3 className="text-xl font-bold text-white flex items-center gap-2">
-                            <span className="text-2xl">🌉</span> Manual Bridge
+                        <h3 className="m-0 text-[17px] font-semibold text-ink flex flex-wrap items-baseline gap-x-3">
+                            Manual Bridge
                             {hotWalletInfo && (
-                                <span className="text-sm font-normal text-gray-400 ml-2">
+                                <span className="text-sm font-normal text-ink-muted">
                                     ({parseFloat(hotWalletInfo.usdcBalance).toFixed(2)} USDC available)
                                 </span>
                             )}
                         </h3>
-                        <span className="text-gray-400 text-2xl">{showManualBridge ? "−" : "+"}</span>
+                        <span className="text-ink-muted text-2xl leading-none" aria-hidden="true">
+                            {showManualBridge ? "−" : "+"}
+                        </span>
                     </button>
 
                     {showManualBridge && (
-                        <div className="p-6 pt-2 border-t border-purple-700/50">
+                        <div className="p-5 border-t border-line">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                                 {/* Hot Wallet Info */}
-                                <div className="bg-gray-900/50 rounded-lg p-4">
-                                    <h4 className="text-gray-300 font-semibold mb-3 flex items-center gap-2">
-                                        <span>🔥</span> Hot Wallet
-                                        <button
-                                            onClick={loadHotWalletInfo}
-                                            disabled={isLoadingHotWallet}
-                                            className="ml-auto text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded text-gray-300"
-                                        >
+                                <div className={`${insetBoxClass} p-4`}>
+                                    <div className="flex items-center justify-between gap-3 mb-3">
+                                        <h4 className="m-0 text-sm font-semibold text-ink">Hot Wallet</h4>
+                                        <PillButton variant="outline" size="sm" onClick={loadHotWalletInfo} disabled={isLoadingHotWallet} aria-label="Refresh hot wallet">
                                             {isLoadingHotWallet ? "..." : "↻"}
-                                        </button>
-                                    </h4>
+                                        </PillButton>
+                                    </div>
                                     {hotWalletInfo ? (
-                                        <div className="space-y-2 text-sm">
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-400">Address:</span>
-                                                <span className="text-white font-mono text-xs">
-                                                    {truncateMiddle(hotWalletInfo.address, 10, 8)}
-                                                </span>
+                                        <div className="flex flex-col gap-2 text-sm">
+                                            <div className="flex justify-between gap-3">
+                                                <span className="text-ink-muted">Address:</span>
+                                                <span className="text-ink font-mono text-xs">{truncateMiddle(hotWalletInfo.address, 10, 8)}</span>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-400">ETH Balance:</span>
-                                                <span className="text-white">{parseFloat(hotWalletInfo.ethBalance).toFixed(6)} ETH</span>
+                                            <div className="flex justify-between gap-3">
+                                                <span className="text-ink-muted">ETH Balance:</span>
+                                                <span className="text-ink tabular-nums">{parseFloat(hotWalletInfo.ethBalance).toFixed(6)} ETH</span>
                                             </div>
-                                            <div className="flex justify-between">
-                                                <span className="text-gray-400">USDC Balance:</span>
-                                                <span className="text-green-400 font-semibold">{parseFloat(hotWalletInfo.usdcBalance).toFixed(2)} USDC</span>
+                                            <div className="flex justify-between gap-3">
+                                                <span className="text-ink-muted">USDC Balance:</span>
+                                                <span className="text-emerald-400 font-semibold tabular-nums">{parseFloat(hotWalletInfo.usdcBalance).toFixed(2)} USDC</span>
                                             </div>
-                                            <div className="flex justify-between items-center">
-                                                <span className="text-gray-400">Bridge Approved:</span>
+                                            <div className="flex justify-between items-center gap-3">
+                                                <span className="text-ink-muted">Bridge Approved:</span>
                                                 {hotWalletInfo.bridgeApproved ? (
-                                                    <span className="text-green-400">✅ Yes</span>
+                                                    <span className="text-emerald-400">Yes</span>
                                                 ) : (
-                                                    <button
+                                                    <PillButton
+                                                        size="sm"
                                                         onClick={handleApproveBridge}
                                                         disabled={isApproving}
-                                                        className="px-3 py-1 bg-yellow-600 hover:bg-yellow-700 disabled:bg-gray-600 text-white text-xs font-semibold rounded transition-colors flex items-center gap-1"
+                                                        className="!bg-amber-500 !text-surface-page hover:!bg-amber-400"
                                                     >
                                                         {isApproving ? (
                                                             <>
@@ -555,264 +563,197 @@ export default function BridgeAdminDashboard() {
                                                                 Approving...
                                                             </>
                                                         ) : (
-                                                            <>⚠️ Approve Now</>
+                                                            "Approve Now"
                                                         )}
-                                                    </button>
+                                                    </PillButton>
                                                 )}
                                             </div>
                                         </div>
                                     ) : (
-                                        <div className="text-gray-500 text-sm">Loading...</div>
+                                        <div className="text-ink-muted text-sm">Loading...</div>
                                     )}
                                 </div>
 
                                 {/* Manual Bridge Form */}
-                                <form onSubmit={handleManualBridge} className="bg-gray-900/50 rounded-lg p-4">
-                                    <h4 className="text-gray-300 font-semibold mb-3 flex items-center gap-2">
-                                        <span>📤</span> Send USDC to Block52
-                                    </h4>
-                                    <div className="space-y-3">
+                                <form onSubmit={handleManualBridge} className={`${insetBoxClass} p-4`}>
+                                    <h4 className="m-0 mb-3 text-sm font-semibold text-ink">Send USDC to Block52</h4>
+                                    <div className="flex flex-col gap-4">
                                         <div>
-                                            <label className="text-gray-400 text-xs block mb-1">Cosmos Address</label>
+                                            <label htmlFor="manual-cosmos-address" className={fieldLabelClass}>
+                                                Cosmos Address
+                                            </label>
                                             <input
+                                                id="manual-cosmos-address"
                                                 type="text"
                                                 value={manualCosmosAddress}
                                                 onChange={e => setManualCosmosAddress(e.target.value)}
                                                 placeholder="b52..."
-                                                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm font-mono focus:border-purple-500 focus:outline-none"
+                                                className={`${fieldInputClass} h-11 bg-surface-card font-mono text-sm`}
                                             />
                                         </div>
                                         <div>
-                                            <label className="text-gray-400 text-xs block mb-1">Amount (USDC)</label>
+                                            <label htmlFor="manual-amount" className={fieldLabelClass}>
+                                                Amount (USDC)
+                                            </label>
                                             <input
+                                                id="manual-amount"
                                                 type="number"
                                                 step="0.01"
                                                 min="0"
                                                 value={manualAmount}
                                                 onChange={e => setManualAmount(e.target.value)}
                                                 placeholder="9.71"
-                                                className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:border-purple-500 focus:outline-none"
+                                                className={`${fieldInputClass} h-11 bg-surface-card text-sm`}
                                             />
                                         </div>
-                                        <button
-                                            type="submit"
-                                            disabled={isManualBridging || !manualCosmosAddress || !manualAmount}
-                                            className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
-                                        >
+                                        <PillButton type="submit" disabled={isManualBridging || !manualCosmosAddress || !manualAmount} className="w-full">
                                             {isManualBridging ? (
                                                 <>
                                                     <LoadingSpinner size="sm" />
                                                     Bridging...
                                                 </>
                                             ) : (
-                                                <>🚀 Bridge to Block52</>
+                                                "Bridge to Block52"
                                             )}
-                                        </button>
+                                        </PillButton>
                                     </div>
                                 </form>
                             </div>
                         </div>
                     )}
-                </div>
-
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <div className="bg-gray-800 rounded-lg p-4 border border-gray-700">
-                        <p className="text-gray-400 text-sm mb-1">Total Deposits</p>
-                        <p className="text-2xl font-bold text-white">{totalDeposits}</p>
-                    </div>
-                    <div className="bg-green-900/30 rounded-lg p-4 border border-green-700">
-                        <p className="text-green-400 text-sm mb-1">Processed</p>
-                        <p className="text-2xl font-bold text-green-300">{processedCount}</p>
-                    </div>
-                    <div className="bg-yellow-900/30 rounded-lg p-4 border border-yellow-700">
-                        <p className="text-yellow-400 text-sm mb-1">Pending</p>
-                        <p className="text-2xl font-bold text-yellow-300">{pendingCount}</p>
-                    </div>
-                </div>
+                </Card>
 
                 {/* Bridge Sync Status */}
-                <div className="bg-gradient-to-r from-cyan-900/30 to-blue-900/30 rounded-lg p-4 mb-6 border border-cyan-700">
-                    <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                        <div className="flex items-center gap-6">
-                            <div className="flex items-center gap-2">
-                                <span className="text-2xl">🔄</span>
-                                <div>
-                                    <p className="text-white font-semibold">Bridge Sync Status</p>
-                                    <p className="text-gray-400 text-xs">Ethereum → Block52</p>
-                                </div>
-                            </div>
-                            <div className="flex items-center gap-4 text-sm">
-                                <div className="text-center">
-                                    <p className="text-gray-400 text-xs">Total</p>
-                                    <p className="text-white font-bold">{totalDepositsFound || deposits.length}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-green-400 text-xs">Processed</p>
-                                    <p className="text-green-300 font-bold">{processedCount}</p>
-                                </div>
-                                <div className="text-center">
-                                    <p className="text-yellow-400 text-xs">Pending</p>
-                                    <p className="text-yellow-300 font-bold">{pendingCount}</p>
-                                </div>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleProcessAllPending}
-                            disabled={isProcessingAll || pendingCount === 0 || !cosmosWallet.address}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center gap-2"
-                            title={pendingCount === 0 ? "No pending deposits" : ""}
-                        >
-                            {isProcessingAll ? (
-                                <>
-                                    <LoadingSpinner size="sm" />
-                                    Processing...
-                                </>
-                            ) : (
-                                <>⚡ Process All Pending ({pendingCount})</>
-                            )}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Controls */}
-                <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
-                    <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <label className="text-white text-sm">Items per page:</label>
-                                <select
-                                    value={itemsPerPage}
-                                    onChange={e => handleItemsPerPageChange(parseInt(e.target.value))}
-                                    className="px-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white"
-                                >
-                                    <option value="10">10</option>
-                                    <option value="25">25</option>
-                                    <option value="50">50</option>
-                                    <option value="100">100</option>
-                                </select>
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <label className="text-white text-sm">Sort:</label>
-                                <button
-                                    onClick={handleSortOrderChange}
-                                    className="px-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white hover:bg-gray-700 transition-colors flex items-center gap-2"
-                                >
-                                    {sortOrder === "desc" ? "↓ Newest First" : "↑ Oldest First"}
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            <div className="flex items-center gap-2">
-                                <label className="text-white text-sm">Filter:</label>
-                                <select
-                                    value={filter}
-                                    onChange={e => setFilter(e.target.value as any)}
-                                    className="px-4 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white"
-                                >
-                                    <option value="all">All</option>
-                                    <option value="processed">Processed</option>
-                                    <option value="pending">Pending</option>
-                                </select>
-                            </div>
-
-                            <button
-                                onClick={loadDeposits}
-                                disabled={isLoading}
-                                className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors disabled:bg-gray-600 flex items-center gap-2"
+                <Card>
+                    <CardHeader
+                        title="Bridge Sync Status"
+                        subtitle="Ethereum → Block52"
+                        actions={
+                            <PillButton
+                                onClick={handleProcessAllPending}
+                                disabled={isProcessingAll || pendingCount === 0 || !cosmosWallet.address}
+                                title={pendingCount === 0 ? "No pending deposits" : ""}
                             >
-                                {isLoading ? (
+                                {isProcessingAll ? (
                                     <>
                                         <LoadingSpinner size="sm" />
-                                        Loading...
+                                        Processing...
                                     </>
                                 ) : (
-                                    "Refresh"
+                                    <>Process All Pending ({pendingCount})</>
                                 )}
-                            </button>
+                            </PillButton>
+                        }
+                    />
+                    <div className="px-5 py-4 flex flex-wrap items-center gap-x-8 gap-y-3 text-sm">
+                        <div>
+                            <span className="text-xs uppercase tracking-[0.08em] text-ink-muted">Total</span>
+                            <p className="m-0 text-ink font-semibold tabular-nums">{totalDepositsFound || deposits.length}</p>
+                        </div>
+                        <div>
+                            <span className="text-xs uppercase tracking-[0.08em] text-ink-muted">Processed</span>
+                            <p className="m-0 text-emerald-400 font-semibold tabular-nums">{processedCount}</p>
+                        </div>
+                        <div>
+                            <span className="text-xs uppercase tracking-[0.08em] text-ink-muted">Pending</span>
+                            <p className="m-0 text-amber-300 font-semibold tabular-nums">{pendingCount}</p>
                         </div>
                     </div>
+                </Card>
 
-                    {/* Pagination Controls */}
-                    <div className="mt-4 flex items-center justify-between border-t border-gray-700 pt-4">
-                        <div className="text-gray-400 text-sm">
-                            Page {currentPage} of {totalPages > 0 ? totalPages : 1} • Showing deposits {(currentPage - 1) * itemsPerPage} -{" "}
-                            {Math.min(currentPage * itemsPerPage, totalDepositsFound > 0 ? totalDepositsFound : totalDeposits)}
-                            {totalDepositsFound > 0 && ` of ${totalDepositsFound}`}
-                        </div>
+                {/* Deposits: controls + table */}
+                <Card>
+                    <CardHeader
+                        title="Deposits"
+                        actions={
+                            <>
+                                <div className="flex items-center gap-2">
+                                    <label htmlFor="bridge-items-per-page" className="text-sm text-ink-soft whitespace-nowrap">
+                                        Items per page:
+                                    </label>
+                                    <select
+                                        id="bridge-items-per-page"
+                                        value={itemsPerPage}
+                                        onChange={e => handleItemsPerPageChange(parseInt(e.target.value))}
+                                        className={selectClass}
+                                    >
+                                        <option value="10">10</option>
+                                        <option value="25">25</option>
+                                        <option value="50">50</option>
+                                        <option value="100">100</option>
+                                    </select>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-ink-soft whitespace-nowrap">Sort:</span>
+                                    <PillButton variant="outline" onClick={handleSortOrderChange}>
+                                        {sortOrder === "desc" ? "↓ Newest First" : "↑ Oldest First"}
+                                    </PillButton>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <label htmlFor="bridge-filter" className="text-sm text-ink-soft whitespace-nowrap">
+                                        Filter:
+                                    </label>
+                                    <select
+                                        id="bridge-filter"
+                                        value={filter}
+                                        onChange={e => setFilter(e.target.value as any)}
+                                        className={selectClass}
+                                    >
+                                        <option value="all">All</option>
+                                        <option value="processed">Processed</option>
+                                        <option value="pending">Pending</option>
+                                    </select>
+                                </div>
+                                <PillButton onClick={loadDeposits} disabled={isLoading}>
+                                    {isLoading ? (
+                                        <>
+                                            <LoadingSpinner size="sm" />
+                                            Loading...
+                                        </>
+                                    ) : (
+                                        "Refresh"
+                                    )}
+                                </PillButton>
+                            </>
+                        }
+                    />
 
-                        <div className="flex items-center gap-2">
-                            <button
-                                onClick={() => setCurrentPage(1)}
-                                disabled={!hasPrevPage || isLoading}
-                                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg transition-colors text-sm"
-                                title="First page"
-                            >
-                                ««
-                            </button>
-                            <button
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                disabled={!hasPrevPage || isLoading}
-                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg transition-colors text-sm"
-                            >
-                                Previous
-                            </button>
-                            <button
-                                onClick={() => setCurrentPage(p => p + 1)}
-                                disabled={!hasNextPage || isLoading}
-                                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg transition-colors text-sm"
-                            >
-                                Next
-                            </button>
-                            <button
-                                onClick={() => setCurrentPage(totalPages)}
-                                disabled={!hasNextPage || isLoading}
-                                className="px-3 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 disabled:text-gray-600 text-white rounded-lg transition-colors text-sm"
-                                title="Last page"
-                            >
-                                »»
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Deposits Table */}
-                <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
                     <div className="overflow-x-auto">
-                        <table className="w-full">
-                            <thead className="bg-gray-900">
-                                <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Index</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-400 tracking-wider">Recipient</th>
-                                    <th className="px-6 py-4 text-right text-xs font-semibold text-gray-400 tracking-wider">Amount (USDC)</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-400 tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-center text-xs font-semibold text-gray-400 tracking-wider">Action</th>
+                        <table className={`w-full ${isEmpty(filteredDeposits) ? "" : "min-w-[760px]"}`}>
+                            <thead>
+                                <tr className="border-b border-line">
+                                    <th className={`${thClass} text-left`}>Index</th>
+                                    <th className={`${thClass} text-left`}>Recipient</th>
+                                    <th className={`${thClass} text-right`}>Amount (USDC)</th>
+                                    <th className={`${thClass} text-center`}>Status</th>
+                                    <th className={`${thClass} text-center`}>Action</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-gray-700">
+                            <tbody className="divide-y divide-line">
                                 {isEmpty(filteredDeposits) ? (
                                     <tr>
-                                        <td colSpan={5} className="px-6 py-8 text-center text-gray-400">
+                                        <td colSpan={5} className="px-5 py-10 text-center text-ink-muted">
                                             {isLoading ? "Loading deposits..." : "No deposits found"}
                                         </td>
                                     </tr>
                                 ) : (
                                     filteredDeposits.map(deposit => (
-                                        <tr key={deposit.index} className="hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                <span className="text-white font-mono text-sm">#{deposit.index}</span>
+                                        <tr key={deposit.index} className="hover:bg-surface-hover transition-colors">
+                                            <td className="px-5 py-3 whitespace-nowrap">
+                                                <span className="text-ink font-mono text-sm">#{deposit.index}</span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex items-center gap-2">
-                                                    <span className="text-white font-mono text-xs break-all" title={deposit.recipient}>
+                                            <td className="px-5 py-3">
+                                                <div className="flex items-center gap-1">
+                                                    <span className="text-ink-body font-mono text-xs break-all" title={deposit.recipient}>
                                                         {deposit.recipient}
                                                     </span>
                                                     <button
+                                                        type="button"
                                                         onClick={() => copyToClipboard(deposit.recipient, "Address copied!")}
-                                                        className="text-gray-400 hover:text-white transition-colors flex-shrink-0"
+                                                        aria-label="Copy address"
+                                                        className="w-11 h-11 sm:w-8 sm:h-8 grid place-items-center rounded-full flex-shrink-0 text-ink-muted hover:text-ink hover:bg-surface-raised transition-colors"
                                                     >
-                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                             <path
                                                                 strokeLinecap="round"
                                                                 strokeLinejoin="round"
@@ -823,41 +764,42 @@ export default function BridgeAdminDashboard() {
                                                     </button>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                <span className="text-white font-semibold">{deposit.amountFormatted} USDC</span>
+                                            <td className="px-5 py-3 whitespace-nowrap text-right">
+                                                <span className="text-ink font-semibold tabular-nums">{deposit.amountFormatted} USDC</span>
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            <td className="px-5 py-3 whitespace-nowrap text-center">
                                                 {deposit.status === "loading" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-700 text-gray-300 flex items-center gap-2 justify-center">
+                                                    <span className="inline-flex items-center gap-2 px-3 py-1 text-xs font-semibold rounded-full bg-surface-raised text-ink-soft border border-line-strong">
                                                         <LoadingSpinner size="xs" />
                                                         Loading...
                                                     </span>
                                                 )}
                                                 {deposit.status === "processed" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-green-900/50 text-green-300 border border-green-700">
-                                                        ✅ Processed
+                                                    <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                                                        Processed
                                                     </span>
                                                 )}
                                                 {deposit.status === "pending" && (
-                                                    <span className="px-3 py-1 text-xs font-semibold rounded-full bg-yellow-900/50 text-yellow-300 border border-yellow-700">
-                                                        ⏳ Pending
+                                                    <span className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30">
+                                                        Pending
                                                     </span>
                                                 )}
                                                 {deposit.status === "error" && (
                                                     <span
-                                                        className="px-3 py-1 text-xs font-semibold rounded-full bg-red-900/50 text-red-300 border border-red-700 cursor-help"
+                                                        className="inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full bg-red-500/10 text-red-400 border border-red-500/30 cursor-help"
                                                         title={deposit.errorMessage}
                                                     >
-                                                        ❌ Error
+                                                        Error
                                                     </span>
                                                 )}
                                             </td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-center">
+                                            <td className="px-5 py-3 whitespace-nowrap text-center">
                                                 {deposit.status === "pending" || deposit.status === "error" ? (
-                                                    <button
+                                                    <PillButton
+                                                        size="sm"
                                                         onClick={() => handleProcessDeposit(deposit.index)}
                                                         disabled={processingIndex === deposit.index || !cosmosWallet.address}
-                                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg transition-colors flex items-center gap-2 justify-center mx-auto"
+                                                        className="mx-auto"
                                                     >
                                                         {processingIndex === deposit.index ? (
                                                             <>
@@ -867,9 +809,9 @@ export default function BridgeAdminDashboard() {
                                                         ) : (
                                                             "Process"
                                                         )}
-                                                    </button>
+                                                    </PillButton>
                                                 ) : (
-                                                    <span className="text-gray-500 text-sm">—</span>
+                                                    <span className="text-ink-muted text-sm">—</span>
                                                 )}
                                             </td>
                                         </tr>
@@ -878,28 +820,42 @@ export default function BridgeAdminDashboard() {
                             </tbody>
                         </table>
                     </div>
-                </div>
+
+                    {/* Pagination Controls */}
+                    <div className="px-5 py-4 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="text-ink-muted text-sm">
+                            Page {currentPage} of {totalPages > 0 ? totalPages : 1} • Showing deposits {(currentPage - 1) * itemsPerPage} -{" "}
+                            {Math.min(currentPage * itemsPerPage, totalDepositsFound > 0 ? totalDepositsFound : totalDeposits)}
+                            {totalDepositsFound > 0 && ` of ${totalDepositsFound}`}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button type="button" onClick={() => setCurrentPage(1)} disabled={!hasPrevPage || isLoading} className={pagerClass} title="First page">
+                                ««
+                            </button>
+                            <button type="button" onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={!hasPrevPage || isLoading} className={pagerClass}>
+                                Previous
+                            </button>
+                            <button type="button" onClick={() => setCurrentPage(p => p + 1)} disabled={!hasNextPage || isLoading} className={pagerClass}>
+                                Next
+                            </button>
+                            <button type="button" onClick={() => setCurrentPage(totalPages)} disabled={!hasNextPage || isLoading} className={pagerClass} title="Last page">
+                                »»
+                            </button>
+                        </div>
+                    </div>
+                </Card>
 
                 {/* Info Box */}
-                <div className="mt-6 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                    <h3 className="text-blue-200 font-semibold mb-2">ℹ️ How This Works</h3>
-                    <ul className="text-blue-300 text-sm space-y-1 list-disc list-inside">
+                <div className={`${noticeClass.info} !p-4`}>
+                    <h3 className="m-0 mb-2 text-sm font-semibold text-ink">How This Works</h3>
+                    <ul className="m-0 text-sm space-y-1 list-disc list-inside text-ink-soft">
                         <li>This dashboard queries the Ethereum bridge contract for all deposit events</li>
                         <li>Each deposit shows the Cosmos recipient address and USDC amount</li>
                         <li>Status indicates whether the deposit has been processed on Block52 chain</li>
                         <li>Click "Process" to mint USDC on Block52 for pending deposits</li>
                         <li>Processed deposits cannot be processed again (idempotency protection)</li>
                     </ul>
-                </div>
-
-                {/* Powered by Block52 Footer */}
-                <div className="fixed bottom-4 left-4 flex items-center z-10 opacity-30">
-                    <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                        <div className="text-left mb-1">
-                            <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
-                        </div>
-                        <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain pointer-events-none" />
-                    </div>
                 </div>
             </div>
         </div>

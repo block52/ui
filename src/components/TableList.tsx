@@ -1,54 +1,105 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { truncateMiddle } from "../utils/stringUtils";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import { useForceCloseGame } from "../hooks/game/useForceCloseGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
-import { formatMicroAsUsdc } from "../constants/currency";
-import { computeSngEntryBreakdown } from "../utils/buyInUtils";
-import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
-import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
+import { isCashFormat } from "../utils/gameFormatUtils";
+import {
+    TableFormatFilter,
+    countByFormat,
+    formatBlinds,
+    formatLabel,
+    formatTableBuyIn,
+    isTableFull,
+    matchesFormatFilter,
+    matchesTableSearch,
+    remainingCount,
+    seatFillPercent,
+    shortTableId,
+    sngPrizeInfo,
+    sortLobbyTables,
+    tableDisplayName,
+    variantAbbreviation
+} from "../utils/lobbyTables";
+import { cssVars } from "../utils/cssVars";
+import { copyToClipboard } from "../utils/clipboard";
 import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
+import { Card, PillButton, SegmentedControl, pillClass } from "./ui";
 import styles from "./TableList.module.css";
 import { isNullish, isEmpty } from "../utils/guards";
 
-const PAGE_SIZE = 20;
+/** Rows per page on the desktop table. */
+const PAGE_SIZE = 15;
+/** Cards revealed per "Show more" tap on phones. */
+const MOBILE_BATCH = 10;
+const SKELETON_ROWS = 6;
+
+const FORMAT_TAB_LABELS: ReadonlyArray<{ value: TableFormatFilter; label: string }> = [
+    { value: "all", label: "All" },
+    { value: "cash", label: "Cash" },
+    { value: "sng", label: "Sit & Go" }
+];
+
+const thClass =
+    "px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted whitespace-nowrap [&_button]:uppercase [&_button]:tracking-[0.1em] [&_button]:min-h-9";
+
+/** Small green felt "table" glyph in front of every table name. */
+const FeltIcon: React.FC<{ small?: boolean }> = ({ small = false }) => (
+    <span aria-hidden="true" className={`flex-none rounded-full ${styles.felt} ${small ? "w-8 h-5" : "w-9 h-[22px]"}`} />
+);
+
+/** Thin yellow fill bar + "3 / 9". */
+const SeatsBar: React.FC<{ game: GameWithFormat; barWidthClass: string }> = ({ game, barWidthClass }) => (
+    <span className="flex items-center gap-3">
+        <span className={`inline-block h-1 rounded-sm bg-line overflow-hidden ${barWidthClass}`}>
+            <span className={`block h-full rounded-sm bg-yellow-500 ${styles.seatFill}`} style={cssVars({ "--seat-fill": `${seatFillPercent(game)}%` })} />
+        </span>
+        <span className="tabular-nums text-ink whitespace-nowrap">
+            {game.currentPlayers} / {game.maxPlayers}
+        </span>
+    </span>
+);
+
+const SearchIcon: React.FC = () => (
+    <svg className="w-4 h-4 flex-none" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-3.5-3.5" />
+    </svg>
+);
+
+const CopyIcon: React.FC = () => (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="9" y="9" width="13" height="13" rx="2" />
+        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+    </svg>
+);
+
+const TrashIcon: React.FC = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth="2"
+            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+        />
+    </svg>
+);
+
+const CloseIcon: React.FC = () => (
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+    </svg>
+);
+
+const dangerIconClass =
+    "w-11 h-11 md:w-9 md:h-9 grid place-items-center rounded-full border border-red-400/40 text-red-400 hover:bg-red-400/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
 
 /**
- * Format buy-in display based on game format.
- *
- * SNG/Tournament with a protocol fee configured: shows the buy-in split into its
- * prize-pool portion and protocol cut, e.g. "$9.00 (8.10 + 0.90)". The split uses
- * the governable `protocolFeeBps` from the game config via the shared, tested util
- * — NOT a hardcoded 10% (poker-vm#2592, Commandment #7). When no protocol fee is
- * configured, no split is shown.
- *
- * Cash Game: shows the min-max range.
- */
-const formatBuyIn = (game: GameWithFormat) => {
-    const isTournament = isTournamentFormat(game.gameFormat);
-    const minBuyIn = formatMicroAsUsdc(game.minBuyIn, 2);
-
-    if (isTournament) {
-        const breakdown = computeSngEntryBreakdown(game.minBuyIn, game.entryFee, game.protocolFeeBps);
-        if (breakdown.hasProtocolFee) {
-            const prizePool = formatMicroAsUsdc(breakdown.prizePoolPortion, 2);
-            const fee = formatMicroAsUsdc(breakdown.protocolCut, 2);
-            return `$${minBuyIn} (${prizePool} + ${fee})`;
-        }
-        return `$${minBuyIn}`;
-    }
-
-    const maxBuyIn = formatMicroAsUsdc(game.maxBuyIn, 2);
-    return `$${minBuyIn} - $${maxBuyIn}`;
-};
-
-/**
- * TableList - Displays available poker tables in a table format
- * Used on the landing page RHS
- * Join buttons open tables in a new tab for better user experience
+ * TableList - the lobby's table browser (home page right column).
+ * Desktop (md+): sortable, paginated table. Phones: card list with "Show more".
+ * Join/Watch links open the table in a new tab.
  */
 interface TableListProps {
     onCreateTable?: () => void;
@@ -62,16 +113,15 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
     const [deleteModalGameId, setDeleteModalGameId] = useState<string | null>(null);
     const [forceCloseGameTarget, setForceCloseGameTarget] = useState<GameWithFormat | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
+    const [mobileVisible, setMobileVisible] = useState(MOBILE_BATCH);
+    const [formatFilter, setFormatFilter] = useState<TableFormatFilter>("all");
     const [playersSortDir, setPlayersSortDir] = useState<SortDirection>(null);
     const [formatSortDir, setFormatSortDir] = useState<SortDirection>(null);
     const [buyInSortDir, setBuyInSortDir] = useState<SortDirection>(null);
     const [gameIdSearch, setGameIdSearch] = useState("");
     const [showTreasuryOnly, setShowTreasuryOnly] = useState(!!treasuryAddress);
-    // The treasury toggle is not RENDERED below the sm breakpoint (it doesn't
-    // fit the 328px card header). A `hidden` class is not enough: it stays
-    // tabbable and can still contribute to the flex layout calculation.
-    // matchMedia is guarded (same as stageGeometry) — jsdom lacks it; the
-    // fallback is sm-up, i.e. today's desktop rendering.
+    // Drives the full-width segmented control on phones. matchMedia is
+    // guarded — jsdom lacks it; the fallback is sm-up.
     const [isSmUp, setIsSmUp] = useState<boolean>(() =>
         typeof window.matchMedia === "function" ? window.matchMedia("(min-width: 640px)").matches : true
     );
@@ -84,6 +134,11 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         return () => mq.removeEventListener("change", onChange);
     }, []);
 
+    const resetPaging = useCallback(() => {
+        setCurrentPage(1);
+        setMobileVisible(MOBILE_BATCH);
+    }, []);
+
     const handlePlayersSortClick = useCallback(() => {
         setPlayersSortDir(prev => {
             if (isNullish(prev)) return "desc";
@@ -92,8 +147,8 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         });
         setFormatSortDir(null);
         setBuyInSortDir(null);
-        setCurrentPage(1);
-    }, []);
+        resetPaging();
+    }, [resetPaging]);
 
     const handleFormatSortClick = useCallback(() => {
         setFormatSortDir(prev => {
@@ -103,8 +158,8 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         });
         setPlayersSortDir(null);
         setBuyInSortDir(null);
-        setCurrentPage(1);
-    }, []);
+        resetPaging();
+    }, [resetPaging]);
 
     const handleBuyInSortClick = useCallback(() => {
         setBuyInSortDir(prev => {
@@ -114,25 +169,41 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         });
         setPlayersSortDir(null);
         setFormatSortDir(null);
-        setCurrentPage(1);
-    }, []);
+        resetPaging();
+    }, [resetPaging]);
 
-    const handleGameIdSearch = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-        setGameIdSearch(e.target.value);
-        setCurrentPage(1);
-    }, []);
+    const handleGameIdSearch = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            setGameIdSearch(e.target.value);
+            resetPaging();
+        },
+        [resetPaging]
+    );
 
-    // Filter by treasury toggle, game ID search, then sort
-    const games = React.useMemo(() => {
-        let filtered = rawGames;
-        if (showTreasuryOnly && treasuryAddress) {
-            filtered = filtered.filter(g => g.creator === treasuryAddress);
-        }
-        if (gameIdSearch.trim()) {
-            const q = gameIdSearch.trim().toLowerCase();
-            // Match on either the table name or the gameId.
-            filtered = filtered.filter(g => `${g.name ?? ""} ${g.gameId}`.toLowerCase().includes(q));
-        }
+    const handleFormatFilter = useCallback(
+        (value: TableFormatFilter) => {
+            setFormatFilter(value);
+            resetPaging();
+        },
+        [resetPaging]
+    );
+
+    const handleTreasuryToggle = useCallback(() => {
+        setShowTreasuryOnly(v => !v);
+        resetPaging();
+    }, [resetPaging]);
+
+    // Treasury toggle + search: the pool the tab counts are taken from.
+    const searchedGames = useMemo(() => {
+        const pool = showTreasuryOnly && treasuryAddress ? rawGames.filter(g => g.creator === treasuryAddress) : rawGames;
+        return pool.filter(g => matchesTableSearch(g, gameIdSearch));
+    }, [rawGames, showTreasuryOnly, gameIdSearch]);
+
+    const formatCounts = useMemo(() => countByFormat(searchedGames), [searchedGames]);
+
+    // Current tab, then sort (explicit header sort wins over the lobby default).
+    const games = useMemo(() => {
+        const filtered = searchedGames.filter(g => matchesFormatFilter(g, formatFilter));
         if (!isNullish(playersSortDir)) {
             return [...filtered].sort((a, b) => (playersSortDir === "desc" ? b.currentPlayers - a.currentPlayers : a.currentPlayers - b.currentPlayers));
         }
@@ -148,40 +219,31 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                 return buyInSortDir === "asc" ? diff : -diff;
             });
         }
-        return sortTablesByAvailableSeats(filtered);
-    }, [rawGames, showTreasuryOnly, gameIdSearch, playersSortDir, formatSortDir, buyInSortDir]);
+        return sortLobbyTables(filtered);
+    }, [searchedGames, formatFilter, playersSortDir, formatSortDir, buyInSortDir]);
 
-    const pagedGames = React.useMemo(() => {
+    const pagedGames = useMemo(() => {
         const start = (currentPage - 1) * PAGE_SIZE;
         return games.slice(start, start + PAGE_SIZE);
     }, [games, currentPage]);
 
-    // Check if there are any cash games to determine if we should show Stakes column
-    const hasCashGames = React.useMemo(() => {
-        return games.some(game => !isTournamentFormat(game.gameFormat));
-    }, [games]);
+    const mobileGames = useMemo(() => games.slice(0, mobileVisible), [games, mobileVisible]);
+    const mobileRemaining = remainingCount(games.length, mobileVisible);
 
-    // Use environment variables for club branding
-    // Defaults to poker.svg icon for table listings (appropriate for poker context)
-    // Clubs can override by setting VITE_CLUB_LOGO and VITE_CLUB_NAME in .env
-    const clubLogo = import.meta.env.VITE_CLUB_LOGO || "/poker.svg";
+    const formatOptions = useMemo(
+        () => FORMAT_TAB_LABELS.map(tab => ({ value: tab.value, label: tab.label, count: formatCounts[tab.value] })),
+        [formatCounts]
+    );
+
+    const isSngTab = formatFilter === "sng";
+
+    // Club branding (VITE_CLUB_NAME), shown as the card subtitle.
     const clubName = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
 
-    // Copy to clipboard utility with error handling
-    const copyToClipboard = async (text: string) => {
-        try {
-            await navigator.clipboard.writeText(text);
-        } catch (err) {
-            console.error("Failed to copy to clipboard:", err);
-        }
-    };
-
-    // Handle delete game
     const handleDeleteGame = useCallback(async () => {
         if (!deleteModalGameId) return;
         const result = await deleteGame(deleteModalGameId);
         if (result) {
-            // Refresh the games list after successful deletion
             refetch();
         }
     }, [deleteModalGameId, deleteGame, refetch]);
@@ -195,325 +257,299 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         }
     }, [forceCloseGameTarget, forceCloseGame, refetch]);
 
-    // Check if user is the creator of a game
     const isCreator = (game: GameWithFormat) => {
         return cosmosAddress && game.creator && game.creator.toLowerCase() === cosmosAddress.toLowerCase();
     };
 
-    // Check if a game can be deleted (no active players)
-    const canDelete = (game: GameWithFormat) => {
-        return isCreator(game) && game.currentPlayers === 0;
-    };
+    // Delete: creator + no seated players.
+    const canDelete = (game: GameWithFormat) => isCreator(game) && game.currentPlayers === 0;
 
     // Cash-only force-close: creator + non-empty. SNG/Tournament is
     // deliberately excluded — refund semantics for a partial tournament are
     // a separate product decision (see block52/poker-vm#2173).
-    const canForceClose = (game: GameWithFormat) => {
-        return isCreator(game) && game.currentPlayers > 0 && isCashFormat(game.gameFormat);
+    const canForceClose = (game: GameWithFormat) => isCreator(game) && game.currentPlayers > 0 && isCashFormat(game.gameFormat);
+
+    // Non-empty SNG/Tournament tables the creator owns: show the button
+    // disabled with a tooltip so the creator knows it exists but is blocked.
+    const canShowForceCloseDisabled = (game: GameWithFormat) => isCreator(game) && game.currentPlayers > 0 && !isCashFormat(game.gameFormat);
+
+    const renderManageButtons = (game: GameWithFormat) => (
+        <>
+            {canDelete(game) && (
+                <button
+                    type="button"
+                    onClick={() => setDeleteModalGameId(game.gameId)}
+                    disabled={isDeleting}
+                    className={dangerIconClass}
+                    title="Delete table"
+                    aria-label={`Delete ${tableDisplayName(game.gameId, game.name)}`}
+                >
+                    <TrashIcon />
+                </button>
+            )}
+            {canForceClose(game) && (
+                <button
+                    type="button"
+                    onClick={() => setForceCloseGameTarget(game)}
+                    disabled={isClosing}
+                    className={dangerIconClass}
+                    title="Close table and refund all players"
+                    aria-label={`Close ${tableDisplayName(game.gameId, game.name)} and refund all players`}
+                >
+                    <CloseIcon />
+                </button>
+            )}
+            {canShowForceCloseDisabled(game) && (
+                <button type="button" disabled className={dangerIconClass} title="Tournaments can't be force-closed." aria-label="Tournaments can't be force-closed">
+                    <CloseIcon />
+                </button>
+            )}
+        </>
+    );
+
+    const renderJoinLink = (game: GameWithFormat, size: "sm" | "md") => {
+        const full = isTableFull(game);
+        const label = full ? "Watch" : "Join";
+        return (
+            <a
+                href={`/table/${game.gameId}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`${label} ${tableDisplayName(game.gameId, game.name)}, ${formatLabel(game.gameFormat)}, ${game.currentPlayers} of ${game.maxPlayers} players`}
+                className={pillClass("outline", size, "min-w-[76px]")}
+            >
+                {label}
+            </a>
+        );
     };
 
-    // True for non-empty SNG/Tournament tables the creator owns — we render
-    // the button disabled with a tooltip so the creator knows the action
-    // exists but is blocked for tournaments.
-    const canShowForceCloseDisabled = (game: GameWithFormat) => {
-        return isCreator(game) && game.currentPlayers > 0 && !isCashFormat(game.gameFormat);
+    const renderNameBlock = (game: GameWithFormat, idSuffix: string) => (
+        <div className="flex flex-col gap-0.5 min-w-0">
+            <span className="text-ink text-[15px] font-medium truncate" title={game.gameId}>
+                {tableDisplayName(game.gameId, game.name)}
+            </span>
+            <span className="flex items-center gap-1 font-mono text-xs text-ink-muted whitespace-nowrap">
+                {shortTableId(game.gameId)} · {idSuffix}
+                <button
+                    type="button"
+                    onClick={() => copyToClipboard(game.gameId, "Table ID copied to clipboard!")}
+                    className="w-11 h-11 -my-3 md:w-6 md:h-6 md:my-0 grid place-items-center rounded-md text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                    title="Copy table ID"
+                    aria-label="Copy table ID"
+                >
+                    <CopyIcon />
+                </button>
+            </span>
+        </div>
+    );
+
+    /** Blinds column (cash) or prize pool column (Sit & Go tab / SNG rows on All). */
+    const renderFourthCell = (game: GameWithFormat) => {
+        if (isCashFormat(game.gameFormat)) {
+            return <span className="text-ink tabular-nums">{formatBlinds(game)}</span>;
+        }
+        const prize = sngPrizeInfo(game);
+        if (isSngTab) {
+            return (
+                <span className="flex flex-col gap-0.5">
+                    <span className="text-ink tabular-nums">{prize.pool}</span>
+                    {prize.split && <span className="text-xs text-ink-muted tabular-nums">{prize.split}</span>}
+                </span>
+            );
+        }
+        return <span className="text-ink-muted tabular-nums">Pool {prize.pool}</span>;
     };
 
-    if (isLoading) {
-        return (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-                <div className="px-6 py-4 bg-gray-900 border-b border-gray-700">
-                    <h2 className="text-xl font-bold text-white">Available Tables</h2>
-                </div>
-                <div className="flex items-center justify-center py-12">
-                    <svg className="animate-spin h-8 w-8 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                        <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        ></path>
-                    </svg>
-                    <span className="text-white text-lg">Loading tables...</span>
-                </div>
+    const header = (
+        <div className="flex flex-wrap items-center justify-between gap-3.5">
+            <div className="flex flex-col gap-0.5 min-w-0">
+                <h2 className="m-0 text-[22px] md:text-2xl font-semibold text-ink">Tables</h2>
+                <span className="text-ink-muted text-sm">{clubName} club</span>
             </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-                <div className="px-6 py-4 bg-gray-900 border-b border-gray-700">
-                    <h2 className="text-xl font-bold text-white">Available Tables</h2>
+            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                <div className="w-full sm:w-auto">
+                    <SegmentedControl options={formatOptions} value={formatFilter} onChange={handleFormatFilter} ariaLabel="Game format" fullWidth={!isSmUp} />
                 </div>
-                <div className="text-center py-12">
-                    <div className="text-red-400 mb-4">
-                        <svg className="w-12 h-12 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth="2"
-                                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                            />
-                        </svg>
-                    </div>
-                    <p className="text-gray-300 mb-4">{error.message}</p>
-                    <button onClick={refetch} className={`px-4 py-2 rounded-lg text-white transition-all hover:opacity-90 ${styles.actionButton}`}>
-                        Retry
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
-            {/* Header — stacks vertically below sm so the search box gets real
-                width instead of being crushed by three children on one line */}
-            <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <h2 className="text-xl font-bold text-white sm:shrink-0">Available Tables</h2>
-                {isSmUp && (
-                    <div className="flex items-center gap-3 ml-auto">
-                        {treasuryAddress && (
-                            <label className="flex items-center gap-2 cursor-pointer shrink-0">
-                                <span className="text-sm text-gray-400 select-none">Treasury Only Tables</span>
-                                <button
-                                    role="switch"
-                                    aria-checked={showTreasuryOnly}
-                                    onClick={() => setShowTreasuryOnly(v => !v)}
-                                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${showTreasuryOnly ? "bg-blue-600" : "bg-gray-600"}`}
-                                >
-                                    <span
-                                        className={`inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition-transform ${showTreasuryOnly ? "translate-x-4" : "translate-x-1"}`}
-                                    />
-                                </button>
-                            </label>
-                        )}
-                    </div>
-                )}
-                <div className="relative w-full sm:max-w-xs">
-                    <svg
-                        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-4.35-4.35M17 11A6 6 0 111 11a6 6 0 0116 0z" />
-                    </svg>
+                <label className="flex items-center gap-2 h-11 px-3.5 flex-1 min-w-[180px] sm:flex-none sm:w-56 rounded-full border border-line bg-surface-card text-ink-muted focus-within:border-brand transition-colors">
+                    <SearchIcon />
+                    <span className="sr-only">Search tables</span>
                     <input
-                        type="text"
+                        type="search"
                         value={gameIdSearch}
                         onChange={handleGameIdSearch}
-                        placeholder="Search by table name or ID..."
-                        className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                        placeholder="Search tables"
+                        className="flex-1 min-w-0 bg-transparent border-0 text-sm text-ink-body placeholder:text-ink-muted outline-none"
                     />
-                </div>
+                </label>
+                {treasuryAddress && (
+                    <button
+                        type="button"
+                        aria-pressed={showTreasuryOnly}
+                        onClick={handleTreasuryToggle}
+                        title="Show only tables created by the official treasury"
+                        className={`inline-flex items-center gap-1.5 h-11 px-4 rounded-full border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light ${
+                            showTreasuryOnly ? "border-brand/50 bg-brand/15 text-brand-light" : "border-line text-ink-soft hover:text-ink hover:bg-surface-hover"
+                        }`}
+                    >
+                        <svg className={`w-4 h-4 ${showTreasuryOnly ? "" : "opacity-0"}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                        Official
+                    </button>
+                )}
+                {onCreateTable && (
+                    <PillButton variant="outline" size="md" onClick={onCreateTable}>
+                        <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" aria-hidden="true">
+                            <path d="M12 5v14M5 12h14" />
+                        </svg>
+                        Create table
+                    </PillButton>
+                )}
             </div>
+        </div>
+    );
 
-            {/* Table.
-                Below sm: fixed layout with a reduced 4-column set (Table ID,
-                Players, Buy-In, Action) whose % widths sum to 100 — the table can
-                never outgrow the card, so the wrapper needs no horizontal scroll.
-                From sm up: auto layout with the original px widths (moved from the
-                old colgroup onto the th cells) and the scroll wrapper restored. */}
-            <div className="overflow-visible sm:overflow-x-auto">
-                <table className="w-full table-fixed sm:table-auto">
-                    <thead className="bg-gray-900">
-                        <tr>
-                            <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Club</th>
-                            <th className="w-[38%] sm:w-[140px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Table ID</th>
-                            {hasCashGames && (
-                                <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Stakes</th>
-                            )}
-                            {/* Format sorting is only reachable from md up — the column
-                                (and its SortButton) is not rendered below that. */}
-                            <th className="hidden md:table-cell md:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
-                                <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
-                            </th>
-                            <th className="hidden sm:table-cell sm:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
-                            <th className="w-[18%] sm:w-[100px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
-                                <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
-                            </th>
-                            <th className="w-[24%] sm:w-[190px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
-                                <SortButton label="Buy-In" direction={buyInSortDir} onClick={handleBuyInSortClick} />
-                            </th>
-                            <th className="w-[20%] sm:w-[80px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
-                            {/* Creator-only manage column (delete / force-close). Looks
-                                empty to non-creators but is NOT dead — hidden on mobile
-                                rather than deleted. */}
-                            <th className="hidden sm:table-cell sm:w-[90px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400"></th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-700">
-                        {isEmpty(games) ? (
-                            <tr>
-                                {/* colSpan is the MAX column count; browsers clamp it to the
-                                    columns actually rendered at the breakpoint, so with the
-                                    table at w-full this centres inside the card at every width
-                                    (it used to inherit the overflowing 597px track). */}
-                                <td colSpan={9} className="px-6 py-12 text-center text-gray-400">
-                                    <div className="mb-4">
-                                        <svg className="w-12 h-12 mx-auto text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path
-                                                strokeLinecap="round"
-                                                strokeLinejoin="round"
-                                                strokeWidth="1.5"
-                                                d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"
-                                            />
-                                        </svg>
-                                    </div>
-                                    <p className="text-gray-400 mb-1">No tables available</p>
-                                    <p className="text-gray-500 text-sm">Create the first table to start playing!</p>
-                                    {onCreateTable && (
-                                        <button
-                                            type="button"
-                                            onClick={onCreateTable}
-                                            className="mt-4 px-4 py-2 text-sm text-white rounded-lg transition duration-300 shadow-md bg-blue-600 hover:bg-blue-700"
-                                        >
-                                            Create table
-                                        </button>
-                                    )}
-                                </td>
-                            </tr>
-                        ) : (
-                            pagedGames.map((game: GameWithFormat) => {
-                                const isTournament = isTournamentFormat(game.gameFormat);
-                                return (
-                                    <tr key={game.gameId} className="hover:bg-gray-700/50 transition-colors">
-                                        <td className="hidden sm:table-cell px-2 sm:px-4 py-4">
-                                            <div className="flex items-center justify-center gap-2">
-                                                <img src={clubLogo} alt={clubName} className="w-6 h-6 object-contain" />
-                                                <span className="text-white">{clubName}</span>
+    const renderBody = () => {
+        if (isLoading) {
+            return (
+                <div aria-busy="true" aria-label="Loading tables">
+                    {Array.from({ length: SKELETON_ROWS }, (_, i) => (
+                        <div key={i} className="flex items-center gap-4 px-4 md:px-6 py-4 border-t border-line first:border-t-0 animate-pulse">
+                            <span className="w-9 h-[22px] rounded-full bg-surface-hover flex-none" />
+                            <span className="flex flex-col gap-2 flex-1 min-w-0">
+                                <span className="h-3.5 w-28 rounded bg-surface-hover" />
+                                <span className="h-3 w-20 rounded bg-surface-raised" />
+                            </span>
+                            <span className="hidden md:block h-3 w-16 rounded bg-surface-raised" />
+                            <span className="hidden md:block h-3 w-24 rounded bg-surface-raised" />
+                            <span className="h-9 w-[76px] rounded-full bg-surface-raised flex-none" />
+                        </div>
+                    ))}
+                </div>
+            );
+        }
+
+        if (error) {
+            return (
+                <div className="text-center px-6 py-12">
+                    <p className="text-red-400 mb-1 font-medium">Couldn't load tables</p>
+                    <p className="text-ink-muted text-sm mb-4 break-words">{error.message}</p>
+                    <PillButton variant="outline" size="md" onClick={refetch}>
+                        Retry
+                    </PillButton>
+                </div>
+            );
+        }
+
+        if (isEmpty(games)) {
+            const filtering = gameIdSearch.trim().length > 0 || formatFilter !== "all";
+            return (
+                <div className="px-6 py-12 text-center">
+                    <p className="text-ink-body font-medium mb-1">{filtering ? "No tables match" : "No tables available"}</p>
+                    <p className="text-ink-muted text-sm">{filtering ? "Try another format or search." : "Create the first table to start playing!"}</p>
+                    {!filtering && onCreateTable && (
+                        <PillButton variant="primary" size="md" onClick={onCreateTable} className="mt-4">
+                            Create table
+                        </PillButton>
+                    )}
+                </div>
+            );
+        }
+
+        return (
+            <>
+                {/* Desktop table (md and up) */}
+                <div className="hidden md:block">
+                    <div className="overflow-x-auto">
+                        <table className="w-full border-collapse">
+                            <thead>
+                                <tr>
+                                    <th className={`${thClass} pl-6`}>Table</th>
+                                    <th className={thClass}>
+                                        <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
+                                    </th>
+                                    <th className={thClass}>
+                                        <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
+                                    </th>
+                                    <th className={thClass}>{isSngTab ? "Prize pool" : "Blinds"}</th>
+                                    <th className={thClass}>
+                                        <SortButton label="Buy-in" direction={buyInSortDir} onClick={handleBuyInSortClick} />
+                                    </th>
+                                    <th className={`${thClass} pr-6`}>
+                                        <span className="sr-only">Action</span>
+                                    </th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pagedGames.map(game => (
+                                    <tr key={game.gameId} className="border-t border-line hover:bg-surface-raised transition-colors">
+                                        <td className="pl-6 pr-4 py-3.5">
+                                            <div className="flex items-center gap-4 min-w-0">
+                                                <FeltIcon />
+                                                {renderNameBlock(game, variantAbbreviation(game.gameVariant))}
                                             </div>
                                         </td>
-                                        <td className="px-2 sm:px-4 py-4">
-                                            <div className="flex items-center justify-center gap-2 min-w-0">
-                                                {/* Named tables (poker-vm#337) show their name; unnamed fall
-                                                    back to the truncated gameId (name stays undefined in data). */}
-                                                {game.name ? (
-                                                    <span className="text-white text-sm font-semibold truncate" title={game.gameId}>
-                                                        {game.name}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-300 font-mono text-sm truncate" title={game.gameId}>
-                                                        {truncateMiddle(game.gameId, 4, 4)}
-                                                    </span>
-                                                )}
-                                                <button
-                                                    onClick={() => copyToClipboard(game.gameId)}
-                                                    className="text-gray-400 hover:text-white hover:opacity-90 transition-colors"
-                                                    title="Copy game ID"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth="2"
-                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                        />
-                                                    </svg>
-                                                </button>
+                                        <td className="px-4 py-3.5 whitespace-nowrap text-ink-soft">{formatLabel(game.gameFormat)}</td>
+                                        <td className="px-4 py-3.5">
+                                            <SeatsBar game={game} barWidthClass="w-[72px]" />
+                                        </td>
+                                        <td className="px-4 py-3.5 whitespace-nowrap">{renderFourthCell(game)}</td>
+                                        <td className="px-4 py-3.5 whitespace-nowrap text-ink-soft tabular-nums">{formatTableBuyIn(game)}</td>
+                                        <td className="pl-4 pr-6 py-3.5">
+                                            <div className="flex items-center justify-end gap-2">
+                                                {renderManageButtons(game)}
+                                                {renderJoinLink(game, "sm")}
                                             </div>
-                                        </td>
-                                        {hasCashGames && (
-                                            <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
-                                                {!isTournament ? (
-                                                    <span className="text-white font-bold">
-                                                        ${formatMicroAsUsdc(game.smallBlind, 2)} / ${formatMicroAsUsdc(game.bigBlind, 2)}
-                                                    </span>
-                                                ) : (
-                                                    <span className="text-gray-500">-</span>
-                                                )}
-                                            </td>
-                                        )}
-                                        <td className="hidden md:table-cell px-2 sm:px-4 py-4 text-center">
-                                            <span className="text-white capitalize">{formatGameFormatDisplay(game.gameFormat)}</span>
-                                        </td>
-                                        <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
-                                            <span className="text-white capitalize">{formatGameVariantDisplay(game.gameVariant)}</span>
-                                        </td>
-                                        <td className="px-2 sm:px-4 py-4 text-center">
-                                            <span className="text-white font-semibold">
-                                                {game.currentPlayers}/{game.maxPlayers}
-                                            </span>
-                                        </td>
-                                        <td className="px-2 sm:px-4 py-4 text-center">
-                                            <span className="block truncate text-gray-300 font-mono text-sm" title={formatBuyIn(game)}>
-                                                {formatBuyIn(game)}
-                                            </span>
-                                        </td>
-                                        <td className="px-2 sm:px-4 py-4 text-center">
-                                            <a
-                                                href={`/table/${game.gameId}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
-                                                className={`inline-block px-3 sm:px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
-                                            >
-                                                {game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
-                                            </a>
-                                        </td>
-                                        <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
-                                            {canDelete(game) && (
-                                                <button
-                                                    onClick={() => setDeleteModalGameId(game.gameId)}
-                                                    disabled={isDeleting}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-                                                    title="Delete table"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth="2"
-                                                            d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            )}
-                                            {canForceClose(game) && (
-                                                <button
-                                                    onClick={() => setForceCloseGameTarget(game)}
-                                                    disabled={isClosing}
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-                                                    title="Close table and refund all players"
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth="2"
-                                                            d="M6 18L18 6M6 6l12 12"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            )}
-                                            {canShowForceCloseDisabled(game) && (
-                                                <button
-                                                    disabled
-                                                    className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-600 text-gray-300 text-sm font-semibold rounded-lg cursor-not-allowed"
-                                                    title="Tournaments can't be force-closed."
-                                                >
-                                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth="2"
-                                                            d="M6 18L18 6M6 6l12 12"
-                                                        />
-                                                    </svg>
-                                                </button>
-                                            )}
                                         </td>
                                     </tr>
-                                );
-                            })
-                        )}
-                    </tbody>
-                </table>
-            </div>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                    <Pagination currentPage={currentPage} totalItems={games.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} itemLabel="tables" />
+                </div>
 
-            <Pagination currentPage={currentPage} totalItems={games.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} />
+                {/* Phone card list (below md) */}
+                <ul className="md:hidden m-0 p-0 list-none">
+                    {mobileGames.map(game => (
+                        <li key={game.gameId} className="flex flex-col gap-2.5 px-4 py-3.5 border-b border-line last:border-b-0">
+                            <div className="flex items-center gap-3">
+                                <FeltIcon small />
+                                <div className="flex-1 min-w-0">{renderNameBlock(game, formatLabel(game.gameFormat))}</div>
+                                {renderJoinLink(game, "md")}
+                            </div>
+                            <div className="flex flex-wrap items-center gap-x-3.5 gap-y-1 pl-11 text-[13px] text-ink-soft tabular-nums">
+                                <SeatsBar game={game} barWidthClass="w-11" />
+                                {isCashFormat(game.gameFormat) && <span>{formatBlinds(game)}</span>}
+                                <span className="text-ink-muted">{formatTableBuyIn(game)}</span>
+                                <span className="flex items-center gap-2 ml-auto">{renderManageButtons(game)}</span>
+                            </div>
+                        </li>
+                    ))}
+                </ul>
+                <div className="md:hidden border-t border-line">
+                    {mobileRemaining > 0 ? (
+                        <button
+                            type="button"
+                            onClick={() => setMobileVisible(v => v + MOBILE_BATCH)}
+                            className="w-full h-[52px] text-sm font-medium text-brand-light hover:bg-surface-hover transition-colors"
+                        >
+                            Show more <span className="text-ink-muted tabular-nums">· {mobileRemaining} left</span>
+                        </button>
+                    ) : (
+                        <p className="m-0 p-4 text-center text-sm text-ink-muted tabular-nums">
+                            All {games.length} tables shown
+                        </p>
+                    )}
+                </div>
+            </>
+        );
+    };
+
+    return (
+        <section className="flex flex-col gap-4 min-w-0" aria-label="Tables">
+            {header}
+            <Card as="div">{renderBody()}</Card>
 
             {/* Delete Table Modal — empty-table path */}
             <DeleteTableModal
@@ -531,7 +567,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                 gameId={forceCloseGameTarget?.gameId || ""}
                 seatedPlayerCount={forceCloseGameTarget?.currentPlayers || 0}
             />
-        </div>
+        </section>
     );
 };
 

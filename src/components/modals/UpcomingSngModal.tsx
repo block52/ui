@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal } from "../common";
+import { ModalFooter } from "./ModalFooter";
+import { PillButton, pillClass } from "../ui/PillButton";
 import { hasElements } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useSngSchedule } from "../../hooks/useSngSchedule";
@@ -54,39 +56,30 @@ const UpcomingSngModal: React.FC = () => {
             isOpen={isOpen}
             onClose={handleClose}
             title="Upcoming Sit & Go Tournaments"
-            titleIcon="🏆"
+            subtitle="Times in UTC, with a live countdown to your local time."
+            titleIcon={<TrophyIcon />}
             widthClass="w-[460px]"
-            patternId="hexagons-upcoming-sng"
-            scrollable={false}
         >
-            <p className="text-gray-400 text-xs mb-4">
-                Grab your seat at the next scheduled Sit &amp; Go. Times are shown in UTC with a live countdown to your local
-                time.
-            </p>
-
-            <div className="space-y-3">
-                {upcoming.map(sng => {
+            <ul className="m-0 p-0 list-none flex flex-col gap-3">
+                {upcoming.map((sng, index) => {
                     const msRemaining = sng.nextStart.getTime() - now.getTime();
                     return (
-                        <div
-                            key={sng.id}
-                            className="bg-gray-900/50 rounded-lg p-4 border border-gray-700 flex flex-col gap-3"
-                        >
-                            <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-white text-base font-semibold">{sng.name}</p>
-                                    <p className="text-gray-400 text-xs mt-0.5">{formatUtcLabel(sng.nextStart)}</p>
-                                    <p className="text-gray-500 text-[11px]">Your time: {formatLocalLabel(sng.nextStart)}</p>
+                        <li key={sng.id} className="bg-surface-raised border border-line rounded-2xl p-4 flex flex-col gap-3">
+                            <div className="flex items-start justify-between gap-3">
+                                <div className="min-w-0">
+                                    <p className="m-0 text-ink text-base font-semibold break-words">{sng.name}</p>
+                                    <p className="m-0 mt-1 text-ink-muted text-xs tabular-nums">{formatUtcLabel(sng.nextStart)}</p>
+                                    <p className="m-0 text-ink-muted text-xs tabular-nums">Your time: {formatLocalLabel(sng.nextStart)}</p>
                                 </div>
-                                <span className="shrink-0 bg-green-900/40 text-green-300 text-sm font-bold px-3 py-1 rounded-lg border border-green-700/50">
+                                <span className="shrink-0 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-sm font-semibold tabular-nums">
                                     {sng.buyIn}
                                 </span>
                             </div>
 
                             <div className="flex items-center justify-between gap-3">
-                                <div>
-                                    <p className="text-gray-500 text-[10px] uppercase tracking-wide">Starts in</p>
-                                    <p className="text-blue-300 text-sm font-mono font-medium tabular-nums">
+                                <div className="px-3 py-2 rounded-xl bg-surface-card border border-line">
+                                    <p className="m-0 text-ink-muted text-[10px] uppercase tracking-[0.08em]">Starts in</p>
+                                    <p className="m-0 text-brand-light text-sm font-mono font-medium tabular-nums">
                                         {formatCountdown(msRemaining)}
                                     </p>
                                 </div>
@@ -94,24 +87,29 @@ const UpcomingSngModal: React.FC = () => {
                                     href={sng.link}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className="shrink-0 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                                    className={pillClass(index === 0 ? "primary" : "outline", "md", "shrink-0")}
                                 >
                                     Register
                                 </a>
                             </div>
-                        </div>
+                        </li>
                     );
                 })}
-            </div>
+            </ul>
 
-            <button
-                onClick={handleClose}
-                className="w-full mt-5 px-4 py-2.5 bg-gray-700 hover:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
-            >
-                Close
-            </button>
+            <ModalFooter>
+                <PillButton variant="ghost" onClick={handleClose} className="w-full">
+                    Close
+                </PillButton>
+            </ModalFooter>
         </Modal>
     );
 };
+
+const TrophyIcon: React.FC = () => (
+    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 01-10 0V4zM17 5h3v2a3 3 0 01-3 3M7 5H4v2a3 3 0 003 3" />
+    </svg>
+);
 
 export default UpcomingSngModal;

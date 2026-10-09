@@ -1,12 +1,52 @@
+@keyframes modalIn {
+    from {
+        opacity: 0;
+        transform: translateY(8px) scale(0.985);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@keyframes sheetIn {
+    from {
+        opacity: 0.6;
+        transform: translateY(28px);
+    }
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
 .modalContainer {
-    background-color: var(--ui-bg-dark);
-    border: 1px solid var(--ui-border-color);
+    animation: modalIn 160ms ease-out;
 }
 
-.errorContainer {
-    background-color: color-mix(in srgb, var(--accent-danger) 12.5%, transparent);
+@media (prefers-reduced-motion: reduce) {
+    .modalContainer {
+        animation: none !important;
+    }
 }
 
-.errorText {
-    color: var(--accent-danger);
+/* A modal with a pinned footer (ModalFooter) lets the footer own the bottom spacing, so the
+   gap under the buttons does not double up with the dialog's own padding. */
+.modalContainer:has([data-modal-footer]) {
+    padding-bottom: 0 !important;
+}
+
+/* Phones: the modal becomes a full-width bottom sheet whatever widthClass the
+   caller passed (Tailwind cannot prefix a dynamic class with sm:). */
+@media (max-width: 639px) {
+    .modalContainer {
+        width: 100% !important;
+        max-width: 100% !important;
+        border-bottom-width: 0;
+        border-bottom-left-radius: 0;
+        border-bottom-right-radius: 0;
+        padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+        animation-name: sheetIn;
+        animation-duration: 220ms;
+    }
 }

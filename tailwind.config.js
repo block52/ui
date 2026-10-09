@@ -2,6 +2,31 @@ module.exports = {
     content: ["./src/**/*.{js,ts,jsx,tsx}"], // Adjust based on your project
     theme: {
         extend: {
+            colors: {
+                // Accent: follows VITE_BRAND_COLOR_PRIMARY via the CSS variables
+                // injected by utils/colorConfig.generateCSSVariables().
+                brand: {
+                    DEFAULT: "rgb(var(--brand-primary-rgb) / <alpha-value>)",
+                    light: "rgb(var(--brand-primary-light-rgb) / <alpha-value>)"
+                },
+                // Neutral dark surfaces shared by the lobby, explorer, nodes and modals.
+                surface: {
+                    page: "#12131c",
+                    card: "#161722",
+                    raised: "#1c1e2b",
+                    hover: "#232636"
+                },
+                line: {
+                    DEFAULT: "#262938",
+                    strong: "#2c2f45"
+                },
+                ink: {
+                    DEFAULT: "#f5f5f7",
+                    body: "#e4e4ea",
+                    soft: "#b4b6c8",
+                    muted: "#8e90a6"
+                }
+            },
             spacing: {
                 36: "9rem", // 150px
                 48: "12rem" // 200px

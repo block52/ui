@@ -1,24 +1,24 @@
 .detailsContainer {
-    background-color: color-mix(in srgb, var(--ui-bg-dark) 80%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #161722;
+    border: 1px solid #262938;
 }
 
 .errorContainer {
-    background-color: color-mix(in srgb, var(--accent-danger) 20%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-danger) 50%, transparent);
+    background-color: color-mix(in srgb, #f87171 20%, transparent);
+    border: 1px solid color-mix(in srgb, #f87171 50%, transparent);
 }
 
 .errorIcon {
-    color: var(--accent-danger);
+    color: #f87171;
 }
 
 .backToAddressButton {
-    background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 80%, transparent) 100%);
+    background-color: rgb(var(--brand-primary-rgb));
 }
 
 .hashBox {
-    background-color: color-mix(in srgb, var(--ui-bg-medium) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #1c1e2b;
+    border: 1px solid #262938;
 }
 
 .brandText {
@@ -26,23 +26,23 @@
 }
 
 .messageCard {
-    background-color: color-mix(in srgb, var(--ui-bg-medium) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #1c1e2b;
+    border: 1px solid #262938;
 }
 
 .messageDataBox {
-    background-color: color-mix(in srgb, var(--ui-bg-dark) 80%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 10%, transparent);
+    background-color: #161722;
+    border: 1px solid #262938;
     max-height: 300px;
 }
 
 .successPanel {
-    background-color: color-mix(in srgb, var(--accent-success) 10%, transparent);
-    border: 2px solid var(--accent-success);
+    background-color: color-mix(in srgb, #34d399 10%, transparent);
+    border: 2px solid #34d399;
 }
 
 .successText {
-    color: var(--accent-success);
+    color: #34d399;
 }
 
 .eventExplainToggle {
@@ -50,16 +50,16 @@
 }
 
 .eventExplainToggle:hover {
-    color: var(--accent-glow);
+    color: rgb(var(--brand-primary-light-rgb));
 }
 
 .eventExplanationContainer {
-    background-color: color-mix(in srgb, var(--ui-bg-medium) 40%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #1c1e2b;
+    border: 1px solid #262938;
 }
 
 .eventExplanationPrimer {
-    border-bottom: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    border-bottom: 1px solid #262938;
 }
 
 .eventExplanationStrong {
@@ -67,8 +67,8 @@
 }
 
 .eventBreakdownCard {
-    background-color: color-mix(in srgb, var(--ui-bg-dark) 50%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 10%, transparent);
+    background-color: #161722;
+    border: 1px solid #262938;
 }
 
 .eventBreakdownTitle {
@@ -76,16 +76,16 @@
 }
 
 .eventSummaryBox {
-    background-color: color-mix(in srgb, var(--accent-success) 10%, transparent);
-    border: 1px solid color-mix(in srgb, var(--accent-success) 30%, transparent);
+    background-color: color-mix(in srgb, #34d399 10%, transparent);
+    border: 1px solid color-mix(in srgb, #34d399 30%, transparent);
 }
 
 .eventSummaryTitle {
-    color: var(--accent-success);
+    color: #34d399;
 }
 
 .rawEventsBox {
-    background-color: color-mix(in srgb, var(--ui-bg-medium) 60%, transparent);
-    border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+    background-color: #1c1e2b;
+    border: 1px solid #262938;
     max-height: 400px;
 }

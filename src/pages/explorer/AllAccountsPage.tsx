@@ -6,19 +6,20 @@ import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { microToUsdc } from "../../constants/currency";
 import { truncateMiddle } from "../../utils/stringUtils";
-import { AnimatedBackground } from "../../components/common/AnimatedBackground";
-import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import {
     ExplorerEmpty,
     ExplorerError,
     ExplorerLoading,
+    ExplorerPage,
     ExplorerPanel,
     ExplorerReloadButton,
-    ExplorerSearchInput
+    ExplorerSearchInput,
+    explorerRowClass,
+    explorerThClass
 } from "../../components/explorer/ExplorerPanel";
+import { StatStrip } from "../../components/ui";
 import { isEmpty, hasElements } from "../../utils/guards";
 import { Pagination } from "../../components/common";
-import styles from "./AllAccountsPage.module.css";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 
 const PAGE_SIZE = 20;
@@ -308,12 +309,7 @@ export default function AllAccountsPage() {
     };
 
     return (
-        <div className="min-h-screen p-4 sm:p-8 relative">
-            <AnimatedBackground />
-
-            <div className="max-w-5xl mx-auto relative z-10">
-                {/* Explorer Navigation Header */}
-                <ExplorerHeader title="Block Explorer" />
+        <ExplorerPage>
 
                 <ExplorerSearchInput
                     value={searchInput}
@@ -323,26 +319,18 @@ export default function AllAccountsPage() {
                     busy={loading}
                 />
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
-                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-xs sm:text-sm">Total Accounts</p>
-                        <p className="text-lg sm:text-2xl font-bold text-white">{stats.totalAccounts.toLocaleString()}</p>
-                    </div>
-                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-xs sm:text-sm">Accounts With Balance</p>
-                        <p className="text-lg sm:text-2xl font-bold text-white">{stats.accountsWithBalance.toLocaleString()}</p>
-                    </div>
-                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-xs sm:text-sm">Validators</p>
-                        <p className="text-lg sm:text-2xl font-bold text-purple-400">{stats.validatorCount.toLocaleString()}</p>
-                    </div>
-                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-xs sm:text-sm">Total USDC</p>
-                        <p className={`text-lg sm:text-2xl font-bold ${styles.brandText}`}>
-                            ${stats.totalUsdc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                        </p>
-                    </div>
+                <div className="mb-6">
+                    <StatStrip
+                        items={[
+                            { label: "Total accounts", value: stats.totalAccounts.toLocaleString() },
+                            { label: "With balance", value: stats.accountsWithBalance.toLocaleString() },
+                            { label: "Validators", value: stats.validatorCount.toLocaleString() },
+                            {
+                                label: "Total USDC",
+                                value: `$${stats.totalUsdc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+                            }
+                        ]}
+                    />
                 </div>
 
                 {/* Accounts */}
@@ -360,22 +348,22 @@ export default function AllAccountsPage() {
                         <div className="overflow-x-auto" id="accounts-table-top">
                             <table className="w-full text-sm">
                                 <thead>
-                                    <tr className={styles.tableHeaderRow}>
-                                        <th className="hidden sm:table-cell px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap">#</th>
+                                    <tr>
+                                        <th className={`${explorerThClass} hidden sm:table-cell`}>#</th>
                                         <th
-                                            className="px-3 sm:px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            className={`${explorerThClass} cursor-pointer hover:text-ink transition-colors`}
                                             onClick={() => toggleSort("address")}
                                         >
                                             Address {sortBy === "address" && (sortOrder === "asc" ? "↑" : "↓")}
                                         </th>
-                                        <th className="hidden md:table-cell px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap">Type</th>
+                                        <th className={`${explorerThClass} hidden md:table-cell`}>Type</th>
                                         <th
-                                            className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            className={`${explorerThClass} text-right cursor-pointer hover:text-ink transition-colors`}
                                             onClick={() => toggleSort("balance")}
                                         >
                                             USDC Balance {sortBy === "balance" && (sortOrder === "asc" ? "↑" : "↓")}
                                         </th>
-                                        <th className="hidden md:table-cell px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap">
+                                        <th className={`${explorerThClass} hidden md:table-cell text-right`}>
                                             All Balances
                                         </th>
                                     </tr>
@@ -384,28 +372,28 @@ export default function AllAccountsPage() {
                                     {pagedAccounts.map((account, index) => (
                                         <tr
                                             key={account.address}
-                                            className={`border-t cursor-pointer hover:bg-white/5 transition-colors ${styles.tableRowBorder}`}
+                                            className={`${explorerRowClass} cursor-pointer`}
                                             onClick={() => navigate(`/explorer/address/${account.address}`)}
                                         >
-                                            <td className="hidden sm:table-cell px-4 py-2 text-gray-500">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
-                                            <td className="px-3 sm:px-4 py-2">
+                                            <td className="hidden sm:table-cell px-4 sm:px-5 py-3 text-ink-muted tabular-nums">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+                                            <td className="px-4 sm:px-5 py-3">
                                                 <div className="flex flex-col gap-1">
                                                     <span
-                                                        className={`font-mono text-xs sm:text-sm hover:underline ${styles.brandText}`}
+                                                        className="font-mono text-xs sm:text-sm text-brand-light hover:underline"
                                                         title={account.address}
                                                     >
                                                         {truncateAddress(account.address)}
                                                     </span>
                                                     {account.isValidator && (
                                                         <div className="flex items-center gap-2">
-                                                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                                            <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-brand/15 text-brand-light border border-brand/30">
                                                                 Validator: {account.validatorMoniker}
                                                             </span>
                                                             <span
-                                                                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                                                className={`px-2 py-0.5 rounded-full text-xs font-medium ${
                                                                     account.validatorStatus === "BONDED"
-                                                                        ? "bg-green-500/20 text-green-400"
-                                                                        : "bg-yellow-500/20 text-yellow-400"
+                                                                        ? "bg-emerald-400/15 text-emerald-400"
+                                                                        : "bg-amber-400/15 text-amber-300"
                                                                 }`}
                                                             >
                                                                 {account.validatorStatus}
@@ -414,11 +402,11 @@ export default function AllAccountsPage() {
                                                     )}
                                                 </div>
                                             </td>
-                                            <td className="hidden md:table-cell px-4 py-2">
-                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${styles.typePill}`}>{account.type}</span>
+                                            <td className="hidden md:table-cell px-4 sm:px-5 py-3">
+                                                <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-surface-raised text-ink-soft">{account.type}</span>
                                             </td>
-                                            <td className="px-3 sm:px-4 py-2 text-right whitespace-nowrap">
-                                                <span className="text-white font-semibold">
+                                            <td className="px-4 sm:px-5 py-3 text-right whitespace-nowrap">
+                                                <span className="text-ink font-semibold">
                                                     $
                                                     {account.totalUsdcValue.toLocaleString(undefined, {
                                                         minimumFractionDigits: 2,
@@ -426,18 +414,18 @@ export default function AllAccountsPage() {
                                                     })}
                                                 </span>
                                             </td>
-                                            <td className="hidden md:table-cell px-4 py-2 text-right">
+                                            <td className="hidden md:table-cell px-4 sm:px-5 py-3 text-right">
                                                 {isEmpty(account.balances) ? (
-                                                    <span className="text-gray-500">-</span>
+                                                    <span className="text-ink-muted">-</span>
                                                 ) : (
                                                     <div className="flex flex-col items-end gap-1">
                                                         {account.balances.slice(0, 3).map((b, i) => (
-                                                            <span key={i} className="text-gray-300 text-sm">
+                                                            <span key={i} className="text-ink-soft text-sm">
                                                                 {formatBalance(b.amount, b.denom)}
                                                             </span>
                                                         ))}
                                                         {account.balances.length > 3 && (
-                                                            <span className="text-gray-500 text-xs">+{account.balances.length - 3} more</span>
+                                                            <span className="text-ink-muted text-xs">+{account.balances.length - 3} more</span>
                                                         )}
                                                     </div>
                                                 )}
@@ -463,12 +451,11 @@ export default function AllAccountsPage() {
 
                 {/* Results count — small screens only (pagination shows it on larger screens) */}
                 {!loading && !error && (
-                    <div className="sm:hidden mt-4 text-center text-gray-400 text-sm">
+                    <div className="sm:hidden mt-4 text-center text-ink-muted text-sm">
                         Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAndSortedAccounts.length)}–
                         {Math.min(currentPage * PAGE_SIZE, filteredAndSortedAccounts.length)} of {filteredAndSortedAccounts.length} accounts
                     </div>
                 )}
-            </div>
-        </div>
+        </ExplorerPage>
     );
 }

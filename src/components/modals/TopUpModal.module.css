@@ -1,9 +1,10 @@
 .cancelButton {
-    background-color: #dc2626;
+    background-color: transparent;
+    border: 1px solid #2c2f45;
 }
 
 .cancelButton:hover:not(:disabled) {
-    background-color: #b91c1c;
+    background-color: #232636;
 }
 
 .infoCard {
@@ -17,7 +18,7 @@
 
 .amountInput {
     background-color: var(--ui-bg-medium);
-    border: 1px solid var(--ui-text-secondary);
+    border: 1px solid #2c2f45;
 }
 
 .amountInput:focus {

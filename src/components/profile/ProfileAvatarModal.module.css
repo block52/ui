@@ -1,42 +1,45 @@
+/* Tokens mirror tailwind.config.js: surface-raised #1c1e2b, line #262938, line-strong #2c2f45,
+   ink #f5f5f7, ink-soft #b4b6c8, ink-muted #8e90a6. Accent comes from --brand-primary. */
+
 .modalSurface {
   max-height: 88vh;
   display: flex;
   flex-direction: column;
-  background-color: var(--ui-bg-dark);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
 }
 
 .content {
-  padding: 4px;
+  padding: 4px 2px 2px;
   overflow-y: auto;
   display: grid;
   /* One column that may shrink: without minmax(0, …) the widest child (a long
      address or tx hash in an error) set the width and the dialog scrolled
      sideways (ui#733). */
   grid-template-columns: minmax(0, 1fr);
-  gap: 12px;
+  gap: 16px;
 }
 
 .surfaceMuted {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 10px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 30%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 16%, transparent);
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 22%, transparent);
 }
 
 .walletAddressRow {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
 }
 
 .walletLabel {
-  color: var(--ui-text-secondary);
-  font-size: 14px;
+  color: #8e90a6;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .walletInputWrapper {
@@ -48,59 +51,85 @@
 .walletInput {
   flex: 1;
   min-width: 0;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-  color: #ffffff;
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 22%, transparent);
-  font-family: monospace;
+  height: 44px;
+  padding: 0 14px;
+  border-radius: 12px;
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  background-color: #1c1e2b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
+  outline: none;
+}
+
+.walletInput:focus,
+.searchInput:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 28%, transparent);
 }
 
 .walletInput:read-only {
   cursor: default;
 }
 
+.walletInput::placeholder,
+.searchInput::placeholder {
+  color: #8e90a6;
+}
+
 .copyButton {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 10px 14px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent);
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 9999px;
+  border: 0;
   color: #ffffff;
-  background: linear-gradient(
-    135deg,
-    var(--brand-primary) 0%,
-    color-mix(in srgb, var(--brand-primary) 78%, transparent) 100%
-  );
+  font-weight: 600;
+  background-color: var(--brand-primary);
   cursor: pointer;
   transition: opacity 0.2s;
 }
 
 .copyButton:hover {
-  opacity: 0.8;
+  opacity: 0.9;
 }
 
 .assetGrid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
   max-height: 46vh;
   overflow-y: auto;
-  padding-right: 2px;
+  padding: 2px;
 }
 
 .card {
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 18%, transparent);
-  border-radius: 12px;
-  padding: 10px;
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 38%, transparent);
+  border: 1px solid #262938;
+  border-radius: 14px;
+  padding: 8px;
+  background-color: #1c1e2b;
+  text-align: left;
   cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
 }
 
-.cardSelected {
+.card:hover:not(:disabled) {
+  border-color: #3a3d52;
+  background-color: #232636;
+}
+
+.card:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.cardSelected,
+.cardSelected:hover:not(:disabled) {
   border-color: var(--brand-primary);
+  background-color: color-mix(in srgb, var(--brand-primary) 12%, #1c1e2b);
+  box-shadow: 0 0 0 1px var(--brand-primary);
 }
 
 .nftImageWrapper {
@@ -111,13 +140,13 @@
   width: 100%;
   aspect-ratio: 1;
   object-fit: cover;
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .nftImageOverlay {
   position: absolute;
   inset: 0;
-  border-radius: 8px;
+  border-radius: 10px;
   background-color: rgba(0, 0, 0, 0.55);
   display: flex;
   align-items: center;
@@ -134,121 +163,155 @@
 }
 
 .meta {
-  color: var(--ui-text-secondary);
+  color: #8e90a6;
   font-size: 12px;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
 }
 
 .card .meta {
   margin-top: 8px;
+  padding: 0 2px 2px;
 }
 
 .emptyText {
-  color: var(--ui-text-secondary);
+  color: #8e90a6;
   text-align: center;
   padding: 24px 0;
   overflow-wrap: anywhere;
 }
 
 .noteText {
-  color: var(--ui-text-secondary);
+  color: #b4b6c8;
   font-size: 13px;
+  line-height: 1.5;
   min-width: 0;
 }
 
 .fieldError {
-  color: var(--accent-danger);
+  color: #f87171;
   font-size: 12px;
 }
 
 .inlineButton {
   flex-shrink: 0;
-  padding: 8px 12px;
-  border-radius: 10px;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 0;
   font-size: 13px;
   font-weight: 600;
   color: #ffffff;
-  background: linear-gradient(135deg, var(--brand-primary) 0%, color-mix(in srgb, var(--brand-primary) 78%, transparent) 100%);
+  background-color: var(--brand-primary);
   cursor: pointer;
+}
+
+.inlineButton:hover {
+  opacity: 0.9;
 }
 
 .searchInput {
   width: 100%;
-  min-height: 40px;
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-  color: var(--ui-text-primary);
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 22%, transparent);
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 9999px;
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  background-color: #1c1e2b;
+  outline: none;
 }
 
-.searchInput::placeholder {
-  color: var(--ui-text-secondary);
-}
-
+/* Footer: quiet actions on the left, the way out on the right. */
 .footerActions {
   display: flex;
-  flex-direction: column;
-  justify-content: stretch;
-  align-items: stretch;
-  gap: 10px;
-  padding-top: 4px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  padding-top: 12px;
+  border-top: 1px solid #262938;
 }
 
 .footerSecondaryButton,
 .footerPrimaryButton,
 .footerDangerButton,
+.footerCloseButton,
 .footerSuccessButton {
-  min-height: 40px;
-  width: 100%;
-  padding: 10px 14px;
-  border-radius: 10px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 9999px;
   font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s, border-color 0.15s, color 0.15s;
 }
 
+/* Ghost: Clear (when nothing to clear) and Disconnect. */
 .footerSecondaryButton {
-  border: 1px solid color-mix(in srgb, var(--ui-text-secondary) 35%, transparent);
-  color: var(--ui-text-secondary);
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 25%, transparent);
+  border: 1px solid transparent;
+  color: #b4b6c8;
+  background-color: transparent;
+}
+
+.footerSecondaryButton:hover:not(:disabled) {
+  color: #f5f5f7;
+  background-color: #232636;
 }
 
 .footerSecondaryButton:disabled {
-  opacity: 0.55;
+  opacity: 0.45;
   cursor: not-allowed;
 }
 
+/* Refresh: outline pill. */
 .footerPrimaryButton {
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 25%, transparent);
-  color: #ffffff;
-  background: linear-gradient(
-    135deg,
-    var(--brand-primary) 0%,
-    color-mix(in srgb, var(--brand-primary) 78%, transparent) 100%
-  );
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  background-color: transparent;
+}
+
+.footerPrimaryButton:hover:not(:disabled) {
+  background-color: #232636;
 }
 
 .footerPrimaryButton:disabled {
-  opacity: 0.75;
+  opacity: 0.5;
   cursor: not-allowed;
 }
 
+/* Clear avatar once there is one to clear: red text, never a filled block. */
 .footerDangerButton {
-  border: 1px solid color-mix(in srgb, var(--accent-danger) 25%, transparent);
-  color: #ffffff;
-  background: linear-gradient(
-    135deg,
-    var(--accent-danger) 0%,
-    color-mix(in srgb, var(--accent-danger) 80%, transparent) 100%
-  );
+  border: 1px solid transparent;
+  color: #fca5a5;
+  background-color: transparent;
 }
 
+.footerDangerButton:hover:not(:disabled) {
+  background-color: rgba(239, 68, 68, 0.12);
+}
+
+/* Cancel / Close: outline pill pushed to the far side. */
+.footerCloseButton {
+  margin-left: auto;
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  background-color: transparent;
+}
+
+.footerCloseButton:hover:not(:disabled) {
+  background-color: #232636;
+}
+
+.footerCloseButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Shown after a successful registration instead of Cancel. */
 .footerSuccessButton {
-  border: 1px solid color-mix(in srgb, #22c55e 25%, transparent);
+  margin-left: auto;
+  border: 0;
   color: #ffffff;
-  background: linear-gradient(
-    135deg,
-    #22c55e 0%,
-    color-mix(in srgb, #22c55e 80%, transparent) 100%
-  );
+  background-color: var(--brand-primary);
 }
 
 .buttonLoadingContent {
@@ -256,15 +319,14 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  color: #ffffff;
 }
 
 .buttonSpinner {
   width: 14px;
   height: 14px;
   border-radius: 9999px;
-  border: 2px solid color-mix(in srgb, var(--ui-text-primary) 45%, transparent);
-  border-top-color: var(--ui-text-primary);
+  border: 2px solid rgba(245, 245, 247, 0.35);
+  border-top-color: #f5f5f7;
   animation: avatarSpin 0.8s linear infinite;
 }
 
@@ -284,17 +346,25 @@
   }
 
   .assetGrid {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     max-height: 42vh;
   }
 
   .footerActions {
-    justify-content: stretch;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .footerCloseButton,
+  .footerSuccessButton {
+    margin-left: 0;
+    order: -1;
   }
 
   .footerSecondaryButton,
   .footerPrimaryButton,
   .footerDangerButton,
+  .footerCloseButton,
   .footerSuccessButton {
     width: 100%;
   }

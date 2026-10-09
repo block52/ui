@@ -10,15 +10,29 @@
   color: var(--ui-text-secondary);
 }
 
+.navLinkActive {
+  color: #f5f5f7;
+  font-weight: 500;
+}
+
+.navLinkInactive {
+  color: var(--ui-text-secondary);
+  font-weight: 500;
+}
+
+.navLinkInactive:hover {
+  color: #f5f5f7;
+}
+
 .headerShell {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 95%, transparent);
-  border-bottom: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  background-color: color-mix(in srgb, var(--brand-secondary) 92%, transparent);
+  border-bottom: 1px solid var(--ui-border-color);
   backdrop-filter: blur(10px);
 }
 
 .navItemActive {
-  color: var(--brand-primary);
-  background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent);
+  color: #f5f5f7;
+  background-color: color-mix(in srgb, var(--brand-primary) 16%, transparent);
 }
 
 .navItemInactive {

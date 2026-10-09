@@ -7,7 +7,9 @@ import { formatMicroAsUsdc } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
 import { BRIDGE_DEPOSITS_ABI } from "../utils/bridge/abis";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
-import { AnimatedBackground } from "../components/common/AnimatedBackground";
+import { Card, CardHeader, PillButton } from "../components/ui";
+import { fieldInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
+import { copyToClipboard } from "../utils/clipboard";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 /**
  * ManualBridgeTrigger - Simple page to manually process bridge deposits
@@ -147,161 +149,163 @@ export default function ManualBridgeTrigger() {
     };
 
     return (
-        <div className="min-h-screen p-8 relative">
-            <AnimatedBackground />
-            <div className="max-w-2xl mx-auto relative z-10">
+        <div className="min-h-screen bg-surface-page">
+            <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
                 {/* Header */}
-                <div className="mb-8 text-center">
-                    <h1 className="text-4xl font-bold text-white mb-2">Manual Bridge Trigger</h1>
-                    <p className="text-gray-400">Process Ethereum deposits manually by deposit index</p>
+                <div>
+                    <h1 className="m-0 text-[28px] font-semibold text-ink">Manual Bridge Trigger</h1>
+                    <p className="mt-1 mb-0 text-ink-muted">Process Ethereum deposits manually by deposit index</p>
                 </div>
 
-                {/* Wallet Info */}
-                <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
-                    <h2 className="text-lg font-semibold text-white mb-3">Block52 Wallet</h2>
-                    {cosmosWallet.address ? (
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between">
-                                <span className="text-gray-400">Address:</span>
-                                <span className="text-white font-mono text-sm">{cosmosWallet.address}</span>
-                            </div>
-                            <div className="flex items-center justify-between">
-                                <span className="text-gray-400">Balance:</span>
-                                <span className="text-white">{formatMicroAsUsdc(cosmosWallet.balance.find(b => b.denom === "usdc")?.amount || "0", 6)} USDC</span>
-                            </div>
-                        </div>
-                    ) : (
-                        <p className="text-yellow-500">No wallet connected. Please import a wallet first.</p>
-                    )}
-                </div>
-
-                {/* Process Deposit Card */}
-                <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-                    <h2 className="text-lg font-semibold text-white mb-4">Process Deposit</h2>
-
-                    <div className="space-y-4">
-                        {/* Input */}
-                        <div>
-                            <label className="block text-sm font-medium text-gray-400 mb-2">Deposit Index</label>
-                            <input
-                                type="number"
-                                min="0"
-                                value={depositIndex}
-                                onChange={e => setDepositIndex(e.target.value)}
-                                placeholder="Enter deposit index (e.g., 0, 1, 2...)"
-                                className="w-full px-4 py-3 bg-gray-900 border border-gray-600 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
-                                disabled={isProcessing || isQuerying}
-                            />
-                            <p className="text-xs text-gray-500 mt-1">The index of the deposit in the Ethereum bridge contract</p>
-                        </div>
-
-                        {/* Query Button */}
-                        <button
-                            onClick={handleQueryDeposit}
-                            disabled={isQuerying || isProcessing}
-                            className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-all ${
-                                isQuerying || isProcessing ? "bg-gray-600 cursor-not-allowed" : "bg-blue-600 hover:bg-blue-700 active:scale-95"
-                            }`}
-                        >
-                            {isQuerying ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <LoadingSpinner size="md" />
-                                    Querying...
-                                </span>
-                            ) : (
-                                "Query Deposit from Ethereum"
-                            )}
-                        </button>
-
-                        {/* Query Result Display */}
-                        {queryResult && (
-                            <div className="p-4 bg-blue-900/30 border border-blue-700 rounded-lg">
-                                <p className="text-blue-200 text-sm font-medium mb-3">📦 Deposit Information</p>
-                                <div className="space-y-2">
-                                    <div>
-                                        <p className="text-blue-300 text-xs">Recipient (Block52 Address):</p>
-                                        <p className="text-blue-100 text-sm font-mono break-all">{queryResult.recipient}</p>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+                    <div className="flex flex-col gap-6 min-w-0">
+                        {/* Wallet Info */}
+                        <Card>
+                            <CardHeader title="Block52 Wallet" />
+                            <div className="p-5">
+                                {cosmosWallet.address ? (
+                                    <div className="flex flex-col gap-2">
+                                        <div className={`${insetBoxClass} flex flex-wrap items-center justify-between gap-x-4 gap-y-1`}>
+                                            <span className="text-ink-muted text-sm">Address:</span>
+                                            <span className="text-ink font-mono text-sm break-all">{cosmosWallet.address}</span>
+                                        </div>
+                                        <div className={`${insetBoxClass} flex items-center justify-between gap-4`}>
+                                            <span className="text-ink-muted text-sm">Balance:</span>
+                                            <span className="text-ink tabular-nums">
+                                                {formatMicroAsUsdc(cosmosWallet.balance.find(b => b.denom === "usdc")?.amount || "0", 6)} USDC
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-blue-300 text-xs">Amount:</p>
-                                        <p className="text-blue-100 text-sm font-mono">{formatMicroAsUsdc(queryResult.amount, 6)} USDC</p>
-                                    </div>
-                                </div>
+                                ) : (
+                                    <p className={`${noticeClass.warning} m-0`}>No wallet connected. Please import a wallet first.</p>
+                                )}
                             </div>
-                        )}
+                        </Card>
 
-                        {/* Process Button */}
-                        <button
-                            onClick={handleProcessDeposit}
-                            disabled={isProcessing || isQuerying || !cosmosWallet.address}
-                            className={`w-full py-3 px-6 rounded-lg font-semibold text-white transition-all ${
-                                isProcessing || isQuerying || !cosmosWallet.address
-                                    ? "bg-gray-600 cursor-not-allowed"
-                                    : "bg-blue-600 hover:bg-blue-700 active:scale-95"
-                            }`}
-                        >
-                            {isProcessing ? (
-                                <span className="flex items-center justify-center gap-2">
-                                    <LoadingSpinner size="md" />
-                                    Processing...
-                                </span>
-                            ) : (
-                                "Process Deposit on Block52"
-                            )}
-                        </button>
-                    </div>
-
-                    {/* Error Display */}
-                    {error && (
-                        <div className="mt-4 p-4 bg-red-900/50 border border-red-700 rounded-lg">
-                            <p className="text-red-200 text-sm font-medium">Error</p>
-                            <p className="text-red-300 text-sm mt-1">{error}</p>
-                        </div>
-                    )}
-
-                    {/* Success Display */}
-                    {txHash && (
-                        <div className="mt-4 p-4 bg-green-900/50 border border-green-700 rounded-lg">
-                            <p className="text-green-200 text-sm font-medium mb-2">Success! ✅</p>
-                            <div className="space-y-2">
+                        {/* Process Deposit Card */}
+                        <Card>
+                            <CardHeader title="Process Deposit" />
+                            <div className="p-5 flex flex-col gap-4">
+                                {/* Input */}
                                 <div>
-                                    <p className="text-green-300 text-xs">Transaction Hash:</p>
-                                    <p className="text-green-100 text-sm font-mono break-all">{txHash}</p>
+                                    <label htmlFor="deposit-index" className={fieldLabelClass}>
+                                        Deposit Index
+                                    </label>
+                                    <input
+                                        id="deposit-index"
+                                        type="number"
+                                        min="0"
+                                        value={depositIndex}
+                                        onChange={e => setDepositIndex(e.target.value)}
+                                        placeholder="Enter deposit index (e.g., 0, 1, 2...)"
+                                        className={`${fieldInputClass} h-11 disabled:opacity-50`}
+                                        disabled={isProcessing || isQuerying}
+                                    />
+                                    <p className="text-xs text-ink-muted mt-2 mb-0">The index of the deposit in the Ethereum bridge contract</p>
                                 </div>
-                                {depositDetails && (
-                                    <div className="mt-3 pt-3 border-t border-green-700">
-                                        <p className="text-green-300 text-xs mb-2">Deposit Details:</p>
-                                        <pre className="text-green-100 text-xs bg-gray-900 p-2 rounded overflow-auto max-h-48">
-                                            {JSON.stringify(depositDetails, null, 2)}
-                                        </pre>
+
+                                {/* Query Button */}
+                                <PillButton variant="outline" onClick={handleQueryDeposit} disabled={isQuerying || isProcessing} className="w-full">
+                                    {isQuerying ? (
+                                        <>
+                                            <LoadingSpinner size="md" />
+                                            Querying...
+                                        </>
+                                    ) : (
+                                        "Query Deposit from Ethereum"
+                                    )}
+                                </PillButton>
+
+                                {/* Query Result Display */}
+                                {queryResult && (
+                                    <div className={`${noticeClass.info} !p-4`}>
+                                        <p className="m-0 mb-3 text-sm font-medium text-ink">Deposit Information</p>
+                                        <div className="flex flex-col gap-2">
+                                            <div>
+                                                <p className="m-0 text-xs text-ink-muted">Recipient (Block52 Address):</p>
+                                                <p className="m-0 text-ink text-sm font-mono break-all">{queryResult.recipient}</p>
+                                            </div>
+                                            <div>
+                                                <p className="m-0 text-xs text-ink-muted">Amount:</p>
+                                                <p className="m-0 text-ink text-sm font-mono">{formatMicroAsUsdc(queryResult.amount, 6)} USDC</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Process Button */}
+                                <PillButton onClick={handleProcessDeposit} disabled={isProcessing || isQuerying || !cosmosWallet.address} className="w-full">
+                                    {isProcessing ? (
+                                        <>
+                                            <LoadingSpinner size="md" />
+                                            Processing...
+                                        </>
+                                    ) : (
+                                        "Process Deposit on Block52"
+                                    )}
+                                </PillButton>
+
+                                {/* Error Display */}
+                                {error && (
+                                    <div className={noticeClass.error}>
+                                        <p className="m-0 font-medium">Error</p>
+                                        <p className="m-0 mt-1 break-words">{error}</p>
+                                    </div>
+                                )}
+
+                                {/* Success Display */}
+                                {txHash && (
+                                    <div className={noticeClass.success}>
+                                        <p className="m-0 mb-2 font-medium">Success!</p>
+                                        <div className="flex flex-col gap-2">
+                                            <div>
+                                                <p className="m-0 text-xs opacity-80">Transaction Hash:</p>
+                                                <div className="flex items-center gap-1">
+                                                    <p className="m-0 text-ink text-sm font-mono break-all">{txHash}</p>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => copyToClipboard(txHash, "Transaction hash copied!")}
+                                                        aria-label="Copy transaction hash"
+                                                        className="w-11 h-11 sm:w-8 sm:h-8 grid place-items-center rounded-full flex-shrink-0 text-ink-muted hover:text-ink hover:bg-surface-raised transition-colors"
+                                                    >
+                                                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                                            <path
+                                                                strokeLinecap="round"
+                                                                strokeLinejoin="round"
+                                                                strokeWidth="2"
+                                                                d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                                                            />
+                                                        </svg>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                            {depositDetails && (
+                                                <div className="mt-2 pt-3 border-t border-emerald-500/30">
+                                                    <p className="m-0 mb-2 text-xs opacity-80">Deposit Details:</p>
+                                                    <pre className="m-0 text-ink-body text-xs bg-surface-page border border-line p-3 rounded-xl overflow-auto max-h-48">
+                                                        {JSON.stringify(depositDetails, null, 2)}
+                                                    </pre>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
-                        </div>
-                    )}
-                </div>
-
-                {/* Instructions */}
-                <div className="mt-6 bg-blue-900/20 border border-blue-700 rounded-lg p-4">
-                    <h3 className="text-blue-200 font-semibold mb-2">How it works:</h3>
-                    <ol className="text-blue-300 text-sm space-y-1 list-decimal list-inside">
-                        <li>User deposits USDC on Ethereum to bridge contract</li>
-                        <li>Deposit is logged with an incremental index (0, 1, 2, ...)</li>
-                        <li>Enter the deposit index and click "Query" to preview deposit info</li>
-                        <li>Click "Process" to mint USDC on Block52 chain</li>
-                        <li>Chain queries Ethereum contract for deposit data</li>
-                        <li>If valid and not processed, mints USDC on Block52</li>
-                    </ol>
-                </div>
-            </div>
-
-            {/* Powered by Block52 */}
-            <div className="fixed bottom-4 left-4 flex items-center z-10 opacity-30">
-                <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                    <div className="text-left mb-1">
-                        <span className="text-xs text-white font-medium tracking-wide  ">POWERED BY</span>
+                        </Card>
                     </div>
-                    <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
+
+                    {/* Instructions */}
+                    <Card>
+                        <CardHeader title="How it works:" level="h3" />
+                        <ol className="m-0 p-5 pl-9 text-ink-soft text-sm flex flex-col gap-2 list-decimal">
+                            <li>User deposits USDC on Ethereum to bridge contract</li>
+                            <li>Deposit is logged with an incremental index (0, 1, 2, ...)</li>
+                            <li>Enter the deposit index and click "Query" to preview deposit info</li>
+                            <li>Click "Process" to mint USDC on Block52 chain</li>
+                            <li>Chain queries Ethereum contract for deposit data</li>
+                            <li>If valid and not processed, mints USDC on Block52</li>
+                        </ol>
+                    </Card>
                 </div>
             </div>
         </div>

@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { Modal } from "../../common";
+import { insetBoxClass, noticeClass } from "../../modals/walletFormClasses";
 
 interface GameStartCountdownProps {
     gameStartTime: string; // ISO string or date string in Brisbane time
@@ -76,94 +78,67 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
 
     const formatTime = (value: number) => value.toString().padStart(2, "0");
 
+    const units: ReadonlyArray<{ label: string; value: number; pulse?: boolean }> = [
+        { label: "Days", value: timeLeft.days },
+        { label: "Hours", value: timeLeft.hours },
+        { label: "Mins", value: timeLeft.minutes },
+        { label: "Secs", value: timeLeft.seconds, pulse: true }
+    ];
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-gray-800/90 backdrop-blur-md p-8 rounded-xl w-96 shadow-2xl border border-blue-400/20 relative overflow-hidden">
-                {/* Web3 styled background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl"></div>
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse"></div>
+        <Modal isOpen onClose={noop} closeOnEscape={false} closeOnBackdropClick={false} widthClass="w-[420px]">
+            <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-brand/10 border border-brand/30 grid place-items-center text-brand-light">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </div>
+                <h2 className="m-0 mt-4 text-xl font-semibold text-ink">Game Starting Soon</h2>
+                <p className="m-0 mt-1 text-sm text-ink-muted">Please wait for the scheduled game to begin</p>
+            </div>
 
-                <div className="relative z-10">
-                    <div className="flex items-center justify-center mb-4">
-                        <img src="/block52.png" alt="Block52 Logo" className="h-16 w-auto object-contain" />
+            {/* Countdown Display */}
+            <div className="grid grid-cols-4 gap-2 mt-5" role="timer" aria-live="off">
+                {units.map(unit => (
+                    <div key={unit.label} className="text-center px-1 py-3 rounded-xl bg-surface-raised border border-line">
+                        <div className={`text-2xl font-bold font-mono tabular-nums text-ink ${unit.pulse ? "animate-pulse" : ""}`}>
+                            {formatTime(unit.value)}
+                        </div>
+                        <div className="mt-0.5 text-[10px] uppercase tracking-[0.08em] text-ink-muted">{unit.label}</div>
                     </div>
+                ))}
+            </div>
 
-                    <div className="flex items-center justify-center mb-6">
-                        <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-blue-400/30">
-                            <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <h2 className="text-2xl font-bold text-white text-center mb-2 text-shadow">Game Starting Soon</h2>
-                    <p className="text-gray-300 text-center mb-6 text-sm">Please wait for the scheduled game to begin</p>
-
-                    {/* Countdown Display */}
-                    <div className="grid grid-cols-4 gap-3 mb-6">
-                        <div className="text-center">
-                            <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                <div className="text-2xl font-bold text-white">{formatTime(timeLeft.days)}</div>
-                                <div className="text-xs text-gray-400">DAYS</div>
-                            </div>
-                        </div>
-                        <div className="text-center">
-                            <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                <div className="text-2xl font-bold text-white">{formatTime(timeLeft.hours)}</div>
-                                <div className="text-xs text-gray-400">HOURS</div>
-                            </div>
-                        </div>
-                        <div className="text-center">
-                            <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                <div className="text-2xl font-bold text-white">{formatTime(timeLeft.minutes)}</div>
-                                <div className="text-xs text-gray-400">MINS</div>
-                            </div>
-                        </div>
-                        <div className="text-center">
-                            <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                <div className="text-2xl font-bold text-white animate-pulse">{formatTime(timeLeft.seconds)}</div>
-                                <div className="text-xs text-gray-400">SECS</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Game Start Time Display */}
-                    <div className="mb-6 p-3 bg-gray-700/80 backdrop-blur-sm rounded-lg border border-blue-500/30">
-                        <div className="text-center">
-                            <div className="text-xs text-gray-400 mb-1">GAME STARTS AT (BRISBANE TIME)</div>
-                            <div className="text-white font-mono text-sm">
-                                {new Date(gameStartTime).toLocaleString("en-AU", {
-                                    timeZone: "Australia/Brisbane",
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                    hour: "2-digit",
-                                    minute: "2-digit",
-                                    second: "2-digit"
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Alpha Testing Message */}
-                    <div className="mb-4 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-                        <div className="text-center">
-                            <div className="text-xs text-blue-300 font-semibold mb-1">ALPHA TESTING</div>
-                            <div className="text-xs text-gray-300">This timer helps coordinate testers to begin together while we iron out bugs</div>
-                        </div>
-                    </div>
-
-                    <div className="mt-6 text-center">
-                        <p className="text-xs text-gray-400">Scheduled Tournament Start</p>
-                        <div className="flex items-center justify-center gap-1 mt-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                            <span className="text-xs text-gray-400">Powered by Block52</span>
-                        </div>
-                    </div>
+            {/* Game Start Time Display */}
+            <div className={`${insetBoxClass} mt-3 text-center`}>
+                <div className="text-[10px] uppercase tracking-[0.08em] text-ink-muted mb-1">Game starts at (Brisbane time)</div>
+                <div className="text-ink font-mono text-sm tabular-nums">
+                    {new Date(gameStartTime).toLocaleString("en-AU", {
+                        timeZone: "Australia/Brisbane",
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        second: "2-digit"
+                    })}
                 </div>
             </div>
-        </div>
+
+            {/* Alpha Testing Message */}
+            <div className={`${noticeClass.info} mt-3 text-center`}>
+                <div className="text-brand-light font-semibold mb-0.5 uppercase tracking-[0.08em]">Alpha testing</div>
+                This timer helps coordinate testers to begin together while we iron out bugs
+            </div>
+
+            <p className="m-0 mt-4 text-center text-xs text-ink-muted">Scheduled Tournament Start</p>
+        </Modal>
     );
 };
+
+// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
+function noop(): void {
+    return undefined;
+}
 
 export default GameStartCountdown;

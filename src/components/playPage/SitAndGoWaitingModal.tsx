@@ -10,6 +10,10 @@ import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { formatSitAndGoStackString } from "../../utils/numberUtils";
+import { Modal } from "../common";
+import { ModalFooter } from "../modals/ModalFooter";
+import { PillButton } from "../ui/PillButton";
+import { fieldLabelClass, insetBoxClass, noticeClass } from "../modals/walletFormClasses";
 import styles from "./SitAndGoWaitingModal.module.css";
 
 interface SitAndGoWaitingModalProps {
@@ -67,145 +71,119 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
         return null;
     }
 
+    const remaining = maxPlayers - playersJoined;
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className="bg-gray-800/90 backdrop-blur-md p-8 rounded-xl w-96 shadow-2xl border border-blue-400/20 relative overflow-hidden">
-                {/* Web3 styled background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl"></div>
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse"></div>
+        <Modal isOpen onClose={noop} closeOnEscape={false} closeOnBackdropClick={false} widthClass="w-[420px]">
+            <div className="flex flex-col items-center text-center">
+                {/* Waiting icon with animation */}
+                <div className="w-20 h-20 rounded-full bg-brand/10 border border-brand/30 grid place-items-center relative text-brand-light">
+                    <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-light animate-spin"></div>
+                    <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                        />
+                    </svg>
+                </div>
 
-                <div className="relative z-10">
-                    <div className="flex items-center justify-center mb-4">
-                        <img src="/block52.png" alt="Block52 Logo" className="h-16 w-auto object-contain" />
+                <h2 className="m-0 mt-4 text-xl font-semibold text-ink">Waiting for Players</h2>
+                <p className="m-0 mt-1 text-sm text-ink-muted">{playerCountLabel} tournament is filling up...</p>
+            </div>
+
+            {/* Players progress */}
+            <div className={`${insetBoxClass} mt-5 text-center`}>
+                <div className={`${fieldLabelClass} !mb-1`}>Players joined</div>
+                <div className="text-3xl text-ink font-bold tabular-nums">
+                    {playersJoined} / {maxPlayers}
+                </div>
+
+                <div className="w-full bg-line-strong rounded-full h-2.5 mt-3 overflow-hidden">
+                    <div
+                        className="bg-brand h-2.5 rounded-full transition-all duration-500"
+                        style={{ width: `${(playersJoined / maxPlayers) * 100}%` }}
+                    ></div>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 mt-3">
+                    <div className="flex gap-1" aria-hidden="true">
+                        <div className={`w-1.5 h-1.5 bg-brand-light rounded-full animate-bounce ${styles.waitingDotDelay0}`}></div>
+                        <div className={`w-1.5 h-1.5 bg-brand-light rounded-full animate-bounce ${styles.waitingDotDelay150}`}></div>
+                        <div className={`w-1.5 h-1.5 bg-brand-light rounded-full animate-bounce ${styles.waitingDotDelay300}`}></div>
                     </div>
-
-                    {/* Waiting Icon with Animation */}
-                    <div className="flex items-center justify-center mb-6">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-blue-400/30 relative">
-                            {/* Rotating ring animation */}
-                            <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-blue-400 animate-spin"></div>
-                            <svg className="w-10 h-10 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth="2"
-                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                />
-                            </svg>
-                        </div>
-                    </div>
-
-                    <h2 className="text-2xl font-bold text-white text-center mb-2 text-shadow">Waiting for Players</h2>
-                    <p className="text-gray-300 text-center mb-6 text-sm">
-                        {playerCountLabel} tournament is filling up...
-                    </p>
-
-                    {/* Players Progress Display */}
-                    <div className="mb-6">
-                        <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-4 border border-blue-500/30">
-                            <div className="text-center mb-3">
-                                <div className="text-xs text-blue-300 font-semibold mb-2">PLAYERS JOINED</div>
-                                <div className="text-3xl text-white font-bold">
-                                    {playersJoined} / {maxPlayers}
-                                </div>
-                            </div>
-
-                            {/* Progress bar */}
-                            <div className="w-full bg-gray-600 rounded-full h-2.5 mt-3">
-                                <div
-                                    className="bg-gradient-to-r from-blue-500 to-purple-500 h-2.5 rounded-full transition-all duration-500"
-                                    style={{ width: `${(playersJoined / maxPlayers) * 100}%` }}
-                                ></div>
-                            </div>
-
-                            {/* Waiting indicator */}
-                            <div className="flex items-center justify-center gap-2 mt-4">
-                                <div className="flex gap-1">
-                                    <div className={`w-2 h-2 bg-blue-400 rounded-full animate-bounce ${styles.waitingDotDelay0}`}></div>
-                                    <div className={`w-2 h-2 bg-blue-400 rounded-full animate-bounce ${styles.waitingDotDelay150}`}></div>
-                                    <div className={`w-2 h-2 bg-blue-400 rounded-full animate-bounce ${styles.waitingDotDelay300}`}></div>
-                                </div>
-                                <span className="text-gray-400 text-sm">
-                                    Waiting for {maxPlayers - playersJoined} more {maxPlayers - playersJoined === 1 ? "player" : "players"}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Your Status */}
-                    <div className="bg-green-500/20 border border-green-500/30 rounded-lg p-3 mb-4">
-                        <div className="flex items-center justify-center gap-2">
-                            <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                            <span className="text-green-400 font-semibold text-sm">
-                                Waiting for players, you are {playersJoined} of {maxPlayers}
-                            </span>
-                        </div>
-                    </div>
-
-
-                    {/* Leave Game — inline two-step confirmation (no separate modal) */}
-                    {canShowLeaveUi && !isConfirming && (
-                        <div className="mb-4">
-                            <button
-                                onClick={handleLeaveClick}
-                                className="w-full py-2 px-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-medium hover:bg-red-500/20 hover:border-red-500/60 transition-colors duration-200"
-                            >
-                                Leave Game
-                            </button>
-                        </div>
-                    )}
-
-                    {canShowLeaveUi && isConfirming && (
-                        <div className="mb-4 bg-gray-700/80 backdrop-blur-sm rounded-lg p-4 border border-red-500/40">
-                            <p className="text-white text-sm font-semibold mb-3 text-center">Leave this tournament?</p>
-
-                            <div className="space-y-1.5 mb-3">
-                                <div className="flex justify-between items-center text-sm">
-                                    <span className="text-gray-400">Your Chips:</span>
-                                    <span className="text-white font-bold">{chipsLabel}</span>
-                                </div>
-                                {buyInLabel && (
-                                    <div className="flex justify-between items-center text-xs">
-                                        <span className="text-gray-500">Buy-In:</span>
-                                        <span className="text-gray-300">{buyInLabel}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {leaveError && (
-                                <p className="text-red-400 text-xs mb-3 text-center break-words">{leaveError}</p>
-                            )}
-
-                            <div className="flex flex-col space-y-2">
-                                <button
-                                    onClick={handleConfirm}
-                                    disabled={isLeaving}
-                                    className="w-full py-2 px-4 rounded-lg border border-red-500/60 bg-red-500/20 text-red-300 text-sm font-medium hover:bg-red-500/30 hover:border-red-500/80 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    {isLeaving ? "Leaving..." : "Confirm Leave"}
-                                </button>
-                                <button
-                                    onClick={handleCancel}
-                                    disabled={isLeaving}
-                                    className="w-full py-2 px-4 rounded-lg border border-gray-500/40 bg-gray-600/30 text-gray-300 text-sm font-medium hover:bg-gray-600/50 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
-                                >
-                                    Cancel
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="text-center">
-                        <p className="text-xs text-gray-400">Tournament starts automatically when all players are seated</p>
-                        <div className="flex items-center justify-center gap-1 mt-2">
-                            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                            <span className="text-xs text-gray-400">Powered by Block52</span>
-                        </div>
-                    </div>
+                    <span className="text-ink-muted text-sm">
+                        Waiting for {remaining} more {remaining === 1 ? "player" : "players"}
+                    </span>
                 </div>
             </div>
-        </div>
+
+            {/* Your status */}
+            <div className={`${noticeClass.success} mt-3 flex items-center justify-center gap-2`}>
+                <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse shrink-0"></div>
+                <span className="font-semibold text-sm">
+                    Waiting for players, you are {playersJoined} of {maxPlayers}
+                </span>
+            </div>
+
+            {/* Leave Game: inline two-step confirmation (no separate modal) */}
+            {canShowLeaveUi && isConfirming && (
+                <div className={`${insetBoxClass} mt-3 !border-red-500/30`}>
+                    <p className="m-0 mb-3 text-ink text-sm font-semibold text-center">Leave this tournament?</p>
+
+                    <div className="space-y-1.5">
+                        <div className="flex justify-between items-center text-sm">
+                            <span className="text-ink-muted">Your chips</span>
+                            <span className="text-ink font-semibold tabular-nums">{chipsLabel}</span>
+                        </div>
+                        {buyInLabel && (
+                            <div className="flex justify-between items-center text-xs">
+                                <span className="text-ink-muted">Buy-in</span>
+                                <span className="text-ink-soft tabular-nums">{buyInLabel}</span>
+                            </div>
+                        )}
+                    </div>
+
+                    {leaveError && (
+                        <p role="alert" className={`m-0 mt-3 ${noticeClass.error} break-words`}>
+                            {leaveError}
+                        </p>
+                    )}
+                </div>
+            )}
+
+            <ModalFooter>
+                {canShowLeaveUi && !isConfirming && (
+                    <PillButton variant="outline" onClick={handleLeaveClick} className="w-full">
+                        Leave Game
+                    </PillButton>
+                )}
+
+                {canShowLeaveUi && isConfirming && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={handleConfirm}
+                            disabled={isLeaving}
+                            className="inline-flex items-center justify-center w-full h-11 rounded-full border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                        >
+                            {isLeaving ? "Leaving..." : "Confirm Leave"}
+                        </button>
+                        <PillButton variant="ghost" onClick={handleCancel} disabled={isLeaving} className="w-full">
+                            Cancel
+                        </PillButton>
+                    </>
+                )}
+
+                <p className="m-0 text-center text-xs text-ink-muted">Tournament starts automatically when all players are seated</p>
+            </ModalFooter>
+        </Modal>
     );
 };
+
+// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
+function noop(): void {
+    return undefined;
+}
 
 export default SitAndGoWaitingModal;

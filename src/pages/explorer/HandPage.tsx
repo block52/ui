@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { truncateMiddle } from "../../utils/stringUtils";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { TexasHoldemStateDTO, PlayerDTO } from "@block52/poker-vm-sdk";
-import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
@@ -350,16 +349,15 @@ export default function HandPage() {
 
     if ((loading || !handsLoaded) && !gameState) {
         return (
-            <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
-                <AnimatedBackground />
-                <div className={`backdrop-blur-md p-8 rounded-xl shadow-2xl text-center relative z-10 ${styles.containerCard}`}>
+            <div className="min-h-screen flex flex-col justify-center items-center bg-surface-page p-4">
+                <div className={`p-8 rounded-2xl text-center ${styles.containerCard}`}>
                     <div className="flex justify-center mb-4">
                         <svg className={`animate-spin h-10 w-10 ${styles.brandText}`} xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                         </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Loading hand...</h2>
+                    <h2 className="text-2xl font-bold text-ink">Loading hand...</h2>
                 </div>
             </div>
         );
@@ -368,14 +366,13 @@ export default function HandPage() {
     if (!gameState) {
         // Show error or "not found" when we have no game state to render
         return (
-            <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
-                <AnimatedBackground />
-                <div className={`backdrop-blur-md p-8 rounded-xl shadow-2xl text-center max-w-lg relative z-10 ${styles.containerCard}`}>
+            <div className="min-h-screen flex flex-col justify-center items-center bg-surface-page p-4">
+                <div className={`p-8 rounded-2xl text-center max-w-lg ${styles.containerCard}`}>
                     <svg className={`h-16 w-16 mx-auto mb-4 ${styles.dangerText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                     </svg>
-                    <h2 className="text-2xl font-bold text-white mb-4">{error || "Hand not found"}</h2>
-                    <p className="text-gray-400 text-sm mb-4">Could not load game state for this hand.</p>
+                    <h2 className="text-2xl font-bold text-ink mb-4">{error || "Hand not found"}</h2>
+                    <p className="text-ink-muted text-sm mb-4">Could not load game state for this hand.</p>
                     <button onClick={() => navigate("/explorer")} className={`px-6 py-2 rounded-lg font-bold transition-colors duration-200 ${styles.subtleBrandButton}`}>
                         Back to Explorer
                     </button>
@@ -385,9 +382,8 @@ export default function HandPage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center relative overflow-hidden p-4 md:p-6">
-            <AnimatedBackground />
-            <div className="w-full max-w-7xl relative z-10">
+        <div className="min-h-screen flex flex-col items-center bg-surface-page p-4 md:p-6">
+            <div className="w-full max-w-7xl">
                 {/* Header */}
                 <div className="mb-4">
                     <button
@@ -405,23 +401,23 @@ export default function HandPage() {
                     {/* Main table area */}
                     <div className="flex-1">
                         {/* Game info bar */}
-                        <div className={`backdrop-blur-md p-4 rounded-xl shadow-2xl mb-4 ${styles.containerCard}`}>
+                        <div className={`p-4 rounded-2xl mb-4 ${styles.containerCard}`}>
                             <div className="flex flex-wrap items-center justify-between gap-2">
                                 <div>
-                                    <h1 className="text-xl font-extrabold text-white">Hand Replay</h1>
-                                    <p className="text-gray-400 text-xs font-mono mt-1 break-all">{gameId}</p>
+                                    <h1 className="text-xl font-extrabold text-ink">Hand Replay</h1>
+                                    <p className="text-ink-muted text-xs font-mono mt-1 break-all">{gameId}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     {selectedHand && (
                                         <div className="text-right text-sm">
-                                            <span className="text-gray-400">Block </span>
+                                            <span className="text-ink-muted">Block </span>
                                             <Link
                                                 to={`/explorer/block/${selectedHand.block_height}`}
                                                 className={`font-mono ${styles.brandText}`}
                                             >
                                                 #{selectedHand.block_height}
                                             </Link>
-                                            <p className="text-gray-500 text-xs">
+                                            <p className="text-ink-muted text-xs">
                                                 {new Date(selectedHand.created_at).toLocaleString()}
                                             </p>
                                         </div>
@@ -435,7 +431,7 @@ export default function HandPage() {
                                         target="_blank"
                                         rel="noopener noreferrer"
                                         title="Share on X"
-                                        className="text-gray-400 hover:text-white transition-colors"
+                                        className="text-ink-muted hover:text-ink transition-colors"
                                     >
                                         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
                                             <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
@@ -452,19 +448,19 @@ export default function HandPage() {
 
                         {/* Previous actions log */}
                         {gameState && hasElements(gameState.previousActions) && (
-                            <div className={`backdrop-blur-md p-4 rounded-xl shadow-2xl mt-4 ${styles.containerCard}`}>
-                                <h3 className="text-lg font-bold text-white mb-3">Actions</h3>
+                            <div className={`p-4 rounded-2xl mt-4 ${styles.containerCard}`}>
+                                <h3 className="text-lg font-bold text-ink mb-3">Actions</h3>
                                 <div className="space-y-1 max-h-48 overflow-y-auto">
                                     {gameState.previousActions.map((action, i) => (
                                         <div key={i} className="flex items-center gap-2 text-sm">
-                                            <span className="text-gray-500 text-xs w-6 text-right">{i + 1}.</span>
-                                            <span className="text-gray-400 font-mono text-xs">{truncateAddress(action.playerId)}</span>
+                                            <span className="text-ink-muted text-xs w-6 text-right">{i + 1}.</span>
+                                            <span className="text-ink-muted font-mono text-xs">{truncateAddress(action.playerId)}</span>
                                             <span className={`font-semibold ${styles.brandText}`}>{action.action}</span>
                                             {hasContent(action.amount) && action.amount !== "0" && (
-                                                <span className="text-white">{formatStack(action.amount)}</span>
+                                                <span className="text-ink">{formatStack(action.amount)}</span>
                                             )}
                                             {action.round && (
-                                                <span className="text-gray-600 text-xs">({action.round})</span>
+                                                <span className="text-ink-muted text-xs">({action.round})</span>
                                             )}
                                         </div>
                                     ))}
@@ -474,13 +470,13 @@ export default function HandPage() {
 
                         {/* Winners */}
                         {gameState && hasElements(gameState.winners) && (
-                            <div className={`backdrop-blur-md p-4 rounded-xl shadow-2xl mt-4 ${styles.containerCard}`}>
-                                <h3 className="text-lg font-bold text-white mb-3">Winners</h3>
+                            <div className={`p-4 rounded-2xl mt-4 ${styles.containerCard}`}>
+                                <h3 className="text-lg font-bold text-ink mb-3">Winners</h3>
                                 {gameState.winners.map((w, i) => (
                                     <div key={i} className="flex items-center gap-3 text-sm mb-2">
-                                        <span className="text-gray-400 font-mono text-xs">{truncateAddress(w.address)}</span>
+                                        <span className="text-ink-muted font-mono text-xs">{truncateAddress(w.address)}</span>
                                         <span className={`font-bold ${styles.successText}`}>{formatPot(w.amount)}</span>
-                                        {w.description && <span className="text-gray-400 text-xs">({w.description})</span>}
+                                        {w.description && <span className="text-ink-muted text-xs">({w.description})</span>}
                                         {hasElements(w.cards) && (
                                             <div className="flex gap-1">
                                                 {w.cards.map((c, ci) => (
@@ -497,9 +493,9 @@ export default function HandPage() {
                     {/* Sidebar: hand list */}
                     {hasElements(hands) && (
                         <div className="lg:w-64 flex-shrink-0">
-                            <div className={`backdrop-blur-md rounded-xl shadow-2xl overflow-hidden ${styles.containerCard}`}>
+                            <div className={`rounded-2xl overflow-hidden ${styles.containerCard}`}>
                                 <div className={`px-4 py-3 ${styles.headerCard}`}>
-                                    <h3 className="text-sm font-bold text-white">Hands ({hands.length})</h3>
+                                    <h3 className="text-sm font-bold text-ink">Hands ({hands.length})</h3>
                                 </div>
                                 <div className="max-h-[600px] overflow-y-auto">
                                     {hands.map((hand) => {
@@ -508,19 +504,19 @@ export default function HandPage() {
                                             <button
                                                 key={hand.hand_number}
                                                 onClick={() => selectHand(hand)}
-                                                className={`w-full text-left px-4 py-3 border-b border-gray-700/30 transition-colors duration-150 ${
+                                                className={`w-full text-left px-4 py-3 border-b border-line transition-colors duration-150 ${
                                                     isSelected ? styles.handListSelected : styles.handListItem
                                                 }`}
                                             >
                                                 <div className="flex items-center justify-between">
-                                                    <span className={`font-bold text-sm ${isSelected ? "text-white" : "text-gray-300"}`}>
+                                                    <span className={`font-bold text-sm ${isSelected ? "text-ink" : "text-ink-soft"}`}>
                                                         Hand #{hand.hand_number}
                                                     </span>
-                                                    <span className="text-gray-500 text-xs">
+                                                    <span className="text-ink-muted text-xs">
                                                         #{hand.block_height}
                                                     </span>
                                                 </div>
-                                                <div className="text-gray-500 text-xs mt-1">
+                                                <div className="text-ink-muted text-xs mt-1">
                                                     {new Date(hand.created_at).toLocaleTimeString()}
                                                 </div>
                                             </button>

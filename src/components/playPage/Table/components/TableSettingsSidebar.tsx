@@ -7,37 +7,8 @@
 
 import React from "react";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
-
-interface ToggleRowProps {
-    label: string;
-    description: string;
-    checked: boolean;
-    onToggle: () => void;
-}
-
-const ToggleRow: React.FC<ToggleRowProps> = ({ label, description, checked, onToggle }) => (
-    <div className="flex items-start justify-between py-3 border-b border-white/10 last:border-0">
-        <div className="flex-1 mr-3">
-            <p className="text-white text-xs font-semibold leading-tight">{label}</p>
-            <p className="text-gray-400 text-[10px] mt-0.5 leading-snug">{description}</p>
-        </div>
-        <button
-            role="switch"
-            aria-checked={checked}
-            onClick={onToggle}
-            className={`relative flex-shrink-0 w-10 h-5 rounded-full transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 focus:ring-offset-transparent ${
-                checked ? "bg-blue-500" : "bg-gray-600"
-            }`}
-            title={checked ? "Enabled — click to disable" : "Disabled — click to enable"}
-        >
-            <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform duration-200 ${
-                    checked ? "translate-x-5" : "translate-x-0"
-                }`}
-            />
-        </button>
-    </div>
-);
+import { SettingToggle } from "./SettingToggle";
+import styles from "./SidePanel.module.css";
 
 export interface TableSettingsSidebarProps {
     isOpen: boolean;
@@ -64,44 +35,46 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                 switches in the DOM — focusable, screen-reader reachable, and rendering
                 off-canvas past the viewport's right edge on phones. */}
             {isOpen && (
-            <div className="h-full bg-[#1a2234] border-l border-white/10 flex flex-col overflow-hidden">
+            <div className={`h-full bg-surface-card border-l border-line flex flex-col overflow-hidden ${styles.panel}`}>
                 {/* Header */}
-                <div className="flex items-center px-4 py-3 border-b border-white/10 flex-shrink-0">
-                    <span className="text-white font-semibold text-sm">Settings</span>
+                <div className="flex h-14 flex-shrink-0 items-center justify-between border-b border-line px-4">
+                    <h3 className="text-[13px] font-semibold uppercase tracking-[0.08em] text-ink-muted">Settings</h3>
                 </div>
 
                 {/* Toggle list */}
-                <div className="flex-1 overflow-y-auto px-4 py-1">
-                    <ToggleRow
+                <div className={`flex-1 overflow-y-auto overflow-x-hidden p-3 ${styles.scroll}`}>
+                  <div className="divide-y divide-line overflow-hidden rounded-2xl border border-line bg-surface-raised/40">
+                    <SettingToggle
                         label="Turn Notification Sound"
                         description="Play a sound and flash the browser tab when it is your turn to act."
                         checked={turnNotificationSound}
                         onToggle={toggleTurnNotificationSound}
                     />
-                    <ToggleRow
+                    <SettingToggle
                         label="Player Action Sounds"
                         description="Play sounds when players perform actions such as bet, raise, call, fold, and check."
                         checked={playerActionSounds}
                         onToggle={togglePlayerActionSounds}
                     />
-                    <ToggleRow
+                    <SettingToggle
                         label="Auto Muck"
                         description="Automatically muck losing cards at showdown without prompting."
                         checked={autoMuck}
                         onToggle={toggleAutoMuck}
                     />
-                    <ToggleRow
+                    <SettingToggle
                         label="Sit-In Options"
                         description="Choose how to enter (Sit In Next Hand vs Next Big Blind) when you take a seat. When off, you're sat in automatically and dealt in next hand."
                         checked={sitInOptions}
                         onToggle={toggleSitInOptions}
                     />
-                    <ToggleRow
+                    <SettingToggle
                         label="Pre-Select Check"
                         description="Show a Check box before your turn when checking is free, so you can queue an auto-check. Clears if a bet lands — it can only ever check, never fold."
                         checked={preSelectCheck}
                         onToggle={togglePreSelectCheck}
                     />
+                  </div>
                 </div>
             </div>
             )}

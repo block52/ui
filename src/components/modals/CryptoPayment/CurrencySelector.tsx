@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { usePaymentApi } from "../../../context/PaymentApiContext";
 import spinner from "../../../assets/spinning-circles.svg";
 import { DEPOSIT_CURRENCIES } from "../../../config/depositCurrencies";
-import styles from "./CurrencySelector.module.css";
+import { fieldLabelClass, noticeClass, optionCardClass } from "../walletFormClasses";
 
 import type { CurrencySelectorProps } from "../types";
 
@@ -49,7 +49,7 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({ selectedCurrency, o
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-6">
                 <img src={spinner} className="w-8 h-8" alt="loading" />
             </div>
         );
@@ -57,17 +57,15 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({ selectedCurrency, o
 
     if (error) {
         return (
-            <div className="p-4 rounded-lg bg-red-900/20 border border-red-500/50 text-red-400 text-sm">
+            <div role="alert" className={noticeClass.error}>
                 {error}
             </div>
         );
     }
 
     return (
-        <div className="space-y-4">
-            <label className="block text-sm font-medium text-gray-400">
-                Select the Crypto Currency to deposit
-            </label>
+        <div>
+            <span className={fieldLabelClass}>Currency to deposit</span>
 
             {/* Currency Grid */}
             <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Deposit currency">
@@ -80,16 +78,14 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({ selectedCurrency, o
                             role="radio"
                             aria-checked={selected}
                             onClick={() => onCurrencySelect(currency.code)}
-                            className={`p-3 rounded-lg border transition-all ${
-                                selected ? `border-blue-500 bg-blue-900/30 ${styles.selectedCurrency}` : "border-gray-600 bg-gray-900 hover:border-gray-500"
-                            }`}
+                            className={optionCardClass(selected)}
                         >
                             <div className="flex items-center gap-2">
                                 <img src={currency.logo} alt="" className="w-8 h-8 rounded-full" />
                                 <div className="text-left flex-1 min-w-0">
-                                    <div className="text-white font-semibold uppercase text-sm">{currency.symbol}</div>
-                                    <div className="text-gray-400 text-xs truncate">{currency.name}</div>
-                                    <div className="text-gray-500 text-[10px] truncate">{currency.network}</div>
+                                    <div className="text-ink font-semibold uppercase text-sm">{currency.symbol}</div>
+                                    <div className="text-ink-soft text-xs truncate">{currency.name}</div>
+                                    <div className="text-ink-muted text-[11px] truncate">{currency.network}</div>
                                 </div>
                             </div>
                         </button>

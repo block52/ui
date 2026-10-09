@@ -1,16 +1,14 @@
 import { useState, useEffect } from "react";
+import { ExplorerPage, explorerThClass } from "../components/explorer/ExplorerPanel";
 import { useParams, useNavigate } from "react-router-dom";
 import { microToUsdc } from "../constants/currency";
 import { truncateMiddle } from "../utils/stringUtils";
-import { AnimatedBackground } from "../components/common/AnimatedBackground";
-import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { isEmpty, hasElements } from "../utils/guards";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
 import { formatScaledPercent } from "../utils/vip";
 import { usePlayerProfile } from "../hooks/player/usePlayerProfile";
 import { usePlayerSessions } from "../hooks/player/usePlayerSessions";
-import styles from "./explorer/AllAccountsPage.module.css";
 
 const SESSIONS_PAGE_SIZE = 20;
 
@@ -20,9 +18,9 @@ const formatUsd = (micro: number): string => {
     return `${sign}$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 };
 
-const StatCard: React.FC<{ label: string; value: string; valueClass?: string }> = ({ label, value, valueClass = "text-white" }) => (
-    <div className={`backdrop-blur-md p-5 rounded-xl shadow-2xl ${styles.containerCard}`}>
-        <p className="text-gray-400 text-sm mb-1">{label}</p>
+const StatCard: React.FC<{ label: string; value: string; valueClass?: string }> = ({ label, value, valueClass = "text-ink" }) => (
+    <div className={`p-5 rounded-2xl bg-surface-card border border-line`}>
+        <p className="text-ink-muted text-sm mb-1">{label}</p>
         <p className={`text-2xl font-bold ${valueClass}`}>{value}</p>
     </div>
 );
@@ -56,37 +54,33 @@ export default function PlayerProfilePage() {
     };
 
     return (
-        <div className="min-h-screen p-8 relative">
-            <AnimatedBackground />
+        <ExplorerPage title="Player Profile">
 
-            <div className="max-w-7xl mx-auto relative z-10">
-                <ExplorerHeader title="Player Profile" />
-
-                <button onClick={() => navigate("/players")} className="mb-4 text-sm text-gray-400 hover:text-white transition-colors">
+                <button onClick={() => navigate("/players")} className="mb-4 text-sm text-ink-muted hover:text-ink transition-colors">
                     ← Back to players
                 </button>
 
                 {loading ? (
-                    <div className={`backdrop-blur-md rounded-xl shadow-2xl p-8 text-center ${styles.containerCard}`}>
-                        <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 ${styles.loadingSpinner}`}></div>
-                        <p className="text-gray-400">Loading player...</p>
+                    <div className={`rounded-2xl p-8 text-center bg-surface-card border border-line`}>
+                        <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 border-brand`}></div>
+                        <p className="text-ink-muted">Loading player...</p>
                     </div>
                 ) : error ? (
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard} ${styles.errorContainer}`}>
+                    <div className="p-6 rounded-2xl bg-surface-card border border-red-400/50">
                         <p className="text-red-400 text-center">{error}</p>
                     </div>
                 ) : !profile ? (
-                    <div className={`backdrop-blur-md p-8 rounded-xl shadow-2xl text-center ${styles.containerCard}`}>
-                        <p className="text-gray-400">No data for this player.</p>
+                    <div className={`p-8 rounded-2xl text-center bg-surface-card border border-line`}>
+                        <p className="text-ink-muted">No data for this player.</p>
                     </div>
                 ) : (
                     <>
                         {/* Header */}
-                        <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl mb-6 ${styles.containerCard}`}>
+                        <div className={`p-6 rounded-2xl mb-6 bg-surface-card border border-line`}>
                             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
                                 <div className="flex items-center gap-3 flex-wrap">
-                                    <span className={`font-mono text-sm break-all ${styles.brandText}`}>{profile.player_address}</span>
-                                    <button onClick={copyAddress} className="text-xs text-gray-400 hover:text-white transition-colors">
+                                    <span className={`font-mono text-sm break-all text-brand-light`}>{profile.player_address}</span>
+                                    <button onClick={copyAddress} className="text-xs text-ink-muted hover:text-ink transition-colors">
                                         {copied ? "Copied!" : "Copy"}
                                     </button>
                                 </div>
@@ -111,28 +105,28 @@ export default function PlayerProfilePage() {
                         </div>
 
                         {/* Playing style */}
-                        <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl mb-6 ${styles.containerCard}`}>
-                            <h2 className="text-white font-bold mb-4">Playing Style</h2>
+                        <div className={`p-6 rounded-2xl mb-6 bg-surface-card border border-line`}>
+                            <h2 className="text-ink font-bold mb-4">Playing Style</h2>
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
                                 <div>
-                                    <p className="text-gray-400 text-sm mb-1">VPIP</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.vpip)}</p>
+                                    <p className="text-ink-muted text-sm mb-1">VPIP</p>
+                                    <p className="text-xl font-bold text-ink">{formatScaledPercent(profile.vpip)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-400 text-sm mb-1">PFR</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.pfr)}</p>
+                                    <p className="text-ink-muted text-sm mb-1">PFR</p>
+                                    <p className="text-xl font-bold text-ink">{formatScaledPercent(profile.pfr)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-400 text-sm mb-1">Aggression</p>
-                                    <p className="text-xl font-bold text-white">{(profile.aggression_factor / 100).toFixed(2)}</p>
+                                    <p className="text-ink-muted text-sm mb-1">Aggression</p>
+                                    <p className="text-xl font-bold text-ink">{(profile.aggression_factor / 100).toFixed(2)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-400 text-sm mb-1">WTSD</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.wtsd)}</p>
+                                    <p className="text-ink-muted text-sm mb-1">WTSD</p>
+                                    <p className="text-xl font-bold text-ink">{formatScaledPercent(profile.wtsd)}</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-400 text-sm mb-1">W$SD</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.won_at_showdown)}</p>
+                                    <p className="text-ink-muted text-sm mb-1">W$SD</p>
+                                    <p className="text-xl font-bold text-ink">{formatScaledPercent(profile.won_at_showdown)}</p>
                                 </div>
                             </div>
                         </div>
@@ -145,43 +139,43 @@ export default function PlayerProfilePage() {
                         </div>
 
                         {/* Session history */}
-                        <div className={`backdrop-blur-md rounded-xl shadow-2xl overflow-hidden ${styles.containerCard}`}>
-                            <div className="px-6 py-4 border-b border-white/10">
-                                <h2 className="text-white font-bold">Session History</h2>
+                        <div className={`rounded-2xl overflow-hidden bg-surface-card border border-line`}>
+                            <div className="px-6 py-4 border-b border-line">
+                                <h2 className="text-ink font-bold">Session History</h2>
                             </div>
                             {sessionsLoading ? (
                                 <div className="p-8 text-center">
-                                    <div className={`animate-spin rounded-full h-10 w-10 border-b-2 mx-auto mb-3 ${styles.loadingSpinner}`}></div>
-                                    <p className="text-gray-400">Loading sessions...</p>
+                                    <div className={`animate-spin rounded-full h-10 w-10 border-b-2 mx-auto mb-3 border-brand`}></div>
+                                    <p className="text-ink-muted">Loading sessions...</p>
                                 </div>
                             ) : isEmpty(sessions) ? (
                                 <div className="p-8 text-center">
-                                    <p className="text-gray-400">No sessions recorded</p>
+                                    <p className="text-ink-muted">No sessions recorded</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
                                     <table className="w-full">
                                         <thead>
-                                            <tr className={styles.tableHeaderRow}>
-                                                <th className="px-6 py-4 text-left text-gray-400 font-semibold">Game</th>
-                                                <th className="px-6 py-4 text-right text-gray-400 font-semibold">Join Block</th>
-                                                <th className="px-6 py-4 text-right text-gray-400 font-semibold">Leave Block</th>
-                                                <th className="px-6 py-4 text-right text-gray-400 font-semibold">Buy-In</th>
-                                                <th className="px-6 py-4 text-right text-gray-400 font-semibold">Cash-Out</th>
+                                            <tr>
+                                                <th className={explorerThClass}>Game</th>
+                                                <th className={`${explorerThClass} text-right`}>Join Block</th>
+                                                <th className={`${explorerThClass} text-right`}>Leave Block</th>
+                                                <th className={`${explorerThClass} text-right`}>Buy-In</th>
+                                                <th className={`${explorerThClass} text-right`}>Cash-Out</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {sessions.map((s, i) => (
-                                                <tr key={`${s.game_id}-${s.join_block}-${i}`} className={`border-t ${styles.tableRowBorder}`}>
+                                                <tr key={`${s.game_id}-${s.join_block}-${i}`} className="border-t border-line">
                                                     <td className="px-6 py-4">
-                                                        <span className={`font-mono text-sm ${styles.brandText}`}>{truncateMiddle(s.game_id, 8, 6)}</span>
+                                                        <span className={`font-mono text-sm text-brand-light`}>{truncateMiddle(s.game_id, 8, 6)}</span>
                                                     </td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">{s.join_block.toLocaleString()}</td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">
+                                                    <td className="px-6 py-4 text-right text-ink-soft">{s.join_block.toLocaleString()}</td>
+                                                    <td className="px-6 py-4 text-right text-ink-soft">
                                                         {s.leave_block != null ? s.leave_block.toLocaleString() : "—"}
                                                     </td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">{formatUsd(s.buy_in_amount)}</td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">
+                                                    <td className="px-6 py-4 text-right text-ink-soft">{formatUsd(s.buy_in_amount)}</td>
+                                                    <td className="px-6 py-4 text-right text-ink-soft">
                                                         {s.cash_out_amount != null ? formatUsd(s.cash_out_amount) : "—"}
                                                     </td>
                                                 </tr>
@@ -201,7 +195,6 @@ export default function PlayerProfilePage() {
                         </div>
                     </>
                 )}
-            </div>
-        </div>
+        </ExplorerPage>
     );
 }

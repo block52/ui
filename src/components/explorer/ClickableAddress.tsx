@@ -47,7 +47,7 @@ export const ClickableAddress: React.FC<ClickableAddressProps> = ({ address, cla
  */
 export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React.ReactElement => {
     if (isNullish(obj)) {
-        return <span className="text-gray-500">null</span>;
+        return <span className="text-ink-muted">null</span>;
     }
 
     if (typeof obj === "string") {
@@ -55,11 +55,11 @@ export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React
         if (obj.startsWith("b52") && obj.length > 20) {
             return <ClickableAddress address={obj} />;
         }
-        return <span className="text-green-400">&quot;{obj}&quot;</span>;
+        return <span className="text-emerald-400">&quot;{obj}&quot;</span>;
     }
 
     if (typeof obj === "number" || typeof obj === "boolean") {
-        return <span className="text-blue-400">{String(obj)}</span>;
+        return <span className="text-sky-300">{String(obj)}</span>;
     }
 
     if (Array.isArray(obj)) {
@@ -93,7 +93,7 @@ export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React
                 <div style={{ paddingLeft: `${depth + 1}rem` }}>
                     {entries.map(([key, value], index) => (
                         <div key={key}>
-                            <span className="text-purple-400">&quot;{key}&quot;</span>
+                            <span className="text-brand-light">&quot;{key}&quot;</span>
                             <span>: </span>
                             {renderJSONWithClickableAddresses(value, depth + 1)}
                             {index < entries.length - 1 && <span>,</span>}

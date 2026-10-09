@@ -1,3 +1,14 @@
 .chartContainer {
-    height: 600px;
+    height: 280px;
+}
+
+@media (min-width: 768px) {
+    .chartContainer {
+        height: 320px;
+    }
+}
+
+/* Legend swatch for the dashed expected-count line (#eab308, EXPECTED_LINE_COLOR). */
+.expectedSwatch {
+    border-top: 2px dashed #eab308;
 }

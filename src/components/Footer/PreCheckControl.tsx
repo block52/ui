@@ -29,17 +29,17 @@ export const PreCheckControl: React.FC<PreCheckControlProps> = ({ checked, onCha
                 aria-label="Pre-select check for your turn"
                 title="Auto-checks when your turn comes if it's still free. If someone bets first, this clears and it's your decision."
                 onClick={() => onChange(!checked)}
-                className={`flex items-center gap-2 rounded-lg border font-semibold transition-colors ${
+                className={`flex items-center gap-2 rounded-full border font-semibold transition-colors ${
                     isMobileLandscape ? "px-3 py-1 text-xs" : "px-6 py-3 text-sm lg:text-base"
                 } ${
                     checked
                         ? "bg-green-600 border-green-500 text-white"
-                        : "bg-gray-800/80 border-gray-600 text-gray-200 hover:bg-gray-700"
+                        : "bg-surface-card/90 border-line-strong text-ink-body hover:bg-surface-hover"
                 }`}
             >
                 <span
                     className={`flex h-4 w-4 items-center justify-center rounded-sm border text-[10px] leading-none ${
-                        checked ? "bg-white border-white text-green-600" : "border-gray-400 text-transparent"
+                        checked ? "bg-white border-white text-green-600" : "border-ink-muted text-transparent"
                     }`}
                 >
                     ✓

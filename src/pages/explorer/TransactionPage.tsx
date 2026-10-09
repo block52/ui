@@ -5,9 +5,9 @@ import { useNetwork } from "../../context/NetworkContext";
 import { colors } from "../../utils/colorConfig";
 import { renderJSONWithClickableAddresses } from "../../components/explorer/ClickableAddress";
 import { CosmosTransaction, CosmosEvent, CosmosEventAttribute, CosmosMessage } from "./types";
-import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { hasElements } from "../../utils/guards";
 import styles from "./TransactionPage.module.css";
+import { toast } from "react-toastify";
 
 export default function TransactionPage() {
     // Check if hash is provided via URL params (for /explorer/tx/:hash route)
@@ -97,16 +97,15 @@ export default function TransactionPage() {
     }, [urlHash, transaction]);
 
     return (
-        <div className="min-h-screen flex flex-col items-center relative overflow-hidden p-6">
-            <AnimatedBackground />
-            <div className="w-full max-w-4xl relative z-10">
+        <div className="min-h-screen flex flex-col items-center bg-surface-page p-6">
+            <div className="w-full max-w-4xl">
                 {/* Centered Title - Not in a box */}
-                <h1 className="text-4xl font-extrabold text-white mb-6 text-center">Transaction Details</h1>
+                <h1 className="text-4xl font-extrabold text-ink mb-6 text-center">Transaction Details</h1>
 
                 {/* Error Display */}
                 {error && (
                     <div
-                        className={`backdrop-blur-md p-4 rounded-xl shadow-2xl mb-6 ${styles.errorContainer}`}
+                        className={`p-4 rounded-2xl mb-6 ${styles.errorContainer}`}
                     >
                         <div className="flex items-center gap-3">
                             <svg
@@ -117,20 +116,20 @@ export default function TransactionPage() {
                             >
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            <span className="text-white font-semibold">Error: {error}</span>
+                            <span className="text-ink font-semibold">Error: {error}</span>
                         </div>
                     </div>
                 )}
 
                 {/* Transaction Details */}
                 {transaction && transaction.tx_response && (
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.detailsContainer}`}>
+                    <div className={`p-6 rounded-2xl ${styles.detailsContainer}`}>
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-white">Transaction Details</h2>
+                            <h2 className="text-2xl font-bold text-ink">Transaction Details</h2>
                             {previousAddress && (
                                 <button
                                     onClick={() => navigate(`/explorer/address/${previousAddress}`)}
-                                    className={`px-4 py-2 rounded-lg text-white font-semibold transition-all hover:opacity-90 ${styles.backToAddressButton}`}
+                                    className={`px-4 py-2 rounded-lg text-ink font-semibold transition-all hover:opacity-90 ${styles.backToAddressButton}`}
                                 >
                                     Back to Address Lookup
                                 </button>
@@ -140,9 +139,9 @@ export default function TransactionPage() {
                         <div className="space-y-6">
                             {/* Transaction Hash */}
                             <div>
-                                <label className="block text-gray-400 text-sm font-semibold mb-2">Transaction Hash</label>
+                                <label className="block text-ink-muted text-sm font-semibold mb-2">Transaction Hash</label>
                                 <div
-                                    className={`p-3 rounded-lg font-mono text-sm text-white break-all ${styles.hashBox}`}
+                                    className={`p-3 rounded-lg font-mono text-sm text-ink break-all ${styles.hashBox}`}
                                 >
                                     {transaction.tx_response.txhash}
                                 </div>
@@ -150,7 +149,7 @@ export default function TransactionPage() {
 
                             {/* Status */}
                             <div className="flex items-center gap-2">
-                                <label className="text-gray-400 text-sm font-semibold">Status:</label>
+                                <label className="text-ink-muted text-sm font-semibold">Status:</label>
                                 <span
                                     className="font-bold flex items-center gap-2"
                                     style={{
@@ -186,14 +185,14 @@ export default function TransactionPage() {
                             {/* Block Height and Gas */}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="block text-gray-400 text-sm font-semibold mb-2">Block Height</label>
-                                    <div className={`text-white font-mono ${styles.brandText}`}>
+                                    <label className="block text-ink-muted text-sm font-semibold mb-2">Block Height</label>
+                                    <div className={`text-ink font-mono ${styles.brandText}`}>
                                         #{transaction.tx_response.height}
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="block text-gray-400 text-sm font-semibold mb-2">Gas Used / Wanted</label>
-                                    <div className="text-white font-mono">
+                                    <label className="block text-ink-muted text-sm font-semibold mb-2">Gas Used / Wanted</label>
+                                    <div className="text-ink font-mono">
                                         {transaction.tx_response.gas_used} / {transaction.tx_response.gas_wanted}
                                     </div>
                                 </div>
@@ -202,7 +201,7 @@ export default function TransactionPage() {
                             {/* Messages */}
                             {hasElements(transaction.tx.body.messages) && (
                                 <div>
-                                    <h3 className="text-xl font-bold text-white mb-3">Messages ({transaction.tx.body.messages.length})</h3>
+                                    <h3 className="text-xl font-bold text-ink mb-3">Messages ({transaction.tx.body.messages.length})</h3>
                                     <div className="space-y-3">
                                         {transaction.tx.body.messages.map((msg: CosmosMessage, index: number) => (
                                             <div
@@ -210,15 +209,15 @@ export default function TransactionPage() {
                                                 className={`p-4 rounded-lg ${styles.messageCard}`}
                                             >
                                                 <div className="mb-3">
-                                                    <label className="block text-gray-400 text-xs font-semibold mb-1">Type</label>
+                                                    <label className="block text-ink-muted text-xs font-semibold mb-1">Type</label>
                                                     <code className={`text-sm font-mono ${styles.brandText}`}>
                                                         {msg["@type"] || (msg as { typeUrl?: string }).typeUrl}
                                                     </code>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-gray-400 text-xs font-semibold mb-1">Data</label>
+                                                    <label className="block text-ink-muted text-xs font-semibold mb-1">Data</label>
                                                     <div
-                                                        className={`p-3 rounded text-xs overflow-auto font-mono text-gray-300 ${styles.messageDataBox}`}
+                                                        className={`p-3 rounded text-xs overflow-auto font-mono text-ink-soft ${styles.messageDataBox}`}
                                                     >
                                                         {renderJSONWithClickableAddresses(msg)}
                                                     </div>
@@ -263,12 +262,12 @@ export default function TransactionPage() {
                                                     </div>
                                                     <div className="space-y-2">
                                                         <div>
-                                                            <label className="block text-gray-300 text-xs font-semibold mb-1">Game ID</label>
+                                                            <label className="block text-ink-soft text-xs font-semibold mb-1">Game ID</label>
                                                             <code
                                                                 className={`text-sm font-mono break-all cursor-pointer transition-colors duration-200 block ${styles.brandText}`}
                                                                 onClick={() => {
                                                                     navigator.clipboard.writeText(gameIdAttr.value);
-                                                                    alert("Game ID copied!");
+                                                                    toast.success("Game ID copied");
                                                                 }}
                                                                 title="Click to copy"
                                                             >
@@ -277,14 +276,14 @@ export default function TransactionPage() {
                                                         </div>
                                                         {gameTypeAttr && (
                                                             <div>
-                                                                <label className="block text-gray-300 text-xs font-semibold mb-1">Game Type</label>
-                                                                <span className="text-white font-bold">{gameTypeAttr.value}</span>
+                                                                <label className="block text-ink-soft text-xs font-semibold mb-1">Game Type</label>
+                                                                <span className="text-ink font-bold">{gameTypeAttr.value}</span>
                                                             </div>
                                                         )}
                                                         {minPlayersAttr && maxPlayersAttr && (
                                                             <div>
-                                                                <label className="block text-gray-300 text-xs font-semibold mb-1">Players</label>
-                                                                <span className="text-white font-bold">
+                                                                <label className="block text-ink-soft text-xs font-semibold mb-1">Players</label>
+                                                                <span className="text-ink font-bold">
                                                                     {minPlayersAttr.value} - {maxPlayersAttr.value}
                                                                 </span>
                                                             </div>
@@ -325,12 +324,12 @@ export default function TransactionPage() {
                                                     </div>
                                                     <div className="space-y-2">
                                                         <div>
-                                                            <label className="block text-gray-300 text-xs font-semibold mb-1">Game ID</label>
+                                                            <label className="block text-ink-soft text-xs font-semibold mb-1">Game ID</label>
                                                             <code
                                                                 className={`text-sm font-mono break-all cursor-pointer transition-colors duration-200 block ${styles.brandText}`}
                                                                 onClick={() => {
                                                                     navigator.clipboard.writeText(gameIdAttr.value);
-                                                                    alert("Game ID copied!");
+                                                                    toast.success("Game ID copied");
                                                                 }}
                                                                 title="Click to copy"
                                                             >
@@ -339,14 +338,14 @@ export default function TransactionPage() {
                                                         </div>
                                                         {playerAttr && (
                                                             <div>
-                                                                <label className="block text-gray-300 text-xs font-semibold mb-1">Player</label>
-                                                                <code className="text-sm font-mono text-white">{playerAttr.value}</code>
+                                                                <label className="block text-ink-soft text-xs font-semibold mb-1">Player</label>
+                                                                <code className="text-sm font-mono text-ink">{playerAttr.value}</code>
                                                             </div>
                                                         )}
                                                         {buyInAttr && (
                                                             <div>
-                                                                <label className="block text-gray-300 text-xs font-semibold mb-1">Buy-In</label>
-                                                                <span className="text-white font-bold">{buyInAttr.value}</span>
+                                                                <label className="block text-ink-soft text-xs font-semibold mb-1">Buy-In</label>
+                                                                <span className="text-ink font-bold">{buyInAttr.value}</span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -515,8 +514,8 @@ export default function TransactionPage() {
                                                 >
                                                     {/* Cosmos Events Primer */}
                                                     <div className={`mb-6 pb-4 ${styles.eventExplanationPrimer}`}>
-                                                        <h4 className="text-lg font-bold text-white mb-3">📚 About Block52 Blockchain Events</h4>
-                                                        <div className="text-gray-300 text-sm space-y-2">
+                                                        <h4 className="text-lg font-bold text-ink mb-3">📚 About Block52 Blockchain Events</h4>
+                                                        <div className="text-ink-soft text-sm space-y-2">
                                                             <p>
                                                                 <strong className={styles.eventExplanationStrong}>Events</strong> are records emitted during
                                                                 transaction execution that describe what happened. They're stored on the blockchain and indexed
@@ -539,7 +538,7 @@ export default function TransactionPage() {
                                                     </div>
 
                                                     {/* Event-by-Event Breakdown */}
-                                                    <h4 className="text-lg font-bold text-white mb-3">🔍 Event Breakdown</h4>
+                                                    <h4 className="text-lg font-bold text-ink mb-3">🔍 Event Breakdown</h4>
                                                     <div className="space-y-3">
                                                         {transaction.tx_response.events.map((event: CosmosEvent, index: number) => {
                                                             const explanation = explainEvent(event, index);
@@ -552,15 +551,15 @@ export default function TransactionPage() {
                                                                         {explanation && <span className="text-2xl">{explanation.icon}</span>}
                                                                         <div className="flex-1">
                                                                             <div className="flex items-center gap-2 mb-1">
-                                                                                <span className="text-xs font-bold text-gray-400">#{index + 1}</span>
+                                                                                <span className="text-xs font-bold text-ink-muted">#{index + 1}</span>
                                                                                 {explanation && (
                                                                                     <h5 className={`font-bold ${styles.eventBreakdownTitle}`}>
                                                                                         {explanation.title}
                                                                                     </h5>
                                                                                 )}
                                                                             </div>
-                                                                            {explanation && <p className="text-sm text-gray-300">{explanation.description}</p>}
-                                                                            <code className="text-xs text-gray-500 mt-1 block">Type: {event.type}</code>
+                                                                            {explanation && <p className="text-sm text-ink-soft">{explanation.description}</p>}
+                                                                            <code className="text-xs text-ink-muted mt-1 block">Type: {event.type}</code>
                                                                         </div>
                                                                     </div>
                                                                 </div>
@@ -575,7 +574,7 @@ export default function TransactionPage() {
                                                         <h5 className={`font-bold mb-2 ${styles.eventSummaryTitle}`}>
                                                             Summary
                                                         </h5>
-                                                        <p className="text-sm text-gray-300">
+                                                        <p className="text-sm text-ink-soft">
                                                             This transaction executed successfully with {transaction.tx_response.events.length} events emitted.
                                                             The blockchain recorded fee payments, state changes, and custom poker game events. All events are
                                                             permanently stored and indexed for future queries.
@@ -590,9 +589,9 @@ export default function TransactionPage() {
                             {/* Events */}
                             {hasElements(transaction.tx_response.events) && (
                                 <div>
-                                    <h3 className="text-xl font-bold text-white mb-3">Raw Events Data ({transaction.tx_response.events.length})</h3>
+                                    <h3 className="text-xl font-bold text-ink mb-3">Raw Events Data ({transaction.tx_response.events.length})</h3>
                                     <pre
-                                        className={`p-4 rounded-lg text-xs overflow-auto font-mono text-gray-300 ${styles.rawEventsBox}`}
+                                        className={`p-4 rounded-lg text-xs overflow-auto font-mono text-ink-soft ${styles.rawEventsBox}`}
                                     >
                                         {JSON.stringify(transaction.tx_response.events, null, 2)}
                                     </pre>

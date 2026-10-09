@@ -46,9 +46,11 @@ export interface BaseModalProps {
     children: React.ReactNode;
     /** Optional title displayed at top of modal */
     title?: string;
+    /** Optional one-line description shown under the title */
+    subtitle?: string;
     /** Optional icon/emoji to display before title */
     titleIcon?: React.ReactNode;
-    /** Color for the title divider line (defaults to brand.primary) */
+    /** Color for the title icon (defaults to brand.primary) */
     titleDividerColor?: string;
     /** Error message to display */
     error?: string | null;
@@ -58,9 +60,9 @@ export interface BaseModalProps {
     widthClass?: string;
     /** Additional className for the modal container */
     className?: string;
-    /** Whether to show the hexagon pattern background (default: true) */
+    /** Whether to show the hexagon pattern background (default: false) */
     showHexagonPattern?: boolean;
-    /** Whether to show decorative card suits (default: true) */
+    /** Whether to show decorative card suits (default: false) */
     showCardSuits?: boolean;
     /** Unique pattern ID for hexagon SVG (to avoid conflicts with multiple modals) */
     patternId?: string;
@@ -76,12 +78,14 @@ export interface BaseModalProps {
  * BaseModal - A reusable modal component with consistent styling
  *
  * Features:
- * - Backdrop with blur effect
- * - Hexagon pattern background
- * - Decorative card suits
+ * - Dark backdrop with blur
+ * - surface-card panel, 1px line border, rounded-2xl
+ * - Title row with a ghost close button (when a title is given)
+ * - Bottom sheet on phones (full width, pinned to the bottom)
  * - Error display
  * - Keyboard shortcuts (Escape to close)
  * - Close on backdrop click
+ * - Optional hexagon pattern / card-suit decorations (off by default)
  *
  * @example
  * ```tsx
@@ -105,13 +109,14 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
         children,
         title,
         titleIcon,
+        subtitle,
         titleDividerColor = colors.brand.primary,
         error,
         isProcessing = false,
         widthClass = "w-96",
         className = "",
-        showHexagonPattern = true,
-        showCardSuits = true,
+        showHexagonPattern = false,
+        showCardSuits = false,
         patternId,
         closeOnEscape = true,
         closeOnBackdropClick = true,
@@ -142,16 +147,16 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
         if (!isOpen) return null;
 
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
                 {/* Backdrop */}
-                <div
-                    className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                    onClick={handleBackdropClick}
-                />
+                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleBackdropClick} />
 
                 {/* Modal Container */}
                 <div
-                    className={`relative p-6 rounded-xl shadow-2xl overflow-x-hidden ${scrollable ? "overflow-y-auto max-h-[90vh]" : "overflow-y-hidden"} ${widthClass} max-w-[95vw] ${className} ${styles.modalContainer}`}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={title}
+                    className={`relative bg-surface-card border border-line rounded-2xl shadow-2xl text-ink-body p-5 sm:p-6 overflow-x-hidden ${scrollable ? "overflow-y-auto max-h-[92vh] sm:max-h-[90vh]" : "overflow-y-hidden"} ${widthClass} max-w-[95vw] ${className} ${styles.modalContainer}`}
                 >
                     {/* Hexagon pattern background */}
                     {showHexagonPattern && <HexagonPattern patternId={patternId} />}
@@ -159,32 +164,45 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
                     {/* Decorative card suits */}
                     {showCardSuits && <CardSuits />}
 
-                    {/* Title */}
+                    {/* Title row */}
                     {title && (
-                        <>
-                            <h2 className="text-xl font-bold mb-3 text-white flex items-center">
-                                {titleIcon && (
-                                    <span style={{ color: titleDividerColor }} className="mr-2">
-                                        {titleIcon}
-                                    </span>
-                                )}
-                                {title}
-                            </h2>
-                            <div
-                                className="w-full h-0.5 mb-4 opacity-50"
-                                style={{
-                                    background: `linear-gradient(to right, transparent, ${titleDividerColor}, transparent)`
-                                }}
-                            />
-                        </>
+                        <div className="relative flex items-center justify-between gap-3 -mt-1.5 mb-4 pb-3 border-b border-line">
+                            <div className="min-w-0">
+                                <h2 className="m-0 min-w-0 text-[17px] font-semibold text-ink flex items-center gap-2">
+                                    {titleIcon && (
+                                        <span style={{ color: titleDividerColor }} aria-hidden="true">
+                                            {titleIcon}
+                                        </span>
+                                    )}
+                                    <span className="truncate">{title}</span>
+                                </h2>
+                                {subtitle && <p className="m-0 mt-0.5 text-sm font-normal text-ink-muted">{subtitle}</p>}
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onClose}
+                                disabled={isProcessing}
+                                aria-label="Close"
+                                className="-mr-2.5 shrink-0 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
+                            >
+                                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                    <path strokeLinecap="round" d="M5 5l10 10M15 5L5 15" />
+                                </svg>
+                            </button>
+                        </div>
                     )}
 
                     {/* Error Display */}
                     {error && (
-                        <div className={`mb-4 p-3 rounded-lg ${styles.errorContainer}`}>
-                            <p className={`text-sm ${styles.errorText}`}>
-                                ⚠️ {error}
-                            </p>
+                        <div role="alert" className="relative mb-4 flex items-start gap-2 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm">
+                            <svg className="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path
+                                    fillRule="evenodd"
+                                    d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z"
+                                    clipRule="evenodd"
+                                />
+                            </svg>
+                            <p className="m-0">{error}</p>
                         </div>
                     )}
 

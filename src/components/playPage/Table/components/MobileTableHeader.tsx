@@ -31,6 +31,7 @@ import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import styles from "./TableHeader.module.css";
+import { pillClass } from "../../../ui";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 
@@ -95,7 +96,7 @@ const TABLE_STYLE_LABELS: Record<TableStyleOption, string> = {
 
 /** Shared row styling: every drawer item is a ≥44px tap target. */
 const menuRowClass =
-    "w-full min-h-[44px] flex items-center gap-3 px-4 text-sm text-left text-white transition-colors duration-150 hover:bg-white/10";
+    "w-full min-h-[44px] flex items-center gap-3 px-4 text-sm text-left text-ink-body transition-colors duration-150 hover:bg-surface-hover";
 
 export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     tableId,
@@ -186,11 +187,11 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         title="Refresh balance"
                     >
                         {isBalanceLoading ? (
-                            <span className="text-xs text-gray-300">Loading...</span>
+                            <span className="text-xs text-ink-soft">Loading...</span>
                         ) : (
                             <span className="text-white font-medium text-xs whitespace-nowrap">
                                 ${balanceFormatted}
-                                <span className="text-[9px] ml-1 text-gray-400">USDC</span>
+                                <span className="text-[9px] ml-1 text-ink-muted">USDC</span>
                             </span>
                         )}
                     </button>
@@ -247,7 +248,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             paddingRight: "env(safe-area-inset-right)"
                         }}
                     >
-                        <div className="flex items-center justify-between pl-4 min-h-[44px] border-b border-white/10">
+                        <div className="flex items-center justify-between pl-4 min-h-[44px] border-b border-line">
                             <span className="text-white text-sm font-bold">Table menu</span>
                             <button
                                 onClick={() => setMenuOpen(false)}
@@ -260,7 +261,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
 
                         {/* Game info (read-only) */}
                         {gameOptions && (
-                            <div className="px-4 py-2 border-b border-white/10">
+                            <div className="px-4 py-2 border-b border-line">
                                 <span className={`text-xs font-semibold ${styles.brandText}`}>
                                     {gameFormat ? `${formatGameFormatDisplay(gameFormat)} • ` : ""}
                                     Texas Hold'em
@@ -272,8 +273,8 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         )}
 
                         {/* Network */}
-                        <div className="px-4 py-2 flex items-center gap-3 border-b border-white/10">
-                            <span className="text-xs text-gray-400">Network</span>
+                        <div className="px-4 py-2 flex items-center gap-3 border-b border-line">
+                            <span className="text-xs text-ink-muted">Network</span>
                             <NetworkSelector />
                         </div>
 
@@ -337,7 +338,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
 
                         {/* Table style — replaces the fixed bottom-left selector on mobile */}
                         <button className={menuRowClass} onClick={onCycleTableStyle}>
-                            <span className="text-xs text-gray-400">Style</span>
+                            <span className="text-xs text-ink-muted">Style</span>
                             <span>{TABLE_STYLE_LABELS[tableStyle]}</span>
                         </button>
 
@@ -353,7 +354,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             role="switch"
                             aria-checked={seatAtBottom}
                         >
-                            <span className="text-xs text-gray-400">Seat</span>
+                            <span className="text-xs text-ink-muted">Seat</span>
                             <span className={seatAtBottom ? "text-amber-300" : undefined}>
                                 {seatAtBottom ? "✓ " : ""}Seat me at 6 o&apos;clock
                             </span>
@@ -367,13 +368,13 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         {canSitOut && (
                             <>
                                 <button className={menuRowClass} onClick={toggleNextHand} role="switch" aria-checked={nextHandChecked}>
-                                    <span className="text-xs text-gray-400">Sit out</span>
+                                    <span className="text-xs text-ink-muted">Sit out</span>
                                     <span className={nextHandChecked ? "text-amber-300" : undefined}>
                                         {nextHandChecked ? "☑ " : "☐ "}Next hand
                                     </span>
                                 </button>
                                 <button className={menuRowClass} onClick={toggleNextBb} role="switch" aria-checked={nextBbQueued}>
-                                    <span className="text-xs text-gray-400">Sit out</span>
+                                    <span className="text-xs text-ink-muted">Sit out</span>
                                     <span className={nextBbQueued ? "text-amber-300" : undefined}>
                                         {nextBbQueued ? "☑ " : "☐ "}Next big blind
                                     </span>
@@ -386,8 +387,8 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             player that (#684). */}
                         {!isCurrentUserSeated && (
                             <div className={`${menuRowClass} cursor-default hover:bg-transparent`}>
-                                <span className="animate-pulse w-2 h-2 rounded-full bg-blue-400 shrink-0" />
-                                <span className="text-blue-300 text-xs">
+                                <span className="animate-pulse w-2 h-2 rounded-full bg-brand-light shrink-0" />
+                                <span className="text-brand-light text-xs">
                                     {isTableFull ? "Spectating — the table is full" : "Spectating — tap an open seat to join"}
                                 </span>
                             </div>
@@ -398,7 +399,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         {/* Destructive action, isolated at the bottom of the menu */}
                         {showLeaveTable && (
                             <button
-                                className={`${menuRowClass} border-t border-white/10 text-red-400 hover:bg-red-500/10 ${styles.leaveTableButton}`}
+                                className={`${menuRowClass} border-t border-line text-red-400 hover:bg-red-500/10 ${styles.leaveTableButton}`}
                                 onClick={closeMenuAnd(handleLeaveTableClick)}
                             >
                                 <RxExit size={16} />
@@ -425,7 +426,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                     </div>
                     <button
                         onClick={() => setShowQR(false)}
-                        className="w-full py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold hover:bg-gray-600 transition-colors"
+                        className={pillClass("outline", "sm", "w-full")}
                     >
                         Close
                     </button>

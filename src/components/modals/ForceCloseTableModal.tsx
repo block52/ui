@@ -1,8 +1,9 @@
 import React, { useState, useCallback } from "react";
 import { truncateMiddle } from "../../utils/stringUtils";
-import { colors } from "../../utils/colorConfig";
 import { Modal, LoadingSpinner } from "../common";
-import styles from "./DeleteTableModal.module.css";
+import { PillButton } from "../ui";
+import { insetBoxClass, noticeClass } from "./walletFormClasses";
+import { WarningIcon } from "./walletIcons";
 
 export interface ForceCloseTableModalProps {
     isOpen: boolean;
@@ -47,21 +48,26 @@ const ForceCloseTableModal: React.FC<ForceCloseTableModalProps> = React.memo(
                 isOpen={isOpen}
                 onClose={onClose}
                 title="Close Table"
-                titleIcon="🛑"
-                titleDividerColor={colors.accent.danger}
+                widthClass="w-[460px]"
                 error={error}
                 isProcessing={isClosing}
                 patternId="hexagons-close"
                 scrollable={false}
             >
-                <div className="mb-6">
-                    <p className="text-gray-300 text-sm mb-4">
-                        Are you sure you want to close this table?
-                    </p>
+                <div className="mb-6 space-y-4">
+                    <p className="text-sm text-ink-soft">Are you sure you want to close this table?</p>
 
-                    <div className={`p-4 rounded-lg mb-4 ${styles.dangerAlert}`}>
-                        <p className="text-white text-sm font-semibold mb-2">⚠️ This action cannot be undone</p>
-                        <ul className="text-gray-300 text-xs space-y-1 list-disc list-inside">
+                    <div className={`${insetBoxClass} flex justify-between items-center gap-3`}>
+                        <span className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Table ID:</span>
+                        <span className="text-ink font-mono text-sm tabular-nums">{truncatedId}</span>
+                    </div>
+
+                    <div className={noticeClass.error}>
+                        <p className="flex items-center gap-2 text-ink text-sm font-semibold mb-2">
+                            <WarningIcon className="w-5 h-5 shrink-0 text-red-400" />
+                            This action cannot be undone
+                        </p>
+                        <ul className="text-ink-soft text-xs space-y-1 list-disc list-inside">
                             <li>
                                 The current hand (if any) will be canceled — bets in the pot are returned to whoever
                                 posted them.
@@ -73,20 +79,13 @@ const ForceCloseTableModal: React.FC<ForceCloseTableModalProps> = React.memo(
                             <li>The table will be permanently removed from the blockchain.</li>
                         </ul>
                     </div>
-
-                    <div className={`p-4 rounded-lg ${styles.panel}`}>
-                        <div className="flex justify-between items-center">
-                            <span className="text-gray-400 text-sm">Table ID:</span>
-                            <span className="text-white font-mono text-sm">{truncatedId}</span>
-                        </div>
-                    </div>
                 </div>
 
-                <div className="flex flex-col space-y-3">
+                <div className="flex flex-col gap-3 sm:flex-row-reverse">
                     <button
                         onClick={handleConfirm}
                         disabled={isClosing}
-                        className={`w-full px-5 py-3 rounded-lg font-medium text-white shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-80 disabled:cursor-not-allowed ${styles.buttonDanger}`}
+                        className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-red-600 hover:bg-red-500 text-white text-[15px] font-semibold whitespace-nowrap transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                     >
                         {isClosing ? (
                             <>
@@ -95,7 +94,7 @@ const ForceCloseTableModal: React.FC<ForceCloseTableModalProps> = React.memo(
                             </>
                         ) : (
                             <>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -107,13 +106,9 @@ const ForceCloseTableModal: React.FC<ForceCloseTableModalProps> = React.memo(
                             </>
                         )}
                     </button>
-                    <button
-                        onClick={onClose}
-                        disabled={isClosing}
-                        className={`w-full px-5 py-3 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80 ${styles.buttonSecondary}`}
-                    >
+                    <PillButton variant="outline" size="lg" className="w-full sm:flex-1" onClick={onClose} disabled={isClosing}>
                         Cancel
-                    </button>
+                    </PillButton>
                 </div>
             </Modal>
         );

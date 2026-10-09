@@ -25,7 +25,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                 <button
                     onClick={onPostSmallBlind}
                     disabled={loading !== null}
-                    className="btn-small-blind text-white font-medium py-1.5 lg:py-2 px-2 lg:px-4 rounded-lg shadow-md transition-all duration-200 text-xs lg:text-sm border flex items-center transform hover:scale-105 mr-1 lg:mr-2 disabled:opacity-50 disabled:cursor-not-allowed gap-1"
+                    className="btn-small-blind text-white font-medium py-1.5 lg:py-2 px-2 lg:px-4 rounded-full shadow-md transition-all duration-200 text-xs lg:text-sm border flex items-center transform hover:scale-105 mr-1 lg:mr-2 disabled:opacity-50 disabled:cursor-not-allowed gap-1"
                 >
                     {loading === "small-blind" ? (
                         <>
@@ -47,7 +47,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                 <button
                     onClick={onPostBigBlind}
                     disabled={loading !== null}
-                    className="btn-big-blind text-white font-medium py-1.5 lg:py-2 px-2 lg:px-4 rounded-lg shadow-md transition-all duration-200 text-xs lg:text-sm border flex items-center transform hover:scale-105 mr-1 lg:mr-2 disabled:opacity-50 disabled:cursor-not-allowed gap-1"
+                    className="btn-big-blind text-white font-medium py-1.5 lg:py-2 px-2 lg:px-4 rounded-full shadow-md transition-all duration-200 text-xs lg:text-sm border flex items-center transform hover:scale-105 mr-1 lg:mr-2 disabled:opacity-50 disabled:cursor-not-allowed gap-1"
                 >
                     {loading === "big-blind" ? (
                         <>
@@ -76,7 +76,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
             )}
 
             {hasFoldedOrMucked(playerStatus) && (
-                <div className="text-gray-400 py-1.5 lg:py-2 px-2 lg:px-4 bg-gray-800 bg-opacity-50 rounded-lg text-xs lg:text-sm">
+                <div className="text-ink-muted py-1.5 lg:py-2 px-2 lg:px-4 bg-surface-card/80 border border-line rounded-full text-xs lg:text-sm">
                     {playerStatus === PlayerStatus.MUCKED ? "You mucked your hand" : "You have folded this hand"}
                 </div>
             )}

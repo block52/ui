@@ -95,20 +95,20 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
         >
             {/* System Entropy Display */}
             <div className="mb-4">
-                <label className="block text-gray-300 mb-1.5 font-medium text-sm">System Entropy</label>
+                <label className="block text-ink-soft mb-1.5 font-medium text-sm">System Entropy</label>
                 <div
-                        className={`p-3 rounded-lg text-xs text-gray-300 break-all select-all cursor-text ${styles.hashDisplay}`}
+                        className={`p-3 rounded-lg text-xs text-ink-soft break-all select-all cursor-text ${styles.hashDisplay}`}
                     title={systemEntropy}
                 >
                     {truncateHash(systemEntropy, 16)}
                 </div>
-                <p className="text-gray-500 text-xs mt-1">Generated from secure random source</p>
+                <p className="text-ink-muted text-xs mt-1">Generated from secure random source</p>
             </div>
 
             {/* Password Input */}
             <div className="mb-4">
-                <label className="block text-gray-300 mb-1.5 font-medium text-sm">
-                    Add Password <span className="text-gray-500">(optional)</span>
+                <label className="block text-ink-soft mb-1.5 font-medium text-sm">
+                    Add Password <span className="text-ink-muted">(optional)</span>
                 </label>
                 <div className="relative">
                     <input
@@ -122,7 +122,7 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-white transition-colors"
                         tabIndex={-1}
                     >
                         {showPassword ? (
@@ -137,15 +137,15 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                         )}
                     </button>
                 </div>
-                <p className="text-gray-500 text-xs mt-1">Your password is hashed and mixed with system entropy</p>
+                <p className="text-ink-muted text-xs mt-1">Your password is hashed and mixed with system entropy</p>
             </div>
 
             {/* Password Hash Display (only shown if password entered) */}
             {passwordHash && (
                 <div className="mb-4">
-                    <label className="block text-gray-300 mb-1.5 font-medium text-sm">Password Hash</label>
+                    <label className="block text-ink-soft mb-1.5 font-medium text-sm">Password Hash</label>
                     <div
-                        className={`p-3 rounded-lg text-xs text-gray-300 break-all select-all cursor-text ${styles.hashDisplay}`}
+                        className={`p-3 rounded-lg text-xs text-ink-soft break-all select-all cursor-text ${styles.hashDisplay}`}
                         title={passwordHash}
                     >
                         {truncateHash(passwordHash, 16)}
@@ -155,7 +155,7 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
 
             {/* Final Entropy Display */}
             <div className="mb-5">
-                <label className="block text-gray-300 mb-1.5 font-medium text-sm">
+                <label className="block text-ink-soft mb-1.5 font-medium text-sm">
                     Final Entropy {passwordHash ? "(combined)" : "(system only)"}
                 </label>
                 <div
@@ -164,7 +164,7 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                 >
                     {truncateHash(finalEntropy, 16)}
                 </div>
-                <p className="text-gray-500 text-xs mt-1">This value will be sent with the deal transaction</p>
+                <p className="text-ink-muted text-xs mt-1">This value will be sent with the deal transaction</p>
             </div>
 
             {/* Action Buttons */}
@@ -172,14 +172,14 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                 <button
                     onClick={onClose}
                     disabled={isDealing}
-                    className={`px-5 py-3 rounded-lg text-white font-medium flex-1 transition-all duration-200 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed ${styles.buttonSecondary}`}
+                    className={`px-5 py-3 rounded-full text-white font-medium flex-1 transition-all duration-200 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed ${styles.buttonSecondary}`}
                 >
                     Cancel
                 </button>
                 <button
                     onClick={handleDealClick}
                     disabled={isDealing}
-                    className={`px-5 py-3 rounded-lg text-white font-bold flex-1 transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles.buttonPrimary}`}
+                    className={`px-5 py-3 rounded-full text-white font-bold flex-1 transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles.buttonPrimary}`}
                 >
                     {isDealing ? (
                         <>

@@ -44,19 +44,19 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
         return (
             <div role="alert" className="max-w-xl mx-auto mt-16 px-4 text-white">
                 <h1 className="text-2xl font-bold mb-2">Something went wrong on this page</h1>
-                <p className="text-gray-300 mb-4">
+                <p className="text-ink-soft mb-4">
                     The rest of the app is still working — reload to try again, or use the menu to go elsewhere.
                 </p>
-                <pre className="bg-gray-900 text-red-300 text-sm p-3 rounded-lg whitespace-pre-wrap break-words mb-4">{error.message}</pre>
+                <pre className="bg-surface-card border border-line text-red-300 text-sm p-3 rounded-lg whitespace-pre-wrap break-words mb-4">{error.message}</pre>
                 {this.props.showDetails && componentStack && (
-                    <pre className="bg-gray-900 text-gray-400 text-xs p-3 rounded-lg whitespace-pre-wrap break-words mb-4 max-h-64 overflow-auto">
+                    <pre className="bg-surface-card border border-line text-gray-400 text-xs p-3 rounded-lg whitespace-pre-wrap break-words mb-4 max-h-64 overflow-auto">
                         {componentStack}
                     </pre>
                 )}
                 <button
                     type="button"
                     onClick={this.handleReload}
-                    className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                    className="px-4 py-2 rounded-full bg-brand hover:bg-brand/90 text-white font-semibold"
                 >
                     Reload
                 </button>

@@ -21,7 +21,7 @@ const SngPayoutPanel: React.FC = () => {
 
     return (
         <div
-            className="w-fit rounded-xl border border-white/15 bg-black/55 px-3 py-2 backdrop-blur-sm shadow-xl"
+            className="w-fit rounded-xl border border-line bg-surface-card/85 px-3 py-2 backdrop-blur-sm shadow-xl"
             data-testid="sng-payout-structure"
         >
             <div className="text-[11px] sm:text-xs font-bold uppercase tracking-wide text-yellow-300 mb-1">

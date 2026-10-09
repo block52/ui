@@ -7,6 +7,11 @@ import {
     parseMicroAmount,
     peerString,
     powerShareBps,
+    secondsBetween,
+    shareOfTotalBps,
+    sumBigInt,
+    formatBps,
+    formatAgo,
     stateSyncTrustHeight,
     wouldControlLiveness
 } from "./nodePortal";
@@ -92,7 +97,10 @@ describe("base64ToHex", () => {
 });
 
 describe("config snippets", () => {
-    const peers = [{ name: "a", nodeId: "id1", address: "1.2.3.4:26656" }, { name: "b", nodeId: "id2", address: "5.6.7.8:26656" }];
+    const peers = [
+        { name: "a", nodeId: "id1", address: "1.2.3.4:26656" },
+        { name: "b", nodeId: "id2", address: "5.6.7.8:26656" }
+    ];
     it("joins peers as id@host:port", () => {
         expect(peerString(peers)).toBe("id1@1.2.3.4:26656,id2@5.6.7.8:26656");
     });
@@ -109,5 +117,53 @@ describe("config snippets", () => {
         expect(s).toContain('embedded_engine = "embedded"');
         expect(s).toContain('minimum-gas-prices = "0usdc"');
         expect(s).toContain("snapshot-interval = 1000");
+    });
+});
+
+describe("sumBigInt", () => {
+    it("sums amounts", () => {
+        expect(sumBigInt([10_000_000n, 20_000_000n, 5n])).toBe(30_000_005n);
+    });
+    it("is zero for an empty list", () => {
+        expect(sumBigInt([])).toBe(0n);
+    });
+});
+
+describe("shareOfTotalBps", () => {
+    it("returns basis points of the total, rounded down", () => {
+        expect(shareOfTotalBps(10n, 40n)).toBe(2500);
+        expect(shareOfTotalBps(1n, 3n)).toBe(3333);
+        expect(shareOfTotalBps(40n, 40n)).toBe(10_000);
+    });
+    it("returns null when there is no total", () => {
+        expect(shareOfTotalBps(0n, 0n)).toBeNull();
+    });
+});
+
+describe("formatBps", () => {
+    it("drops trailing zeros", () => {
+        expect(formatBps(2500)).toBe("25%");
+        expect(formatBps(3333)).toBe("33.33%");
+        expect(formatBps(1250)).toBe("12.5%");
+        expect(formatBps(0)).toBe("0%");
+        expect(formatBps(10_000)).toBe("100%");
+    });
+});
+
+describe("secondsBetween", () => {
+    it("floors to whole seconds", () => {
+        expect(secondsBetween(1_000, 13_999)).toBe(12);
+    });
+    it("never goes negative", () => {
+        expect(secondsBetween(5_000, 1_000)).toBe(0);
+    });
+});
+
+describe("formatAgo", () => {
+    it("formats seconds, minutes and hours", () => {
+        expect(formatAgo(0)).toBe("just now");
+        expect(formatAgo(12)).toBe("12s ago");
+        expect(formatAgo(75)).toBe("1m ago");
+        expect(formatAgo(7200)).toBe("2h ago");
     });
 });

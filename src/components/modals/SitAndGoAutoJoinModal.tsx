@@ -21,6 +21,10 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { isEmpty, hasElements, isBlank } from "../../utils/guards";
 
+import { Modal } from "../common";
+import { ModalFooter } from "./ModalFooter";
+import { PillButton } from "../ui/PillButton";
+import { insetBoxClass, noticeClass } from "./walletFormClasses";
 import type { SitAndGoAutoJoinModalProps } from "./types";
 
 const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, onJoinSuccess }) => {
@@ -234,220 +238,129 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
     const playerCountLabel = getGameTypeMnemonic(gameOptions?.maxPlayers);
 
-    // Compact mode for mobile landscape (short viewport)
-    const isCompact = typeof window !== "undefined" && window.innerHeight <= 500;
+    const playersJoined = gameOptions ? gameOptions.maxPlayers - emptySeatIndexes.length : 0;
+    const playersMax = gameOptions ? gameOptions.maxPlayers : 0;
+    const hasEnoughBalance = balanceFormatted >= parseFloat(maxBuyInFormatted);
+    const isTakeSeatDisabled = isJoining || isBalanceLoading || !hasEnoughBalance || isEmpty(emptySeatIndexes);
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-            <div className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}>
-                {/* Web3 styled background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl"></div>
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse"></div>
+        <Modal
+            isOpen
+            onClose={noop}
+            closeOnEscape={false}
+            closeOnBackdropClick={false}
+            widthClass="w-[420px]"
+        >
+            <div className="flex flex-col items-center text-center">
+                <div className="w-16 h-16 rounded-full bg-brand/10 border border-brand/30 grid place-items-center text-brand-light">
+                    <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
+                        <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
+                        />
+                    </svg>
+                </div>
+                <h2 className="m-0 mt-4 text-xl font-semibold text-ink">Sit & Go Tournament</h2>
+                <p className="m-0 mt-1 text-sm text-ink-muted">Join this {playerCountLabel} tournament.</p>
+            </div>
 
-                <div className="relative z-10">
-                    {/* Logo + Icon — hidden on compact */}
-                    {!isCompact && (
-                        <>
-                            <div className="flex items-center justify-center mb-4">
-                                <img src="/block52.png" alt="Block52 Logo" className="h-16 w-auto object-contain" />
-                            </div>
+            {/* Game options */}
+            <div className="mt-5 flex flex-col gap-2">
+                <FactRow label="Format" value={`Texas Hold'em • ${playerCountLabel}`} />
+                <FactRow label="Buy-in" value={`$${maxBuyInFormatted}`} />
 
-                            <div className="flex items-center justify-center mb-6">
-                                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center border border-blue-400/30">
-                                    <svg className="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-                        </>
-                    )}
+                {entryFeeFormatted !== "0.00" && !feeBreakdown.show && <FactRow label="Entry fee" value={`$${entryFeeFormatted}`} />}
 
-                    <h2 className={`font-bold text-white text-center text-shadow ${isCompact ? "text-base mb-1" : "text-2xl mb-2"}`}>Sit & Go Tournament</h2>
-                    {!isCompact && <p className="text-gray-300 text-center mb-6 text-sm">Join this exciting {playerCountLabel} tournament!</p>}
-
-                    {/* Game Options Display */}
-                    {isCompact ? (
-                        /* Compact: 2-column grid to fit everything without scrolling */
-                        <div className="grid grid-cols-2 gap-1.5 mb-2">
-                            <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
-                                <div className="text-gray-400 text-[10px]">Format</div>
-                                <div className="text-white text-xs font-semibold">Hold'em • {playerCountLabel}</div>
-                            </div>
-                            <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
-                                <div className="text-gray-400 text-[10px]">Buy-in</div>
-                                <div className="text-white text-xs font-semibold">${maxBuyInFormatted}</div>
-                            </div>
-                            <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
-                                <div className="text-gray-400 text-[10px]">Blinds</div>
-                                <div className="text-white text-xs font-semibold">{smallBlindFormatted}/{bigBlindFormatted}</div>
-                            </div>
-                            <div className="bg-gray-700/80 rounded p-1.5 border border-green-500/30">
-                                <div className="text-gray-400 text-[10px]">Stack</div>
-                                <div className="text-green-400 text-xs font-semibold">{startingStackFormatted}</div>
-                            </div>
-                            <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
-                                <div className="text-gray-400 text-[10px]">Balance</div>
-                                <div className={`text-xs font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}>
-                                    ${balanceFormatted.toFixed(2)}
-                                </div>
-                            </div>
-                            <div className="bg-blue-500/20 rounded p-1.5 border border-blue-500/30">
-                                <div className="text-blue-300 text-[10px]">Players</div>
-                                <div className="text-white text-xs font-bold">
-                                    {gameOptions ? `${gameOptions.maxPlayers - emptySeatIndexes.length}/${gameOptions.maxPlayers}` : "0/0"}
-                                </div>
-                            </div>
+                {/* Protocol-fee breakdown (poker-vm#2592). Shown only when a
+                    protocol fee is configured; the fee comes OUT OF the buy-in,
+                    so prize pool = buyIn - protocolCut, and total = buyIn + owner fee. */}
+                {feeBreakdown.show && (
+                    <div className={`${insetBoxClass} !border-brand/30 flex flex-col gap-1.5`} data-testid="sng-fee-breakdown">
+                        <FactLine label="Buy-in (to prize pool)" value={`$${feeBreakdown.prizePoolPortionFormatted}`} />
+                        <FactLine label="Protocol fee" value={`$${feeBreakdown.protocolCutFormatted}`} valueClass="text-brand-light" />
+                        <FactLine label="Owner fee" value={`$${feeBreakdown.ownerFeeFormatted}`} />
+                        <div className="border-t border-line pt-1.5">
+                            <FactLine label="Total" value={`$${feeBreakdown.totalFormatted}`} valueClass="text-emerald-400 font-bold" labelClass="text-ink-soft font-semibold" />
                         </div>
-                    ) : (
-                        /* Desktop: stacked rows */
-                        <>
-                            <div className="space-y-3 mb-6">
-                                <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Format:</span>
-                                        <span className="text-white font-semibold">Texas Hold'em • {playerCountLabel}</span>
-                                    </div>
-                                </div>
+                    </div>
+                )}
 
-                                <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Buy-in:</span>
-                                        <span className="text-white font-semibold">${maxBuyInFormatted}</span>
-                                    </div>
-                                </div>
+                <FactRow label="Starting blinds" value={`${smallBlindFormatted} / ${bigBlindFormatted}`} />
+                <FactRow label="Starting stack" value={`${startingStackFormatted} chips`} valueClass="text-emerald-400" />
+                <FactRow label="Your balance" value={`$${balanceFormatted.toFixed(2)}`} valueClass={hasEnoughBalance ? "text-emerald-400" : "text-red-400"} />
+            </div>
 
-                                {entryFeeFormatted !== "0.00" && !feeBreakdown.show && (
-                                    <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Entry Fee:</span>
-                                            <span className="text-white font-semibold">${entryFeeFormatted}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Protocol-fee breakdown (poker-vm#2592). Shown only when a
-                                    protocol fee is configured; the fee comes OUT OF the buy-in,
-                                    so prize pool = buyIn - protocolCut, and total = buyIn + owner fee. */}
-                                {feeBreakdown.show && (
-                                    <div
-                                        className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-purple-500/30 space-y-1.5"
-                                        data-testid="sng-fee-breakdown"
-                                    >
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Buy-in (to prize pool):</span>
-                                            <span className="text-white font-semibold">${feeBreakdown.prizePoolPortionFormatted}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Protocol fee:</span>
-                                            <span className="text-purple-300 font-semibold">${feeBreakdown.protocolCutFormatted}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Owner fee:</span>
-                                            <span className="text-white font-semibold">${feeBreakdown.ownerFeeFormatted}</span>
-                                        </div>
-                                        <div className="border-t border-white/10 pt-1.5 flex justify-between items-center">
-                                            <span className="text-gray-300 text-sm font-semibold">Total:</span>
-                                            <span className="text-green-400 font-bold">${feeBreakdown.totalFormatted}</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Starting Blinds:</span>
-                                        <span className="text-white font-semibold">
-                                            {smallBlindFormatted} / {bigBlindFormatted}
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-green-500/30">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Starting Stack:</span>
-                                        <span className="text-green-400 font-semibold">{startingStackFormatted} chips</span>
-                                    </div>
-                                </div>
-
-                                <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                    <div className="flex justify-between items-center">
-                                        <span className="text-gray-400 text-sm">Your Balance:</span>
-                                        <span className={`font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}>
-                                            ${balanceFormatted.toFixed(2)}
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Players Joined */}
-                            <div className="mb-6 p-3 bg-blue-500/20 border border-blue-500/30 rounded-lg">
-                                <div className="text-center">
-                                    <div className="text-xs text-blue-300 font-semibold mb-1">PLAYERS JOINED</div>
-                                    <div className="text-lg text-white font-bold">
-                                        {gameOptions ? `${gameOptions.maxPlayers - emptySeatIndexes.length} / ${gameOptions.maxPlayers}` : "0 / 0"} Players
-                                    </div>
-                                </div>
-                            </div>
-                        </>
-                    )}
-
-                    {/* Error Message */}
-                    {buyInError && (
-                        <div className={`bg-red-500/20 border border-red-500/30 rounded-lg ${isCompact ? "mb-1.5 p-1.5" : "mb-4 p-3"}`}>
-                            <p className="text-red-400 text-sm text-center">{buyInError}</p>
-                        </div>
-                    )}
-
-                    {/* Take Seat Button */}
-                    <button
-                        onClick={handleTakeSeat}
-                        disabled={isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)}
-                        className={`w-full px-4 rounded-lg font-semibold text-white transition-all duration-300 ${isCompact ? "py-2 text-sm" : "py-3"} ${
-                            isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)
-                                ? "bg-gray-600 cursor-not-allowed"
-                                : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105"
-                        }`}
-                    >
-                        {isJoining ? (
-                            <div className="flex items-center justify-center">
-                                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                    <path
-                                        className="opacity-75"
-                                        fill="currentColor"
-                                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                    ></path>
-                                </svg>
-                                Joining...
-                            </div>
-                        ) : isBalanceLoading ? (
-                            "Loading..."
-                        ) : balanceFormatted < parseFloat(maxBuyInFormatted) ? (
-                            "Insufficient Balance"
-                        ) : isEmpty(emptySeatIndexes) ? (
-                            "Table Full"
-                        ) : (
-                            "Take My Seat"
-                        )}
-                    </button>
-
-                    {!isCompact && (
-                        <div className="mt-6 text-center">
-                            <p className="text-xs text-gray-400">Tournament starts when all players are seated</p>
-                            <div className="flex items-center justify-center gap-1 mt-2">
-                                <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
-                                <span className="text-xs text-gray-400">Powered by Block52</span>
-                            </div>
-                        </div>
-                    )}
+            {/* Players joined */}
+            <div className={`${insetBoxClass} mt-2`}>
+                <FactLine label="Players joined" value={`${playersJoined} / ${playersMax}`} valueClass="text-brand-light" />
+                <div className="mt-2 h-2 rounded-full bg-line-strong overflow-hidden" role="presentation">
+                    <div
+                        className="h-full rounded-full bg-brand transition-all duration-500"
+                        style={{ width: `${playersMax > 0 ? (playersJoined / playersMax) * 100 : 0}%` }}
+                    />
                 </div>
             </div>
-        </div>
+
+            {/* Error Message */}
+            {buyInError && (
+                <p role="alert" className={`m-0 mt-3 ${noticeClass.error}`}>
+                    {buyInError}
+                </p>
+            )}
+
+            <ModalFooter>
+                {/* Take Seat Button */}
+                <PillButton onClick={handleTakeSeat} disabled={isTakeSeatDisabled} size="lg" className="w-full">
+                    {isJoining ? (
+                        <>
+                            <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                <path
+                                    className="opacity-75"
+                                    fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                                ></path>
+                            </svg>
+                            Joining...
+                        </>
+                    ) : isBalanceLoading ? (
+                        "Loading..."
+                    ) : !hasEnoughBalance ? (
+                        "Insufficient Balance"
+                    ) : isEmpty(emptySeatIndexes) ? (
+                        "Table Full"
+                    ) : (
+                        "Take My Seat"
+                    )}
+                </PillButton>
+                <p className="m-0 text-center text-xs text-ink-muted">Tournament starts when all players are seated</p>
+            </ModalFooter>
+        </Modal>
     );
 };
+
+// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
+function noop(): void {
+    return undefined;
+}
+
+const FactLine: React.FC<{ label: string; value: string; valueClass?: string; labelClass?: string }> = ({
+    label,
+    value,
+    valueClass = "text-ink",
+    labelClass = "text-ink-muted"
+}) => (
+    <div className="flex items-center justify-between gap-3 text-sm">
+        <span className={labelClass}>{label}</span>
+        <span className={`font-semibold tabular-nums text-right ${valueClass}`}>{value}</span>
+    </div>
+);
+
+const FactRow: React.FC<{ label: string; value: string; valueClass?: string }> = ({ label, value, valueClass }) => (
+    <div className={insetBoxClass}>
+        <FactLine label={label} value={value} valueClass={valueClass} />
+    </div>
+);
 
 export default SitAndGoAutoJoinModal;

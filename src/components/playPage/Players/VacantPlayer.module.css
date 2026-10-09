@@ -2,50 +2,58 @@
     color: #ffffff;
 }
 
-.modalContainer {
-    background-color: var(--ui-bg-dark);
-    border: 1px solid var(--ui-border-color);
-}
-
-.fixedBuyInPanel {
-    background-color: var(--ui-bg-medium);
-    border-color: var(--brand-primary);
-}
-
+/* Buy-in slider: brand track + thumb. The input is h-11 (44px) so the touch area is
+   generous; the visible track stays 6px. */
 .buyInSlider {
-    background-color: var(--ui-bg-medium);
-    accent-color: var(--brand-primary);
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    cursor: pointer;
 }
 
-.buyInInput {
-    background-color: var(--ui-bg-medium);
-    border: 1px solid var(--ui-border-color);
+.buyInSlider:focus-visible {
+    outline: 2px solid rgb(var(--brand-primary-light-rgb));
+    outline-offset: 2px;
+    border-radius: 9999px;
 }
 
-.balanceCard {
-    background-color: color-mix(in srgb, var(--ui-bg-medium) 50.2%, transparent);
-    border: 1px solid var(--ui-border-color);
+.buyInSlider::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: #2c2f45;
 }
 
-.errorCard {
-    background-color: color-mix(in srgb, var(--accent-danger) 18.8%, transparent);
-    color: var(--accent-danger);
-    border: 1px solid color-mix(in srgb, var(--accent-danger) 25.1%, transparent);
+.buyInSlider::-moz-range-track {
+    height: 6px;
+    border-radius: 9999px;
+    background: #2c2f45;
 }
 
-.confirmButton {
-    background: var(--brand-primary);
-    color: #ffffff;
+.buyInSlider::-moz-range-progress {
+    height: 6px;
+    border-radius: 9999px;
+    background: rgb(var(--brand-primary-rgb));
 }
 
-.confirmButtonDisabled {
-    opacity: 0.5;
-    cursor: not-allowed;
+.buyInSlider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: -8px;
+    border-radius: 9999px;
+    background: rgb(var(--brand-primary-rgb));
+    border: 3px solid #f5f5f7;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
-.cancelButton {
-    background-color: var(--accent-danger);
-    color: #ffffff;
+.buyInSlider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border-radius: 9999px;
+    background: rgb(var(--brand-primary-rgb));
+    border: 3px solid #f5f5f7;
+    box-shadow: 0 1px 4px rgb(0 0 0 / 0.5);
 }
 
 .hiddenPlaceholder {

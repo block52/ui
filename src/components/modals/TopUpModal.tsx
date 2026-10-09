@@ -106,10 +106,10 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
     if (successMessage) {
         return (
             <Modal isOpen={true} onClose={onClose} title="Buy Chips" titleIcon="💰" patternId="hexagons-topup-success">
-                <p className="text-gray-200 mb-6">{successMessage}</p>
+                <p className="text-ink-body mb-6">{successMessage}</p>
                 <button
                     onClick={onClose}
-                    className={`w-full px-5 py-3 rounded-lg text-white font-medium hover:opacity-80 transition-opacity ${styles.buyButton}`}
+                    className={`w-full px-5 py-3 rounded-full text-white font-medium hover:opacity-80 transition-opacity ${styles.buyButton}`}
                 >
                     Close
                 </button>
@@ -120,14 +120,14 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
     if (!canTopUp) {
         return (
             <Modal isOpen={true} onClose={onClose} title="Cannot Top Up" patternId="hexagons-topup-error">
-                <p className="text-gray-300 mb-6">
+                <p className="text-ink-soft mb-6">
                     {parseFloat(walletBalanceFormatted) === 0
                         ? "Insufficient wallet balance. Please deposit USDC to continue."
                         : "You are already at the table maximum buy-in."}
                 </p>
                 <button
                     onClick={onClose}
-                    className={`w-full px-5 py-3 rounded-lg text-white font-medium hover:opacity-80 transition-opacity ${styles.cancelButton}`}
+                    className={`w-full px-5 py-3 rounded-full text-white font-medium transition-colors ${styles.cancelButton}`}
                 >
                     Close
                 </button>
@@ -148,33 +148,33 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
         >
             {/* Current Stack */}
             <div className={`mb-2 rounded-lg ${styles.infoCard}`}>
-                <div className="text-xs text-gray-400 mb-0.5">Current Stack</div>
+                <div className="text-xs text-ink-muted mb-0.5">Current Stack</div>
                 <div className="text-lg font-bold text-white">${currentStackFormatted}</div>
-                <div className="text-xs text-gray-500 mt-0.5">Table Max: ${maxBuyInFormatted}</div>
+                <div className="text-xs text-ink-muted mt-0.5">Table Max: ${maxBuyInFormatted}</div>
             </div>
 
             {/* Wallet Balance */}
             <div className={`mb-3 rounded-lg ${styles.infoCard}`}>
-                <div className="text-xs text-gray-400 mb-0.5">Wallet Balance</div>
+                <div className="text-xs text-ink-muted mb-0.5">Wallet Balance</div>
                 <div className="text-lg font-bold text-white">${walletBalanceFormatted}</div>
             </div>
 
             {/* Top-Up Amount Selection */}
             <div className="mb-4">
-                <label className="block text-gray-300 mb-2 font-medium text-sm">Top-Up Amount</label>
+                <label className="block text-ink-soft mb-2 font-medium text-sm">Top-Up Amount</label>
                 <div className="flex gap-2 mb-2">
                     <button
                         onClick={handleMinClick}
                         className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
                     >
-                        <div className="text-xs text-gray-400">MIN</div>
+                        <div className="text-xs text-ink-muted">MIN</div>
                         <div className="font-bold">${minTopUpFormatted}</div>
                     </button>
                     <button
                         onClick={handleMaxClick}
                         className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
                     >
-                        <div className="text-xs text-gray-400">MAX</div>
+                        <div className="text-xs text-ink-muted">MAX</div>
                         <div className="font-bold">${maxTopUpFormatted}</div>
                     </button>
                 </div>
@@ -198,7 +198,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 <button
                     onClick={handleTopUpClick}
                     disabled={isProcessing || isAmountInvalid}
-                    className={`w-full px-5 py-2 rounded-lg font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
+                    className={`w-full px-5 py-2 rounded-full font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
                 >
                     {isProcessing ? (
                         <>
@@ -212,7 +212,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 <button
                     onClick={onClose}
                     disabled={isProcessing}
-                    className={`w-full px-5 py-2 rounded-lg text-white font-medium transition-all duration-200 disabled:opacity-50 hover:opacity-80 ${styles.cancelButton}`}
+                    className={`w-full px-5 py-2 rounded-full text-white font-medium transition-all duration-200 disabled:opacity-50 ${styles.cancelButton}`}
                 >
                     Cancel
                 </button>

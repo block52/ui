@@ -2,35 +2,34 @@
 
 /* Deal button */
 .btn-deal {
-  background: linear-gradient(to right, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 90%, transparent));
-  border: 2px solid var(--brand-primary);
+  background: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
   box-shadow: 0 0 15px color-mix(in srgb, var(--brand-primary) 30%, transparent);
 }
 
 /* New hand button */
 .btn-new-hand {
-  background: linear-gradient(to right, var(--brand-secondary), var(--brand-primary));
-  border: 2px solid var(--brand-primary);
+  background: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
   box-shadow: 0 0 15px color-mix(in srgb, var(--brand-primary) 30%, transparent);
 }
 
 /* Muck button */
 .btn-muck {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  transition: all 0.3s ease;
+  background: #1c1e2b;
+  border: 1px solid #2c2f45;
+  transition: all 0.2s ease;
 }
 
 .btn-muck:hover {
-  background: linear-gradient(to right, var(--ui-bg-dark), var(--ui-bg-medium));
+  background: #232636;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--brand-primary) 20%, transparent);
 }
 
 /* Show button */
 .btn-show {
-  background: linear-gradient(to right, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 90%, transparent));
-  border: 2px solid var(--brand-primary);
+  background: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
   box-shadow: 0 0 10px color-mix(in srgb, var(--brand-primary) 30%, transparent);
   transition: all 0.3s ease;
 }
@@ -78,115 +77,121 @@
   border-color: color-mix(in srgb, var(--accent-success) 20%, transparent);
 }
 
+/*
+ * Betting actions. Neutral actions (check, call, pot sizing, slider steps) are
+ * raised dark surfaces with a brand-tinted hover; the aggressive action
+ * (bet / raise / all-in) is the solid brand primary; fold stays visually
+ * distinct with a danger outline so it can never be mistaken for the primary.
+ */
+
 /* Check button */
 .btn-check {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  color: white;
-  transition: all 0.3s ease;
+  background: #1c1e2b;
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  transition: all 0.2s ease;
 }
 
 .btn-check:hover {
-  background: linear-gradient(to right, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 90%, transparent));
+  background: color-mix(in srgb, var(--brand-primary) 18%, #1c1e2b);
   border-color: var(--brand-primary);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--brand-primary) 40%, transparent);
   transform: scale(1.05);
 }
 
 /* Fold button */
 .btn-fold {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  color: white;
-  transition: all 0.3s ease;
+  background: #161722;
+  border: 1px solid color-mix(in srgb, var(--accent-danger) 55%, transparent);
+  color: #fca5a5;
+  transition: all 0.2s ease;
 }
 
 .btn-fold:hover {
-  background: linear-gradient(to right, var(--accent-danger), color-mix(in srgb, var(--accent-danger) 80%, transparent));
+  background: var(--accent-danger);
   border-color: var(--accent-danger);
-  box-shadow: 0 0 15px color-mix(in srgb, var(--accent-danger) 50%, transparent);
+  color: #ffffff;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent-danger) 40%, transparent);
   transform: scale(1.05);
 }
 
 /* Call button */
 .btn-call {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  color: white;
-  transition: all 0.3s ease;
+  background: #1c1e2b;
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  transition: all 0.2s ease;
 }
 
 .btn-call:hover {
-  background: linear-gradient(to right, var(--brand-primary), color-mix(in srgb, var(--brand-primary) 90%, transparent));
+  background: color-mix(in srgb, var(--brand-primary) 18%, #1c1e2b);
   border-color: var(--brand-primary);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--brand-primary) 40%, transparent);
   transform: scale(1.05);
 }
 
-/* Raise button */
+/* Raise / bet button — the primary action */
 .btn-raise {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  color: white;
-  transition: all 0.3s ease;
+  background: var(--brand-primary);
+  border: 1px solid var(--brand-primary);
+  color: #ffffff;
+  font-weight: 600;
+  transition: all 0.2s ease;
 }
 
 .btn-raise:hover {
-  background: linear-gradient(to right, var(--accent-glow), color-mix(in srgb, var(--accent-glow) 90%, transparent));
-  border-color: var(--accent-glow);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-glow) 40%, transparent);
+  background: rgb(var(--brand-primary-light-rgb));
+  border-color: rgb(var(--brand-primary-light-rgb));
+  box-shadow: 0 0 16px color-mix(in srgb, var(--brand-primary) 45%, transparent);
   transform: scale(1.05);
 }
 
 /* Slider buttons */
 .btn-slider {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  color: white;
-  transition: all 0.3s ease;
+  background: #1c1e2b;
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  transition: all 0.2s ease;
 }
 
 .btn-slider:hover {
-  background: linear-gradient(to right, var(--ui-bg-dark), var(--ui-bg-medium));
+  background: #232636;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--brand-primary) 30%, transparent);
   transform: scale(1.05);
 }
 
 /* Pot buttons */
 .btn-pot {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  color: white;
-  transition: all 0.3s ease;
+  background: #1c1e2b;
+  border: 1px solid #2c2f45;
+  color: #e4e4ea;
+  transition: all 0.2s ease;
 }
 
 .btn-pot:hover {
-  background: linear-gradient(to right, var(--ui-bg-dark), var(--ui-bg-medium));
+  background: #232636;
   border-color: var(--brand-primary);
-  box-shadow: 0 0 10px color-mix(in srgb, var(--brand-primary) 30%, transparent);
+  color: #ffffff;
   transform: scale(1.05);
 }
 
 /* All-in button */
 .btn-all-in {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--ui-bg-dark));
-  border: 2px solid var(--ui-border-color);
-  color: white;
-  transition: all 0.3s ease;
+  background: color-mix(in srgb, var(--brand-primary) 20%, #1c1e2b);
+  border: 1px solid var(--brand-primary);
+  color: #ffffff;
+  transition: all 0.2s ease;
 }
 
 .btn-all-in:hover {
-  background: linear-gradient(to right, var(--accent-glow), color-mix(in srgb, var(--accent-glow) 90%, transparent));
-  border-color: var(--accent-glow);
-  box-shadow: 0 0 20px color-mix(in srgb, var(--accent-glow) 40%, transparent);
+  background: var(--brand-primary);
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--brand-primary) 45%, transparent);
   transform: scale(1.05);
 }
 
 /* Dynamic input styles */
 .input-field {
-  background-color: var(--ui-bg-medium);
-  border-color: var(--ui-border-color);
+  background-color: #1c1e2b;
+  border-color: #2c2f45;
   color: white;
 }
 
@@ -206,14 +211,14 @@
 
 /* Sit out button */
 .btn-sit-out {
-  background: linear-gradient(to right, var(--brand-secondary), var(--ui-bg-medium));
-  border: 2px solid var(--ui-border-color);
+  background: #1c1e2b;
+  border: 1px solid #2c2f45;
   color: white;
   transition: all 0.3s ease;
 }
 
 .btn-sit-out:hover {
-  background: linear-gradient(to right, var(--ui-bg-medium), var(--brand-secondary));
+  background: #232636;
   border-color: var(--brand-primary);
   box-shadow: 0 0 15px color-mix(in srgb, var(--brand-primary) 30%, transparent);
   transform: scale(1.05);

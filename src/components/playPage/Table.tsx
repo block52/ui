@@ -173,7 +173,7 @@ const NetworkDisplay = memo(({ isMainnet = false }: NetworkDisplayProps) => {
     return (
         <div className="network-display flex items-center gap-1 sm:gap-1.5 px-1 sm:px-2 py-1 rounded-lg text-[10px] sm:text-xs">
             <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${isMainnet ? "bg-green-500" : "network-display-dot-devnet"}`}></div>
-            <span className="text-gray-300 whitespace-nowrap">Block52 Chain</span>
+            <span className="text-ink-soft whitespace-nowrap">Block52 Chain</span>
         </div>
     );
 });
@@ -1344,10 +1344,10 @@ const Table = React.memo(() => {
                         left: 12,
                         zIndex: 30,
                         padding: "6px 12px",
-                        borderRadius: tableStyle === "nouns" ? 0 : 6,
-                        border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
-                        backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
-                        color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
+                        borderRadius: tableStyle === "nouns" ? 0 : 9999,
+                        border: tableStyle === "nouns" ? "2px solid #d63c5e" : "1px solid #2c2f45",
+                        backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(22,23,34,0.85)",
+                        color: tableStyle === "nouns" ? "#e1d7d5" : "#b4b6c8",
                         fontSize: 12,
                         fontFamily: tableStyle === "nouns" ? "'Silkscreen', monospace" : "monospace",
                         fontWeight: "bold",
@@ -1591,7 +1591,7 @@ const Table = React.memo(() => {
                             desktop/landscape below, where there's lateral room for it. */}
                     </div>
                 ) : (
-                    <div className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-black bg-opacity-50 backdrop-blur-sm">
+                    <div className="w-full flex justify-center items-center z-[10] h-[160px] fixed bottom-0 left-0 right-0 bg-surface-page/80 border-t border-line backdrop-blur-sm">
                         <div className="w-full flex justify-center items-center h-full max-w-[700px]">
                             <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                         </div>

@@ -149,3 +149,31 @@ export function appTomlSnippet(snapshotInterval: number, bondDenom: string): str
         'embedded_engine = "embedded"'
     ].join("\n");
 }
+
+/** Sum of bigint amounts (e.g. every validator's bonded micro-USDC). */
+export const sumBigInt = (values: ReadonlyArray<bigint>): bigint => values.reduce((a, b) => a + b, 0n);
+
+/**
+ * `part` as a share of `total`, in basis points (0–10000), rounded down.
+ * Used for a validator's protocol-fee share: bonded_i / Σ bonded (poker-vm#2592).
+ * Returns null when there is no total to divide by, so callers show nothing
+ * instead of a made-up 0%.
+ */
+export function shareOfTotalBps(part: bigint, total: bigint): number | null {
+    if (total <= 0n) return null;
+    return Number((part * 10_000n) / total);
+}
+
+/** Basis points as a percentage label: 2500 → "25%", 3333 → "33.33%". */
+export const formatBps = (bps: number): string => `${(bps / 100).toFixed(2).replace(/\.?0+$/, "")}%`;
+
+/** Whole seconds elapsed between two epoch-ms timestamps, never negative. */
+export const secondsBetween = (fromMs: number, toMs: number): number => Math.max(0, Math.floor((toMs - fromMs) / 1000));
+
+/** Short relative age for a "Checked … ago" label: 0 → "just now", 12 → "12s ago", 75 → "1m ago". */
+export function formatAgo(seconds: number): string {
+    if (seconds < 1) return "just now";
+    if (seconds < 60) return `${seconds}s ago`;
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+    return `${Math.floor(seconds / 3600)}h ago`;
+}

@@ -3,12 +3,12 @@ import { useParams, useNavigate, Link } from "react-router-dom";
 import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { ClickableAddress } from "../../components/explorer/ClickableAddress";
-import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { formatProposerAddress } from "../../utils/formatUtils";
 import { isEmpty, hasElements } from "../../utils/guards";
 import { truncateMiddle } from "../../utils/stringUtils";
 import { extractMessageTypeFromHex } from "../../utils/transactionUtils";
 import styles from "./BlockDetailPage.module.css";
+import { toast } from "react-toastify";
 // Define block response type locally to match Cosmos API response
 interface CosmosBlockResponse {
     block_id: {
@@ -145,7 +145,7 @@ export default function BlockDetailPage() {
     const copyToClipboard = async (text: string) => {
         try {
             await navigator.clipboard.writeText(text);
-            alert("Copied to clipboard!");
+            toast.success("Copied to clipboard");
         } catch (err) {
             console.error("Failed to copy:", err);
         }
@@ -288,9 +288,8 @@ export default function BlockDetailPage() {
 
     if (loading) {
         return (
-            <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
-                <AnimatedBackground />
-                <div className={`backdrop-blur-md p-8 rounded-xl shadow-2xl text-center relative z-10 ${styles.containerCard}`}>
+            <div className="min-h-screen flex flex-col justify-center items-center bg-surface-page p-4">
+                <div className={`p-8 rounded-2xl text-center ${styles.containerCard}`}>
                     <div className="flex justify-center mb-4">
                         <svg
                             className={`animate-spin h-10 w-10 ${styles.brandText}`}
@@ -306,7 +305,7 @@ export default function BlockDetailPage() {
                             ></path>
                         </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-white">Loading block #{height}...</h2>
+                    <h2 className="text-2xl font-bold text-ink">Loading block #{height}...</h2>
                 </div>
             </div>
         );
@@ -314,16 +313,15 @@ export default function BlockDetailPage() {
 
     if (error || !block) {
         return (
-            <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
-                <AnimatedBackground />
-                <div className={`backdrop-blur-md p-8 rounded-xl shadow-2xl text-center max-w-lg relative z-10 ${styles.containerCard}`}>
+            <div className="min-h-screen flex flex-col justify-center items-center bg-surface-page p-4">
+                <div className={`p-8 rounded-2xl text-center max-w-lg ${styles.containerCard}`}>
                     <div className="flex justify-center mb-4">
                         <svg className={`h-16 w-16 ${styles.dangerText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-white mb-4">Error: {error || "Block not found"}</h2>
-                    <p className="text-gray-300 mb-6">Unable to load block #{height}</p>
+                    <h2 className="text-2xl font-bold text-ink mb-4">Error: {error || "Block not found"}</h2>
+                    <p className="text-ink-soft mb-6">Unable to load block #{height}</p>
                     <button
                         onClick={() => navigate("/explorer")}
                         className={`px-6 py-2 rounded-lg font-bold transition-colors duration-200 ${styles.primaryButton}`}
@@ -336,9 +334,8 @@ export default function BlockDetailPage() {
     }
 
     return (
-        <div className="min-h-screen flex flex-col items-center relative overflow-hidden p-6">
-            <AnimatedBackground />
-            <div className="w-full max-w-7xl relative z-10">
+        <div className="min-h-screen flex flex-col items-center bg-surface-page p-6">
+            <div className="w-full max-w-7xl">
                 {/* Header with Back Button */}
                 <div className="mb-6">
                     <button
@@ -353,12 +350,12 @@ export default function BlockDetailPage() {
                 </div>
 
                 {/* Block Details Card */}
-                <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl mb-6 ${styles.containerCard}`}>
-                    <h1 className="text-3xl font-extrabold text-white mb-6">Block #{block.block.header.height}</h1>
+                <div className={`p-6 rounded-2xl mb-6 ${styles.containerCard}`}>
+                    <h1 className="text-3xl font-extrabold text-ink mb-6">Block #{block.block.header.height}</h1>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <p className="text-gray-400 text-sm mb-1">Block Hash</p>
+                            <p className="text-ink-muted text-sm mb-1">Block Hash</p>
                             <p
                                 className={`font-mono text-sm cursor-pointer transition-colors duration-200 break-all ${styles.brandText} ${styles.brandTextHover}`}
                                 onClick={() => copyToClipboard(block.block_id.hash)}
@@ -369,25 +366,25 @@ export default function BlockDetailPage() {
                         </div>
 
                         <div>
-                            <p className="text-gray-400 text-sm mb-1">Timestamp</p>
-                            <p className="text-white font-mono text-sm">{formatTimestamp(block.block.header.time)}</p>
+                            <p className="text-ink-muted text-sm mb-1">Timestamp</p>
+                            <p className="text-ink font-mono text-sm">{formatTimestamp(block.block.header.time)}</p>
                         </div>
 
                         <div>
-                            <p className="text-gray-400 text-sm mb-1">Chain ID</p>
-                            <p className="text-white font-mono text-sm">{block.block.header.chain_id}</p>
+                            <p className="text-ink-muted text-sm mb-1">Chain ID</p>
+                            <p className="text-ink font-mono text-sm">{block.block.header.chain_id}</p>
                         </div>
 
                         <div>
-                            <p className="text-gray-400 text-sm mb-1">Proposer Address</p>
+                            <p className="text-ink-muted text-sm mb-1">Proposer Address</p>
                             <p className="font-mono text-sm">
                                 <ClickableAddress address={formatProposerAddress(block.block.header.proposer_address || "")} />
                             </p>
                         </div>
 
                         <div>
-                            <p className="text-gray-400 text-sm mb-1">Number of Transactions</p>
-                            <p className={`text-white font-bold text-lg ${styles.successText}`}>
+                            <p className="text-ink-muted text-sm mb-1">Number of Transactions</p>
+                            <p className={`text-ink font-bold text-lg ${styles.successText}`}>
                                 {block.block.data.txs.length}
                             </p>
                         </div>
@@ -395,15 +392,15 @@ export default function BlockDetailPage() {
                 </div>
 
                 {/* Transactions Card */}
-                <div className={`backdrop-blur-md rounded-xl shadow-2xl overflow-hidden ${styles.containerCard}`}>
+                <div className={`rounded-2xl overflow-hidden ${styles.containerCard}`}>
                     <div className={`px-6 py-4 ${styles.headerCard}`}>
-                        <h2 className="text-2xl font-bold text-white">Transactions {hasElements(block.block.data.txs) && `(${block.block.data.txs.length})`}</h2>
+                        <h2 className="text-2xl font-bold text-ink">Transactions {hasElements(block.block.data.txs) && `(${block.block.data.txs.length})`}</h2>
                     </div>
 
                     <div className="p-6">
                         {isEmpty(block.block.data.txs) ? (
                             <div className="text-center py-12">
-                                <p className="text-gray-400 text-lg">No transactions in this block</p>
+                                <p className="text-ink-muted text-lg">No transactions in this block</p>
                             </div>
                         ) : (
                             <div className="space-y-4">
@@ -423,13 +420,13 @@ export default function BlockDetailPage() {
                                                 className={`flex items-center justify-between mb-4 pb-3 ${styles.txHeader}`}
                                             >
                                                 <div className="flex-1">
-                                                    <p className="text-gray-400 text-sm font-bold">Transaction #{index + 1}</p>
+                                                    <p className="text-ink-muted text-sm font-bold">Transaction #{index + 1}</p>
                                                     <p className={`text-xl font-bold mt-1 ${styles.successText}`}>
                                                         {txDetails.type}
                                                     </p>
                                                     {txHashValue !== "Computing..." && (
                                                         <div className="mt-2">
-                                                            <p className="text-gray-400 text-xs mb-1">Transaction Hash</p>
+                                                            <p className="text-ink-muted text-xs mb-1">Transaction Hash</p>
                                                             <Link
                                                                 to={`/explorer/tx/${txHashValue}`}
                                                                 className={`font-mono text-xs cursor-pointer transition-colors duration-200 break-all ${styles.brandText} ${styles.brandTextHover}`}
@@ -452,7 +449,7 @@ export default function BlockDetailPage() {
                                             <div className="space-y-3 mb-4">
                                                 {txDetails.from && (
                                                     <div>
-                                                        <p className="text-gray-400 text-xs mb-1">From</p>
+                                                        <p className="text-ink-muted text-xs mb-1">From</p>
                                                         <p className="font-mono text-sm">
                                                             <ClickableAddress address={txDetails.from} showFull={true} />
                                                         </p>
@@ -461,7 +458,7 @@ export default function BlockDetailPage() {
 
                                                 {txDetails.to && (
                                                     <div>
-                                                        <p className="text-gray-400 text-xs mb-1">To</p>
+                                                        <p className="text-ink-muted text-xs mb-1">To</p>
                                                         <p className="font-mono text-sm">
                                                             <ClickableAddress address={txDetails.to} showFull={true} />
                                                         </p>
@@ -470,8 +467,8 @@ export default function BlockDetailPage() {
 
                                                 {txDetails.amount && (
                                                     <div>
-                                                        <p className="text-gray-400 text-xs mb-1">Amount</p>
-                                                        <p className="text-white font-bold text-lg">
+                                                        <p className="text-ink-muted text-xs mb-1">Amount</p>
+                                                        <p className="text-ink font-bold text-lg">
                                                             {txDetails.amount}{" "}
                                                             <span className={`text-sm ${styles.secondaryBrandText}`}>
                                                                 {txDetails.denom}

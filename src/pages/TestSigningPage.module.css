@@ -1,143 +1,126 @@
+/* Developer tool styling: tinted panels and command boxes on the dark surface tokens. */
+
 .infoCommandBox {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 60%, transparent);
+  background-color: #1c1e2b;
+  border: 1px solid #262938;
 }
 
 .warningPanel {
-  background-color: color-mix(in srgb, var(--accent-warning) 10%, transparent);
-  border: 2px solid color-mix(in srgb, var(--accent-warning) 40%, transparent);
+  background-color: rgb(245 158 11 / 0.08);
+  border: 1px solid rgb(245 158 11 / 0.3);
 }
 
 .warningTitle {
-  color: var(--accent-warning);
+  color: #fcd34d;
 }
 
-.warningCommandBox {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 60%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-warning) 30%, transparent);
+.warningCommandBox,
+.keyDiffBox,
+.commandBreakdownBox,
+.accountCard,
+.walletAddressBox,
+.networkConfigBox {
+  background-color: #1c1e2b;
+  border: 1px solid #262938;
 }
 
 .warningActionButton {
-  background-color: var(--accent-warning);
-  color: var(--ui-bg-dark);
+  background-color: #f59e0b;
+  color: #12131c;
 }
 
 .successCommandBox {
-  background-color: color-mix(in srgb, var(--accent-success) 15%, transparent);
-  border: 2px solid color-mix(in srgb, var(--accent-success) 40%, transparent);
+  background-color: rgb(52 211 153 / 0.08);
+  border: 1px solid rgb(52 211 153 / 0.3);
 }
 
 .successActionButton {
-  background-color: var(--accent-success);
-  color: var(--ui-bg-dark);
-}
-
-.keyDiffBox {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 40%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  background-color: #34d399;
+  color: #12131c;
 }
 
 .successPanel {
-  background-color: color-mix(in srgb, var(--accent-success) 10%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-success) 30%, transparent);
+  background-color: rgb(52 211 153 / 0.06);
+  border: 1px solid rgb(52 211 153 / 0.25);
 }
 
-.successTitle {
-  color: var(--accent-success);
+.successTitle,
+.successText {
+  color: #34d399;
 }
 
-.commandBreakdownBox {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 40%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+.blueCommandButton,
+.amountButtonBlue {
+  background-color: rgb(var(--brand-primary-rgb) / 0.15);
+  border: 1px solid rgb(var(--brand-primary-rgb) / 0.35);
+  color: #c4b5fd;
 }
 
-.accountCard {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 60%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
-}
-
-.blueCommandButton {
-  background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 40%, transparent);
-  color: var(--brand-primary);
-}
-
-.greenCommandButton {
-  background-color: color-mix(in srgb, var(--accent-success) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-success) 40%, transparent);
-  color: var(--accent-success);
-}
-
-.walletAddressBox {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 40%, transparent);
+.greenCommandButton,
+.amountButtonGreen {
+  background-color: rgb(52 211 153 / 0.12);
+  border: 1px solid rgb(52 211 153 / 0.35);
+  color: #34d399;
 }
 
 .containerPanel {
-  background-color: color-mix(in srgb, var(--ui-bg-dark) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 20%, transparent);
+  background-color: #161722;
+  border: 1px solid #262938;
 }
 
 .inputField {
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 80%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
+  min-height: 2.75rem;
+  padding: 0 0.875rem;
+  border-radius: 0.75rem;
+  background-color: #1c1e2b;
+  border: 1px solid #2c2f45;
+  color: #f5f5f7;
+  font-size: 0.875rem;
+  outline: none;
+  color-scheme: dark;
+  transition: border-color 0.15s, box-shadow 0.15s;
 }
 
-.amountButtonBlue {
-  background-color: color-mix(in srgb, var(--brand-primary) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 40%, transparent);
-  color: var(--brand-primary);
+.inputField:focus {
+  border-color: rgb(var(--brand-primary-rgb));
+  box-shadow: 0 0 0 2px rgb(var(--brand-primary-rgb) / 0.3);
 }
 
-.amountButtonGreen {
-  background-color: color-mix(in srgb, var(--accent-success) 20%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-success) 40%, transparent);
-  color: var(--accent-success);
-}
-
-.actionPrimary {
-  background: var(--brand-primary);
+.actionPrimary,
+.initializeButtonReady {
+  background: rgb(var(--brand-primary-rgb));
 }
 
 .actionSuccess {
-  background: var(--accent-success);
+  background: #059669;
 }
 
 .actionWithdraw {
-  background: var(--brand-secondary);
+  background: #2c2f45;
 }
 
 .brandPrimaryText {
-  color: var(--brand-primary);
-}
-
-.initializeButtonReady {
-  background: linear-gradient(
-    135deg,
-    var(--brand-primary) 0%,
-    color-mix(in srgb, var(--brand-primary) 80%, transparent) 100%
-  );
+  color: #c4b5fd;
 }
 
 .initializeButtonLoading {
-  background: linear-gradient(
-    135deg,
-    color-mix(in srgb, var(--ui-bg-dark) 50%, transparent) 0%,
-    color-mix(in srgb, var(--ui-bg-dark) 30%, transparent) 100%
-  );
+  background: #232636;
+  color: #8e90a6;
 }
 
 .testResultCard {
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 60%, transparent);
-  border: 1px solid transparent;
+  background-color: #1c1e2b;
+  border: 1px solid #262938;
 }
 
 .testResultSuccess {
-  border-color: var(--accent-success);
+  border-color: rgb(52 211 153 / 0.5);
 }
 
 .testResultError {
-  border-color: var(--accent-danger);
+  border-color: rgb(248 113 113 / 0.5);
 }
 
 .testResultPending {
-  border-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
+  border-color: #2c2f45;
 }

@@ -67,7 +67,7 @@
 }
 
 .bg-custom-footer {
-    background: linear-gradient(to right, var(--table-bg-gradient-start), var(--table-bg-gradient-mid), var(--table-bg-gradient-end));
+    background: #12131c;
     border-top: 1px solid var(--ui-border-color);
 }
 
@@ -157,7 +157,7 @@
 
 /* Header specific styles */
 .bg-custom-header {
-    background: linear-gradient(to right, var(--table-bg-gradient-start), var(--table-bg-gradient-mid), var(--table-bg-gradient-end));
+    background: #12131c;
     border-bottom: 1px solid var(--ui-border-color);
 }
 
@@ -287,7 +287,8 @@
     right: 0;
     transition: all 0.3s ease-in-out;
     z-index: 1000;
-    height: calc(100dvh - 350px);
+    /* Full-height drawer: from under the header + sub-header to the bottom of the window. */
+    bottom: 0;
 }
 
 .action-log-open {
@@ -576,7 +577,7 @@
     
     .text-gradient {
         animation: none;
-        background: linear-gradient(to right, var(--brand-primary), #60a5fa);
+        background: linear-gradient(to right, var(--brand-primary), rgb(var(--brand-primary-light-rgb)));
         background-clip: text;
         -webkit-background-clip: text;
         color: transparent;

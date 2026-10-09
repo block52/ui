@@ -13,10 +13,14 @@ import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, SNG_BLINDS } from "../constant
 import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
+import SendModal from "../components/modals/SendModal";
+import { Modal, PoweredBy } from "../components/common";
+import { PillButton } from "../components/ui";
+import { fieldLabelClass, fieldInputClass, inlinePillClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
+import { CopyIcon, CheckIcon, WarningIcon } from "../components/modals/walletIcons";
 import TableList from "../components/TableList";
 import WalletPanel from "../components/WalletPanel";
 import TransactionPanel from "../components/TransactionPanel";
-import { AnimatedBackground } from "../components/common";
 
 // Game wallet and SDK imports
 // ...existing code...
@@ -45,6 +49,11 @@ import { colors, hexToRgba } from "../utils/colorConfig";
 
 // Bech32 address regex: "b52" prefix + "1" separator + valid bech32 data characters
 const B52_ADDRESS_REGEX = /^b521[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38,}$/;
+
+const labelClass = "block text-xs uppercase tracking-[0.08em] text-ink-muted mb-1.5";
+const inputClass =
+    "w-full h-11 rounded-xl bg-surface-raised border border-line-strong text-ink px-3.5 outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/30";
+const errorBoxClass = "p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-300 text-sm";
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -355,6 +364,12 @@ const Dashboard: React.FC = () => {
         creationTotalMicro === null || creationTotalMicro > usdcToMicroBigInt(numericUsdcBalance);
     const createDisabled = isCreatingTable || !!tableNameError || insufficientForName || insufficientForCreation;
 
+    const handleCancelCreateGame = () => {
+        setShowCreateGameModal(false);
+        setCreateGameError("");
+        setModalTableName("");
+    };
+
     // Check if transfer amount exceeds available balance
     const isAmountExceedingBalance = useMemo(() => {
         const amount = parseFloat(transferAmount);
@@ -399,9 +414,7 @@ const Dashboard: React.FC = () => {
     // Removed: Game selection button handlers - no longer needed
 
     return (
-        <div className="min-h-screen flex flex-col justify-center items-center relative overflow-hidden">
-            {/* Animated background with hexagon pattern */}
-            <AnimatedBackground />
+        <div className="min-h-screen flex flex-col relative bg-surface-page text-ink-body">
 
             {/* Wallet Generated Notification */}
             {showWalletGeneratedNotification && (
@@ -425,105 +438,92 @@ const Dashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Password Protection Modal */}
+            {/* Password Protection Modal (blocking: no close, no backdrop dismiss) */}
             {!isAuthenticated && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                    <div className={`backdrop-blur-md p-8 rounded-xl w-96 shadow-2xl relative overflow-hidden ${styles.passwordModal}`}>
-                        {/* Web3 styled background */}
-                        <div className={`absolute inset-0 rounded-xl ${styles.passwordModalOverlay}`}></div>
-                        <div className={`absolute top-0 left-0 w-full h-1 animate-pulse ${styles.passwordModalTopBar}`}></div>
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+                    <div role="dialog" aria-modal="true" aria-label="Secure Access" className="w-full max-w-[400px] max-h-full overflow-y-auto bg-surface-card border border-line rounded-2xl p-8 shadow-2xl">
+                        <div className="flex items-center justify-center mb-5">
+                            <img src="/block52.png" alt="Block52 Logo" className="h-14 w-auto object-contain" />
+                        </div>
 
-                        <div className="relative z-10">
-                            <div className="flex items-center justify-center mb-4">
-                                <img src="/block52.png" alt="Block52 Logo" className="h-16 w-auto object-contain" />
-                            </div>
-
-                            <div className="flex items-center justify-center mb-6">
-                                <div className={`w-16 h-16 rounded-full flex items-center justify-center ${styles.passwordIconCircle}`}>
-                                    <svg className={`w-8 h-8 ${styles.brandPrimaryText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
-                                        />
-                                    </svg>
-                                </div>
-                            </div>
-
-                            <h2 className="text-2xl font-bold text-white text-center mb-2 text-shadow">Secure Access</h2>
-                            <p className="text-gray-300 text-center mb-6 text-sm">Enter password to access the Block52 demo</p>
-
-                            <div className="space-y-4">
-                                <div className="relative">
-                                    <input
-                                        type={showPassword ? "text" : "password"}
-                                        placeholder="Enter password"
-                                        value={passwordInput}
-                                        onChange={e => setPasswordInput(e.target.value)}
-                                        onKeyDown={handlePasswordKeyPress}
-                                        className={`w-full p-3 rounded-lg backdrop-blur-sm text-white focus:outline-none transition-all duration-200 pr-12 ${styles.passwordInput}`}
-                                        autoFocus
+                        <div className="flex items-center justify-center mb-5">
+                            <div className="w-14 h-14 rounded-full flex items-center justify-center bg-brand/10 text-brand-light">
+                                <svg className="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"
                                     />
-                                    <button
-                                        type="button"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white hover:opacity-90 transition-colors"
-                                    >
-                                        {showPassword ? (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="2"
-                                                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
-                                                />
-                                            </svg>
-                                        ) : (
-                                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                                <path
-                                                    strokeLinecap="round"
-                                                    strokeLinejoin="round"
-                                                    strokeWidth="2"
-                                                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                                />
-                                            </svg>
-                                        )}
-                                    </button>
-                                </div>
+                                </svg>
+                            </div>
+                        </div>
 
-                                {passwordError && (
-                                    <div className="p-3 bg-red-500/20 border border-red-500/30 rounded-lg">
-                                        <p className="text-red-400 text-sm text-center">{passwordError}</p>
-                                    </div>
-                                )}
+                        <h2 className="text-2xl font-semibold text-ink text-center mb-2">Secure Access</h2>
+                        <p className="text-ink-muted text-center mb-6 text-sm">Enter password to access the Block52 demo</p>
 
+                        <div className="space-y-4">
+                            <div className="relative">
+                                <input
+                                    type={showPassword ? "text" : "password"}
+                                    placeholder="Enter password"
+                                    value={passwordInput}
+                                    onChange={e => setPasswordInput(e.target.value)}
+                                    onKeyDown={handlePasswordKeyPress}
+                                    className={`${inputClass} h-12 pr-12 placeholder:text-ink-muted/70`}
+                                    autoFocus
+                                />
                                 <button
-                                    onClick={handlePasswordSubmit}
-                                    className={`w-full py-3 text-white rounded-lg transition duration-300 transform hover:scale-105 shadow-md font-semibold ${styles.passwordSubmitButton}`}
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
                                 >
-                                    <div className="flex items-center justify-center gap-2">
-                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    {showPassword ? (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                             <path
                                                 strokeLinecap="round"
                                                 strokeLinejoin="round"
                                                 strokeWidth="2"
-                                                d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+                                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.878 9.878L3 3m6.878 6.878L21 21"
                                             />
                                         </svg>
-                                        Access Platform
-                                    </div>
+                                    ) : (
+                                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path
+                                                strokeLinecap="round"
+                                                strokeLinejoin="round"
+                                                strokeWidth="2"
+                                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                                            />
+                                        </svg>
+                                    )}
                                 </button>
                             </div>
 
-                            <div className="mt-6 text-center">
-                                <p className="text-xs text-gray-400">Block52 Blockchain Infrastructure Demo</p>
-                                <div className="flex items-center justify-center gap-1 mt-2">
-                                    <div className={`w-2 h-2 rounded-full animate-pulse ${styles.brandPrimaryDot}`}></div>
-                                    <span className="text-xs text-gray-400">Secured by Block52</span>
-                                </div>
-                            </div>
+                            {passwordError && (
+                                <p role="alert" className={`${noticeClass.error} text-center`}>
+                                    {passwordError}
+                                </p>
+                            )}
+
+                            <PillButton variant="primary" size="lg" onClick={handlePasswordSubmit} className="w-full">
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth="2"
+                                        d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z"
+                                    />
+                                </svg>
+                                Access Platform
+                            </PillButton>
+                        </div>
+
+                        <div className="mt-6 text-center">
+                            <p className="text-xs text-ink-muted">Block52 Blockchain Infrastructure Demo</p>
+                            <p className="mt-2 text-xs text-ink-muted">Secured by Block52</p>
                         </div>
                     </div>
                 </div>
@@ -533,235 +533,194 @@ const Dashboard: React.FC = () => {
             {isAuthenticated && (
                 <>
                     {/* Import B52 Wallet Seed Phrase Modal */}
-                    {showCosmosImportModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div className={`p-6 rounded-xl w-[440px] shadow-2xl border ${styles.modalPanel}`}>
-                                <h3 className="text-xl font-bold text-white mb-2 whitespace-nowrap">Import B52 Wallet Seed Phrase</h3>
-                                <div className={styles.modalTitleDivider} />
-                                <div className="space-y-4">
-                                    <div>
-                                        <label className="block text-white text-sm mb-1">Seed Phrase</label>
-                                        <textarea
-                                            placeholder="Enter your 12, 15, 18, 21, or 24 word seed phrase..."
-                                            value={cosmosSeedPhrase}
-                                            onChange={e => setCosmosSeedPhrase(e.target.value)}
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200 h-20 resize-none"
-                                        />
-                                        <p className="text-xs text-gray-400 mt-1">Words should be separated by spaces</p>
-                                    </div>
-                                    {cosmosImportError && <p className="text-red-500 text-sm">{cosmosImportError}</p>}
-                                    <div className="flex flex-col space-y-3">
-                                        <button
-                                            onClick={handleImportCosmosSeed}
-                                            disabled={cosmosWallet.isLoading}
-                                            className={`w-full px-4 py-3 text-sm font-medium text-white rounded-lg transition duration-300 shadow-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${styles.brandPrimaryBg}`}
-                                        >
-                                            {cosmosWallet.isLoading ? "Importing..." : "Import"}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowCosmosImportModal(false);
-                                                setCosmosSeedPhrase("");
-                                                setCosmosImportError("");
-                                            }}
-                                            className={`w-full px-4 py-3 text-sm font-medium text-white rounded-lg transition duration-300 hover:opacity-80 ${styles.cancelBg}`}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
+                    <Modal
+                        isOpen={showCosmosImportModal}
+                        onClose={() => {
+                            setShowCosmosImportModal(false);
+                            setCosmosSeedPhrase("");
+                            setCosmosImportError("");
+                        }}
+                        title="Import B52 Wallet Seed Phrase"
+                        widthClass="w-[480px]"
+                        isProcessing={cosmosWallet.isLoading}
+                    >
+                        <div className="space-y-4">
+                            <div>
+                                <label htmlFor="cosmos-seed-phrase" className={fieldLabelClass}>
+                                    Seed Phrase
+                                </label>
+                                <textarea
+                                    id="cosmos-seed-phrase"
+                                    placeholder="Enter your 12, 15, 18, 21, or 24 word seed phrase..."
+                                    value={cosmosSeedPhrase}
+                                    onChange={e => setCosmosSeedPhrase(e.target.value)}
+                                    className={`${fieldInputClass} h-28 py-3 font-mono text-sm resize-none`}
+                                />
+                                <p className="text-xs text-ink-muted mt-1.5">Words should be separated by spaces</p>
+                            </div>
+                            {cosmosImportError && (
+                                <p role="alert" className={noticeClass.error}>
+                                    {cosmosImportError}
+                                </p>
+                            )}
+                            <div className="flex flex-col gap-2 pt-1">
+                                <PillButton variant="primary" size="lg" onClick={handleImportCosmosSeed} disabled={cosmosWallet.isLoading} className="w-full">
+                                    {cosmosWallet.isLoading ? "Importing..." : "Import"}
+                                </PillButton>
+                                <PillButton
+                                    variant="ghost"
+                                    size="lg"
+                                    onClick={() => {
+                                        setShowCosmosImportModal(false);
+                                        setCosmosSeedPhrase("");
+                                        setCosmosImportError("");
+                                    }}
+                                    className="w-full"
+                                >
+                                    Cancel
+                                </PillButton>
                             </div>
                         </div>
-                    )}
+                    </Modal>
 
                     {/* Removed: Cosmos Update Seed Phrase Modal - now handled on /wallet page */}
 
                     {/* New B52 Wallet Created Modal - shows seed phrase */}
-                    {showNewWalletModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div className={`p-6 rounded-xl w-[480px] shadow-2xl border ${styles.modalPanel}`}>
-                                <h3 className="text-xl font-bold text-white mb-2">New B52 Wallet Created</h3>
-                                <div className={styles.modalTitleDivider} />
-                                <p className="text-gray-400 text-sm mb-4">
-                                    Write down your seed phrase and store it in a safe place. You will need it to recover your wallet.
-                                </p>
+                    <Modal
+                        isOpen={showNewWalletModal}
+                        onClose={() => {
+                            setShowNewWalletModal(false);
+                            setNewWalletSeedPhrase("");
+                            setNewWalletAddress("");
+                            setSeedPhraseCopied(false);
+                        }}
+                        title="New B52 Wallet Created"
+                        widthClass="w-[520px]"
+                        closeOnEscape={false}
+                        closeOnBackdropClick={false}
+                    >
+                        <div className="space-y-4">
+                            <p className="text-ink-muted text-sm">
+                                Write down your seed phrase and store it in a safe place. You will need it to recover your wallet.
+                            </p>
 
-                                {/* Warning */}
-                                <div className={`p-3 rounded-lg mb-4 flex items-start gap-3 ${styles.dangerWarningBox}`}>
-                                    <svg className={`w-5 h-5 flex-shrink-0 mt-0.5 ${styles.dangerText}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth="2"
-                                            d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                                        />
-                                    </svg>
-                                    <p className={`text-sm ${styles.dangerText}`}>
-                                        Never share your seed phrase with anyone. Anyone with this phrase can access your funds.
-                                    </p>
+                            {/* Warning */}
+                            <div className={`${noticeClass.warning} flex items-start gap-3`}>
+                                <WarningIcon className="w-5 h-5 shrink-0 mt-px" />
+                                <p className="m-0">Never share your seed phrase with anyone. Anyone with this phrase can access your funds.</p>
+                            </div>
+
+                            {/* Address */}
+                            <div>
+                                <span className={fieldLabelClass}>Wallet Address</span>
+                                <div className={`${insetBoxClass} font-mono text-sm text-ink break-all`}>{newWalletAddress}</div>
+                            </div>
+
+                            {/* Seed Phrase */}
+                            <div>
+                                <div className="flex items-center justify-between gap-2 mb-2">
+                                    <span className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Seed Phrase (24 words)</span>
+                                    <button
+                                        type="button"
+                                        onClick={handleCopySeedPhrase}
+                                        className={`${inlinePillClass} inline-flex items-center gap-1.5 ${seedPhraseCopied ? "text-emerald-400" : ""}`}
+                                        title="Copy seed phrase"
+                                    >
+                                        {seedPhraseCopied ? (
+                                            <>
+                                                <CheckIcon className="w-3.5 h-3.5" />
+                                                Copied!
+                                            </>
+                                        ) : (
+                                            <>
+                                                <CopyIcon className="w-3.5 h-3.5" />
+                                                Copy
+                                            </>
+                                        )}
+                                    </button>
                                 </div>
-
-                                {/* Address */}
-                                <div className="mb-4">
-                                    <label className="block text-gray-400 text-sm mb-1">Wallet Address</label>
-                                    <div className="p-3 rounded-lg bg-gray-800 border border-gray-700 font-mono text-sm text-white break-all">
-                                        {newWalletAddress}
-                                    </div>
-                                </div>
-
-                                {/* Seed Phrase with inline copy icon */}
-                                <div className="mb-6">
-                                    <div className="flex items-center justify-between mb-1">
-                                        <label className="block text-gray-400 text-sm">Seed Phrase (24 words)</label>
-                                        <button
-                                            onClick={handleCopySeedPhrase}
-                                            className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-all hover:opacity-80 ${styles.copyIconBtn} ${seedPhraseCopied ? styles.copyIconBtnCopied : ""}`}
-                                            title="Copy seed phrase"
-                                        >
-                                            {seedPhraseCopied ? (
-                                                <>
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                                                    </svg>
-                                                    Copied!
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                        <path
-                                                            strokeLinecap="round"
-                                                            strokeLinejoin="round"
-                                                            strokeWidth="2"
-                                                            d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                                                        />
-                                                    </svg>
-                                                    Copy
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                    <div className="p-3 rounded-lg bg-gray-800 border border-gray-700 font-mono text-sm text-white">
-                                        <div className="grid grid-cols-4 gap-2">
-                                            {newWalletSeedPhrase.split(" ").map((word, index) => (
-                                                <div key={index} className="flex items-center gap-1">
-                                                    <span className="text-gray-500 text-xs w-5">{index + 1}.</span>
-                                                    <span>{word}</span>
-                                                </div>
-                                            ))}
+                                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                                    {newWalletSeedPhrase.split(" ").map((word, index) => (
+                                        <div key={index} className="flex items-center gap-2 px-3 h-10 rounded-xl bg-surface-raised border border-line font-mono text-sm text-ink min-w-0">
+                                            <span className="text-ink-muted text-xs w-5 shrink-0 tabular-nums">{index + 1}.</span>
+                                            <span className="truncate">{word}</span>
                                         </div>
-                                    </div>
-                                </div>
-
-                                {/* Actions */}
-                                <div className="flex flex-col space-y-3">
-                                    <label className="flex items-center gap-2 cursor-pointer select-none">
-                                        <input
-                                            type="checkbox"
-                                            checked={seedPhraseCopied}
-                                            onChange={e => setSeedPhraseCopied(e.target.checked)}
-                                            className="w-4 h-4 accent-blue-500"
-                                        />
-                                        <span className="text-gray-300 text-sm">I have written down my seed phrase and stored it safely</span>
-                                    </label>
-                                    <button
-                                        onClick={handleConfirmNewWallet}
-                                        disabled={!seedPhraseCopied}
-                                        className={`w-full px-4 py-3 text-sm font-medium text-white rounded-lg transition duration-300 shadow-md hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${styles.brandPrimaryBg}`}
-                                    >
-                                        I've Saved My Seed Phrase
-                                    </button>
-                                    <button
-                                        onClick={() => {
-                                            setShowNewWalletModal(false);
-                                            setNewWalletSeedPhrase("");
-                                            setNewWalletAddress("");
-                                            setSeedPhraseCopied(false);
-                                        }}
-                                        className={`w-full px-4 py-3 text-sm font-medium text-white rounded-lg transition duration-300 hover:opacity-80 ${styles.cancelBg}`}
-                                    >
-                                        Cancel
-                                    </button>
+                                    ))}
                                 </div>
                             </div>
+
+                            {/* Actions */}
+                            <div className="flex flex-col gap-2 pt-1">
+                                <label className="flex items-center gap-3 min-h-[44px] px-3 rounded-xl border border-line bg-surface-raised cursor-pointer select-none">
+                                    <input
+                                        type="checkbox"
+                                        checked={seedPhraseCopied}
+                                        onChange={e => setSeedPhraseCopied(e.target.checked)}
+                                        className="w-5 h-5 shrink-0 accent-brand"
+                                    />
+                                    <span className="text-ink-body text-sm py-2">I have written down my seed phrase and stored it safely</span>
+                                </label>
+                                <PillButton variant="primary" size="lg" onClick={handleConfirmNewWallet} disabled={!seedPhraseCopied} className="w-full">
+                                    I've Saved My Seed Phrase
+                                </PillButton>
+                                <PillButton
+                                    variant="ghost"
+                                    size="lg"
+                                    onClick={() => {
+                                        setShowNewWalletModal(false);
+                                        setNewWalletSeedPhrase("");
+                                        setNewWalletAddress("");
+                                        setSeedPhraseCopied(false);
+                                    }}
+                                    className="w-full"
+                                >
+                                    Cancel
+                                </PillButton>
+                            </div>
                         </div>
-                    )}
+                    </Modal>
 
                     {/* USDC Transfer Modal */}
-                    {showCosmosTransferModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div className={`p-6 rounded-xl w-96 shadow-2xl border ${styles.modalPanel}`}>
-                                <h3 className="text-xl font-bold text-white mb-4">Send</h3>
-                                <div className="space-y-4">
-                                    {/* Available Balance Display */}
-                                    <div className={`p-3 rounded-lg ${styles.balanceBox}`}>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Available Balance:</span>
-                                            <span className={`font-bold ${styles.brandPrimaryText}`}>{getTransferTokenBalance()} USDC</span>
-                                        </div>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-white text-sm mb-1">Recipient Address</label>
-                                        <input
-                                            type="text"
-                                            placeholder="b521abc..."
-                                            value={transferRecipient}
-                                            onChange={e => setTransferRecipient(e.target.value)}
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-white text-sm mb-1">Amount (USDC)</label>
-                                        <input
-                                            type="number"
-                                            step="0.000001"
-                                            placeholder="0.00"
-                                            value={transferAmount}
-                                            onChange={e => setTransferAmount(e.target.value)}
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
-                                        />
-                                    </div>
-                                    {transferError && <p className="text-red-500 text-sm">{transferError}</p>}
-                                    <div className="flex flex-col space-y-3">
-                                        <button
-                                            onClick={handleCosmosTransfer}
-                                            disabled={isTransferring || !isValidRecipient || !transferAmount || isAmountExceedingBalance}
-                                            className={`w-full px-4 py-2 text-sm text-white rounded-lg transition duration-300 shadow-md hover:opacity-90 disabled:opacity-50 ${styles.brandPrimaryBg}`}
-                                        >
-                                            {isTransferring ? "Sending..." : "Send USDC"}
-                                        </button>
-                                        <button
-                                            onClick={() => {
-                                                setShowCosmosTransferModal(false);
-                                                setTransferRecipient("");
-                                                setTransferAmount("");
-                                                setTransferError("");
-                                            }}
-                                            className={`w-full px-4 py-2 text-sm text-white rounded-lg transition duration-300 shadow-md hover:opacity-90 ${styles.cancelGradientButton}`}
-                                        >
-                                            Cancel
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    )}
+                    <SendModal
+                        isOpen={showCosmosTransferModal}
+                        balanceDisplay={getTransferTokenBalance()}
+                        recipient={transferRecipient}
+                        amount={transferAmount}
+                        error={transferError}
+                        isSending={isTransferring}
+                        isValidRecipient={isValidRecipient}
+                        isAmountExceedingBalance={isAmountExceedingBalance}
+                        onRecipientChange={setTransferRecipient}
+                        onAmountChange={setTransferAmount}
+                        onSend={handleCosmosTransfer}
+                        onCancel={() => {
+                            setShowCosmosTransferModal(false);
+                            setTransferRecipient("");
+                            setTransferAmount("");
+                            setTransferError("");
+                        }}
+                    />
 
                     {/* Create New Game Modal */}
                     {showCreateGameModal && (
-                        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
-                            <div className={`p-6 rounded-xl w-96 shadow-2xl border ${styles.modalPanel}`}>
-                                <h3 className="text-xl font-bold text-white mb-4">Create New Table</h3>
-                                <div className="space-y-4">
+<Modal
+                            isOpen
+                            onClose={handleCancelCreateGame}
+                            title="Create New Table"
+                            widthClass="w-full max-w-[480px]"
+                            isProcessing={isCreatingTable}
+                            closeOnBackdropClick={false}
+                        >
+                                <div className="space-y-5">
                                     <div>
-                                        <label className="block text-white text-sm mb-1">Game Type</label>
+                                        <label className={labelClass}>Game Type</label>
                                         <select
                                             value={modalGameFormat}
                                             onChange={e => {
                                                 const format = toGameFormat(e.target.value);
                                                 if (format) setModalGameFormat(format);
                                             }}
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            className={inputClass}
                                         >
                                             <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
                                             <option value={GameFormat.CASH}>Cash Game</option>
@@ -771,67 +730,67 @@ const Dashboard: React.FC = () => {
 
                                     {/* Optional paid table name (poker-vm#337): $0.10/char, live preview */}
                                     <div>
-                                        <label className="block text-white text-sm mb-1">
-                                            Table Name <span className="text-gray-400">(optional)</span>
+                                        <label className={labelClass}>
+                                            Table Name <span className="normal-case tracking-normal text-ink-muted">(optional)</span>
                                         </label>
                                         <input
                                             type="text"
                                             value={modalTableName}
                                             onChange={e => setModalTableName(e.target.value)}
                                             placeholder="e.g. friday-degens"
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            className={inputClass}
                                         />
                                         {tableNameError ? (
                                             <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
                                         ) : normalizedTableName.length > 0 ? (
-                                            <p className="text-xs text-gray-400 mt-1">
+                                            <p className="text-xs text-ink-muted mt-1.5">
                                                 {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
-                                                <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
+                                                <span className="text-ink font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
                                                 {/* Show the canonical form the chain stores when it differs from the raw input. */}
                                                 {normalizedTableName !== modalTableName && (
-                                                    <span className="text-gray-500"> — saved as “{normalizedTableName}”</span>
+                                                    <span className="text-ink-muted"> — saved as “{normalizedTableName}”</span>
                                                 )}
                                                 {insufficientForName && (
                                                     <span className="text-red-400"> — exceeds your ${numericUsdcBalance.toFixed(2)} balance</span>
                                                 )}
                                             </p>
                                         ) : (
-                                            <p className="text-xs text-gray-400 mt-1">Free if left blank. Lowercase a–z, 0–9 and hyphens; $0.10 per character.</p>
+                                            <p className="text-xs text-ink-muted mt-1.5">Free if left blank. Lowercase a–z, 0–9 and hyphens; $0.10 per character.</p>
                                         )}
                                     </div>
 
                                     {modalGameFormat === GameFormat.CASH ? (
-                                        <div className="flex gap-4">
-                                            <div className="flex-1">
-                                                <label className="block text-white text-sm mb-1">Min Players</label>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                            <div>
+                                                <label className={labelClass}>Min Players</label>
                                                 <input
                                                     type="number"
                                                     min={2}
                                                     max={9}
                                                     value={modalMinPlayers ?? 2}
                                                     onChange={e => setModalMinPlayers(Number(e.target.value))}
-                                                    className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                    className={inputClass}
                                                 />
                                             </div>
-                                            <div className="flex-1">
-                                                <label className="block text-white text-sm mb-1">Max Players</label>
+                                            <div>
+                                                <label className={labelClass}>Max Players</label>
                                                 <input
                                                     type="number"
                                                     min={2}
                                                     max={9}
                                                     value={modalMaxPlayers ?? 9}
                                                     onChange={e => setModalMaxPlayers(Number(e.target.value))}
-                                                    className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                    className={inputClass}
                                                 />
                                             </div>
                                         </div>
                                     ) : (
                                         <div>
-                                            <label className="block text-white text-sm mb-1">Number of Players</label>
+                                            <label className={labelClass}>Number of Players</label>
                                             <select
                                                 value={modalPlayerCount}
                                                 onChange={e => setModalPlayerCount(Number(e.target.value))}
-                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                className={inputClass}
                                             >
                                                 <option value={2}>2 Players (Heads-Up)</option>
                                                 <option value={4}>4 Players (Sit & Go)</option>
@@ -845,31 +804,31 @@ const Dashboard: React.FC = () => {
                                     {isTournamentFormat(modalGameFormat) ? (
                                         // For Sit & Go and Tournament: Single buy-in field
                                         <div>
-                                            <label className="block text-white text-sm mb-1">Tournament Buy-In ($)</label>
+                                            <label className={labelClass}>Tournament Buy-In ($)</label>
                                             <input
                                                 type="number"
                                                 value={modalSitAndGoBuyIn}
                                                 onChange={e => setModalSitAndGoBuyIn(Number(e.target.value))}
                                                 min="10"
                                                 max="10"
-                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                className={inputClass}
                                             />
-                                            <p className="text-xs text-gray-400 mt-1">All players pay the same buy in</p>
-                                            <label className="block text-white text-sm mb-1 mt-3">Starting Stack (chips)</label>
+                                            <p className="text-xs text-ink-muted mt-1.5">All players pay the same buy in</p>
+                                            <label className={`${labelClass} mt-4`}>Starting Stack (chips)</label>
                                             <select
                                                 value={modalStartingStack}
                                                 onChange={e => setModalStartingStack(Number(e.target.value))}
-                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                className={inputClass}
                                             >
                                                 <option value={1000}>Turbo (1,000)</option>
                                                 <option value={1500}>Standard (1,500)</option>
                                                 <option value={3000}>Deep Stack (3,000)</option>
                                             </select>
-                                            <label className="block text-white text-sm mb-1 mt-3">Starting Blinds (chips)</label>
+                                            <label className={`${labelClass} mt-4`}>Starting Blinds (chips)</label>
                                             <select
                                                 value={modalSngBlindsIndex}
                                                 onChange={e => setModalSngBlindsIndex(Number(e.target.value))}
-                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                className={inputClass}
                                             >
                                                 {SNG_BLINDS.map((b, i) => (
                                                     <option key={b.bigBlind} value={i}>
@@ -877,11 +836,11 @@ const Dashboard: React.FC = () => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            <label className="block text-white text-sm mb-1 mt-3">Blind Level Duration</label>
+                                            <label className={`${labelClass} mt-4`}>Blind Level Duration</label>
                                             <select
                                                 value={modalBlindLevelDuration}
                                                 onChange={e => setModalBlindLevelDuration(Number(e.target.value))}
-                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                className={inputClass}
                                             >
                                                 <option value={3}>Hyper (3 min)</option>
                                                 <option value={5}>Turbo (5 min)</option>
@@ -894,11 +853,11 @@ const Dashboard: React.FC = () => {
                                         <>
                                             {/* Blind Level Dropdown - Cash games only */}
                                             <div>
-                                                <label className="block text-white text-sm mb-1">Game Size (Small Blind / Big Blind)</label>
+                                                <label className={labelClass}>Game Size (Small Blind / Big Blind)</label>
                                                 <select
                                                     value={selectedBlindLevel}
                                                     onChange={e => setSelectedBlindLevel(Number(e.target.value))}
-                                                    className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                    className={inputClass}
                                                 >
                                                     {BLIND_LEVELS.map((level, index) => (
                                                         <option key={index} value={index}>
@@ -910,7 +869,7 @@ const Dashboard: React.FC = () => {
 
                                             {/* Preset buttons */}
                                             <div>
-                                                <label className="block text-white text-sm mb-2">Buy-In Presets</label>
+                                                <label className={labelClass}>Buy-In Presets</label>
                                                 <div className="flex gap-2 flex-wrap">
                                                     <button
                                                         type="button"
@@ -918,10 +877,10 @@ const Dashboard: React.FC = () => {
                                                             setModalMinBuyInBB(20);
                                                             setModalMaxBuyInBB(100);
                                                         }}
-                                                        className={`px-3 py-1 text-xs rounded transition-all duration-200 ${
+                                                        className={`h-9 px-3.5 text-xs font-medium rounded-full transition-colors ${
                                                             modalMinBuyInBB === 20 && modalMaxBuyInBB === 100
-                                                                ? "bg-blue-600 text-white"
-                                                                : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                                                                ? "bg-brand text-white border border-brand"
+                                                                : "border border-line-strong text-ink-soft hover:bg-surface-hover"
                                                         }`}
                                                     >
                                                         Standard (20-100 BB)
@@ -932,10 +891,10 @@ const Dashboard: React.FC = () => {
                                                             setModalMinBuyInBB(40);
                                                             setModalMaxBuyInBB(200);
                                                         }}
-                                                        className={`px-3 py-1 text-xs rounded transition-all duration-200 ${
+                                                        className={`h-9 px-3.5 text-xs font-medium rounded-full transition-colors ${
                                                             modalMinBuyInBB === 40 && modalMaxBuyInBB === 200
-                                                                ? "bg-blue-600 text-white"
-                                                                : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                                                                ? "bg-brand text-white border border-brand"
+                                                                : "border border-line-strong text-ink-soft hover:bg-surface-hover"
                                                         }`}
                                                     >
                                                         Deep (40-200 BB)
@@ -946,10 +905,10 @@ const Dashboard: React.FC = () => {
                                                             setModalMinBuyInBB(100);
                                                             setModalMaxBuyInBB(300);
                                                         }}
-                                                        className={`px-3 py-1 text-xs rounded transition-all duration-200 ${
+                                                        className={`h-9 px-3.5 text-xs font-medium rounded-full transition-colors ${
                                                             modalMinBuyInBB === 100 && modalMaxBuyInBB === 300
-                                                                ? "bg-blue-600 text-white"
-                                                                : "bg-gray-600 text-gray-300 hover:bg-gray-500"
+                                                                ? "bg-brand text-white border border-brand"
+                                                                : "border border-line-strong text-ink-soft hover:bg-surface-hover"
                                                         }`}
                                                     >
                                                         Deep Stack (100-300 BB)
@@ -958,50 +917,50 @@ const Dashboard: React.FC = () => {
                                             </div>
 
                                             {/* Buy-in inputs in BB */}
-                                            <div className="flex gap-4">
-                                                <div className="flex-1">
-                                                    <label className="block text-white text-sm mb-1">Minimum Buy-In (BB)</label>
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                                <div>
+                                                    <label className={labelClass}>Minimum Buy-In (BB)</label>
                                                     <input
                                                         type="number"
                                                         value={modalMinBuyInBB}
                                                         onChange={e => setModalMinBuyInBB(Number(e.target.value))}
                                                         min="20"
                                                         max="500"
-                                                        className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                        className={inputClass}
                                                     />
                                                 </div>
-                                                <div className="flex-1">
-                                                    <label className="block text-white text-sm mb-1">Maximum Buy-In (BB)</label>
+                                                <div>
+                                                    <label className={labelClass}>Maximum Buy-In (BB)</label>
                                                     <input
                                                         type="number"
                                                         value={modalMaxBuyInBB}
                                                         onChange={e => setModalMaxBuyInBB(Number(e.target.value))}
                                                         min="20"
                                                         max="500"
-                                                        className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                                        className={inputClass}
                                                     />
                                                 </div>
                                             </div>
 
                                             {/* Calculated buy-in preview */}
                                             {modalBigBlind > 0 && (
-                                                <div className="bg-gray-700/50 rounded p-3 border border-gray-600">
-                                                    <p className="text-xs text-gray-400 mb-1">Calculated Buy-In Range:</p>
-                                                    <p className="text-sm text-green-400">
+                                                <div className="bg-surface-raised rounded-xl p-3 border border-line">
+                                                    <p className="text-xs text-ink-muted mb-1">Calculated Buy-In Range:</p>
+                                                    <p className="text-sm text-emerald-400">
                                                         ${calculatedMinBuyIn.toFixed(2)} - ${calculatedMaxBuyIn.toFixed(2)}
                                                     </p>
-                                                    <p className="text-xs text-gray-500 mt-1">Based on ${modalBigBlind.toFixed(2)} BB</p>
+                                                    <p className="text-xs text-ink-muted mt-1">Based on ${modalBigBlind.toFixed(2)} BB</p>
                                                 </div>
                                             )}
                                         </>
                                     )}
 
                                     <div>
-                                        <label className="block text-white text-sm mb-1">Variant</label>
+                                        <label className={labelClass}>Variant</label>
                                         <select
                                             value={selectedContractAddress}
                                             onChange={e => setSelectedContractAddress(e.target.value)}
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            className={inputClass}
                                         >
                                             <React.Fragment>
                                                 <option value={DEFAULT_GAME_CONTRACT}>Texas Hold'em</option>
@@ -1018,9 +977,9 @@ const Dashboard: React.FC = () => {
                                         </select>
                                     </div>
 
-                                    <div className="flex items-center justify-between rounded bg-gray-900 border border-gray-700 p-2 text-sm">
-                                        <span className="text-gray-400">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds)</span>
-                                        <span className="text-white font-mono">
+                                    <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-raised border border-line px-3.5 py-3 text-sm">
+                                        <span className="text-ink-muted">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds)</span>
+                                        <span className="text-ink font-mono shrink-0">
                                             {creationFeeMicro === null ? "—" : `$${formatMicroAsUsdc(creationFeeMicro.toString(), 6)}`}
                                         </span>
                                     </div>
@@ -1031,26 +990,15 @@ const Dashboard: React.FC = () => {
                                         </p>
                                     )}
 
-                                    {createGameError && <p className="text-red-500 text-sm">{createGameError}</p>}
-                                    {createTableError && <p className="text-red-500 text-sm">{createTableError.message}</p>}
+                                    {createGameError && <p role="alert" className={errorBoxClass}>{createGameError}</p>}
+                                    {createTableError && <p role="alert" className={errorBoxClass}>{createTableError.message}</p>}
 
-                                    <div className="flex justify-end space-x-3">
+                                    <div className="flex flex-col gap-2 pt-1">
                                         <button
-                                            onClick={() => {
-                                                setShowCreateGameModal(false);
-                                                setCreateGameError("");
-                                                setModalTableName("");
-                                            }}
-                                            className="px-4 py-2 text-sm bg-gray-600 hover:bg-gray-700 hover:opacity-90 text-white rounded-lg transition duration-300 shadow-inner"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
+                                            type="button"
                                             onClick={handleCreateNewGame}
                                             disabled={createDisabled}
-                                            className={`px-4 py-2 text-sm text-white rounded-lg transition duration-300 shadow-md flex items-center ${
-                                                createDisabled ? "bg-gray-500" : `${styles.brandPrimaryBg} hover:opacity-90`
-                                            }`}
+                                            className="h-12 w-full rounded-full bg-brand text-white font-semibold flex items-center justify-center transition-colors hover:bg-brand-light disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
                                         >
                                             {isCreatingTable ? (
                                                 <>
@@ -1073,17 +1021,24 @@ const Dashboard: React.FC = () => {
                                                 "Create Game"
                                             )}
                                         </button>
+                                        <button
+                                            type="button"
+                                            onClick={handleCancelCreateGame}
+                                            className="h-11 w-full rounded-full text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
+                                        >
+                                            Cancel
+                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        </div>
+                        </Modal>
                     )}
 
-                    {/* Two-column layout: Wallet (fixed width) on left, Tables (flex) on right */}
-                    <div className="w-full max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 z-10 mt-8 sm:mt-12 lg:mt-16">
-                        <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-                            {/* Left column: Wallet and Transactions (fixed width) */}
-                            <div className="w-full lg:w-[400px] flex-shrink-0 space-y-4">
+                    {/* Lobby layout. Desktop (lg+): left column = Wallet over Transactions (380px),
+                        right column = Tables spanning both rows. Phones: one column in DOM order
+                        Wallet, Tables, Transactions. */}
+                    <main className="w-full max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 flex flex-col min-h-[calc(100vh-73px)]">
+                        <div className="grid grid-cols-1 gap-5 lg:gap-7 lg:grid-cols-[380px_minmax(0,1fr)] lg:grid-rows-[auto_1fr] items-start">
+                            <div className="min-w-0 lg:col-start-1 lg:row-start-1">
                                 <WalletPanel
                                     onDeposit={handleDepositClick}
                                     onWithdraw={handleWithdrawClick}
@@ -1094,39 +1049,30 @@ const Dashboard: React.FC = () => {
                                     usdcBalance={getTransferTokenBalance()}
                                     cosmosWalletAddress={cosmosWallet.address}
                                 />
-                                <TransactionPanel cosmosWalletAddress={cosmosWallet.address} usdcBalance={getTransferTokenBalance()} />
                             </div>
 
-                            {/* Right column: Table List (takes remaining space) */}
-                            <div className="flex-1 min-w-0">
+                            <div className="min-w-0 lg:col-start-2 lg:row-start-1 lg:row-span-2">
                                 <TableList
                                     onCreateTable={() => {
                                         setCreateGameError("");
                                         setShowCreateGameModal(true);
                                     }}
                                 />
-                                {/* Powered by Block52 — shown below table on small/mid screens */}
-                                <div className="flex lg:hidden items-center justify-center opacity-30 py-4">
-                                    <div className="flex flex-col items-center gap-1">
-                                        <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
-                                        <img src="/block52.png" alt="Block52 Logo" className="h-5 w-auto object-contain" />
-                                    </div>
-                                </div>
+                            </div>
+
+                            <div className="min-w-0 lg:col-start-1 lg:row-start-2">
+                                <TransactionPanel
+                                    cosmosWalletAddress={cosmosWallet.address}
+                                    usdcBalance={getTransferTokenBalance()}
+                                    onDeposit={handleDepositClick}
+                                />
                             </div>
                         </div>
-                    </div>
+
+                        <PoweredBy />
+                    </main>
 
                     {/* Reset blockchain button was here, now commented out by user */}
-
-                    {/* Powered by Block52 — fixed on large screens only */}
-                    <div className="hidden lg:flex fixed bottom-4 left-4 items-center z-10 opacity-30">
-                        <div className="flex flex-col items-start bg-transparent px-3 py-2 rounded-lg backdrop-blur-sm border-0">
-                            <div className="text-left mb-1">
-                                <span className="text-xs text-white font-medium tracking-wide">POWERED BY</span>
-                            </div>
-                            <img src="/block52.png" alt="Block52 Logo" className="h-6 w-auto object-contain interaction-none" />
-                        </div>
-                    </div>
 
                     {showWithdrawalModal && (
                         <WithdrawalModal

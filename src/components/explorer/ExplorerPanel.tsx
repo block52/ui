@@ -1,10 +1,27 @@
 import { FC, FormEvent, ReactNode } from "react";
-import styles from "./ExplorerPanel.module.css";
+import { Card, pillClass } from "../ui";
+import { ExplorerHeader } from "./ExplorerHeader";
 
 /**
  * Shared building blocks for explorer pages (ui#728), so search, results,
  * loading and empty states look and behave the same on every page.
  */
+
+/** Page shell for explorer pages: flat page surface, centred column, explorer header. */
+export const ExplorerPage: FC<{ title?: string; subtitle?: string; children: ReactNode }> = ({ title, subtitle, children }) => (
+    <div className="min-h-screen bg-surface-page text-ink-body">
+        <div className="max-w-[1376px] mx-auto px-4 py-6 sm:px-8 sm:py-8">
+            <ExplorerHeader title={title} subtitle={subtitle} />
+            {children}
+        </div>
+    </div>
+);
+
+/** Uppercase column header cell style used by every explorer table. */
+export const explorerThClass = "px-4 sm:px-5 py-3.5 text-left text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted whitespace-nowrap";
+
+/** Body row style: hairline divider and hover surface. */
+export const explorerRowClass = "border-t border-line hover:bg-surface-hover transition-colors";
 
 /** A results card: an optional header line (title left, action right), then the body. */
 export const ExplorerPanel: FC<{ header?: ReactNode; action?: ReactNode; children: ReactNode; className?: string }> = ({
@@ -13,31 +30,31 @@ export const ExplorerPanel: FC<{ header?: ReactNode; action?: ReactNode; childre
     children,
     className = ""
 }) => (
-    <div className={`backdrop-blur-md rounded-xl overflow-hidden ${styles.panel} ${className}`}>
+    <Card as="div" className={className}>
         {(header || action) && (
-            <div className={`flex items-center justify-between gap-3 px-3 sm:px-4 min-h-[40px] ${styles.panelHeader}`}>
-                <div className="min-w-0 text-sm text-gray-400">{header}</div>
+            <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-4 sm:px-5 py-1 min-h-[52px] border-b border-line">
+                <div className="min-w-0 text-[15px] font-semibold text-ink">{header}</div>
                 {action}
             </div>
         )}
         {children}
-    </div>
+    </Card>
 );
 
 /** The one empty-state message style. */
-export const ExplorerEmpty: FC<{ children: ReactNode }> = ({ children }) => <p className="py-8 px-4 text-center text-sm text-gray-400">{children}</p>;
+export const ExplorerEmpty: FC<{ children: ReactNode }> = ({ children }) => <p className="py-10 px-4 text-center text-sm text-ink-muted">{children}</p>;
 
 /** The one loading style. */
 export const ExplorerLoading: FC<{ label: string }> = ({ label }) => (
-    <div className="py-8 text-center">
-        <div className={`animate-spin rounded-full h-8 w-8 border-b-2 mx-auto mb-3 ${styles.spinner}`} />
-        <p className="text-gray-400 text-sm">{label}</p>
+    <div className="py-10 text-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand mx-auto mb-3" />
+        <p className="text-ink-muted text-sm">{label}</p>
     </div>
 );
 
 const SearchIcon = () => (
     <svg
-        className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"
+        className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-ink-muted pointer-events-none"
         fill="none"
         stroke="currentColor"
         viewBox="0 0 24 24"
@@ -56,7 +73,7 @@ interface ExplorerSearchInputProps {
     busy?: boolean;
 }
 
-/** The one search input: magnifier icon, compact height; an optional small submit button. */
+/** The one search input: magnifier icon, pill shape; an optional submit pill. */
 export const ExplorerSearchInput: FC<ExplorerSearchInputProps> = ({ value, onChange, placeholder, onSubmit, busy = false }) => {
     const submit = (e: FormEvent) => {
         e.preventDefault();
@@ -72,15 +89,11 @@ export const ExplorerSearchInput: FC<ExplorerSearchInputProps> = ({ value, onCha
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
                     aria-label={placeholder}
-                    className={`w-full pl-9 pr-3 py-2 rounded-lg text-sm text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${styles.searchInput}`}
+                    className="w-full h-11 pl-10 pr-4 rounded-full bg-surface-card border border-line text-sm text-ink-body placeholder:text-ink-muted outline-none focus:border-brand transition-colors"
                 />
             </div>
             {onSubmit && (
-                <button
-                    type="submit"
-                    disabled={busy}
-                    className={`px-4 py-2 rounded-lg text-sm text-white font-semibold transition-all hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed ${styles.searchButton}`}
-                >
+                <button type="submit" disabled={busy} className={pillClass("primary", "md")}>
                     {busy ? "Searching…" : "Search"}
                 </button>
             )}
@@ -99,7 +112,7 @@ export const ExplorerReloadButton: FC<{ onClick: () => void; busy?: boolean; lab
         disabled={busy}
         title={label}
         aria-label={label}
-        className="p-1.5 rounded-md text-gray-400 hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+        className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors disabled:opacity-50"
     >
         <svg className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path

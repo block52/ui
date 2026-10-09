@@ -13,5 +13,10 @@
 }
 
 .buttonSecondary {
-    background-color: var(--ui-text-secondary);
+    background-color: transparent;
+    border: 1px solid #2c2f45;
+}
+
+.buttonSecondary:hover:not(:disabled) {
+    background-color: #232636;
 }

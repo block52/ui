@@ -32,7 +32,7 @@ const LiveHandStrengthDisplay: React.FC = () => {
     const bottomStyle = isCompactMobile ? { bottom: "calc(env(safe-area-inset-bottom) + 169px)" } : { bottom: "168px" };
 
     return (
-        <div style={bottomStyle} className="fixed right-4 bg-black/80 backdrop-blur-sm p-3 rounded-lg border border-blue-500/20 shadow-lg z-50">
+        <div style={bottomStyle} className="fixed right-4 bg-surface-card/90 backdrop-blur-sm p-3 rounded-xl border border-line shadow-lg z-50">
             <div className="flex flex-col items-end">
                 <div className="text-white font-medium text-sm">{handStrength.descr}</div>
             </div>

@@ -7,6 +7,7 @@
 
 import React from "react";
 import ActionsLog from "../../../ActionsLog";
+import styles from "./SidePanel.module.css";
 
 export interface TableSidebarProps {
     isOpen: boolean;
@@ -20,7 +21,7 @@ export const TableSidebar: React.FC<TableSidebarProps> = ({ isOpen }) => {
                 the DOM — focusable, screen-reader reachable, and rendering off-canvas
                 past the viewport's right edge on phones. */}
             {isOpen && (
-                <div className="h-full bg-[#1a2234] border-l border-white/10 flex flex-col overflow-hidden">
+                <div className={`h-full bg-surface-card border-l border-line flex flex-col overflow-hidden ${styles.panel}`}>
                     <ActionsLog />
                 </div>
             )}

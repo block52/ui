@@ -169,15 +169,15 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     // the local player is seated — above every panel (sit-in, waiting, sit-out) —
     // via `seatedFrame` below, rather than only in the sit-in states (#392/#2139).
     const seatAtBottomToggle = (
-        <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+        <div className={`backdrop-blur-sm rounded-xl shadow-lg border border-line bg-surface-card/90 ${isCompact ? "p-2" : "p-3"}`}>
             <label className="flex items-center cursor-pointer">
                 <input
                     type="checkbox"
                     checked={seatAtBottom}
                     onChange={toggleSeatAtBottom}
-                    className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                    className="form-checkbox h-4 w-4 text-amber-500 border-line-strong rounded focus:ring-0"
                 />
-                <span className={`ml-2 ${seatAtBottom ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                <span className={`ml-2 ${seatAtBottom ? "text-amber-300" : "text-ink-body"} ${isCompact ? "text-xs" : "text-sm"}`}>
                     Seat me at 6 o'clock
                 </span>
             </label>
@@ -226,15 +226,15 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             <>
                 {buyChipsElement}
                 <div className="fixed z-30 bottom-8 left-1/2 -translate-x-1/2">
-                    <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                    <div className={`backdrop-blur-sm rounded-xl shadow-lg border border-line bg-surface-card/90 ${isCompact ? "p-2" : "p-3"}`}>
                         <div className="flex items-center gap-2">
-                            <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
-                            <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>You are spectating this table</span>
+                            <div className="animate-pulse w-2 h-2 rounded-full bg-brand-light" />
+                            <span className={`text-brand-light font-medium ${isCompact ? "text-xs" : "text-sm"}`}>You are spectating this table</span>
                         </div>
                         {!isTableFull && (
                             <div className="flex items-center gap-2">
-                                <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
-                                <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>
+                                <div className="animate-pulse w-2 h-2 rounded-full bg-brand-light" />
+                                <span className={`text-brand-light font-medium ${isCompact ? "text-xs" : "text-sm"}`}>
                                     To join the table, click on an available seat.
                                 </span>
                             </div>
@@ -247,7 +247,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     switch (display.kind) {
         case "pending":
             return seatedFrame(
-                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                <div className={`backdrop-blur-sm rounded-xl shadow-lg border border-line bg-surface-card/90 ${isCompact ? "p-2" : "p-3"}`}>
                     <div className="flex items-center gap-2">
                         <div className="animate-pulse w-2 h-2 rounded-full bg-yellow-400" />
                         <span className={`text-yellow-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{display.waitingMessage}</span>
@@ -264,15 +264,15 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <button
                     onClick={handleSitInClick}
                     disabled={sittingIn}
-                    className={`flex items-center justify-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                    className={`flex items-center justify-center gap-2 rounded-full shadow-lg border font-bold tracking-wide uppercase transition-all duration-150 ${
                         sittingIn
-                            ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
-                            : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95"
+                            ? "bg-brand/70 border-brand text-white/80 cursor-wait"
+                            : "bg-brand border-brand text-white hover:bg-brand-light hover:border-brand-light hover:scale-105 active:scale-95"
                     } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
                 >
                     {sittingIn ? (
                         <>
-                            <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
                             Sitting in...
                         </>
                     ) : (
@@ -290,15 +290,15 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <button
                     onClick={handleSitInClick}
                     disabled={sittingIn}
-                    className={`flex items-center gap-2 rounded-lg shadow-lg border-2 font-bold tracking-wide uppercase transition-all duration-150 ${
+                    className={`flex items-center gap-2 rounded-full shadow-lg border font-bold tracking-wide uppercase transition-all duration-150 ${
                         sittingIn
-                            ? "bg-green-700 border-green-600 text-green-200 cursor-wait"
-                            : "bg-green-600 border-green-400 text-white hover:bg-green-500 hover:border-green-300 hover:scale-105 active:scale-95 animate-pulse"
+                            ? "bg-brand/70 border-brand text-white/80 cursor-wait"
+                            : "bg-brand border-brand text-white hover:bg-brand-light hover:border-brand-light hover:scale-105 active:scale-95 animate-pulse"
                     } ${isCompact ? "px-3 py-2 text-xs" : "px-5 py-3 text-sm"}`}
                 >
                     {sittingIn ? (
                         <>
-                            <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
+                            <div className="w-3 h-3 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
                             Sitting in...
                         </>
                     ) : (
@@ -311,7 +311,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             // Default flow (ui#550): sitting in happens automatically (see the
             // effect above) — show a brief indicator, no method UI.
             return seatedFrame(
-                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
+                <div className={`backdrop-blur-sm rounded-xl shadow-lg border border-line bg-surface-card/90 ${isCompact ? "p-2" : "p-3"}`}>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
                         <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
@@ -331,15 +331,15 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 return seatedFrame(null);
             }
             return seatedFrame(
-                <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
+                <div className={`backdrop-blur-sm rounded-xl shadow-lg border border-line bg-surface-card/90 ${isCompact ? "p-2" : "p-3"} flex flex-col gap-1`}>
                     <label className="flex items-center cursor-pointer">
                         <input
                             type="checkbox"
                             checked={isChecked}
                             onChange={handleToggleSitOutNextHand}
-                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                            className="form-checkbox h-4 w-4 text-amber-500 border-line-strong rounded focus:ring-0"
                         />
-                        <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                        <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-ink-body"} ${isCompact ? "text-xs" : "text-sm"}`}>
                             Sit Out Next Hand
                         </span>
                     </label>
@@ -348,9 +348,9 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                             type="checkbox"
                             checked={sitOutNextBbQueued}
                             onChange={toggleNextBb}
-                            className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
+                            className="form-checkbox h-4 w-4 text-amber-500 border-line-strong rounded focus:ring-0"
                         />
-                        <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
+                        <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-ink-body"} ${isCompact ? "text-xs" : "text-sm"}`}>
                             Sit Out Next Big Blind
                         </span>
                     </label>
@@ -363,13 +363,13 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             // can never appear at the same time and the slot is free).
             return seatedFrame(
                 <div
-                    className={`backdrop-blur-sm shadow-lg border border-white/20 bg-black/60 ${
-                        isCompactMobile ? "rounded-full px-3 py-1" : `rounded-lg ${isCompact ? "p-2" : "p-3"}`
+                    className={`backdrop-blur-sm shadow-lg border border-line bg-surface-card/90 ${
+                        isCompactMobile ? "rounded-full px-3 py-1" : `rounded-xl ${isCompact ? "p-2" : "p-3"}`
                     }`}
                 >
                     <div className="flex items-center gap-2">
-                        <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
-                        <span className={`text-blue-300 font-medium whitespace-nowrap ${isCompactMobile ? "text-[11px]" : isCompact ? "text-xs" : "text-sm"}`}>
+                        <div className="animate-pulse w-2 h-2 rounded-full bg-brand-light" />
+                        <span className={`text-brand-light font-medium whitespace-nowrap ${isCompactMobile ? "text-[11px]" : isCompact ? "text-xs" : "text-sm"}`}>
                             Waiting for players to join...
                         </span>
                     </div>

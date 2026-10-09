@@ -1,3 +1,10 @@
 .amountAccent {
-  color: var(--brand-primary);
+  color: rgb(var(--brand-primary-light-rgb));
+  font-weight: 700;
+}
+
+/* On the solid-brand primary (bet / raise / all-in) the accent would vanish
+   into the fill, so the amount reads in white there. */
+:global(.btn-raise) .amountAccent {
+  color: #ffffff;
 }

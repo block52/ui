@@ -25,6 +25,10 @@ import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { isNullish } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { Modal } from "../common/Modal";
+import { ModalFooter } from "./ModalFooter";
+import { PillButton } from "../ui/PillButton";
+import { fieldLabelClass, insetBoxClass, noticeClass } from "./walletFormClasses";
 
 type ClaimState =
     | { kind: "idle" }
@@ -34,6 +38,9 @@ type ClaimState =
     | { kind: "error"; message: string };
 
 const PLACE_SUFFIX = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
+// The result modal is not dismissable by backdrop/Escape; this satisfies Modal's required onClose.
+const noop = (): void => undefined;
+
 const ordinal = (place: number): string => PLACE_SUFFIX[place - 1] ?? `${place}th`;
 
 // localStorage flag — once the user has dismissed the modal for this
@@ -175,7 +182,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
     // line). Unpaid finishers get a softer message with no dollar
     // amount. Winners get a small celebratory swap.
     const heading = isWinner
-        ? "🏆 You won the tournament!"
+        ? "You won the tournament!"
         : isPaid
             ? `You finished ${ordinal(place)}!`
             : `You busted out — finished ${ordinal(place)}.`;
@@ -185,67 +192,93 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
         : "Thanks for playing.";
 
     return (
-        <div
-            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
-            data-testid="sng-result-modal"
-        >
-            <div className="bg-gray-800/90 backdrop-blur-md p-8 rounded-xl w-96 shadow-2xl border border-blue-400/20 relative overflow-hidden">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl" />
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500" />
-
-                <div className="relative z-10">
-                    <div className="flex items-center justify-center mb-4">
-                        <img src="/block52.png" alt="Block52 Logo" className="h-16 w-auto object-contain" />
+        <div data-testid="sng-result-modal">
+            <Modal
+                isOpen
+                onClose={noop}
+                closeOnEscape={false}
+                closeOnBackdropClick={false}
+                widthClass="w-[420px]"
+            >
+                <div className="flex flex-col items-center text-center">
+                    <div
+                        className={`min-w-20 h-20 px-5 rounded-full grid place-items-center text-3xl font-bold tabular-nums border ${
+                            isWinner
+                                ? "bg-brand/15 border-brand/40 text-brand-light"
+                                : "bg-surface-raised border-line-strong text-ink-soft"
+                        }`}
+                        aria-label={`Finished ${ordinal(place)}`}
+                    >
+                        {ordinal(place)}
                     </div>
 
-                    <h2
-                        className="text-2xl font-bold text-white text-center mb-2 text-shadow"
-                        data-testid="sng-result-heading"
-                    >
+                    <h2 className="m-0 mt-4 text-xl font-semibold text-ink" data-testid="sng-result-heading">
                         {heading}
                     </h2>
 
-                    {subtext && (
-                        <p className="text-gray-300 text-center mb-6 text-sm">
-                            {subtext}
-                        </p>
-                    )}
+                    {subtext && <p className="m-0 mt-1 text-ink-muted text-sm">{subtext}</p>}
+                </div>
 
-                    {isPaid && (
-                        <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6 text-center">
-                            <div className="text-xs text-green-300 font-semibold mb-1">
-                                YOUR PAYOUT
-                            </div>
-                            <div
-                                className="text-3xl text-white font-bold"
-                                data-testid="sng-result-payout"
-                            >
-                                ${formatUSDCToSimpleDollars(payout)}
-                            </div>
+                {isPaid && (
+                    <div className={`${insetBoxClass} mt-5 text-center`}>
+                        <div className={fieldLabelClass.replace("block mb-2", "block mb-1")}>Your payout</div>
+                        <div className="text-3xl text-emerald-400 font-bold tabular-nums" data-testid="sng-result-payout">
+                            ${formatUSDCToSimpleDollars(payout)}
                         </div>
-                    )}
+                    </div>
+                )}
 
+                {prizeClaim.kind === "error" && (
+                    <p className={`m-0 mt-3 ${noticeClass.error}`} data-testid="sng-result-prize-claim-error" role="alert">
+                        {prizeClaim.message}
+                    </p>
+                )}
+
+                {claimState.kind === "error" && (
+                    <p className={`m-0 mt-3 ${noticeClass.error}`} data-testid="sng-result-claim-error" role="alert">
+                        {claimState.message}
+                    </p>
+                )}
+
+                {claimState.kind === "done" && claimHash && (
+                    <p className={`m-0 mt-3 ${noticeClass.success}`}>
+                        Tx:{" "}
+                        <a
+                            href={`https://etherscan.io/tx/${claimHash}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="underline font-mono hover:text-emerald-300"
+                        >
+                            {truncateMiddle(claimHash, 10, 8, "…")}
+                        </a>
+                    </p>
+                )}
+
+                <ModalFooter>
                     {isPaid && (
-                        <button
+                        <PillButton
                             onClick={prizeClaim.kind === "done" ? handleDismiss : handleClaimWinningsClick}
                             disabled={prizeClaim.kind === "claiming"}
                             data-testid="sng-result-claim-winnings-btn"
-                            className="w-full py-3 px-4 mb-3 rounded-lg border border-green-500/40 bg-green-500/10 text-green-300 text-sm font-semibold hover:bg-green-500/20 hover:border-green-500/60 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                            size="lg"
+                            className="w-full"
                         >
                             {prizeClaim.kind === "claiming" && "Collecting…"}
-                            {prizeClaim.kind === "done" && "✓ Paid!"}
+                            {prizeClaim.kind === "done" && (
+                                <>
+                                    <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                        <path d="M4 10.5l4 4 8-9" />
+                                    </svg>
+                                    Paid!
+                                </>
+                            )}
                             {(prizeClaim.kind === "idle" || prizeClaim.kind === "error") && `Collect $${formatUSDCToSimpleDollars(payout)}`}
-                        </button>
-                    )}
-
-                    {prizeClaim.kind === "error" && (
-                        <p className="text-xs text-red-400 text-center mb-3" data-testid="sng-result-prize-claim-error">
-                            {prizeClaim.message}
-                        </p>
+                        </PillButton>
                     )}
 
                     {isPaid && (
-                        <button
+                        <PillButton
+                            variant="outline"
                             onClick={handleClaimClick}
                             disabled={
                                 claimState.kind === "fetching" ||
@@ -253,58 +286,24 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
                                 claimState.kind === "done"
                             }
                             data-testid="sng-result-claim-btn"
-                            className="w-full py-3 px-4 mb-3 rounded-lg border border-purple-500/40 bg-purple-500/10 text-purple-300 text-sm font-semibold hover:bg-purple-500/20 hover:border-purple-500/60 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="w-full"
                         >
                             {claimState.kind === "fetching" && "Requesting signature…"}
                             {claimState.kind === "submitting" && "Confirm in MetaMask…"}
-                            {claimState.kind === "done" && "✓ NFT Claimed"}
+                            {claimState.kind === "done" && "NFT Claimed"}
                             {(claimState.kind === "idle" || claimState.kind === "error") && "Claim NFT"}
-                        </button>
-                    )}
-
-                    {claimState.kind === "error" && (
-                        <p
-                            className="text-xs text-red-400 text-center mb-3"
-                            data-testid="sng-result-claim-error"
-                        >
-                            {claimState.message}
-                        </p>
-                    )}
-
-                    {claimState.kind === "done" && claimHash && (
-                        <p className="text-xs text-green-300 text-center mb-3">
-                            Tx:{" "}
-                            <a
-                                href={`https://etherscan.io/tx/${claimHash}`}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="underline hover:text-green-200"
-                            >
-                                {truncateMiddle(claimHash, 10, 8, "…")}
-                            </a>
-                        </p>
+                        </PillButton>
                     )}
 
                     {/* Paid finishers claim (above) and dismiss via the Paid! button —
                         no Leave. Unpaid finishers have no prize, so keep a dismiss. */}
                     {!isPaid && (
-                        <button
-                            onClick={handleLeaveClick}
-                            data-testid="sng-result-leave-btn"
-                            className="w-full py-3 px-4 rounded-lg border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-semibold hover:bg-red-500/20 hover:border-red-500/60 transition-colors duration-200"
-                        >
+                        <PillButton onClick={handleLeaveClick} data-testid="sng-result-leave-btn" size="lg" className="w-full">
                             Spectate Table
-                        </button>
+                        </PillButton>
                     )}
-
-                    <div className="text-center mt-4">
-                        <div className="flex items-center justify-center gap-1">
-                            <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-                            <span className="text-xs text-gray-400">Powered by Block52</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+                </ModalFooter>
+            </Modal>
         </div>
     );
 };

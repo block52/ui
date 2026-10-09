@@ -5,6 +5,7 @@ export { AnimatedBackground } from "./AnimatedBackground";
 export { Modal, HexagonPattern } from "./Modal";
 export { DepositCountdown } from "./DepositCountdown";
 export { Pagination } from "./Pagination";
+export { PoweredBy } from "./PoweredBy";
 export { SortButton } from "./SortButton";
 export type { SortDirection } from "./SortButton";
 export type { BaseModalProps } from "./Modal";
