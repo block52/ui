@@ -5,6 +5,8 @@
  * time is the timestamp of its most recent sent or received transaction.
  */
 
+import { isNullish } from "./guards";
+
 /**
  * The most recent of the given ISO timestamps, or null when none is usable.
  * @example
@@ -28,9 +30,9 @@ export const latestTimestamp = (timestamps: Array<string | undefined>): string |
  * always sort last, whichever direction is chosen.
  */
 export const compareLastActive = (a: string | null, b: string | null, order: "asc" | "desc"): number => {
-    if (a === null && b === null) return 0;
-    if (a === null) return 1;
-    if (b === null) return -1;
+    if (isNullish(a) && isNullish(b)) return 0;
+    if (isNullish(a)) return 1;
+    if (isNullish(b)) return -1;
     const diff = Date.parse(a) - Date.parse(b);
     return order === "desc" ? -diff : diff;
 };
