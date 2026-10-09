@@ -101,7 +101,7 @@
 /* Fold button */
 .btn-fold {
   background: rgb(var(--surface-card) / 0.55);
-  border: 1px solid color-mix(in srgb, var(--accent-danger) 55%, transparent);
+  border: 1px solid rgb(var(--line-strong));
   color: #fca5a5;
   transition: all 0.2s ease;
 }
@@ -212,9 +212,9 @@
 
 /* All-in button */
 .btn-all-in {
-  background: color-mix(in srgb, var(--brand-primary) 20%, rgb(var(--surface-raised)));
-  border: 1px solid var(--brand-primary);
-  color: #ffffff;
+  background: rgb(var(--surface-card) / 0.55);
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
   transition: all 0.2s ease;
 }
 

@@ -30,7 +30,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
 
     const inputFieldClassName = isInvalid
         ? "bg-surface-raised text-red-400 border-red-500 focus:border-red-600 focus:ring-1 focus:ring-red-500/50"
-        : "bg-surface-raised text-ink border-line-strong focus:border-brand focus:ring-1 focus:ring-brand/30";
+        : "bg-transparent text-ink border-line-strong focus:border-brand focus:ring-1 focus:ring-brand/30";
 
     return (
         <div
