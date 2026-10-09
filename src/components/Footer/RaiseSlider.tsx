@@ -34,8 +34,8 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
 
     return (
         <div
-            className={`flex items-center bg-surface-card/80 backdrop-blur-sm rounded-xl border border-line shadow-inner ${
-                isMobileLandscape ? "gap-1 px-1 py-0.5 h-8" : "space-x-2 lg:space-x-4 p-2 lg:p-3"
+            className={`flex items-center ${
+                isMobileLandscape ? "gap-1 px-1 py-0.5 h-8 bg-surface-card/80 rounded-xl border border-line" : "gap-2 lg:gap-3 px-1"
             }`}
         >
             {/* Min/Max text - placed first in mobile landscape */}
@@ -47,12 +47,14 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 </div>
             )}
 
+            {!isMobileLandscape && <span className="hidden lg:inline text-xs text-ink-muted whitespace-nowrap">Raise to</span>}
+
             {/* Decrement Button */}
             <button
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider py-1 px-2 lg:px-4 rounded-btn border text-xs lg:text-sm transition-all duration-200"
+                        : "btn-slider w-8 h-8 grid place-items-center rounded-btn border text-sm transition-all duration-200"
                 }
                 onClick={onDecrement}
                 disabled={disabled}
@@ -84,7 +86,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider py-1 px-2 lg:px-4 rounded-btn border text-xs lg:text-sm transition-all duration-200"
+                        : "btn-slider w-8 h-8 grid place-items-center rounded-btn border text-sm transition-all duration-200"
                 }
                 onClick={onIncrement}
                 disabled={disabled}
@@ -100,7 +102,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                         inputMode={isTournament ? "numeric" : "decimal"}
                         value={displayString}
                         onChange={(e) => handleInput(e.target.value)}
-                        className={`${inputFieldClassName} px-1 lg:px-2 py-1 rounded text-xs lg:text-sm w-[80px] lg:w-[100px] transition-all duration-200 border`}
+                        className={`${inputFieldClassName} px-2 py-1.5 rounded-lg text-sm font-semibold tabular-nums text-right w-[84px] transition-all duration-200 border`}
                         disabled={disabled}
                     />
                 </div>

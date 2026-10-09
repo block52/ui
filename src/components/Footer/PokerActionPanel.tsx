@@ -461,6 +461,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         submitAction("raise", () => raiseHand(tableId, stackMicro, network), false);
     };
 
+    // Raise/bet staging puts the slider beside the buttons on desktop, so the bar widens.
+    const showsRaiseRow = showActionButtons && !showSmallBlindButton && !showBigBlindButton && (hasBetAction || hasRaiseAction) && !shortShoveRaise;
+
     return (
         <div
             className={`fixed left-0 right-0 text-white flex justify-center items-center relative ${
@@ -469,7 +472,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         >
             <div
                 className={`flex flex-col w-full justify-center rounded-lg relative z-10 ${
-                    isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : "lg:w-[570px] mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full"
+                    isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : `mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full ${showsRaiseRow ? "lg:w-[920px]" : "lg:w-[570px]"}`
                 }`}
             >
                 {/* Pre-select "Check" (ui#388) — offered when it's not your turn
@@ -566,7 +569,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
                         {/* Main Action Buttons */}
                         {showActionButtons && !showSmallBlindButton && !showBigBlindButton && (
-                            <>
+                            <div className="flex flex-col gap-2 lg:flex-row-reverse lg:items-center lg:gap-6">
+                                <div className="lg:flex-none lg:w-[430px]">
                                 <MainActionButtons
                                     canFold={canFoldAnytime}
                                     canCheck={hasCheckAction}
@@ -600,11 +604,13 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     onBetOrRaise={hasRaiseAction ? handleRaiseAction : handleBetAction}
                                     onAllIn={handleShortShoveAllInAction}
                                 />
+                                </div>
 
                                 {/* Raise/Bet Controls — hidden for a short-shove RAISE, whose
                                     all-in-only (min===max) range would render a degenerate slider;
                                     the dedicated ALL-IN button drives that shove instead. */}
                                 {(hasBetAction || hasRaiseAction) && !shortShoveRaise && (
+                                    <div className="min-w-0 lg:flex-1">
                                     <RaiseBetControls
                                         amount={raiseAmount}
                                         minAmount={hasBetAction ? minBet : minRaise}
@@ -636,8 +642,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                         onDecrement={handleRaiseDecrement}
                                         onAllIn={handleAllInAction}
                                     />
+                                    </div>
                                 )}
-                            </>
+                            </div>
                         )}
                     </>
                 )}
