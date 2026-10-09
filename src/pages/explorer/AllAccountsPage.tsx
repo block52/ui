@@ -8,6 +8,14 @@ import { microToUsdc } from "../../constants/currency";
 import { truncateMiddle } from "../../utils/stringUtils";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
+import {
+    ExplorerEmpty,
+    ExplorerError,
+    ExplorerLoading,
+    ExplorerPanel,
+    ExplorerReloadButton,
+    ExplorerSearchInput
+} from "../../components/explorer/ExplorerPanel";
 import { isEmpty, hasElements } from "../../utils/guards";
 import { Pagination } from "../../components/common";
 import styles from "./AllAccountsPage.module.css";
@@ -65,7 +73,14 @@ export default function AllAccountsPage() {
     const [error, setError] = useState<string | null>(null);
     const [sortBy, setSortBy] = useState<"balance" | "address">("balance");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+    // The box is a draft; the applied filter changes on Search/Enter (or when cleared).
+    const [searchInput, setSearchInput] = useState("");
     const [searchFilter, setSearchFilter] = useState("");
+    const onSearchChange = (value: string) => {
+        setSearchInput(value);
+        // Clearing the box shows every account again without another click.
+        if (!value.trim()) setSearchFilter("");
+    };
     const [currentPage, setCurrentPage] = useState(1);
     const cosmosApi = useCosmosApi();
 
@@ -293,174 +308,158 @@ export default function AllAccountsPage() {
     };
 
     return (
-        <div className="min-h-screen p-8 relative">
+        <div className="min-h-screen p-4 sm:p-8 relative">
             <AnimatedBackground />
 
-            <div className="max-w-7xl mx-auto relative z-10">
+            <div className="max-w-5xl mx-auto relative z-10">
                 {/* Explorer Navigation Header */}
                 <ExplorerHeader title="Block Explorer" />
 
+                <ExplorerSearchInput
+                    value={searchInput}
+                    onChange={onSearchChange}
+                    placeholder="Search by address or account type"
+                    onSubmit={() => setSearchFilter(searchInput.trim())}
+                    busy={loading}
+                />
+
                 {/* Stats Cards */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-sm mb-1">Total Accounts</p>
-                        <p className="text-3xl font-bold text-white">{stats.totalAccounts.toLocaleString()}</p>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3 mb-4">
+                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
+                        <p className="text-gray-400 text-xs sm:text-sm">Total Accounts</p>
+                        <p className="text-lg sm:text-2xl font-bold text-white">{stats.totalAccounts.toLocaleString()}</p>
                     </div>
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-sm mb-1">Accounts With Balance</p>
-                        <p className="text-3xl font-bold text-white">{stats.accountsWithBalance.toLocaleString()}</p>
+                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
+                        <p className="text-gray-400 text-xs sm:text-sm">Accounts With Balance</p>
+                        <p className="text-lg sm:text-2xl font-bold text-white">{stats.accountsWithBalance.toLocaleString()}</p>
                     </div>
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-sm mb-1">Validators</p>
-                        <p className="text-3xl font-bold text-purple-400">{stats.validatorCount.toLocaleString()}</p>
+                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
+                        <p className="text-gray-400 text-xs sm:text-sm">Validators</p>
+                        <p className="text-lg sm:text-2xl font-bold text-purple-400">{stats.validatorCount.toLocaleString()}</p>
                     </div>
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl ${styles.containerCard}`}>
-                        <p className="text-gray-400 text-sm mb-1">Total USDC</p>
-                        <p className={`text-3xl font-bold ${styles.brandText}`}>
+                    <div className={`backdrop-blur-md px-3 py-2 sm:px-4 sm:py-3 rounded-xl ${styles.containerCard}`}>
+                        <p className="text-gray-400 text-xs sm:text-sm">Total USDC</p>
+                        <p className={`text-lg sm:text-2xl font-bold ${styles.brandText}`}>
                             ${stats.totalUsdc.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                         </p>
                     </div>
                 </div>
 
-                {/* Search and Refresh */}
-                <div className={`backdrop-blur-md p-4 rounded-xl shadow-2xl mb-6 ${styles.containerCard}`}>
-                    <div className="flex flex-col md:flex-row gap-4">
-                        <input
-                            type="text"
-                            value={searchFilter}
-                            onChange={e => setSearchFilter(e.target.value)}
-                            placeholder="Search by address or account type..."
-                            className={`flex-1 px-4 py-2 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${styles.searchInput}`}
-                        />
-                        <button
-                            onClick={fetchAllAccounts}
-                            disabled={loading}
-                            className={`px-6 py-2 rounded-lg font-bold transition-all disabled:opacity-50 ${styles.refreshButton}`}
-                        >
-                            {loading ? "Loading..." : "Refresh"}
-                        </button>
-                    </div>
-                </div>
-
-                {/* Error Display */}
-                {error && (
-                    <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl mb-6 ${styles.containerCard} ${styles.errorContainer}`}>
-                        <p className="text-red-400 text-center">{error}</p>
-                    </div>
-                )}
-
-                {/* Accounts Table */}
-                {!error && (
-                    <div className={`backdrop-blur-md rounded-xl shadow-2xl overflow-hidden ${styles.containerCard}`}>
-                        {loading ? (
-                            <div className="p-8 text-center">
-                                <div className={`animate-spin rounded-full h-12 w-12 border-b-2 mx-auto mb-4 ${styles.loadingSpinner}`}></div>
-                                <p className="text-gray-400">Loading accounts...</p>
-                            </div>
-                        ) : isEmpty(filteredAndSortedAccounts) ? (
-                            <div className="p-8 text-center">
-                                <p className="text-gray-400">No accounts found</p>
-                            </div>
-                        ) : (
-                            <div className="overflow-x-auto" id="accounts-table-top">
-                                <table className="w-full">
-                                    <thead>
-                                        <tr className={styles.tableHeaderRow}>
-                                            <th className="px-6 py-4 text-left text-gray-400 font-semibold">#</th>
-                                            <th
-                                                className="px-6 py-4 text-left text-gray-400 font-semibold cursor-pointer hover:text-white transition-colors"
-                                                onClick={() => toggleSort("address")}
-                                            >
-                                                Address {sortBy === "address" && (sortOrder === "asc" ? "↑" : "↓")}
-                                            </th>
-                                            <th className="px-6 py-4 text-left text-gray-400 font-semibold">Type</th>
-                                            <th
-                                                className="px-6 py-4 text-right text-gray-400 font-semibold cursor-pointer hover:text-white transition-colors"
-                                                onClick={() => toggleSort("balance")}
-                                            >
-                                                USDC Balance {sortBy === "balance" && (sortOrder === "asc" ? "↑" : "↓")}
-                                            </th>
-                                            <th className="px-6 py-4 text-right text-gray-400 font-semibold">All Balances</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {pagedAccounts.map((account, index) => (
-                                            <tr
-                                                key={account.address}
-                                                className={`border-t cursor-pointer hover:bg-white/5 transition-colors ${styles.tableRowBorder}`}
-                                                onClick={() => navigate(`/explorer/address/${account.address}`)}
-                                            >
-                                                <td className="px-6 py-4 text-gray-500">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
-                                                <td className="px-6 py-4">
-                                                    <div className="flex flex-col gap-1">
-                                                        <span className={`text-white font-mono text-sm hover:underline break-all ${styles.brandText}`}>
-                                                            {account.address}
-                                                        </span>
-                                                        {account.isValidator && (
-                                                            <div className="flex items-center gap-2">
-                                                                <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
-                                                                    Validator: {account.validatorMoniker}
-                                                                </span>
-                                                                <span
-                                                                    className={`px-2 py-0.5 rounded text-xs font-medium ${
-                                                                        account.validatorStatus === "BONDED"
-                                                                            ? "bg-green-500/20 text-green-400"
-                                                                            : "bg-yellow-500/20 text-yellow-400"
-                                                                    }`}
-                                                                >
-                                                                    {account.validatorStatus}
-                                                                </span>
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className={`px-2 py-1 rounded text-xs font-medium ${styles.typePill}`}>{account.type}</span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <span className="text-white font-bold">
-                                                        $
-                                                        {account.totalUsdcValue.toLocaleString(undefined, {
-                                                            minimumFractionDigits: 2,
-                                                            maximumFractionDigits: 2
-                                                        })}
+                {/* Accounts */}
+                <ExplorerPanel
+                    header={`Accounts${!loading && !error && hasElements(filteredAndSortedAccounts) ? ` · ${filteredAndSortedAccounts.length.toLocaleString()}` : ""}`}
+                    action={<ExplorerReloadButton onClick={fetchAllAccounts} busy={loading} />}
+                >
+                    {loading ? (
+                        <ExplorerLoading label="Loading accounts…" />
+                    ) : error ? (
+                        <ExplorerError>{error}</ExplorerError>
+                    ) : isEmpty(filteredAndSortedAccounts) ? (
+                        <ExplorerEmpty>{searchFilter ? "No accounts match that search." : "No accounts yet."}</ExplorerEmpty>
+                    ) : (
+                        <div className="overflow-x-auto" id="accounts-table-top">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className={styles.tableHeaderRow}>
+                                        <th className="hidden sm:table-cell px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap">#</th>
+                                        <th
+                                            className="px-3 sm:px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => toggleSort("address")}
+                                        >
+                                            Address {sortBy === "address" && (sortOrder === "asc" ? "↑" : "↓")}
+                                        </th>
+                                        <th className="hidden md:table-cell px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap">Type</th>
+                                        <th
+                                            className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => toggleSort("balance")}
+                                        >
+                                            USDC Balance {sortBy === "balance" && (sortOrder === "asc" ? "↑" : "↓")}
+                                        </th>
+                                        <th className="hidden md:table-cell px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap">
+                                            All Balances
+                                        </th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {pagedAccounts.map((account, index) => (
+                                        <tr
+                                            key={account.address}
+                                            className={`border-t cursor-pointer hover:bg-white/5 transition-colors ${styles.tableRowBorder}`}
+                                            onClick={() => navigate(`/explorer/address/${account.address}`)}
+                                        >
+                                            <td className="hidden sm:table-cell px-4 py-2 text-gray-500">{(currentPage - 1) * PAGE_SIZE + index + 1}</td>
+                                            <td className="px-3 sm:px-4 py-2">
+                                                <div className="flex flex-col gap-1">
+                                                    <span
+                                                        className={`font-mono text-xs sm:text-sm hover:underline ${styles.brandText}`}
+                                                        title={account.address}
+                                                    >
+                                                        {truncateAddress(account.address)}
                                                     </span>
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    {isEmpty(account.balances) ? (
-                                                        <span className="text-gray-500">-</span>
-                                                    ) : (
-                                                        <div className="flex flex-col items-end gap-1">
-                                                            {account.balances.slice(0, 3).map((b, i) => (
-                                                                <span key={i} className="text-gray-300 text-sm">
-                                                                    {formatBalance(b.amount, b.denom)}
-                                                                </span>
-                                                            ))}
-                                                            {account.balances.length > 3 && (
-                                                                <span className="text-gray-500 text-xs">+{account.balances.length - 3} more</span>
-                                                            )}
+                                                    {account.isValidator && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="px-2 py-0.5 rounded text-xs font-bold bg-purple-500/20 text-purple-400 border border-purple-500/30">
+                                                                Validator: {account.validatorMoniker}
+                                                            </span>
+                                                            <span
+                                                                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                                                    account.validatorStatus === "BONDED"
+                                                                        ? "bg-green-500/20 text-green-400"
+                                                                        : "bg-yellow-500/20 text-yellow-400"
+                                                                }`}
+                                                            >
+                                                                {account.validatorStatus}
+                                                            </span>
                                                         </div>
                                                     )}
-                                                </td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
-                            </div>
-                        )}
-                        {!loading && hasElements(filteredAndSortedAccounts) && (
-                            <Pagination
-                                currentPage={currentPage}
-                                totalItems={filteredAndSortedAccounts.length}
-                                pageSize={PAGE_SIZE}
-                                onPageChange={page => {
-                                    setCurrentPage(page);
-                                    document.getElementById("accounts-table-top")?.scrollIntoView({ behavior: "smooth" });
-                                }}
-                            />
-                        )}
-                    </div>
-                )}
+                                                </div>
+                                            </td>
+                                            <td className="hidden md:table-cell px-4 py-2">
+                                                <span className={`px-2 py-0.5 rounded text-xs font-medium ${styles.typePill}`}>{account.type}</span>
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-2 text-right whitespace-nowrap">
+                                                <span className="text-white font-semibold">
+                                                    $
+                                                    {account.totalUsdcValue.toLocaleString(undefined, {
+                                                        minimumFractionDigits: 2,
+                                                        maximumFractionDigits: 2
+                                                    })}
+                                                </span>
+                                            </td>
+                                            <td className="hidden md:table-cell px-4 py-2 text-right">
+                                                {isEmpty(account.balances) ? (
+                                                    <span className="text-gray-500">-</span>
+                                                ) : (
+                                                    <div className="flex flex-col items-end gap-1">
+                                                        {account.balances.slice(0, 3).map((b, i) => (
+                                                            <span key={i} className="text-gray-300 text-sm">
+                                                                {formatBalance(b.amount, b.denom)}
+                                                            </span>
+                                                        ))}
+                                                        {account.balances.length > 3 && (
+                                                            <span className="text-gray-500 text-xs">+{account.balances.length - 3} more</span>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                    {!loading && hasElements(filteredAndSortedAccounts) && (
+                        <Pagination
+                            currentPage={currentPage}
+                            totalItems={filteredAndSortedAccounts.length}
+                            pageSize={PAGE_SIZE}
+                            onPageChange={page => {
+                                setCurrentPage(page);
+                                document.getElementById("accounts-table-top")?.scrollIntoView({ behavior: "smooth" });
+                            }}
+                        />
+                    )}
+                </ExplorerPanel>
 
                 {/* Results count — small screens only (pagination shows it on larger screens) */}
                 {!loading && !error && (

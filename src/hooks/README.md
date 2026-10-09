@@ -80,6 +80,15 @@ Processes and formats end-of-hand results including winners and payouts.
 const { winners, payout, showResults } = useGameResults();
 ```
 
+### Read-only Hand Replay
+
+#### `useReplayMode()`
+Parses share-link params on `/table/{id}`:
+- `?hand=N` opens hand N's **final state** (showdown, or the last action if everyone folded), read-only: no WebSocket, no action panel, no modals, no wallet needed. `GameStateContext.loadHistoricalState` finds the block where the hand ended (`tx_search` for the `hand_ended` event), then reads the public game state **at that block** via `abci_query` (`utils/handReplay.ts`, `utils/abciQuery.ts`). The chain masks every hole card that wasn't shown. Works for hands within the nodes' state history (about 30 days on node1); older hands need pokerchain#388.
+- `?hand=N&index=K` reads a point in the **current** hand via `GameStateAt` (pokerchain#160).
+
+The share buttons copy the `?hand=N` form (`buildHandShareUrl`), which keeps working after the hand ends.
+
 ### Table Discovery & Configuration
 
 #### `useFindGames()`
@@ -416,22 +425,6 @@ const {
 - `importSeedPhrase(mnemonic)` - Import wallet from seed
 - `sendTokens(recipient, amount, denom)` - Send tokens
 - `refreshBalance()` - Refresh balance from chain
-
-#### `useUserWallet()`
-Ethereum wallet connection for deposits/withdrawals.
-
-```typescript
-const {
-  address,
-  balance,
-  connect,
-  disconnect,
-  isConnected
-} = useUserWallet();
-```
-
-**Chain:** Ethereum (or L2)
-**Use Case:** Bridge deposits/withdrawals
 
 ### Deposit & Bridge Hooks (`hooks/DepositPage/`)
 

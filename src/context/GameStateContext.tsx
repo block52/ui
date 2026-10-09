@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { useNetwork } from "./NetworkContext";
+import { useNetwork, NETWORK_PRESETS } from "./NetworkContext";
 import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { createAuthPayload } from "../utils/cosmos/signing";
 import { setLatestGameState } from "../hooks/playerActions/transportAction";
@@ -12,6 +12,9 @@ import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
 import { hasElements } from "../utils/guards";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
+import { useCometRpcApiFactory } from "./CosmosApiContext";
+import { GAME_STATE_PUBLIC_PATH, handEndedQuery, handStartedQuery, historyNetworks, parseGameRecordResponse, parseGameStateJson, parseTxSearchHeight, snapshotHeights, type ParsedGameState } from "../utils/handReplay";
+import { encodeStringField1, parseAbciStringResponse } from "../utils/abciQuery";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { GameDataProvider, useGameData } from "./gameState/GameDataContext";
 import { GameMetaProvider, useGameMeta } from "./gameState/GameMetaContext";
@@ -60,7 +63,8 @@ export interface GameStateContextType {
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
     sendAction: (action: string, amount?: string) => Promise<void>;
-    loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number) => Promise<void>;
+    /** actionIndex null = the hand's final state (showdown or last action). */
+    loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
 }
 
 interface GameStateProviderProps {
@@ -87,6 +91,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     // Latest committed bus item — drives GameEventsContext / useGameEvents.
     const [latestStreamItem, setLatestStreamItem] = useState<GameStreamItem | null>(null);
     const { currentNetwork } = useNetwork();
+    const cometRpcApiFactory = useCometRpcApiFactory();
 
     // Use ref instead of state for currentTableId to prevent re-renders
     const currentTableIdRef = useRef<string | null>(null);
@@ -527,11 +532,15 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         []
     );
 
-    // Load point-in-time snapshot from chain (replay mode for readonly share links).
-    // Uses pokerchain#160 GameStateAt RPC: previousActions is truncated to actions at
-    // or before actionIndex, hole cards and deck are masked (public view).
+    // Read-only replay for share links (no WebSocket, no actions):
+    //   actionIndex = K    → GameStateAt (pokerchain#160): the current hand only, with
+    //                        previousActions truncated at K.
+    //   actionIndex = null → the hand's FINAL state (showdown or last action), for any
+    //                        hand still in the node's history (~30 days): tx_search the
+    //                        hand_ended event, then the public state AT that block via
+    //                        abci_query. Hole cards come back masked except those shown.
     const loadHistoricalState = useCallback(
-        async (tableId: string, handNumber: number, actionIndex: number): Promise<void> => {
+        async (tableId: string, handNumber: number, actionIndex: number | null): Promise<void> => {
             // Clean up any existing WebSocket connection — replay mode is a one-shot
             // fetch, so this close must not reconnect (ui#613).
             closeSocket(true);
@@ -552,27 +561,90 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             setReplayActionIndex(actionIndex);
             currentTableIdRef.current = tableId;
 
-            try {
-                const cosmosApi = new CosmosApi({ baseUrl: currentNetwork.rest!, secure: false, timeout: 10000 });
-                const response = await cosmosApi.getGameStateAt(tableId, handNumber, actionIndex) as { game_state?: string };
+            // Snapshots are TexasHoldemStateDTOs without the table's format/variant/name,
+            // which never change for a table: read them once from the Game record so
+            // Sit & Go chips aren't rendered as USDC.
+            const restApi = new CosmosApi({ baseUrl: currentNetwork.rest!, secure: false, timeout: 10000 });
+            const tableMeta = restApi
+                .getGame(tableId)
+                .then(parseGameRecordResponse)
+                .catch(err => {
+                    console.error("[GameStateContext] Failed to load table format for replay:", err);
+                    return null;
+                });
+            const apply = async (p: ParsedGameState) => {
+                const meta = await tableMeta;
+                setGameState(p.state);
+                setGameFormat(toGameFormat(p.format ?? meta?.format));
+                setGameVariant(toGameVariant(p.variant ?? meta?.variant));
+                setGameName(p.name ?? meta?.name);
+                setPendingAction(null);
+            };
 
-                if (!response || !response.game_state) {
-                    throw new Error(`No game state found for hand ${handNumber} at action ${actionIndex}`);
+            try {
+                if (actionIndex !== null) {
+                    const response = (await restApi.getGameStateAt(tableId, handNumber, actionIndex)) as { game_state?: string };
+                    if (!response || !response.game_state) {
+                        throw new Error(`No game state found for hand ${handNumber} at action ${actionIndex}`);
+                    }
+                    await apply(parseGameStateJson(response.game_state));
+                    return;
                 }
 
-                const parsed = JSON.parse(response.game_state);
-
-                // Chain may return a GameStateResponseDTO (with gameState nested)
-                // or TexasHoldemStateDTO directly.
-                const gameStateData = parsed.gameState || parsed;
-                const rawFormat = parsed.format;
-                const rawVariant = parsed.variant;
-
-                setGameState(gameStateData as TexasHoldemStateDTO);
-                setGameFormat(toGameFormat(rawFormat));
-                setGameVariant(toGameVariant(rawVariant));
-                setGameName(parsed.name);
-                setPendingAction(null);
+                const request = encodeStringField1(tableId);
+                const failures: string[] = [];
+                let skipped = false;
+                for (const network of historyNetworks(currentNetwork, NETWORK_PRESETS)) {
+                    const rpc = cometRpcApiFactory(network.rpc);
+                    const stateAt = async (height: number) =>
+                        parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, request, height)));
+                    try {
+                        const endHeight = parseTxSearchHeight(await rpc.txSearch(handEndedQuery(tableId, handNumber)));
+                        if (endHeight === null) {
+                            // Not ended on this node: it may be the hand being played now.
+                            const now = await stateAt(0);
+                            if (now.state.handNumber === handNumber) {
+                                await apply(now);
+                                return;
+                            }
+                            // Started but never ended: a duplicate new-hand in the same block
+                            // replaces it before any play, so there is nothing to show.
+                            const startHeight = parseTxSearchHeight(await rpc.txSearch(handStartedQuery(tableId, handNumber)));
+                            if (startHeight !== null) {
+                                const atStart = await stateAt(startHeight);
+                                if (atStart.state.handNumber === handNumber) {
+                                    await apply(atStart);
+                                    return;
+                                }
+                                skipped = true;
+                                failures.push(`${network.name}: hand ${handNumber} started at block ${startHeight} and was replaced in the same block`);
+                                continue;
+                            }
+                            failures.push(`${network.name}: no record of hand ${handNumber}`);
+                            continue;
+                        }
+                        // The end block normally holds the final state. If the next hand
+                        // started in the same block, the block before has this hand's last action.
+                        for (const height of snapshotHeights(endHeight)) {
+                            const snap = await stateAt(height);
+                            if (snap.state.handNumber === handNumber) {
+                                await apply(snap);
+                                return;
+                            }
+                        }
+                        failures.push(`${network.name}: hand ${handNumber} ended at block ${endHeight} but its state isn't available`);
+                    } catch (err) {
+                        // Typically pruned history ("version does not exist") or an unreachable node.
+                        failures.push(`${network.name}: ${err instanceof Error ? err.message : String(err)}`);
+                    }
+                }
+                console.error("[GameStateContext] Hand replay lookups failed:", failures);
+                if (skipped) {
+                    throw new Error(`Hand #${handNumber} has nothing to show: the next hand started in the same block, before any cards were played.`);
+                }
+                throw new Error(
+                    `Hand #${handNumber} of this table couldn't be loaded. It may not exist yet, or it may be older than the ~30 days of history the nodes keep.`
+                );
             } catch (err) {
                 console.error("[GameStateContext] Failed to load historical state:", err);
                 setError(err instanceof Error ? err : new Error("Failed to load historical state"));
@@ -580,7 +652,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 setIsLoading(false);
             }
         },
-        [currentNetwork]
+        [currentNetwork, cometRpcApiFactory]
     );
 
     // Cleanup on unmount

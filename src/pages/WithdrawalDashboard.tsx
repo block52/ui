@@ -14,14 +14,17 @@ import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
 import { useWithdraw } from "../hooks/wallet/useWithdraw";
 import SignatureModal from "../components/modals/SignatureModal";
+import { useWithdrawalSignature } from "../hooks/wallet/useWithdrawalSignature";
+import { describeWithdrawError } from "../utils/withdrawalSignature";
 
 /**
  * WithdrawalDashboard - Interface for managing USDC withdrawals to Ethereum
  *
  * 2-step withdrawal flow:
  *   Step 1: User sends withdrawal request to Block52 (signed by cosmos key, eth address in message).
- *           The validator then signs the withdrawal payload for the deposit contract.
- *   Step 2: User calls the deposit contract withdraw() on Ethereum via MetaMask.
+ *   Step 2: User calls the deposit contract withdraw() on Ethereum via MetaMask, with a
+ *           validator's signature: the one stored on chain if any, else one fetched from a
+ *           validator's withdrawal_signature query (pokerchain#392).
  *
  * This dashboard auto-polls for pending withdrawals so users see status updates in real time.
  */
@@ -43,6 +46,7 @@ export default function WithdrawalDashboard() {
     const { address: baseAddress, isConnected } = useUserWalletConnect();
     const { currentNetwork } = useNetwork();
     const { withdraw, hash, isWithdrawConfirmed, withdrawError } = useWithdraw();
+    const fetchWithdrawalSignature = useWithdrawalSignature();
     const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [processingNonce, setProcessingNonce] = useState<string | null>(null);
@@ -168,16 +172,17 @@ export default function WithdrawalDashboard() {
             return;
         }
 
-        if (!withdrawal.signature) {
-            toast.error("Withdrawal not signed yet");
-            return;
-        }
-
         setProcessingNonce(withdrawal.nonce);
 
         try {
-            // Convert base64 signature to hex format
-            const hexSignature = withdrawal.signature ? base64ToHex(withdrawal.signature) : "0x";
+            // Ask a validator first: anyone can overwrite the signature stored on
+            // chain with one the bridge rejects (pokerchain#358). Fall back to the
+            // stored one (base64) only if no validator answers (pokerchain#392).
+            const hexSignature = await fetchWithdrawalSignature(withdrawal).catch((err: unknown) => {
+                if (!withdrawal.signature) throw err;
+                console.error("No validator signature; using the one stored on chain:", err);
+                return base64ToHex(withdrawal.signature);
+            });
 
             // Use the useWithdraw hook which properly uses wagmi/reown wallet
             await withdraw(
@@ -195,8 +200,7 @@ export default function WithdrawalDashboard() {
             );
         } catch (err) {
             console.error("Failed to complete withdrawal:", err);
-            const errorMessage = err instanceof Error ? err.message : "Unknown error occurred";
-            toast.error(`Failed: ${errorMessage}`);
+            toast.error(describeWithdrawError(err));
             setProcessingNonce(null);
         }
     };
@@ -231,7 +235,7 @@ export default function WithdrawalDashboard() {
     useEffect(() => {
         if (withdrawError && processingNonce) {
             console.error("Withdrawal error:", withdrawError);
-            toast.error(`Withdrawal failed: ${withdrawError.message}`);
+            toast.error(describeWithdrawError(withdrawError));
             setProcessingNonce(null);
         }
     }, [withdrawError, processingNonce]);
@@ -334,7 +338,7 @@ export default function WithdrawalDashboard() {
                         <p className="text-2xl font-bold text-white">{totalWithdrawals}</p>
                     </div>
                     <div className="bg-yellow-900/30 rounded-lg p-4 border border-yellow-700">
-                        <p className="text-yellow-400 text-sm mb-1">Pending Signature</p>
+                        <p className="text-yellow-400 text-sm mb-1">Pending</p>
                         <p className="text-2xl font-bold text-yellow-300">{pendingCount}</p>
                     </div>
                     <div className="bg-blue-900/30 rounded-lg p-4 border border-blue-700">
@@ -498,10 +502,15 @@ export default function WithdrawalDashboard() {
                                                             </button>
                                                         </>
                                                     ) : withdrawal.status === "pending" ? (
-                                                        <span className="text-yellow-400 text-sm flex items-center justify-center gap-2">
-                                                            <span className="inline-block w-3 h-3 border-2 border-yellow-400 border-t-transparent rounded-full animate-spin" />
-                                                            Awaiting validator signature...
-                                                        </span>
+                                                        // Redeemable now: the signature is fetched from a validator on click.
+                                                        <button
+                                                            onClick={() => handleCompleteWithdrawal(withdrawal)}
+                                                            disabled={processingNonce === withdrawal.nonce || !isConnected || !baseAddress}
+                                                            title={!isConnected || !baseAddress ? "Connect your Ethereum wallet first" : undefined}
+                                                            className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white text-sm font-semibold rounded-lg transition-colors"
+                                                        >
+                                                            {processingNonce === withdrawal.nonce ? "Completing..." : "Complete on Ethereum"}
+                                                        </button>
                                                     ) : withdrawal.status === "completed" && withdrawal.signature ? (
                                                         <button
                                                             onClick={() => handleViewSignature(withdrawal)}

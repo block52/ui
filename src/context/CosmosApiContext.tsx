@@ -1,5 +1,5 @@
 import { createContext, FC, ReactNode, useContext, useMemo } from "react";
-import { CosmosApi } from "../apis/Api";
+import { CometRpcApi, CosmosApi } from "../apis/Api";
 import { useNetwork } from "./NetworkContext";
 
 const CosmosApiContext = createContext<CosmosApi | null>(null);
@@ -28,4 +28,13 @@ export const useCosmosApi = (baseUrl?: string): CosmosApi => {
  */
 export const useCosmosApiFactory = (): ((baseUrl: string) => CosmosApi) => {
     return useMemo(() => (baseUrl: string) => new CosmosApi({ baseUrl, secure: true, timeout: 10000 }), []);
+};
+
+/**
+ * Returns a factory for a CometRpcApi bound to a node's RPC URL. History lookups
+ * (hand replay) may need a different node from the current network, because not
+ * every node keeps historical state.
+ */
+export const useCometRpcApiFactory = (): ((rpcUrl: string) => CometRpcApi) => {
+    return useMemo(() => (rpcUrl: string) => new CometRpcApi({ baseUrl: rpcUrl, secure: false, timeout: 15000 }), []);
 };

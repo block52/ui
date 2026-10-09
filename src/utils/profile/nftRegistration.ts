@@ -31,6 +31,27 @@ export const buildNftAuthorizationMessage = (
 };
 
 /**
+ * Check, before broadcasting, that `signature` over `message` really came from
+ * `expectedEthAddress` (ui#733). A wallet can sign with a different account
+ * from the one the app shows (another MetaMask account selected, a stale
+ * WalletConnect session); the chain then rejects the tx with "recovered
+ * address … does not match claimed address …" after a cosmos round trip.
+ * Throws an error the user can act on.
+ */
+export const assertNftAuthorizationSigner = (message: string, signature: string, expectedEthAddress: string): void => {
+    const signer = ethers.verifyMessage(message, signature);
+    if (signer.toLowerCase() !== expectedEthAddress.toLowerCase()) {
+        throw new Error(
+            `Your wallet signed with ${signer}, but the avatar is being linked to ${expectedEthAddress}. ` +
+                `Switch your wallet to ${expectedEthAddress} (or reconnect) and try again.`
+        );
+    }
+};
+
+/** True for a well-formed 0x-prefixed Ethereum address (any checksum case). */
+export const isEthAddress = (value: string): boolean => /^0x[0-9a-fA-F]{40}$/.test(value.trim());
+
+/**
  * Sign the NFT authorization message using MetaMask (EIP-191 personal_sign).
  *
  * @returns Hex-encoded signature with 0x prefix
@@ -105,6 +126,8 @@ export const broadcastNftRegistration = async (
 
 export interface OnChainNftAvatar {
     cosmosAddress: string;
+    /** The ETH address that signed the registration: the player's linked wallet. */
+    ethAddress: string;
     contractAddress: string;
     tokenId: string;
 }
@@ -151,6 +174,7 @@ export const queryNftAvatar = async (
 
         return {
             cosmosAddress,
+            ethAddress: data.eth_address,
             contractAddress: data.contract_address,
             tokenId: data.token_id
         };

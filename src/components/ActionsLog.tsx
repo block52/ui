@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useSyncExternalStore } from "react";
+import { buildHandShareUrl } from "../utils/handReplay";
 import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
@@ -150,13 +151,9 @@ const ActionsLog: React.FC = () => {
             return;
         }
 
-        // Build a readonly share link targeting the chain's GameStateAt RPC
-        // (pokerchain#160). We encode the global action index of the latest
-        // action in the current hand — NOT the array length — since the chain
-        // matches on ActionDTO.Index.
-        const actions = gameState.previousActions ?? [];
-        const latestActionIndex = hasElements(actions) ? actions[actions.length - 1].index : 0;
-        const shareUrl = `${window.location.origin}/table/${id}?hand=${gameState.handNumber}&index=${latestActionIndex}`;
+        // `?hand=N` opens the hand's final state (showdown or last action) read-only,
+        // and keeps working after the hand ends.
+        const shareUrl = buildHandShareUrl(window.location.origin, id, gameState.handNumber);
 
         copyTextToClipboard(
             shareUrl,

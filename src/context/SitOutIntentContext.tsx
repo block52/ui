@@ -17,6 +17,7 @@ import { sitOut, useAutoSitOutNextBB } from "../hooks/playerActions";
 import { useActionSubmit } from "./ActionSubmitContext";
 import { useGameStateContext } from "./GameStateContext";
 import { findUserSeat } from "../utils/playerSeatUtils";
+import { allowsVoluntarySitOut } from "../utils/playerActionDisplayUtils";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 import type { NetworkEndpoints } from "./NetworkContext";
 
@@ -48,7 +49,9 @@ export const SitOutIntentProvider: React.FC<{
     children: ReactNode;
 }> = ({ tableId, network, pendingSitOut, legalActions, children }) => {
     const { submit } = useActionSubmit();
-    const { gameState } = useGameStateContext();
+    const { gameState, gameFormat } = useGameStateContext();
+    // Sit & Go / tournament tables never sit a player out voluntarily (ui#730).
+    const sitOutAllowed = allowsVoluntarySitOut(gameFormat);
 
     // Optimistic overlay so the box responds to the tap, cleared when the chain
     // reports the new pendingSitOut.
@@ -81,9 +84,10 @@ export const SitOutIntentProvider: React.FC<{
         setNextBbQueued(false);
     }, [submitSitOut]);
 
-    useAutoSitOutNextBB(findUserSeat(gameState, getCosmosAddressSync()), gameState?.bigBlindPosition, nextBbQueued, handleAutoSitOutNextBb);
+    // Never fires on a tournament table, even if the box was ticked before the format loaded.
+    useAutoSitOutNextBB(findUserSeat(gameState, getCosmosAddressSync()), gameState?.bigBlindPosition, nextBbQueued && sitOutAllowed, handleAutoSitOutNextBb);
 
-    const canSitOut = legalActions.some(a => a.action === NonPlayerActionType.SIT_OUT);
+    const canSitOut = sitOutAllowed && legalActions.some(a => a.action === NonPlayerActionType.SIT_OUT);
 
     return (
         <SitOutIntentContext.Provider value={{ nextHandChecked, toggleNextHand, nextBbQueued, toggleNextBb, canSitOut }}>

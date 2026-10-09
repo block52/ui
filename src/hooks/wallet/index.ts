@@ -7,7 +7,6 @@
 
 // Primary Wallet Hooks
 export { useCosmosWallet } from "./useCosmosWallet";
-export { default as useUserWallet } from "./useUserWallet";
 
 // Deposit & Bridge Hooks
 export { default as useDepositUSDC } from "./useDepositUSDC";

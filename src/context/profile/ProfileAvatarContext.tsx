@@ -8,7 +8,7 @@ import { useNetwork } from "../NetworkContext";
 import { useWalletNfts } from "../../hooks/profile/useWalletNfts";
 import type { AvatarSelection, AvatarSelectionStorageV1, ProfileAvatarState, WalletNftAsset } from "../../types/profile/avatar";
 import { parsePlayerAvatar } from "../../utils/profile/avatarPayload";
-import { buildNftAuthorizationMessage, broadcastNftRegistration, queryNftAvatar } from "../../utils/profile/nftRegistration";
+import { assertNftAuthorizationSigner, buildNftAuthorizationMessage, broadcastNftRegistration, queryNftAvatar } from "../../utils/profile/nftRegistration";
 import { resolveNftImageUrl } from "../../utils/profile/nftImageResolver";
 import { getCosmosUrls } from "../../utils/cosmos/urls";
 
@@ -28,12 +28,25 @@ import { getCosmosUrls } from "../../utils/cosmos/urls";
  * Retrieval:
  *   - FE calls the node REST API with a cosmos address to get the NFT metadata.
  *   - Results are cached for the session to avoid redundant requests.
+ *
+ * Browsing NFTs (ui#733): the NFT list does not need a connected wallet. It
+ * shows the connected wallet's NFTs, else an address the player typed, else
+ * the ETH address already linked on chain (from their registration). Only
+ * changing the avatar needs the wallet connected, because it must sign.
+ *
+ * See docs/NFTS.md for the whole system.
  */
 
 interface ProfileAvatarContextType extends ProfileAvatarState {
     isDrawerOpen: boolean;
     isWalletConnected: boolean;
     walletAddress?: string;
+    /** The ETH address this Block52 account linked on chain when it registered an avatar, if any. */
+    linkedEthAddress: string | null;
+    /** The address whose NFTs are listed: the connected wallet, else a typed address, else the linked one. */
+    viewAddress: string | null;
+    /** Browse another address's NFTs without connecting (null returns to the default). */
+    setBrowseAddress: (address: string | null) => void;
     hasSourceConfigured: boolean;
     isRegistering: boolean;
     registrationError: string | null;
@@ -94,6 +107,11 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
     const [selectedAvatar, setSelectedAvatar] = useState<AvatarSelection | null>(() => (cosmosAddress ? loadCachedAvatar(cosmosAddress) : null));
     const [isRegistering, setIsRegistering] = useState(false);
     const [registrationError, setRegistrationError] = useState<string | null>(null);
+    const [linkedEthAddress, setLinkedEthAddress] = useState<string | null>(null);
+    const [browseAddress, setBrowseAddress] = useState<string | null>(null);
+
+    // Whose NFTs to list. A connected wallet wins: it's the one that can sign.
+    const viewAddress = (isConnected && address) || browseAddress || linkedEthAddress;
 
     // Session cache for chain-queried avatars: cosmosAddress → imageUrl
     const [chainAvatarCache, setChainAvatarCache] = useState<Map<string, string | null>>(new Map());
@@ -108,7 +126,7 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
     // Track in-flight chain queries to avoid duplicate requests
     const pendingQueriesRef = useRef(new Set<string>());
 
-    const { walletNfts, isLoadingNfts, nftsError, nftsWarning, refreshWalletNfts, hasSourceConfigured } = useWalletNfts(address, isConnected);
+    const { walletNfts, isLoadingNfts, nftsError, nftsWarning, refreshWalletNfts, hasSourceConfigured } = useWalletNfts(viewAddress ?? undefined, Boolean(viewAddress));
 
     // On mount / wallet change, fetch the current user's on-chain avatar.
     // Cosmos chain is the source of truth — resolve image directly from the
@@ -117,18 +135,21 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
         if (!cosmosAddress) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setSelectedAvatar(null);
+            setLinkedEthAddress(null);
             return;
         }
 
-        // Skip if user explicitly cleared their avatar
-        if (isAvatarExplicitlyCleared(cosmosAddress)) return;
+        const cleared = isAvatarExplicitlyCleared(cosmosAddress);
 
         const fetchOwnAvatar = async () => {
             try {
                 const { restEndpoint } = getCosmosUrls(currentNetwork);
                 const result = await queryNftAvatar(restEndpoint, cosmosAddress);
+                // The linked wallet is known even if the avatar was cleared locally.
+                setLinkedEthAddress(result?.ethAddress || null);
 
-                if (result) {
+                // Skip restoring the image if the user explicitly cleared their avatar.
+                if (result && !cleared) {
                     // We have contract + tokenId from chain.
                     // Try wallet NFTs first (fast, already loaded), then
                     // resolve directly from the NFT contract via RPC.
@@ -166,13 +187,14 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
         fetchOwnAvatar();
     }, [cosmosAddress, currentNetwork, walletNfts]);
 
-    // Refresh wallet NFTs when ETH wallet connects
+    // List the NFTs again whenever the address being viewed changes (a wallet
+    // connects, the linked address loads, or the player types one).
     useEffect(() => {
-        if (!isConnected || !address) {
+        if (!viewAddress) {
             return;
         }
         refreshWalletNfts();
-    }, [isConnected, address, refreshWalletNfts]);
+    }, [viewAddress, refreshWalletNfts]);
 
     const openDrawer = useCallback(() => {
         setIsDrawerOpen(true);
@@ -192,7 +214,8 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
      */
     const selectAvatar = useCallback(
         (asset: WalletNftAsset) => {
-            if (!address || !cosmosAddress) {
+            // Changing the avatar needs the wallet itself: it must sign.
+            if (!isConnected || !address || !cosmosAddress) {
                 return;
             }
 
@@ -202,7 +225,10 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
             const doRegistration = async () => {
                 // Step 1: Sign with wagmi (ETH personal_sign)
                 const authMessage = buildNftAuthorizationMessage(address, cosmosAddress, asset.contractAddress, asset.tokenId);
-                const signature = await signMessage(authMessage);
+                // Ask for THIS account's signature, and check it before paying for
+                // a cosmos tx the chain would reject (ui#733).
+                const signature = await signMessage(authMessage, address);
+                assertNftAuthorizationSigner(authMessage, signature, address);
 
                 // Step 2: Broadcast to cosmos validator
                 await broadcastNftRegistration(currentNetwork, address, cosmosAddress, asset.contractAddress, asset.tokenId, signature);
@@ -217,6 +243,7 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
                 };
 
                 setSelectedAvatar(nextSelection);
+                setLinkedEthAddress(address.toLowerCase());
                 localStorage.removeItem(AVATAR_CLEARED_KEY);
                 setChainAvatarCache(prev => {
                     const next = new Map(prev);
@@ -235,7 +262,7 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
                     setIsRegistering(false);
                 });
         },
-        [address, cosmosAddress, currentNetwork, signMessage]
+        [isConnected, address, cosmosAddress, currentNetwork, signMessage]
     );
 
     const clearAvatar = useCallback(() => {
@@ -315,6 +342,9 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
             isDrawerOpen,
             isWalletConnected: !!isConnected,
             walletAddress: address,
+            linkedEthAddress,
+            viewAddress,
+            setBrowseAddress,
             hasSourceConfigured,
             isRegistering,
             registrationError,
@@ -336,6 +366,8 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
             isDrawerOpen,
             isConnected,
             address,
+            linkedEthAddress,
+            viewAddress,
             hasSourceConfigured,
             isRegistering,
             registrationError,

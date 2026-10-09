@@ -92,6 +92,8 @@ const baseProps: PlayerActionButtonsProps = {
 };
 
 beforeEach(() => {
+    // These tests describe a cash table unless a test says otherwise (sit-out is cash-only, ui#730).
+    mockGameStateContext.gameFormat = GameFormat.CASH;
     mockSubmit.mockClear();
     mockGameSettings.sitInOptions = true; // method-UI tests; auto-drive test sets false
 });
@@ -206,6 +208,20 @@ describe("PlayerActionButtons", () => {
         // TOP_UP legal. The always-shown 6-o'clock toggle may still render.
         expect(screen.queryByTestId("buy-chips-button")).toBeNull();
         mockGameStateContext.gameFormat = undefined;
+    });
+
+    it("never renders the sit-out checkboxes on a Sit & Go table, even with SIT_OUT legal (ui#730)", () => {
+        mockGameStateContext.gameFormat = GameFormat.SIT_AND_GO;
+        render(
+            <PlayerActionButtons
+                {...baseProps}
+                legalActions={[action(NonPlayerActionType.SIT_OUT)]}
+                totalSeatedPlayers={3}
+                handNumber={2}
+            />
+        );
+        expect(screen.queryByRole("checkbox", { name: "Sit Out Next Hand" })).toBeNull();
+        expect(screen.queryByRole("checkbox", { name: "Sit Out Next Big Blind" })).toBeNull();
     });
 
     it("renders both independent sit-out checkboxes when SIT_OUT action available", () => {

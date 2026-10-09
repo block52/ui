@@ -12,11 +12,13 @@ interface UseReplayModeReturn {
 /**
  * Parses readonly share-link params from the URL.
  *
- * URL shape: `/table/{tableId}?hand={handNumber}&index={actionIndex}`
+ * URL shapes:
+ *   `/table/{tableId}?hand={handNumber}`                  the hand's final state
+ *                                                         (showdown or last action)
+ *   `/table/{tableId}?hand={handNumber}&index={actionIndex}`  a point in the CURRENT
+ *                                                         hand (GameStateAt, pokerchain#160)
  *
- * Both params are required to enter replay mode. They drive the chain's
- * GameStateAt RPC (poker-vm#2025, pokerchain#160) to reconstruct a
- * point-in-time snapshot for social sharing.
+ * `hand` alone enters read-only replay mode; `index` is optional.
  */
 export const useReplayMode = (): UseReplayModeReturn => {
     const [searchParams, setSearchParams] = useSearchParams();
@@ -35,7 +37,7 @@ export const useReplayMode = (): UseReplayModeReturn => {
         return Number.isFinite(parsed) && parsed >= 0 ? parsed : null;
     }, [searchParams]);
 
-    const isReplayMode = hasValue(handNumber) && hasValue(actionIndex);
+    const isReplayMode = hasValue(handNumber);
 
     const clearReplayParams = () => {
         const newParams = new URLSearchParams(searchParams);

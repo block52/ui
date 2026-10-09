@@ -1,4 +1,5 @@
-import { isNotRegisteredResponse, queryNftAvatar } from "./nftRegistration";
+import { ethers } from "ethers";
+import { assertNftAuthorizationSigner, buildNftAuthorizationMessage, isEthAddress, isNotRegisteredResponse, queryNftAvatar } from "./nftRegistration";
 
 // The exact body node1.block52.xyz returned on 23 Sep 2026 for an address with no avatar.
 const NOT_FOUND_500 =
@@ -32,8 +33,8 @@ describe("queryNftAvatar", () => {
     });
 
     it("returns the avatar when one is registered", async () => {
-        global.fetch = jest.fn(() => respond(200, JSON.stringify({ contract_address: "0xabc", token_id: "7" })));
-        await expect(queryNftAvatar("https://node", "b521x")).resolves.toEqual({ cosmosAddress: "b521x", contractAddress: "0xabc", tokenId: "7" });
+        global.fetch = jest.fn(() => respond(200, JSON.stringify({ eth_address: "0xea36", contract_address: "0xabc", token_id: "7" })));
+        await expect(queryNftAvatar("https://node", "b521x")).resolves.toEqual({ cosmosAddress: "b521x", ethAddress: "0xea36", contractAddress: "0xabc", tokenId: "7" });
     });
 });
 
@@ -42,5 +43,33 @@ describe("isNotRegisteredResponse", () => {
         expect(isNotRegisteredResponse(NOT_FOUND_500)).toBe(true);
         expect(isNotRegisteredResponse("no NFT avatar registered for address b521x")).toBe(true);
         expect(isNotRegisteredResponse("internal error")).toBe(false);
+    });
+});
+
+describe("assertNftAuthorizationSigner (ui#733)", () => {
+    // Fixed test keys: random wallets need crypto.getRandomValues, which jsdom lacks.
+    const owner = new ethers.Wallet("0x" + "11".repeat(32));
+    const other = new ethers.Wallet("0x" + "22".repeat(32));
+    const message = buildNftAuthorizationMessage(owner.address, "b521me", "0x313e99d23d6a9ed47af8dccd545c2685f21ec44b", "6417");
+
+    it("accepts a signature from the claimed address, in any case", async () => {
+        const signature = await owner.signMessage(message);
+        expect(() => assertNftAuthorizationSigner(message, signature, owner.address.toLowerCase())).not.toThrow();
+    });
+
+    it("names both addresses when the wallet signed with another account", async () => {
+        const signature = await other.signMessage(message);
+        expect(() => assertNftAuthorizationSigner(message, signature, owner.address)).toThrow(
+            `Your wallet signed with ${other.address}, but the avatar is being linked to ${owner.address}.`
+        );
+    });
+});
+
+describe("isEthAddress", () => {
+    it("accepts 0x + 40 hex, rejects anything else", () => {
+        expect(isEthAddress("0xea36bdfae0280831c1cc6aca0e9e25c7d1ecbaf7")).toBe(true);
+        expect(isEthAddress(" 0xEa36BDfaE0280831c1cC6Aca0E9e25C7D1ECbAf7 ")).toBe(true);
+        expect(isEthAddress("0xea36")).toBe(false);
+        expect(isEthAddress("b521s8aug28r6vned2xm767xhgrkg90wfef2hfg4mg")).toBe(false);
     });
 });

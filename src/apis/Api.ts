@@ -4,8 +4,10 @@ import type {
     PlayerSearchParams,
     PlayersListResponse,
     PlayerProfile,
-    PlayerSessionsResponse
+    PlayerSessionsResponse,
+    PlayerHandsResponse
 } from "../types/players";
+import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
 
 export class PaymentApi extends HTTPClient {
     public createCryptoPayment = (data: { amount: number; currency: string; cosmosAddress: string }) => this.post("/api/nowpayments/create", data);
@@ -29,6 +31,8 @@ export class CosmosApi extends HTTPClient {
     public getBalanceByAddress = (address: string) => this.get(`/cosmos/bank/v1beta1/balances/${address}`);
     /** A committed tx by hash (404 until it is in a block); `tx_response.code` is its execution result. */
     public getTx = (hash: string) => this.get(`/cosmos/tx/v1beta1/txs/${hash}`);
+    /** The table record (GameStateResponseDTO JSON in `game`): carries format, variant and name. */
+    public getGame = (gameId: string) => this.get(`/block52/pokerchain/poker/v1/game/${gameId}`);
     public getGameState = (gameId: string) => this.get(`block52/pokerchain/poker/v1/game_state/${gameId}`);
     public getGameStateAtBlock = (gameId: string, blockHeight: number) =>
         this.get(`block52/pokerchain/poker/v1/game_state/${gameId}`, {
@@ -43,6 +47,9 @@ export class CosmosApi extends HTTPClient {
             headers: { "x-cosmos-block-height": String(blockHeight) }
         });
     public getWithdrawalRequests = () => this.get("/pokerchain/poker/withdrawal_requests");
+    // A validator's signature for a pending withdrawal (read-only; pokerchain#392).
+    public getWithdrawalSignature = (nonce: string) =>
+        this.get<WithdrawalSignatureResponse>(`/block52/pokerchain/poker/v1/withdrawal_signature/${encodeURIComponent(nonce)}`);
     public getIsTxProcessed = (txHash: string) => this.get(`/block52/pokerchain/poker/v1/is_tx_processed/${txHash}`);
     public getNftAvatar = (cosmosAddress: string) => this.get(`/pokerchain/poker/nft_avatar/${cosmosAddress}`);
     // Tendermint base endpoints (used for node status / block-height probes across arbitrary node URLs)
@@ -54,6 +61,20 @@ export class CosmosApi extends HTTPClient {
     public getSlashingParams = () => this.get("/cosmos/slashing/v1beta1/params");
     /** Poker module params, incl. min_validator_bond (USDC micro-units, enforced in the ante handler). */
     public getPokerParams = () => this.get("/block52/pokerchain/poker/v1/params");
+}
+
+/**
+ * CometBFT RPC (a node's `rpc` endpoint, e.g. https://node1.block52.xyz/rpc/).
+ * Used for historical reads: abci_query takes `height` as a query parameter, so it
+ * needs no custom header (unlike the REST API's x-cosmos-block-height).
+ */
+export class CometRpcApi extends HTTPClient {
+    /** Txs matching a CometBFT event query, e.g. `hand_ended.game_id='0x…'`. */
+    public txSearch = (query: string, perPage = 1, orderBy: "asc" | "desc" = "desc") =>
+        this.get(`tx_search?query=${encodeURIComponent(`"${query}"`)}&per_page=${perPage}&order_by=${encodeURIComponent(`"${orderBy}"`)}`);
+    /** ABCI query of a gRPC method path with hex-encoded protobuf `data`, at `height` (0 = latest). */
+    public abciQuery = (path: string, dataHex: string, height: number) =>
+        this.get(`abci_query?path=${encodeURIComponent(`"${path}"`)}&data=${dataHex}&height=${height}`);
 }
 
 export class IndexerApi extends HTTPClient {
@@ -72,6 +93,9 @@ export class IndexerApi extends HTTPClient {
     public getPlayerProfile = (address: string) => this.get<PlayerProfile>(`/api/v1/players/${encodeURIComponent(address)}/stats`);
     public getPlayerSessions = (address: string, limit = 20, offset = 0) =>
         this.get<PlayerSessionsResponse>(`/api/v1/players/${encodeURIComponent(address)}/sessions?limit=${limit}&offset=${offset}`);
+    // Hands a wallet played, newest first (ui#721).
+    public getPlayerHands = (address: string, limit: number, offset: number) =>
+        this.get<PlayerHandsResponse>(`/api/v1/players/${encodeURIComponent(address)}/hands?limit=${limit}&offset=${offset}`);
 }
 
 // Serialize player-directory query params, omitting empty values.

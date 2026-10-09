@@ -11,7 +11,8 @@ export interface GameActionsContextValue {
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
     sendAction: (action: string, amount?: string) => Promise<void>;
-    loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number) => Promise<void>;
+    /** actionIndex null = the hand's final state (showdown or last action). */
+    loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
 }
 
 const GameActionsContext = createContext<GameActionsContextValue | null>(null);

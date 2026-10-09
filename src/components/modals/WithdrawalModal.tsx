@@ -6,6 +6,8 @@ import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { useNetwork } from "../../context/NetworkContext";
 import { getSigningClient } from "../../utils/cosmos/client";
 import { base64ToHex } from "../../utils/encodingUtils";
+import { useWithdrawalSignature } from "../../hooks/wallet/useWithdrawalSignature";
+import { describeWithdrawError } from "../../utils/withdrawalSignature";
 import { useWithdraw } from "../../hooks/wallet/useWithdraw";
 import styles from "./WithdrawalModal.module.css";
 
@@ -31,6 +33,7 @@ interface WithdrawalInfo {
     nonce: string;
     baseAddress: string;
     amount: string;
+    /** 0x-hex validator signature, ready for CosmosBridge.withdraw(). */
     signature: string;
 }
 
@@ -42,6 +45,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
     const { address: web3Address, isConnected: isWeb3Connected, open: openWalletConnect } = useUserWalletConnect();
     const { currentNetwork } = useNetwork();
     const { withdraw, hash: withdrawHash, isWithdrawConfirmed, withdrawError } = useWithdraw();
+    const fetchWithdrawalSignature = useWithdrawalSignature();
 
     const balanceInUSDC = useMemo(() => {
         const usdcBalanceEntry = cosmosBalance.find(b => b.denom === "usdc");
@@ -126,8 +130,20 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
 
                     const found = matching[0];
 
-                    if (found && found.status === "signed" && found.signature) {
-                        // Validator has signed - stop polling
+                    // A validator signs on request (pokerchain#392). Prefer that to the
+                    // signature stored on chain, which anyone can overwrite with one the
+                    // bridge rejects (pokerchain#358); use the stored one only as a fallback.
+                    let signature: string | null = null;
+                    if (found) {
+                        signature = await fetchWithdrawalSignature({ nonce: found.nonce, baseAddress: found.base_address, amount: found.amount }).catch(
+                            (err: unknown) => {
+                                console.error("[WithdrawalModal] Validator signature not available yet:", err);
+                                return found.status === "signed" && found.signature ? base64ToHex(found.signature) : null;
+                            }
+                        );
+                    }
+
+                    if (found && signature) {
                         if (pollIntervalRef.current) {
                             clearInterval(pollIntervalRef.current);
                             pollIntervalRef.current = null;
@@ -136,7 +152,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                             nonce: found.nonce,
                             baseAddress: found.base_address,
                             amount: found.amount,
-                            signature: found.signature
+                            signature
                         });
                         setStep("ready_to_complete");
                     } else {
@@ -151,7 +167,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
             poll();
             pollIntervalRef.current = setInterval(poll, POLL_INTERVAL_MS);
         },
-        [currentNetwork, cosmosAddress]
+        [currentNetwork, cosmosAddress, fetchWithdrawalSignature]
     );
 
     // ─── Step 1: Initiate withdrawal on Cosmos ───────────────────────────
@@ -223,15 +239,13 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
         setError("");
 
         try {
-            const hexSignature = base64ToHex(withdrawalInfo.signature);
-
             // Use the useWithdraw hook which properly uses wagmi/reown wallet
-            await withdraw(withdrawalInfo.nonce, withdrawalInfo.baseAddress, BigInt(withdrawalInfo.amount), hexSignature);
+            await withdraw(withdrawalInfo.nonce, withdrawalInfo.baseAddress, BigInt(withdrawalInfo.amount), withdrawalInfo.signature);
 
             // The hook will trigger isWithdrawConfirmed when done
         } catch (err) {
             console.error("[WithdrawalModal] Ethereum tx error:", err);
-            setError(err instanceof Error ? err.message : "Failed to complete withdrawal on Ethereum");
+            setError(describeWithdrawError(err));
             setStep("ready_to_complete");
         }
     };
@@ -249,7 +263,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
     useEffect(() => {
         if (withdrawError && step === "completing_eth") {
             console.error("[WithdrawalModal] Withdrawal error:", withdrawError);
-            setError(withdrawError.message || "Failed to complete withdrawal on Ethereum");
+            setError(describeWithdrawError(withdrawError));
             setStep("ready_to_complete");
         }
     }, [withdrawError, step]);
@@ -381,7 +395,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                         <div className="animate-spin w-12 h-12 border-4 border-yellow-500 border-t-transparent rounded-full mx-auto mb-4" />
                         <p className="text-white font-semibold mb-2">Waiting for Validator Signature</p>
                         <p className="text-gray-400 text-sm mb-4">
-                            Your withdrawal request has been submitted. The validator is signing the withdrawal payload for the deposit contract...
+                            Your withdrawal request has been submitted. Fetching a validator signature for the deposit contract...
                         </p>
                         {txHash && <p className="text-gray-500 text-xs font-mono mb-2">Cosmos Tx: {txHash.slice(0, 16)}...</p>}
                         <p className="text-gray-600 text-xs">

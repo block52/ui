@@ -61,34 +61,3 @@ export const clearPrivateKey = (): void => {
 export const hasPrivateKey = (): boolean => {
     return hasValue(getPrivateKey());
 };
-
-/**
- * Get singleton NodeRpcClient instance
- * @returns NodeRpcClient instance
- * @throws Error if private key is missing
- * @deprecated Use CosmosClient from WithdrawalDashboard instead
- */
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export const getClient = (): any => {
-    // This function is deprecated and always throws
-    throw new Error("NodeRpcClient deprecated - use CosmosClient from WithdrawalDashboard instead");
-};
-
-/**
- * Get account balance directly from the blockchain
- * @returns Promise with the account balance as string
- * @throws Error if private key or public key is missing, or if the fetch fails
- */
-export const getAccountBalance = async (): Promise<string> => {
-    const publicKey = getPublicKey();
-    
-    if (!publicKey) {
-        throw new Error("No public key found. Please connect your wallet first.");
-    }
-
-    // Use singleton client instance - disabled until migration
-    // const client = getClient();
-    // const account = await client.getAccount(publicKey);
-    // return account.balance.toString();
-    throw new Error("getAccountBalance deprecated - use CosmosClient.queryBalance() instead");
-};

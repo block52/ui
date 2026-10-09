@@ -382,6 +382,7 @@ export interface ShowingCardData {
 // Type for the return value of useShowingCardsByAddress hook
 export interface ShowingCardsByAddressReturn extends BaseHookReturn {
     showingPlayers: ShowingCardData[];
+    showingBySeat: Map<number, ShowingCardData>;
     isShowdown: boolean;
 }
 
@@ -445,4 +446,3 @@ export interface WinnerInfoReturn {
     winnerBySeat: Map<number, WinnerInfo>;
     error: Error | null;
 }
-
