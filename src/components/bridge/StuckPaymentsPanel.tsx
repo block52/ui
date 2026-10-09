@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { toast } from "react-toastify";
 import { usePaymentApi } from "../../context/PaymentApiContext";
-import { proxyErrorMessage } from "../../utils/bridge/proxyError";
+import { proxyErrorMessage, isProxyTimeout, STILL_GOING_THROUGH } from "../../utils/bridge/proxyError";
 import { LoadingSpinner } from "../common/LoadingSpinner";
 
 /** One payment NOWPayments settled whose USDC has not all reached the bridge (proxy GET /unbridged). */
@@ -92,7 +92,11 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
             onBridged();
         } catch (err) {
             console.error("Retry bridge failed:", err);
-            toast.error(`Not sent: ${proxyErrorMessage(err)}`);
+            if (isProxyTimeout(err)) {
+                toast.warning(`Payment ${p.payment_id}: ${STILL_GOING_THROUGH}`);
+            } else {
+                toast.error(`Not sent: ${proxyErrorMessage(err)}`);
+            }
         } finally {
             setBusyId(null);
             load();

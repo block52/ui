@@ -1,3 +1,4 @@
+import { isAxiosError } from "axios";
 import { httpErrorMessage } from "../../apis/HTTPClient";
 
 const NO_RESPONSE = "No response from the payments server";
@@ -8,7 +9,19 @@ const NO_RESPONSE = "No response from the payments server";
  * to explain: a wrong admin key, a server with no admin key configured, and the
  * HTML error page App Platform serves when the proxy is down or restarting.
  */
+/**
+ * True when the request gave up waiting rather than being refused. For a call that
+ * moves money this means "outcome unknown" — the send may still be going through —
+ * so it must never be reported as "not sent".
+ */
+export function isProxyTimeout(err: unknown): boolean {
+    return isAxiosError(err) && (err.code === "ECONNABORTED" || err.code === "ETIMEDOUT");
+}
+
+export const STILL_GOING_THROUGH = "No answer yet — it may still be going through. Refresh the list in a minute before trying again.";
+
 export function proxyErrorMessage(err: unknown): string {
+    if (isProxyTimeout(err)) return STILL_GOING_THROUGH;
     if (typeof err === "string") return looksLikeHtml(err) ? "The payments server is unavailable right now" : err.trim() || NO_RESPONSE;
     return explain(httpErrorMessage(err, NO_RESPONSE));
 }

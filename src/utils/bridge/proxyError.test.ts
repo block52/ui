@@ -1,4 +1,5 @@
-import { proxyErrorMessage } from "./proxyError";
+import { AxiosError } from "axios";
+import { proxyErrorMessage, isProxyTimeout } from "./proxyError";
 
 describe("proxyErrorMessage", () => {
     it("explains a rejected admin key", () => {
@@ -24,5 +25,13 @@ describe("proxyErrorMessage", () => {
     it("anything else says there was no usable response, never 'undefined'", () => {
         expect(proxyErrorMessage(undefined)).toBe("No response from the payments server");
         expect(proxyErrorMessage({})).toBe("No response from the payments server");
+    });
+
+    it("a timeout is 'may still be going through', never a failure", () => {
+        const timeout = new AxiosError("timeout of 5000ms exceeded", "ECONNABORTED");
+        expect(isProxyTimeout(timeout)).toBe(true);
+        expect(proxyErrorMessage(timeout)).toMatch(/may still be going through/);
+        expect(isProxyTimeout({ error: "Unauthorized" })).toBe(false);
+        expect(isProxyTimeout(new AxiosError("Network Error", "ERR_NETWORK"))).toBe(false);
     });
 });
