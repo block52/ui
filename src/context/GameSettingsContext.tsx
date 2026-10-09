@@ -40,10 +40,10 @@ export interface GameSettings {
     // When OFF (default), taking a seat auto-sits-in (dealt in next hand). When ON,
     // the sit-in method radios are shown so the player chooses (ui#550/#551).
     sitInOptions: boolean;
-    // When OFF (default), the pre-emptive "Check" box (ui#388) is hidden. When ON,
-    // it appears before your turn while checking would be free, so you can queue
-    // an auto-check. Pure view/opt-in preference — the queued intent itself stays
-    // ephemeral per-round.
+    // When OFF (default), the pre-emptive "Check/Fold" box (ui#388) is hidden. When
+    // ON, it appears before your turn while checking would be free, so you can queue
+    // a Check/Fold (check if free, fold to a bet). Pure view/opt-in preference — the
+    // queued intent itself stays ephemeral per-round.
     preSelectCheck: boolean;
 }
 

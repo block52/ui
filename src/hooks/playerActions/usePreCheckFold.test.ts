@@ -1,19 +1,24 @@
 /**
- * Tests for usePreCheck (ui#388 acceptance criteria, #605, #635).
+ * Tests for usePreCheckFold (ui#388, #605, #635).
  *
- * The pre-check can only ever CHECK. It fires on the rising edge of the turn,
- * re-reads legality at fire time, always resolves the queued intent, submits
- * through the ActionSubmitController — and never waits in line behind an action
- * the player already made.
+ * Check/Fold checks when checking is free and folds when the player faces a bet
+ * (CALL legal). It never folds a player who has not been bet into, e.g. on a
+ * blind-posting turn where only fold-anytime is legal. It fires on the rising
+ * edge of the turn, re-reads legality at fire time, always resolves the queued
+ * intent, submits through the ActionSubmitController — and never waits in line
+ * behind an action the player already made.
  */
 import { renderHook, act } from "@testing-library/react";
-import { usePreCheck } from "./usePreCheck";
+import { usePreCheckFold } from "./usePreCheckFold";
 import { checkHand } from "./checkHand";
+import { foldHand } from "./foldHand";
 import { makeTestSubmit } from "./testSubmit";
 
 jest.mock("./checkHand");
+jest.mock("./foldHand");
 
 const mockCheck = checkHand as jest.MockedFunction<typeof checkHand>;
+const mockFold = foldHand as jest.MockedFunction<typeof foldHand>;
 
 const TABLE_ID = "0xtable";
 const NETWORK = {} as never;
@@ -30,19 +35,21 @@ interface Props {
     tableId?: string;
     queued?: boolean;
     hasCheck?: boolean;
+    hasCall?: boolean;
+    hasFold?: boolean;
     isUsersTurn?: boolean;
     isBusy?: boolean;
 }
 
-describe("usePreCheck", () => {
+describe("usePreCheckFold", () => {
     let harness: ReturnType<typeof makeTestSubmit>;
     const onSubmitted = jest.fn();
     const onResolved = jest.fn();
 
     const render = (initial: Props = {}) =>
         renderHook(
-            ({ tableId = TABLE_ID, queued = true, hasCheck = true, isUsersTurn = true, isBusy = false }: Props) =>
-                usePreCheck(tableId, NETWORK, queued, hasCheck, isUsersTurn, harness.submit, isBusy, onSubmitted, onResolved),
+            ({ tableId = TABLE_ID, queued = true, hasCheck = true, hasCall = false, hasFold = true, isUsersTurn = true, isBusy = false }: Props) =>
+                usePreCheckFold(tableId, NETWORK, queued, hasCheck, hasCall, hasFold, isUsersTurn, harness.submit, isBusy, onSubmitted, onResolved),
             { initialProps: initial }
         );
 
@@ -53,13 +60,15 @@ describe("usePreCheck", () => {
         onResolved.mockReset();
         mockCheck.mockReset();
         mockCheck.mockResolvedValue({ hash: "0xcheck", gameId: TABLE_ID, action: "check", amount: "0" } as never);
+        mockFold.mockReset();
+        mockFold.mockResolvedValue({ hash: "0xfold", gameId: TABLE_ID, action: "fold", amount: "0" } as never);
     });
     afterEach(() => jest.useRealTimers());
 
     describe("re-renders during the settle window (#605)", () => {
         it("still fires when the caller re-renders with fresh callbacks every time", async () => {
             const { rerender } = renderHook(() =>
-                usePreCheck(TABLE_ID, NETWORK, true, true, true, harness.submit, false, () => {}, () => {})
+                usePreCheckFold(TABLE_ID, NETWORK, true, true, false, true, true, harness.submit, false, () => {}, () => {})
             );
             act(() => jest.advanceTimersByTime(200));
             rerender();
@@ -93,7 +102,7 @@ describe("usePreCheck", () => {
         expect(harness.requests).toHaveLength(0);
     });
 
-    it("submits CHECK once when queued and the turn arrives with CHECK still legal (AC-2)", async () => {
+    it("submits CHECK once when queued and the turn arrives with CHECK still legal", async () => {
         render();
         await settle();
 
@@ -103,15 +112,52 @@ describe("usePreCheck", () => {
         expect(onResolved).toHaveBeenCalledTimes(1);
     });
 
-    it("resolves WITHOUT acting when a bet slipped in so CHECK is no longer legal (AC-3/AC-5)", async () => {
-        render({ hasCheck: false });
+    it("submits FOLD once when someone bet before the turn arrived", async () => {
+        render({ hasCheck: false, hasCall: true });
+        await settle();
+
+        expect(harness.requests.map(r => r.actionName)).toEqual(["fold"]);
+        expect(mockFold).toHaveBeenCalledWith(TABLE_ID, NETWORK);
+        expect(mockCheck).not.toHaveBeenCalled();
+        expect(onSubmitted).toHaveBeenCalledWith("0xfold");
+        expect(onResolved).toHaveBeenCalledTimes(1);
+    });
+
+    it("prefers CHECK whenever checking is free, even though FOLD is also legal", async () => {
+        render({ hasCheck: true, hasCall: false, hasFold: true });
+        await settle();
+
+        expect(harness.requests.map(r => r.actionName)).toEqual(["check"]);
+        expect(mockFold).not.toHaveBeenCalled();
+    });
+
+    it("never folds without a bet to fold to — e.g. a blind-posting turn with only fold-anytime legal", async () => {
+        render({ hasCheck: false, hasCall: false, hasFold: true });
+        await settle();
+
+        expect(harness.requests).toHaveLength(0);
+        expect(mockFold).not.toHaveBeenCalled();
+        expect(onResolved).toHaveBeenCalledTimes(1);
+    });
+
+    it("resolves WITHOUT acting when facing a bet but FOLD is not legal", async () => {
+        render({ hasCheck: false, hasCall: true, hasFold: false });
         await settle();
 
         expect(harness.requests).toHaveLength(0);
         expect(onResolved).toHaveBeenCalledTimes(1);
     });
 
-    it("reads the FRESH legality at fire time, not the value when the turn began (AC-5)", async () => {
+    it("reads the FRESH legality at fire time: a bet landing in the settle window folds", async () => {
+        const { rerender } = render({ hasCheck: true });
+        act(() => jest.advanceTimersByTime(200));
+        rerender({ hasCheck: false, hasCall: true });
+        await settle();
+
+        expect(harness.requests.map(r => r.actionName)).toEqual(["fold"]);
+    });
+
+    it("reads the FRESH legality at fire time: CHECK disappearing with no bet resolves without acting", async () => {
         const { rerender } = render({ hasCheck: true });
         act(() => jest.advanceTimersByTime(200));
         rerender({ hasCheck: false });
@@ -140,7 +186,7 @@ describe("usePreCheck", () => {
         expect(harness.requests).toHaveLength(2);
     });
 
-    it("still resolves when the check submit is rejected (AC-4 clear path)", async () => {
+    it("still resolves when the check submit is rejected", async () => {
         mockCheck.mockRejectedValue(new Error("rejected"));
         render();
         await settle();
@@ -160,18 +206,27 @@ describe("usePreCheck", () => {
     describe("through the submit controller (#635)", () => {
         it("submits rather than broadcasting", async () => {
             const requests: Array<{ actionName: string }> = [];
-            renderHook(() => usePreCheck(TABLE_ID, NETWORK, true, true, true, request => requests.push(request), false));
+            renderHook(() => usePreCheckFold(TABLE_ID, NETWORK, true, true, false, true, true, request => requests.push(request), false));
             await settle();
 
             expect(requests.map(r => r.actionName)).toEqual(["check"]);
             expect(mockCheck).not.toHaveBeenCalled();
         });
 
-        it("resolves WITHOUT checking when the player already acted by hand — a late check lands on the wrong decision", async () => {
+        it("resolves WITHOUT acting when the player already acted by hand — a late check lands on the wrong decision", async () => {
             render({ isBusy: true });
             await settle();
 
             expect(harness.requests).toHaveLength(0);
+            expect(onResolved).toHaveBeenCalledTimes(1);
+        });
+
+        it("does not FOLD late either: facing a bet with the queue busy resolves without acting", async () => {
+            render({ isBusy: true, hasCheck: false, hasCall: true });
+            await settle();
+
+            expect(harness.requests).toHaveLength(0);
+            expect(mockFold).not.toHaveBeenCalled();
             expect(onResolved).toHaveBeenCalledTimes(1);
         });
 

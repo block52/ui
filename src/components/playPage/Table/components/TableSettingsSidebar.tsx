@@ -97,8 +97,8 @@ export const TableSettingsSidebar: React.FC<TableSettingsSidebarProps> = ({ isOp
                         onToggle={toggleSitInOptions}
                     />
                     <ToggleRow
-                        label="Pre-Select Check"
-                        description="Show a Check box before your turn when checking is free, so you can queue an auto-check. Clears if a bet lands — it can only ever check, never fold."
+                        label="Pre-Select Check/Fold"
+                        description="Show a Check/Fold box before your turn when checking is free. When your turn comes it checks if it's still free, or folds if someone bets first."
                         checked={preSelectCheck}
                         onToggle={togglePreSelectCheck}
                     />

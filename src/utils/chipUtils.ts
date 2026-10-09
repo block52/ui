@@ -150,7 +150,7 @@ export const currentRoundContribution = (
  * True when checking would be free for `address` right now — i.e. no other
  * player has committed more chips than they have in the current betting round.
  *
- * Used to decide whether the pre-select "Check" control (ui#388) should be
+ * Used to decide whether the pre-select "Check/Fold" control (ui#388) should be
  * offered before it is the player's turn. Correctly handles the preflop big
  * blind (their posted BB counts, so they stay "check-free" until someone raises)
  * and non-blind preflop seats (facing the BB → not free).
