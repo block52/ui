@@ -14,7 +14,7 @@ export const SortButton: React.FC<SortButtonProps> = ({ label, direction, onClic
     return (
         <button
             onClick={onClick}
-            className="inline-flex items-center gap-1 hover:text-white transition-colors"
+            className="inline-flex items-center gap-1 hover:text-ink transition-colors"
             title={title ?? `Sort by ${label.toLowerCase()}`}
         >
             {label}

@@ -1,6 +1,6 @@
 import { useState, useCallback, useMemo } from "react";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
-import { Card, PillButton } from "../../components/ui";
+import { Card, PillButton, Select } from "../../components/ui";
 import { useReleaseNotes } from "../../hooks/useReleaseNotes";
 import { isEmpty, hasElements, hasContent } from "../../utils/guards";
 import {
@@ -214,17 +214,12 @@ export default function TechNotesPage() {
                         <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
                             <label className="lg:hidden flex flex-col gap-1.5">
                                 <span className="text-ink-muted text-xs uppercase tracking-[0.08em]">Release</span>
-                                <select
+                                <Select
+                                    aria-label="Release"
                                     value={selected.id}
-                                    onChange={e => selectRelease(e.target.value)}
-                                    className="h-11 w-full px-3 rounded-xl bg-surface-raised border border-line text-ink focus:outline-none focus:ring-2 focus:ring-brand"
-                                >
-                                    {notes.map(note => (
-                                        <option key={note.id} value={note.id}>
-                                            {formatReleaseDateShort(note.date)} · {note.title}
-                                        </option>
-                                    ))}
-                                </select>
+                                    onChange={selectRelease}
+                                    options={notes.map(note => ({ value: note.id, label: `${formatReleaseDateShort(note.date)} · ${note.title}` }))}
+                                />
                             </label>
 
                             <ReleaseArticle key={selected.id} note={selected} isLatest={selected.id === latest.id} />

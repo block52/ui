@@ -10,7 +10,7 @@ import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
 import { validateTableName, normalizeTableName, tableNameCharCount } from "../utils/tableName";
-import { Card, CardHeader, ChoicePill, PillButton, pillClass, StatStrip } from "../components/ui";
+import { Card, CardHeader, ChoicePill, PillButton, pillClass, Select, StatStrip } from "../components/ui";
 import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
@@ -411,48 +411,48 @@ export default function TableAdminPage() {
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
-                                <label className={labelCls}>Game Type</label>
-                                <select
+                                <label htmlFor="table-game-type" className={labelCls}>Game Type</label>
+                                <Select
+                                    id="table-game-type"
+                                    aria-label="Game Type"
                                     value={gameFormat}
-                                    onChange={e => {
-                                        const format = toGameFormat(e.target.value);
+                                    onChange={next => {
+                                        const format = toGameFormat(next);
                                         if (format) handleGameFormatChange(format);
                                     }}
-                                    className={inputCls}
-                                >
-                                    <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
-                                    <option value={GameFormat.TOURNAMENT}>Tournament</option>
-                                    <option value={GameFormat.CASH}>Cash Game</option>
-                                </select>
+                                    options={[
+                                        { value: GameFormat.SIT_AND_GO, label: "Sit & Go" },
+                                        { value: GameFormat.TOURNAMENT, label: "Tournament" },
+                                        { value: GameFormat.CASH, label: "Cash Game" }
+                                    ]}
+                                />
                             </div>
                             <div>
-                                <label className={labelCls}>Max Players</label>
-                                <select
-                                    value={maxPlayers}
-                                    onChange={e => setMaxPlayers(parseInt(e.target.value))}
-                                    className={inputCls}
-                                >
-                                    <option value={2}>2 (Heads-Up)</option>
-                                    <option value={4}>4 (Sit & Go)</option>
-                                    <option value={6}>6 (Sit & Go)</option>
-                                    <option value={9}>9 (Full Ring)</option>
-                                </select>
+                                <label htmlFor="table-max-players" className={labelCls}>Max Players</label>
+                                <Select
+                                    id="table-max-players"
+                                    aria-label="Max Players"
+                                    value={String(maxPlayers)}
+                                    onChange={next => setMaxPlayers(parseInt(next))}
+                                    options={[
+                                        { value: "2", label: "2 (Heads-Up)" },
+                                        { value: "4", label: "4 (Sit & Go)" },
+                                        { value: "6", label: "6 (Sit & Go)" },
+                                        { value: "9", label: "9 (Full Ring)" }
+                                    ]}
+                                />
                             </div>
 
                             {gameFormat === GameFormat.CASH && (
                                 <div className="md:col-span-2">
-                                    <label className={labelCls}>Game Size (Small Blind / Big Blind)</label>
-                                    <select
-                                        value={selectedBlindLevel}
-                                        onChange={e => setSelectedBlindLevel(Number(e.target.value))}
-                                        className={inputCls}
-                                    >
-                                        {BLIND_LEVELS.map((level, index) => (
-                                            <option key={index} value={index}>
-                                                {level.label}
-                                            </option>
-                                        ))}
-                                    </select>
+                                    <label htmlFor="table-game-size" className={labelCls}>Game Size (Small Blind / Big Blind)</label>
+                                    <Select
+                                        id="table-game-size"
+                                        aria-label="Game Size (Small Blind / Big Blind)"
+                                        value={String(selectedBlindLevel)}
+                                        onChange={next => setSelectedBlindLevel(Number(next))}
+                                        options={BLIND_LEVELS.map((level, index) => ({ value: String(index), label: level.label }))}
+                                    />
                                 </div>
                             )}
                         </div>
@@ -716,16 +716,14 @@ export default function TableAdminPage() {
                                             <p className={hintCls}>Pots below this amount are rake-free</p>
                                         </div>
                                         <div>
-                                            <label className={labelCls}>Rake Percentage (%)</label>
-                                            <select
+                                            <label htmlFor="table-rake-percentage" className={labelCls}>Rake Percentage (%)</label>
+                                            <Select
+                                                id="table-rake-percentage"
+                                                aria-label="Rake Percentage (%)"
                                                 value={rakePercentage}
-                                                onChange={e => setRakePercentage(e.target.value)}
-                                                className={inputCls}
-                                            >
-                                                {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => (
-                                                    <option key={n} value={String(n)}>{n}%</option>
-                                                ))}
-                                            </select>
+                                                onChange={setRakePercentage}
+                                                options={[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(n => ({ value: String(n), label: `${n}%` }))}
+                                            />
                                             <p className={hintCls}>Typically 2% - 5%</p>
                                         </div>
                                         <div>

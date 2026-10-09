@@ -42,14 +42,14 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             return this.props.children;
         }
         return (
-            <div role="alert" className="max-w-xl mx-auto mt-16 px-4 text-white">
+            <div role="alert" className="max-w-xl mx-auto mt-16 px-4 text-ink">
                 <h1 className="text-2xl font-bold mb-2">Something went wrong on this page</h1>
                 <p className="text-ink-soft mb-4">
                     The rest of the app is still working — reload to try again, or use the menu to go elsewhere.
                 </p>
                 <pre className="bg-surface-card border border-line text-red-300 text-sm p-3 rounded-lg whitespace-pre-wrap break-words mb-4">{error.message}</pre>
                 {this.props.showDetails && componentStack && (
-                    <pre className="bg-surface-card border border-line text-gray-400 text-xs p-3 rounded-lg whitespace-pre-wrap break-words mb-4 max-h-64 overflow-auto">
+                    <pre className="bg-surface-card border border-line text-ink-muted text-xs p-3 rounded-lg whitespace-pre-wrap break-words mb-4 max-h-64 overflow-auto">
                         {componentStack}
                     </pre>
                 )}

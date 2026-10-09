@@ -5,7 +5,7 @@ import { getCosmosMnemonic } from "../utils/cosmos/storage";
 import { useNetwork } from "../context/NetworkContext";
 import { USDC_TO_MICRO, microToUsdc } from "../constants/currency";
 import { Modal } from "../components/common/Modal";
-import { PillLink } from "../components/ui";
+import { PillLink, Select } from "../components/ui";
 import { isEmpty } from "../utils/guards";
 import { isTournamentFormat, toGameFormat } from "../utils/gameFormatUtils";
 import styles from "./TestSigningPage.module.css";
@@ -931,15 +931,16 @@ export default function TestSigningPage() {
                                         </p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm text-ink-muted mb-1">Token Type</label>
-                                        <select
+                                        <label htmlFor="signing-token-type" className="block text-sm text-ink-muted mb-1">Token Type</label>
+                                        <Select
+                                            id="signing-token-type"
                                             value={sendDenom}
-                                            onChange={e => setSendDenom(e.target.value)}
-                                            className={`w-full ${styles.inputField}`}
-                                        >
-                                            <option value="usdc">usdc (poker tokens)</option>
-                                            <option value="stake">stake (gas tokens)</option>
-                                        </select>
+                                            onChange={setSendDenom}
+                                            options={[
+                                                { value: "usdc", label: "usdc (poker tokens)" },
+                                                { value: "stake", label: "stake (gas tokens)" }
+                                            ]}
+                                        />
                                     </div>
                                 </div>
                                 <button
@@ -955,19 +956,20 @@ export default function TestSigningPage() {
                             <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">4. createGame()</h3>
                             <div className="grid grid-cols-2 gap-3 mb-3">
                                 <div className="col-span-2">
-                                    <label className="block text-sm text-ink-muted mb-1">Game Format</label>
-                                    <select
+                                    <label htmlFor="signing-game-format" className="block text-sm text-ink-muted mb-1">Game Format</label>
+                                    <Select
+                                        id="signing-game-format"
                                         value={gameFormat}
-                                        onChange={e => {
-                                            const format = toGameFormat(e.target.value);
+                                        onChange={next => {
+                                            const format = toGameFormat(next);
                                             if (format) setGameFormat(format);
                                         }}
-                                        className={`w-full ${styles.inputField}`}
-                                    >
-                                        <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
-                                        <option value={GameFormat.CASH}>Cash Game</option>
-                                        <option value={GameFormat.TOURNAMENT}>Tournament</option>
-                                    </select>
+                                        options={[
+                                            { value: GameFormat.SIT_AND_GO, label: "Sit & Go" },
+                                            { value: GameFormat.CASH, label: "Cash Game" },
+                                            { value: GameFormat.TOURNAMENT, label: "Tournament" }
+                                        ]}
+                                    />
                                 </div>
                                 <input
                                     type="number"
@@ -1115,18 +1117,19 @@ export default function TestSigningPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="block text-sm text-ink-muted mb-1">Action Type</label>
-                                        <select
+                                        <label htmlFor="signing-action-type" className="block text-sm text-ink-muted mb-1">Action Type</label>
+                                        <Select
+                                            id="signing-action-type"
                                             value={action}
-                                            onChange={e => setAction(e.target.value)}
-                                            className={`w-full ${styles.inputField}`}
-                                        >
-                                            <option value="fold">Fold</option>
-                                            <option value="call">Call</option>
-                                            <option value="raise">Raise</option>
-                                            <option value="bet">Bet</option>
-                                            <option value="check">Check</option>
-                                        </select>
+                                            onChange={setAction}
+                                            options={[
+                                                { value: "fold", label: "Fold" },
+                                                { value: "call", label: "Call" },
+                                                { value: "raise", label: "Raise" },
+                                                { value: "bet", label: "Bet" },
+                                                { value: "check", label: "Check" }
+                                            ]}
+                                        />
                                     </div>
                                     <div>
                                         <label className="block text-sm text-ink-muted mb-1">Amount (0 for fold/check)</label>

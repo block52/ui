@@ -7,8 +7,7 @@ import {
     parseIndexerStatus,
     parseRandomnessReport,
     parseStatsSummary,
-    parseValidatorsResponse
-} from "./typeConversions";
+    parseValidatorsResponse, parseBridgeFilter } from "./typeConversions";
 
 const card = { card: "As", rank: "A", suit: "s", total_appearances: 10, expected_frequency: 0.019, actual_frequency: 0.02, deviation: 1, deviation_percent: 5 };
 const chi = { chi_squared: 44.1, degrees_of_freedom: 51, p_value: 0.74, result: "PASS", interpretation: "Fair" };
@@ -103,5 +102,19 @@ describe("accountTypeLabel", () => {
         expect(accountTypeLabel("/cosmos.auth.v1beta1.BaseAccount")).toBe("B52 Account");
         expect(accountTypeLabel("/cosmos.auth.v1beta1.ModuleAccount")).toBe("ModuleAccount");
         expect(accountTypeLabel("weird.")).toBe("weird.");
+    });
+});
+
+describe("parseBridgeFilter", () => {
+    it("accepts the three filter values", () => {
+        expect(parseBridgeFilter("all")).toBe("all");
+        expect(parseBridgeFilter("processed")).toBe("processed");
+        expect(parseBridgeFilter("pending")).toBe("pending");
+    });
+
+    it("rejects anything else", () => {
+        expect(parseBridgeFilter("")).toBeNull();
+        expect(parseBridgeFilter("Pending")).toBeNull();
+        expect(parseBridgeFilter("failed")).toBeNull();
     });
 });

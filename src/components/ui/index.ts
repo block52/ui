@@ -10,3 +10,5 @@ export type { PageTab } from "./PageTabs";
 export { StatStrip } from "./StatStrip";
 export type { StatItem } from "./StatStrip";
 export { ThemeToggle } from "./ThemeToggle";
+export { Select } from "./Select";
+export type { SelectOption } from "./Select";

@@ -200,3 +200,10 @@ export const accountTypeLabel = (typeUrl: string): string => {
     if (name === "BaseAccount") return "B52 Account";
     return name === "" ? typeUrl : name;
 };
+
+/** Filter values of the bridge deposits table. */
+export type BridgeFilter = "all" | "processed" | "pending";
+
+/** The select value as a BridgeFilter, or null for anything else. */
+export const parseBridgeFilter = (value: string): BridgeFilter | null =>
+    value === "all" || value === "processed" || value === "pending" ? value : null;

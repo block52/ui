@@ -10,7 +10,8 @@ import { formatMicroAsUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../const
 import { getSigningClient } from "../utils/cosmos/client";
 import { base64ToHex } from "../utils/encodingUtils";
 import { Modal } from "../components/common/Modal";
-import { Card, CardHeader, PillButton, StatStrip } from "../components/ui";
+import { Card, CardHeader, PillButton, Select, StatStrip } from "../components/ui";
+import type { SelectOption } from "../components/ui";
 import { amountInputClass, fieldInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
@@ -29,6 +30,15 @@ import { describeWithdrawError } from "../utils/withdrawalSignature";
  *
  * This dashboard auto-polls for pending withdrawals so users see status updates in real time.
  */
+
+type WithdrawalFilter = "all" | "pending" | "signed" | "completed";
+
+const WITHDRAWAL_FILTER_OPTIONS: ReadonlyArray<SelectOption<WithdrawalFilter>> = [
+    { value: "all", label: "All" },
+    { value: "pending", label: "Pending" },
+    { value: "signed", label: "Signed" },
+    { value: "completed", label: "Completed" }
+];
 
 interface Withdrawal {
     nonce: string;
@@ -51,7 +61,7 @@ export default function WithdrawalDashboard() {
     const [withdrawals, setWithdrawals] = useState<Withdrawal[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [processingNonce, setProcessingNonce] = useState<string | null>(null);
-    const [filter, setFilter] = useState<"all" | "pending" | "signed" | "completed">("all");
+    const [filter, setFilter] = useState<WithdrawalFilter>("all");
 
     const [showInitiateModal, setShowInitiateModal] = useState(false);
     const [withdrawalAmount, setWithdrawalAmount] = useState("");
@@ -370,20 +380,20 @@ export default function WithdrawalDashboard() {
                         title="Withdrawals"
                         actions={
                             <>
-                                <label htmlFor="withdrawal-filter" className="text-ink-muted text-sm">
-                                    Filter:
-                                </label>
-                                <select
-                                    id="withdrawal-filter"
-                                    value={filter}
-                                    onChange={e => setFilter(e.target.value as any)}
-                                    className="h-11 sm:h-9 px-3 rounded-xl bg-surface-raised border border-line-strong text-ink text-sm outline-none focus:border-brand focus:ring-2 focus:ring-brand/30 [color-scheme:dark]"
-                                >
-                                    <option value="all">All</option>
-                                    <option value="pending">Pending</option>
-                                    <option value="signed">Signed</option>
-                                    <option value="completed">Completed</option>
-                                </select>
+                                <div className="flex items-center gap-2">
+                                    <label htmlFor="withdrawal-filter" className="text-ink-muted text-sm">
+                                        Filter:
+                                    </label>
+                                    <Select
+                                        id="withdrawal-filter"
+                                        aria-label="Filter withdrawals"
+                                        value={filter}
+                                        onChange={setFilter}
+                                        options={WITHDRAWAL_FILTER_OPTIONS}
+                                        className="w-auto min-w-[150px]"
+                                        align="end"
+                                    />
+                                </div>
                                 <PillButton variant="outline" size="sm" onClick={loadWithdrawals} disabled={isLoading}>
                                     {isLoading ? "Loading..." : "Refresh"}
                                 </PillButton>

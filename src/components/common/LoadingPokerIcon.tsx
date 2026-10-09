@@ -47,7 +47,7 @@ const LoadingPokerIcon: React.FC<LoadingPokerIconProps> = ({ size = 60, color = 
                     </div>
                 </div>
             </div>
-            <p className="mt-3 text-white font-medium animate-pulse">Buying in...</p>
+            <p className="mt-3 text-ink font-medium animate-pulse">Buying in...</p>
         </div>
     );
 };

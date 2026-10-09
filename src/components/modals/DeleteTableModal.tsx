@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { truncateMiddle } from "../../utils/stringUtils";
 import { colors } from "../../utils/colorConfig";
 import { Modal, LoadingSpinner } from "../common";
+import { WarningIcon } from "./walletIcons";
 import styles from "./DeleteTableModal.module.css";
 
 export interface DeleteTableModalProps {
@@ -46,7 +47,10 @@ const DeleteTableModal: React.FC<DeleteTableModalProps> = React.memo(({ isOpen, 
                 <p className="text-ink-soft text-sm mb-4">Are you sure you want to delete this table?</p>
 
                 <div className={`p-4 rounded-lg mb-4 ${styles.dangerAlert}`}>
-                    <p className="text-ink text-sm font-semibold mb-2">⚠️ This action cannot be undone</p>
+                    <p className="flex items-center gap-2 text-ink text-sm font-semibold mb-2">
+                        <WarningIcon className="w-4 h-4 text-amber-400" />
+                        This action cannot be undone
+                    </p>
                     <p className="text-ink-soft text-xs">
                         The table will be permanently removed from the blockchain.
                     </p>

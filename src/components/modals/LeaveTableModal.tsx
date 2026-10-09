@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import { colors } from "../../utils/colorConfig";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { Modal, LoadingSpinner } from "../common";
+import { WarningIcon } from "./walletIcons";
 import type { LeaveTableModalProps } from "./types";
 import styles from "./LeaveTableModal.module.css";
 
@@ -41,7 +42,10 @@ const LeaveTableModal: React.FC<LeaveTableModalProps> = React.memo(({ isOpen, on
 
                 {isInActiveHand && (
                     <div className={`p-4 rounded-lg mb-4 ${styles.dangerAlertStrong}`}>
-                        <p className="text-ink text-sm font-semibold mb-2">⚠️ Active Hand Warning</p>
+                        <p className="flex items-center gap-2 text-ink text-sm font-semibold mb-2">
+                            <WarningIcon className="w-4 h-4 text-amber-400" />
+                            Active Hand Warning
+                        </p>
                         <p className="text-ink-soft text-xs">
                             You are currently in an active hand. Leaving now will automatically <strong>fold your hand</strong> and forfeit any
                             chips you have bet this round.

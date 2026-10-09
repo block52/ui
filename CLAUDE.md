@@ -408,6 +408,18 @@ Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
 `isEmpty` (array length), `hasContent` / `isBlank` (strings). For type
 conversions, see Commandment 12 (`utils/typeConversions`).
 
+## UI Design System & Theming
+
+The UI uses one dark/light design language. Full details: `docs/THEMING.md`, `docs/MODAL_STYLE_GUIDE.md`.
+
+- **Colours are tokens, never hex.** `surface-page/card/raised/hover`, `line/line-strong`, `ink/ink-body/ink-soft/ink-muted` and `brand` are Tailwind colours backed by CSS variables in `src/styles/theme.css` (dark default, `:root[data-theme="light"]` override). In CSS modules use `rgb(var(--surface-card))`. A hard-coded hex or `text-white`/`text-gray-*` on a themed surface breaks light mode. Keep `text-white` only on brand-filled / destructive buttons and dark scrims.
+- **Check both themes.** Switch with the navbar sun/moon button, or `localStorage.setItem("b52-theme", "light")`. `ThemeProvider` / `useTheme` (`context/ThemeContext.tsx`) own the choice; `utils/theme.ts` holds the pure rules. The game table page (`/table/*`) is always dark (felt, chips, seats are not themed).
+- **Semantic colours** (`text-emerald-400`, `text-red-400`, `text-amber-300`…) are darkened for light mode in `theme.css`; use `dark:` variants for other one-off shades.
+- **Buttons use `rounded-btn`** (one radius token, `--radius-btn`), not `rounded-full`. `rounded-full` is for avatars, dots, spinners, switches and small tags.
+- **Shared building blocks:** `components/ui` (Card, PillButton, ChoicePill, SegmentedControl, PageTabs, StatStrip, ThemeToggle), `components/common/Modal` (+ `modals/ModalFooter`, `AmountPresets`, `ConfirmDialog`, `walletFormClasses`). Reuse them before writing new markup.
+- **Modals:** use `Modal` with a `title` + `subtitle` and a `ModalFooter` for the actions. Put the width in `widthClass` (e.g. `w-full max-w-[460px]`). Never use `window.alert/confirm/prompt`: use `ConfirmDialog` or a `react-toastify` toast.
+- **Tap targets are at least 44px on phones.** Icon-only buttons need an `aria-label`.
+
 ## Hooks Architecture
 
 The application uses **57 custom React hooks** organized by domain. See [`hooks/README.md`](./src/hooks/README.md) for comprehensive documentation.
@@ -763,4 +775,4 @@ When making changes:
 
 ---
 
-Last Updated: 2026-07-14
+Last Updated: 2026-10-09

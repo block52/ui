@@ -1,3 +1,4 @@
+import { BridgeFilter, parseBridgeFilter } from "../utils/typeConversions";
 import { useState, useEffect, useCallback } from "react";
 import { truncateMiddle } from "../utils/stringUtils";
 import { isEmpty, isBlank, hasContent } from "../utils/guards";
@@ -10,7 +11,7 @@ import { formatMicroAsUsdc } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
 import { BRIDGE_DEPOSITS_ABI } from "../utils/bridge/abis";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
-import { Card, CardHeader, PillButton, StatStrip } from "../components/ui";
+import { Card, CardHeader, PillButton, Select, StatStrip } from "../components/ui";
 import { fieldInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import { useCosmosApi } from "../context/CosmosApiContext";
@@ -79,7 +80,7 @@ export default function BridgeAdminDashboard() {
     const [totalDepositsFound, setTotalDepositsFound] = useState(0);
     const [processingIndex, setProcessingIndex] = useState<number | null>(null);
     const [isProcessingAll, setIsProcessingAll] = useState(false);
-    const [filter, setFilter] = useState<"all" | "processed" | "pending">("all");
+    const [filter, setFilter] = useState<BridgeFilter>("all");
     // Load sort order from localStorage, default to descending (newest first)
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">(() => {
         const saved = localStorage.getItem(STORAGE_KEYS.bridgeSortOrder);
@@ -440,8 +441,7 @@ export default function BridgeAdminDashboard() {
     const hasNextPage = currentPage < totalPages;
     const hasPrevPage = currentPage > 1;
 
-    const selectClass = `${fieldInputClass} h-11 w-auto py-0 pr-8 text-sm`;
-    const pagerClass = "h-11 sm:h-9 min-w-11 sm:min-w-9 px-4 rounded-full border border-line text-sm text-ink-body hover:bg-surface-hover disabled:text-ink-muted/50 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors";
+    const pagerClass = "h-11 sm:h-9 min-w-11 sm:min-w-9 px-4 rounded-btn border border-line text-sm text-ink-body hover:bg-surface-hover disabled:text-ink-muted/70 disabled:hover:bg-transparent disabled:cursor-not-allowed transition-colors";
     const thClass = "px-5 py-3 text-xs font-medium uppercase tracking-[0.1em] text-ink-muted";
 
     return (
@@ -649,17 +649,19 @@ export default function BridgeAdminDashboard() {
                                     <label htmlFor="bridge-items-per-page" className="text-sm text-ink-soft whitespace-nowrap">
                                         Items per page:
                                     </label>
-                                    <select
+                                    <Select
                                         id="bridge-items-per-page"
-                                        value={itemsPerPage}
-                                        onChange={e => handleItemsPerPageChange(parseInt(e.target.value))}
-                                        className={selectClass}
-                                    >
-                                        <option value="10">10</option>
-                                        <option value="25">25</option>
-                                        <option value="50">50</option>
-                                        <option value="100">100</option>
-                                    </select>
+                                        aria-label="Items per page"
+                                        value={String(itemsPerPage)}
+                                        onChange={next => handleItemsPerPageChange(parseInt(next))}
+                                        options={[
+                                            { value: "10", label: "10" },
+                                            { value: "25", label: "25" },
+                                            { value: "50", label: "50" },
+                                            { value: "100", label: "100" }
+                                        ]}
+                                        className="w-auto min-w-[88px]"
+                                    />
                                 </div>
                                 <div className="flex items-center gap-2">
                                     <span className="text-sm text-ink-soft whitespace-nowrap">Sort:</span>
@@ -671,16 +673,21 @@ export default function BridgeAdminDashboard() {
                                     <label htmlFor="bridge-filter" className="text-sm text-ink-soft whitespace-nowrap">
                                         Filter:
                                     </label>
-                                    <select
+                                    <Select
                                         id="bridge-filter"
+                                        aria-label="Filter deposits"
                                         value={filter}
-                                        onChange={e => setFilter(e.target.value as any)}
-                                        className={selectClass}
-                                    >
-                                        <option value="all">All</option>
-                                        <option value="processed">Processed</option>
-                                        <option value="pending">Pending</option>
-                                    </select>
+                                        onChange={next => {
+                                            const parsed = parseBridgeFilter(next);
+                                            if (parsed) setFilter(parsed);
+                                        }}
+                                        options={[
+                                            { value: "all", label: "All" },
+                                            { value: "processed", label: "Processed" },
+                                            { value: "pending", label: "Pending" }
+                                        ]}
+                                        className="w-auto min-w-[128px]"
+                                    />
                                 </div>
                                 <PillButton onClick={loadDeposits} disabled={isLoading}>
                                     {isLoading ? (

@@ -14,7 +14,7 @@ import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
 import SendModal from "../components/modals/SendModal";
 import { Modal, PoweredBy } from "../components/common";
-import { PillButton } from "../components/ui";
+import { PillButton, Select } from "../components/ui";
 import { fieldLabelClass, fieldInputClass, inlinePillClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
 import { CopyIcon, CheckIcon, WarningIcon } from "../components/modals/walletIcons";
 import { copyToClipboard } from "../utils/clipboard";
@@ -643,19 +643,22 @@ const Dashboard: React.FC = () => {
                         >
                                 <div className="space-y-5">
                                     <div>
-                                        <label className={labelClass}>Game Type</label>
-                                        <select
+                                        <label htmlFor="create-game-type" className={labelClass}>
+                                            Game Type
+                                        </label>
+                                        <Select
+                                            id="create-game-type"
                                             value={modalGameFormat}
-                                            onChange={e => {
-                                                const format = toGameFormat(e.target.value);
+                                            onChange={next => {
+                                                const format = toGameFormat(next);
                                                 if (format) setModalGameFormat(format);
                                             }}
-                                            className={inputClass}
-                                        >
-                                            <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
-                                            <option value={GameFormat.CASH}>Cash Game</option>
-                                            <option value={GameFormat.TOURNAMENT}>Tournament</option>
-                                        </select>
+                                            options={[
+                                                { value: GameFormat.SIT_AND_GO, label: "Sit & Go" },
+                                                { value: GameFormat.CASH, label: "Cash Game" },
+                                                { value: GameFormat.TOURNAMENT, label: "Tournament" }
+                                            ]}
+                                        />
                                     </div>
 
                                     <div>
@@ -715,17 +718,20 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     ) : (
                                         <div>
-                                            <label className={labelClass}>Number of Players</label>
-                                            <select
-                                                value={modalPlayerCount}
-                                                onChange={e => setModalPlayerCount(Number(e.target.value))}
-                                                className={inputClass}
-                                            >
-                                                <option value={2}>2 Players (Heads-Up)</option>
-                                                <option value={4}>4 Players (Sit & Go)</option>
-                                                <option value={6}>6 Players (Sit & Go)</option>
-                                                <option value={9}>9 Players (Full Ring)</option>
-                                            </select>
+                                            <label htmlFor="create-player-count" className={labelClass}>
+                                                Number of Players
+                                            </label>
+                                            <Select
+                                                id="create-player-count"
+                                                value={String(modalPlayerCount)}
+                                                onChange={next => setModalPlayerCount(Number(next))}
+                                                options={[
+                                                    { value: "2", label: "2 Players (Heads-Up)" },
+                                                    { value: "4", label: "4 Players (Sit & Go)" },
+                                                    { value: "6", label: "6 Players (Sit & Go)" },
+                                                    { value: "9", label: "9 Players (Full Ring)" }
+                                                ]}
+                                            />
                                         </div>
                                     )}
 
@@ -741,55 +747,55 @@ const Dashboard: React.FC = () => {
                                                 className={inputClass}
                                             />
                                             <p className="text-xs text-ink-muted mt-1.5">All players pay the same buy in</p>
-                                            <label className={`${labelClass} mt-4`}>Starting Stack (chips)</label>
-                                            <select
-                                                value={modalStartingStack}
-                                                onChange={e => setModalStartingStack(Number(e.target.value))}
-                                                className={inputClass}
-                                            >
-                                                <option value={1000}>Turbo (1,000)</option>
-                                                <option value={1500}>Standard (1,500)</option>
-                                                <option value={3000}>Deep Stack (3,000)</option>
-                                            </select>
-                                            <label className={`${labelClass} mt-4`}>Starting Blinds (chips)</label>
-                                            <select
-                                                value={modalSngBlindsIndex}
-                                                onChange={e => setModalSngBlindsIndex(Number(e.target.value))}
-                                                className={inputClass}
-                                            >
-                                                {SNG_BLINDS.map((b, i) => (
-                                                    <option key={b.bigBlind} value={i}>
-                                                        {b.smallBlind} / {b.bigBlind}
-                                                    </option>
-                                                ))}
-                                            </select>
-                                            <label className={`${labelClass} mt-4`}>Blind Level Duration</label>
-                                            <select
-                                                value={modalBlindLevelDuration}
-                                                onChange={e => setModalBlindLevelDuration(Number(e.target.value))}
-                                                className={inputClass}
-                                            >
-                                                <option value={3}>Hyper (3 min)</option>
-                                                <option value={5}>Turbo (5 min)</option>
-                                                <option value={10}>Standard (10 min)</option>
-                                                <option value={15}>Deep (15 min)</option>
-                                            </select>
+                                            <label htmlFor="create-starting-stack" className={`${labelClass} mt-4`}>
+                                                Starting Stack (chips)
+                                            </label>
+                                            <Select
+                                                id="create-starting-stack"
+                                                value={String(modalStartingStack)}
+                                                onChange={next => setModalStartingStack(Number(next))}
+                                                options={[
+                                                    { value: "1000", label: "Turbo (1,000)" },
+                                                    { value: "1500", label: "Standard (1,500)" },
+                                                    { value: "3000", label: "Deep Stack (3,000)" }
+                                                ]}
+                                            />
+                                            <label htmlFor="create-sng-blinds" className={`${labelClass} mt-4`}>
+                                                Starting Blinds (chips)
+                                            </label>
+                                            <Select
+                                                id="create-sng-blinds"
+                                                value={String(modalSngBlindsIndex)}
+                                                onChange={next => setModalSngBlindsIndex(Number(next))}
+                                                options={SNG_BLINDS.map((b, i) => ({ value: String(i), label: `${b.smallBlind} / ${b.bigBlind}` }))}
+                                            />
+                                            <label htmlFor="create-blind-duration" className={`${labelClass} mt-4`}>
+                                                Blind Level Duration
+                                            </label>
+                                            <Select
+                                                id="create-blind-duration"
+                                                value={String(modalBlindLevelDuration)}
+                                                onChange={next => setModalBlindLevelDuration(Number(next))}
+                                                options={[
+                                                    { value: "3", label: "Hyper (3 min)" },
+                                                    { value: "5", label: "Turbo (5 min)" },
+                                                    { value: "10", label: "Standard (10 min)" },
+                                                    { value: "15", label: "Deep (15 min)" }
+                                                ]}
+                                            />
                                         </div>
                                     ) : (
                                         <>
                                             <div>
-                                                <label className={labelClass}>Game Size (Small Blind / Big Blind)</label>
-                                                <select
-                                                    value={selectedBlindLevel}
-                                                    onChange={e => setSelectedBlindLevel(Number(e.target.value))}
-                                                    className={inputClass}
-                                                >
-                                                    {BLIND_LEVELS.map((level, index) => (
-                                                        <option key={index} value={index}>
-                                                            {level.label}
-                                                        </option>
-                                                    ))}
-                                                </select>
+                                                <label htmlFor="create-game-size" className={labelClass}>
+                                                    Game Size (Small Blind / Big Blind)
+                                                </label>
+                                                <Select
+                                                    id="create-game-size"
+                                                    value={String(selectedBlindLevel)}
+                                                    onChange={next => setSelectedBlindLevel(Number(next))}
+                                                    options={BLIND_LEVELS.map((level, index) => ({ value: String(index), label: level.label }))}
+                                                />
                                             </div>
 
                                             <div>
@@ -878,25 +884,20 @@ const Dashboard: React.FC = () => {
                                     )}
 
                                     <div>
-                                        <label className={labelClass}>Variant</label>
-                                        <select
+                                        <label htmlFor="create-variant" className={labelClass}>
+                                            Variant
+                                        </label>
+                                        <Select
+                                            id="create-variant"
                                             value={selectedContractAddress}
-                                            onChange={e => setSelectedContractAddress(e.target.value)}
-                                            className={inputClass}
-                                        >
-                                            <React.Fragment>
-                                                <option value={DEFAULT_GAME_CONTRACT}>Texas Hold'em</option>
-                                                <option value="" disabled>
-                                                    Omaha (Coming Soon)
-                                                </option>
-                                                <option value="" disabled>
-                                                    Seven Card Stud (Coming Soon)
-                                                </option>
-                                                <option value="" disabled>
-                                                    Blackjack (Coming Soon)
-                                                </option>
-                                            </React.Fragment>
-                                        </select>
+                                            onChange={next => setSelectedContractAddress(next)}
+                                            options={[
+                                                { value: DEFAULT_GAME_CONTRACT, label: "Texas Hold'em" },
+                                                { value: "coming-soon-omaha", label: "Omaha (Coming Soon)", disabled: true },
+                                                { value: "coming-soon-seven-card-stud", label: "Seven Card Stud (Coming Soon)", disabled: true },
+                                                { value: "coming-soon-blackjack", label: "Blackjack (Coming Soon)", disabled: true }
+                                            ]}
+                                        />
                                     </div>
 
                                     <div className="flex items-center justify-between gap-3 rounded-xl bg-surface-raised border border-line px-3.5 py-3 text-sm">
