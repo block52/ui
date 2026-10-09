@@ -1,10 +1,10 @@
 import React, { useState, useCallback } from "react";
-import { colors } from "../../utils/colorConfig";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { Modal, LoadingSpinner } from "../common";
+import { PillButton } from "../ui";
 import { WarningIcon } from "./walletIcons";
+import { noticeClass } from "./walletFormClasses";
 import type { LeaveTableModalProps } from "./types";
-import styles from "./LeaveTableModal.module.css";
 
 const LeaveTableModal: React.FC<LeaveTableModalProps> = React.memo(({ isOpen, onClose, onConfirm, playerStack, isInActiveHand }) => {
     const [isLeaving, setIsLeaving] = useState(false);
@@ -29,60 +29,45 @@ const LeaveTableModal: React.FC<LeaveTableModalProps> = React.memo(({ isOpen, on
         <Modal
             isOpen={isOpen}
             onClose={onClose}
-            title="Leave Table"
-            titleIcon="⚠"
-            titleDividerColor={colors.accent.danger}
+            title="Leave table?"
+            subtitle="Your stack is returned to your wallet when you leave."
+            widthClass="w-full max-w-[440px]"
             error={error}
             isProcessing={isLeaving}
-            patternId="hexagons-leave"
             scrollable={false}
+            showHexagonPattern={false}
         >
-            <div className="mb-6">
-                <p className="text-ink-soft text-sm mb-4">Are you sure you want to leave this table?</p>
-
+            <div className="flex flex-col gap-4">
                 {isInActiveHand && (
-                    <div className={`p-4 rounded-lg mb-4 ${styles.dangerAlertStrong}`}>
-                        <p className="flex items-center gap-2 text-ink text-sm font-semibold mb-2">
-                            <WarningIcon className="w-4 h-4 text-amber-400" />
-                            Active Hand Warning
+                    <div className={noticeClass.warning} role="alert">
+                        <p className="m-0 mb-1 flex items-center gap-2 text-sm font-semibold">
+                            <WarningIcon className="w-4 h-4" />
+                            Active hand
                         </p>
-                        <p className="text-ink-soft text-xs">
-                            You are currently in an active hand. Leaving now will automatically <strong>fold your hand</strong> and forfeit any
-                            chips you have bet this round.
-                        </p>
+                        Leaving now will <strong>fold your hand</strong> and forfeit any chips you have bet this round.
                     </div>
                 )}
 
-                <div className={`p-4 rounded-lg ${styles.panel}`}>
-                    <div className="flex justify-between items-center">
-                        <span className="text-ink-muted text-sm">Your Stack:</span>
-                        <span className="text-ink font-bold text-lg">${stackFormatted}</span>
-                    </div>
+                <div className="flex items-center justify-between rounded-xl border border-line bg-surface-raised px-4 py-3.5">
+                    <span className="text-sm text-ink-muted">Your stack</span>
+                    <span className="text-lg font-bold tabular-nums text-ink">${stackFormatted}</span>
                 </div>
-            </div>
 
-            <div className="flex flex-col space-y-3">
-                <button
-                    onClick={handleConfirm}
-                    disabled={isLeaving}
-                    className={`w-full px-5 py-3 rounded-btn font-medium text-white shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-80 disabled:cursor-not-allowed ${styles.buttonDanger}`}
-                >
-                    {isLeaving ? (
-                        <>
-                            <LoadingSpinner size="sm" />
-                            <span>Leaving...</span>
-                        </>
-                    ) : (
-                        <span>Leave Table</span>
-                    )}
-                </button>
-                <button
-                    onClick={onClose}
-                    disabled={isLeaving}
-                    className={`w-full px-5 py-3 rounded-btn text-ink font-medium transition-all duration-200 disabled:opacity-50 ${styles.buttonSecondary}`}
-                >
-                    Cancel
-                </button>
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
+                    <PillButton variant="outline" size="lg" onClick={onClose} disabled={isLeaving} className="sm:min-w-[120px]" data-autofocus="">
+                        Cancel
+                    </PillButton>
+                    <PillButton size="lg" onClick={handleConfirm} disabled={isLeaving} className="sm:min-w-[140px] !bg-red-600 hover:!bg-red-500">
+                        {isLeaving ? (
+                            <span className="inline-flex items-center gap-2">
+                                <LoadingSpinner size="sm" />
+                                Leaving…
+                            </span>
+                        ) : (
+                            "Leave table"
+                        )}
+                    </PillButton>
+                </div>
             </div>
         </Modal>
     );
