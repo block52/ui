@@ -569,8 +569,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
                         {/* Main Action Buttons */}
                         {showActionButtons && !showSmallBlindButton && !showBigBlindButton && (
-                            <div className="flex flex-col gap-2 lg:flex-row-reverse lg:items-stretch lg:gap-6">
-                                <div className="lg:flex-none lg:w-[430px] lg:min-h-[52px]">
+                            <div className={`flex flex-col gap-2 lg:items-center ${showsRaiseRow ? "lg:grid lg:grid-cols-[minmax(0,1fr)_400px] lg:gap-x-6 lg:gap-y-3" : ""}`}>
+                                <div className={showsRaiseRow ? "lg:col-start-2 lg:row-start-1" : ""}>
                                 <MainActionButtons
                                     canFold={canFoldAnytime}
                                     canCheck={hasCheckAction}
@@ -610,7 +610,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     all-in-only (min===max) range would render a degenerate slider;
                                     the dedicated ALL-IN button drives that shove instead. */}
                                 {(hasBetAction || hasRaiseAction) && !shortShoveRaise && (
-                                    <div className="min-w-0 lg:flex-1">
+                                    <div className="min-w-0 lg:contents lg:[&>:nth-child(2)]:col-span-2">
                                     <RaiseBetControls
                                         amount={raiseAmount}
                                         minAmount={hasBetAction ? minBet : minRaise}

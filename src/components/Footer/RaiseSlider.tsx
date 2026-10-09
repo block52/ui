@@ -35,7 +35,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
     return (
         <div
             className={`flex items-center ${
-                isMobileLandscape ? "gap-1 px-1 py-0.5 h-8 bg-surface-card/80 rounded-xl border border-line" : "gap-2 lg:gap-3 px-1 lg:min-h-9"
+                isMobileLandscape ? "gap-1 px-1 py-0.5 h-8 bg-surface-card/80 rounded-xl border border-line" : "gap-2 lg:gap-3 px-1 lg:min-h-[52px]"
             }`}
         >
             {/* Min/Max text - placed first in mobile landscape */}
