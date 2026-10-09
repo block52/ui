@@ -14,8 +14,19 @@ import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import { useCosmosApi } from "../context/CosmosApiContext";
 import { usePaymentApi } from "../context/PaymentApiContext";
-import { httpErrorMessage } from "../apis/HTTPClient";
+import { StuckPaymentsPanel } from "../components/bridge/StuckPaymentsPanel";
+import { proxyErrorMessage } from "../utils/bridge/proxyError";
+
 import { STORAGE_KEYS } from "../constants/storageKeys";
+
+/** The admin key lives for this browser tab only: sessionStorage is cleared when the tab closes. */
+function readStoredAdminKey(): string {
+    try {
+        return window.sessionStorage.getItem(STORAGE_KEYS.bridgeAdminKey) ?? "";
+    } catch {
+        return "";
+    }
+}
 
 /**
  * BridgeAdminDashboard - Admin interface for viewing and processing bridge deposits
@@ -94,6 +105,8 @@ export default function BridgeAdminDashboard() {
     const [showManualBridge, setShowManualBridge] = useState(false);
     const [hotWalletInfo, setHotWalletInfo] = useState<HotWalletInfo | null>(null);
     const [isLoadingHotWallet, setIsLoadingHotWallet] = useState(false);
+    const [adminKey, setAdminKey] = useState<string>(readStoredAdminKey);
+    const [adminKeyDraft, setAdminKeyDraft] = useState("");
 
     // Ethereum Mainnet configuration
     const bridgeContractAddress = COSMOS_BRIDGE_ADDRESS;
@@ -333,10 +346,13 @@ export default function BridgeAdminDashboard() {
         setIsManualBridging(true);
 
         try {
-            const response = (await paymentApi.manualBridge({
-                cosmosAddress: manualCosmosAddress,
-                amount: manualAmount
-            })) as ManualBridgeResponse;
+            const response = (await paymentApi.manualBridge(
+                {
+                    cosmosAddress: manualCosmosAddress,
+                    amount: manualAmount
+                },
+                adminKey
+            )) as ManualBridgeResponse;
 
             if (response.success) {
                 toast.success(`Bridge successful! TX: ${response.txHash.slice(0, 10)}...`);
@@ -351,17 +367,39 @@ export default function BridgeAdminDashboard() {
             }
         } catch (err) {
             console.error("Manual bridge error:", err);
-            toast.error(`Bridge failed: ${httpErrorMessage(err, "Unknown error")}`);
+            toast.error(`Bridge failed: ${proxyErrorMessage(err)}`);
         } finally {
             setIsManualBridging(false);
         }
+    };
+
+    const saveAdminKey = (e: React.FormEvent) => {
+        e.preventDefault();
+        const key = adminKeyDraft.trim();
+        if (!hasContent(key)) return;
+        try {
+            window.sessionStorage.setItem(STORAGE_KEYS.bridgeAdminKey, key);
+        } catch (err) {
+            console.error("Could not keep the admin key for this tab:", err);
+        }
+        setAdminKey(key);
+        setAdminKeyDraft("");
+    };
+
+    const forgetAdminKey = () => {
+        try {
+            window.sessionStorage.removeItem(STORAGE_KEYS.bridgeAdminKey);
+        } catch (err) {
+            console.error("Could not clear the stored admin key:", err);
+        }
+        setAdminKey("");
     };
 
     // Handle approve bridge
     const handleApproveBridge = async () => {
         setIsApproving(true);
         try {
-            const response = (await paymentApi.approveBridge()) as ApproveBridgeResponse;
+            const response = (await paymentApi.approveBridge(adminKey)) as ApproveBridgeResponse;
 
             if (response.success) {
                 toast.success(response.message);
@@ -371,7 +409,7 @@ export default function BridgeAdminDashboard() {
             }
         } catch (err) {
             console.error("Approve error:", err);
-            toast.error(`Approval failed: ${httpErrorMessage(err, "Unknown error")}`);
+            toast.error(`Approval failed: ${proxyErrorMessage(err)}`);
         } finally {
             setIsApproving(false);
         }
@@ -422,7 +460,11 @@ export default function BridgeAdminDashboard() {
                 await new Promise(resolve => setTimeout(resolve, 1000));
             } catch (err) {
                 console.error(`Failed to process deposit ${deposit.index}:`, err);
-                setDeposits(prev => prev.map(d => (d.index === deposit.index ? { ...d, status: "error" as const, errorMessage: err instanceof Error ? err.message : "Unknown error" } : d)));
+                setDeposits(prev =>
+                    prev.map(d =>
+                        d.index === deposit.index ? { ...d, status: "error" as const, errorMessage: err instanceof Error ? err.message : "Unknown error" } : d
+                    )
+                );
                 failCount++;
             }
         }
@@ -462,7 +504,7 @@ export default function BridgeAdminDashboard() {
                     <h1 className="text-4xl font-bold text-white mb-2">Bridge Admin Dashboard</h1>
                     <p className="text-gray-400">
                         View and process Ethereum USDC bridge deposits
-                        <span className="ml-2 font-mono text-sm text-gray-500">({bridgeContractAddress})</span>
+                        <span className="ml-2 font-mono text-sm text-gray-500 break-all">({bridgeContractAddress})</span>
                     </p>
                 </div>
 
@@ -490,6 +532,54 @@ export default function BridgeAdminDashboard() {
                         </div>
                     </div>
                 )}
+
+                {/* Admin key: needed by every route that spends from the hot wallet */}
+                <div className="bg-gray-800 rounded-lg mb-6 border border-gray-700 p-4" data-testid="admin-key">
+                    {adminKey ? (
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-green-300 text-base">🔑 Admin key entered for this tab. It is forgotten when you close the tab.</p>
+                            <button
+                                onClick={forgetAdminKey}
+                                title="Remove the admin key from this tab now"
+                                className="min-h-[44px] px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-base"
+                            >
+                                Forget key
+                            </button>
+                        </div>
+                    ) : (
+                        <form onSubmit={saveAdminKey} className="flex flex-wrap items-center gap-2">
+                            <label htmlFor="bridge-admin-key" className="text-gray-200 text-base">
+                                🔑 Admin key
+                            </label>
+                            <input
+                                id="bridge-admin-key"
+                                type="password"
+                                autoComplete="off"
+                                value={adminKeyDraft}
+                                onChange={e => setAdminKeyDraft(e.target.value)}
+                                placeholder="ADMIN_API_KEY from the payments server"
+                                className="min-h-[44px] flex-1 min-w-0 px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-base font-mono"
+                            />
+                            <button
+                                type="submit"
+                                disabled={!hasContent(adminKeyDraft.trim())}
+                                title="Use this key for retry, mark paid and manual bridge in this tab only"
+                                className="min-h-[44px] px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-semibold rounded-lg text-base"
+                            >
+                                Use key
+                            </button>
+                        </form>
+                    )}
+                </div>
+
+                <StuckPaymentsPanel
+                    adminKey={adminKey}
+                    hotWalletUsdc={hotWalletInfo ? hotWalletInfo.usdcBalance : null}
+                    onBridged={() => {
+                        loadHotWalletInfo();
+                        loadDeposits();
+                    }}
+                />
 
                 {/* Manual Bridge Section - Collapsible */}
                 <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg mb-6 border border-purple-700 overflow-hidden">
@@ -527,9 +617,7 @@ export default function BridgeAdminDashboard() {
                                         <div className="space-y-2 text-sm">
                                             <div className="flex justify-between">
                                                 <span className="text-gray-400">Address:</span>
-                                                <span className="text-white font-mono text-xs">
-                                                    {truncateMiddle(hotWalletInfo.address, 10, 8)}
-                                                </span>
+                                                <span className="text-white font-mono text-xs">{truncateMiddle(hotWalletInfo.address, 10, 8)}</span>
                                             </div>
                                             <div className="flex justify-between">
                                                 <span className="text-gray-400">ETH Balance:</span>
@@ -586,17 +674,18 @@ export default function BridgeAdminDashboard() {
                                             <label className="text-gray-400 text-xs block mb-1">Amount (USDC)</label>
                                             <input
                                                 type="number"
-                                                step="0.01"
+                                                step="0.000001"
                                                 min="0"
                                                 value={manualAmount}
                                                 onChange={e => setManualAmount(e.target.value)}
-                                                placeholder="9.71"
+                                                placeholder="9.107822"
                                                 className="w-full px-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-white text-sm focus:border-purple-500 focus:outline-none"
                                             />
                                         </div>
                                         <button
                                             type="submit"
-                                            disabled={isManualBridging || !manualCosmosAddress || !manualAmount}
+                                            disabled={isManualBridging || !manualCosmosAddress || !manualAmount || !adminKey}
+                                            title={adminKey ? "Sends USDC from the hot wallet to this address. Moves real money." : "Enter the admin key first"}
                                             className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors flex items-center justify-center gap-2"
                                         >
                                             {isManualBridging ? (
@@ -678,7 +767,7 @@ export default function BridgeAdminDashboard() {
                 {/* Controls */}
                 <div className="bg-gray-800 rounded-lg p-6 mb-6 border border-gray-700">
                     <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-4">
                             <div className="flex items-center gap-2">
                                 <label className="text-white text-sm">Items per page:</label>
                                 <select
@@ -703,7 +792,7 @@ export default function BridgeAdminDashboard() {
                             </div>
                         </div>
 
-                        <div className="flex items-center gap-4">
+                        <div className="flex flex-wrap items-center gap-4">
                             <div className="flex items-center gap-2">
                                 <label className="text-white text-sm">Filter:</label>
                                 <select

@@ -51,7 +51,8 @@ describe("Payment API E2E Tests", () => {
 
     describe("Approve Bridge", () => {
         it("should approve the bridge successfully", async () => {
-            const response = (await paymentApi.approveBridge()) as ApproveBridgeResponse;
+            // approve-bridge needs the proxy's admin key (poker-vm#2638)
+            const response = (await paymentApi.approveBridge(process.env.BRIDGE_ADMIN_KEY ?? "")) as ApproveBridgeResponse;
             expect(response).toBeDefined();
             expect(response.success).toBe(true);
         });
