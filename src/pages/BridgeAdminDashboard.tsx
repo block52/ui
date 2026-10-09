@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { truncateMiddle } from "../utils/stringUtils";
 import { isEmpty, isBlank, hasContent } from "../utils/guards";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
@@ -16,6 +16,7 @@ import { useCosmosApi } from "../context/CosmosApiContext";
 import { usePaymentApi } from "../context/PaymentApiContext";
 import { httpErrorMessage } from "../apis/HTTPClient";
 import { STORAGE_KEYS } from "../constants/storageKeys";
+import { countByStatus } from "../utils/statusCounts";
 
 /**
  * BridgeAdminDashboard - Admin interface for viewing and processing bridge deposits
@@ -438,17 +439,22 @@ export default function BridgeAdminDashboard() {
     };
 
     // Filter deposits based on selected filter and sort by index
-    const filteredDeposits = deposits
-        .filter(deposit => {
-            if (filter === "all") return true;
-            return deposit.status === filter;
-        })
-        .sort((a, b) => (sortOrder === "desc" ? b.index - a.index : a.index - b.index));
+    const filteredDeposits = useMemo(
+        () =>
+            deposits
+                .filter(deposit => {
+                    if (filter === "all") return true;
+                    return deposit.status === filter;
+                })
+                .sort((a, b) => (sortOrder === "desc" ? b.index - a.index : a.index - b.index)),
+        [deposits, filter, sortOrder]
+    );
 
     // Stats
     const totalDeposits = deposits.length;
-    const processedCount = deposits.filter(d => d.status === "processed").length;
-    const pendingCount = deposits.filter(d => d.status === "pending").length;
+    const statusCounts = useMemo(() => countByStatus(deposits), [deposits]);
+    const processedCount = statusCounts.processed ?? 0;
+    const pendingCount = statusCounts.pending ?? 0;
     const totalPages = totalDepositsFound > 0 ? Math.ceil(totalDepositsFound / itemsPerPage) : 1;
     const hasNextPage = currentPage < totalPages;
     const hasPrevPage = currentPage > 1;

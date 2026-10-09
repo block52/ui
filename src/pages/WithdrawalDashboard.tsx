@@ -16,6 +16,7 @@ import { useWithdraw } from "../hooks/wallet/useWithdraw";
 import SignatureModal from "../components/modals/SignatureModal";
 import { useWithdrawalSignature } from "../hooks/wallet/useWithdrawalSignature";
 import { describeWithdrawError } from "../utils/withdrawalSignature";
+import { countByStatus } from "../utils/statusCounts";
 
 /**
  * WithdrawalDashboard - Interface for managing USDC withdrawals to Ethereum
@@ -282,9 +283,10 @@ export default function WithdrawalDashboard() {
 
     // Stats
     const totalWithdrawals = withdrawals.length;
-    const pendingCount = withdrawals.filter(w => w.status === "pending").length;
-    const signedCount = withdrawals.filter(w => w.status === "signed").length;
-    const completedCount = withdrawals.filter(w => w.status === "completed").length;
+    const statusCounts = useMemo(() => countByStatus(withdrawals), [withdrawals]);
+    const pendingCount = statusCounts.pending ?? 0;
+    const signedCount = statusCounts.signed ?? 0;
+    const completedCount = statusCounts.completed ?? 0;
 
     // Handle opening the signature modal
     const handleViewSignature = (withdrawal: Withdrawal) => {
