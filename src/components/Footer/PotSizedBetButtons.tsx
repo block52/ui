@@ -50,13 +50,13 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
     const cannotAffordMin = minAmount > maxAmount;
 
     return (
-        <div className="flex justify-between gap-1 lg:gap-2 mb-1">
+        <div className="flex justify-between gap-1.5 lg:gap-2 mt-1 lg:mt-3">
             {potBetOptions.map(({ label, variation }) => {
                 const amount = calculatePotBet(variation);
                 return (
                     <button
                         key={label}
-                        className="btn-pot px-1 lg:px-2 py-1 lg:py-1.5 rounded-btn w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 transform hover:scale-105"
+                        className="btn-pot px-1 lg:px-2 py-1 lg:py-0 lg:h-9 rounded-btn w-full border text-[10px] lg:text-xs transition-colors duration-200"
                         onClick={() => onAmountSelect(amount)}
                         disabled={disabled || cannotAffordMin}
                     >
@@ -66,7 +66,7 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
             })}
 
             <button
-                className="btn-pot px-1 lg:px-2 py-1 lg:py-1.5 rounded-btn w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 transform hover:scale-105"
+                className="btn-pot px-1 lg:px-2 py-1 lg:py-0 lg:h-9 rounded-btn w-full border text-[10px] lg:text-xs transition-colors duration-200"
                 onClick={() => onAmountSelect(calculatePotBet("1"))}
                 disabled={disabled || cannotAffordMin}
             >
@@ -74,7 +74,7 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
             </button>
 
             <button
-                className="btn-all-in px-1 lg:px-2 py-1 lg:py-1.5 rounded-btn w-full border shadow-md text-[10px] lg:text-xs transition-all duration-200 font-medium transform active:scale-105"
+                className="btn-all-in px-1 lg:px-2 py-1 lg:py-0 lg:h-9 rounded-btn w-full border text-[10px] lg:text-xs font-semibold transition-colors duration-200"
                 onClick={onAllIn}
                 disabled={disabled}
             >

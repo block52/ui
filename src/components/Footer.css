@@ -144,6 +144,44 @@
   transform: scale(1.05);
 }
 
+/* Raise slider: track filled up to the thumb (inline gradient), custom thumb. */
+.raise-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+  cursor: pointer;
+}
+
+.raise-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgb(var(--ink));
+  border: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+.raise-range::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgb(var(--ink));
+  border: 0;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+
+.raise-range:focus-visible {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--brand-primary) 40%, transparent);
+}
+
+.raise-range:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* Slider buttons */
 .btn-slider {
   background: rgb(var(--surface-raised));
@@ -169,8 +207,7 @@
 .btn-pot:hover {
   background: rgb(var(--surface-hover));
   border-color: var(--brand-primary);
-  color: #ffffff;
-  transform: scale(1.05);
+  color: rgb(var(--ink));
 }
 
 /* All-in button */
@@ -184,8 +221,7 @@
 .btn-all-in:hover {
   background: var(--brand-primary);
   border-color: var(--brand-primary);
-  box-shadow: 0 0 16px color-mix(in srgb, var(--brand-primary) 45%, transparent);
-  transform: scale(1.05);
+  color: #ffffff;
 }
 
 /* Dynamic input styles */
