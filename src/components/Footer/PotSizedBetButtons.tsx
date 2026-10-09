@@ -50,7 +50,7 @@ export const PotSizedBetButtons: React.FC<PotSizedBetButtonsProps> = ({
     const cannotAffordMin = minAmount > maxAmount;
 
     return (
-        <div className="flex justify-between gap-1.5 lg:gap-2 mt-1 lg:mt-3">
+        <div className="flex justify-between gap-1.5 lg:gap-2 mt-1 lg:mt-1">
             {potBetOptions.map(({ label, variation }) => {
                 const amount = calculatePotBet(variation);
                 return (

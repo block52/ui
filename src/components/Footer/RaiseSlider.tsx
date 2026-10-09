@@ -35,7 +35,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
     return (
         <div
             className={`flex items-center ${
-                isMobileLandscape ? "gap-1 px-1 py-0.5 h-8 bg-surface-card/80 rounded-xl border border-line" : "gap-2 lg:gap-3 px-1"
+                isMobileLandscape ? "gap-1 px-1 py-0.5 h-8 bg-surface-card/80 rounded-xl border border-line" : "gap-2 lg:gap-3 px-1 lg:min-h-[52px]"
             }`}
         >
             {/* Min/Max text - placed first in mobile landscape */}
@@ -54,7 +54,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider w-8 h-8 grid place-items-center rounded-btn border text-sm transition-all duration-200"
+                        : "btn-slider w-8 h-8 lg:w-9 lg:h-9 grid place-items-center rounded-btn border text-sm transition-all duration-200"
                 }
                 onClick={onDecrement}
                 disabled={disabled}
@@ -86,7 +86,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider w-8 h-8 grid place-items-center rounded-btn border text-sm transition-all duration-200"
+                        : "btn-slider w-8 h-8 lg:w-9 lg:h-9 grid place-items-center rounded-btn border text-sm transition-all duration-200"
                 }
                 onClick={onIncrement}
                 disabled={disabled}
@@ -102,7 +102,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                         inputMode={isTournament ? "numeric" : "decimal"}
                         value={displayString}
                         onChange={(e) => handleInput(e.target.value)}
-                        className={`${inputFieldClassName} px-2 py-1.5 rounded-lg text-sm font-semibold tabular-nums text-right w-[84px] transition-all duration-200 border`}
+                        className={`${inputFieldClassName} px-2 lg:h-9 py-1.5 lg:py-0 rounded-lg text-sm font-semibold tabular-nums text-right w-[84px] transition-all duration-200 border`}
                         disabled={disabled}
                     />
                 </div>
