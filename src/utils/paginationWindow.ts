@@ -1,5 +1,4 @@
-/** A page number, or a gap rendered as "…". */
-export type PageToken = number | "gap";
+type PageToken = number | "gap";
 
 /**
  * Page numbers to show in a pager, collapsing long runs into gaps.

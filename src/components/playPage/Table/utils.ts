@@ -4,15 +4,11 @@
  * This file contains utility functions used across the split Table components.
  */
 
-import { toast } from "react-toastify";
+import { copyToClipboard as copyToClipboardUtil } from "../../../utils/clipboard";
 import { colors, hexToRgba } from "../../../utils/colorConfig";
 
-/**
- * Copy text to clipboard and show toast notification
- */
 export const copyToClipboard = (text: string, successMessage?: string): void => {
-    navigator.clipboard.writeText(text);
-    toast.success(successMessage || "Copied to clipboard!");
+    void copyToClipboardUtil(text, successMessage);
 };
 
 /**
@@ -75,14 +71,6 @@ export const getDepositButtonStyle = (isHovered: boolean): React.CSSProperties =
         color: colors.brand.primary,
         boxShadow: isHovered ? `0 0 15px ${hexToRgba(colors.brand.primary, 0.5)}` : "none"
     };
-};
-
-/**
- * Format table ID for display
- */
-export const formatTableId = (id: string | undefined): string => {
-    if (!id) return "";
-    return id.slice(-5);
 };
 
 /**

@@ -4,7 +4,9 @@ import {
     configTomlSnippet,
     faultTolerance,
     parseConsensusPubkey,
+    parseLatestBlockHeight,
     parseMicroAmount,
+    parseValidatorsResponse,
     peerString,
     powerShareBps,
     secondsBetween,
@@ -165,5 +167,41 @@ describe("formatAgo", () => {
         expect(formatAgo(12)).toBe("12s ago");
         expect(formatAgo(75)).toBe("1m ago");
         expect(formatAgo(7200)).toBe("2h ago");
+    });
+});
+
+describe("parseValidatorsResponse", () => {
+    it("reads moniker, operator address and status", () => {
+        const { validators, skipped } = parseValidatorsResponse({
+            validators: [{ operator_address: "b52valoper1", status: "BOND_STATUS_BONDED", description: { moniker: "texashodl" } }]
+        });
+        expect(validators).toEqual([{ moniker: "texashodl", operatorAddress: "b52valoper1", status: "BOND_STATUS_BONDED" }]);
+        expect(skipped).toBe(0);
+    });
+
+    it("counts malformed entries instead of inventing empty fields", () => {
+        const { validators, skipped } = parseValidatorsResponse({
+            validators: [{ operator_address: "x", status: "s" }, { description: { moniker: "m" }, status: "s" }, null]
+        });
+        expect(validators).toEqual([]);
+        expect(skipped).toBe(3);
+    });
+
+    it("throws when the response has no validators list", () => {
+        expect(() => parseValidatorsResponse({})).toThrow(/validators/);
+        expect(() => parseValidatorsResponse("oops")).toThrow(/validators/);
+    });
+});
+
+describe("parseLatestBlockHeight", () => {
+    it("reads block.header.height or sdk_block.header.height", () => {
+        expect(parseLatestBlockHeight({ block: { header: { height: "42" } } })).toBe("42");
+        expect(parseLatestBlockHeight({ sdk_block: { header: { height: "7" } } })).toBe("7");
+    });
+
+    it("returns null when no height is reported", () => {
+        expect(parseLatestBlockHeight({})).toBeNull();
+        expect(parseLatestBlockHeight({ block: { header: {} } })).toBeNull();
+        expect(parseLatestBlockHeight(null)).toBeNull();
     });
 });

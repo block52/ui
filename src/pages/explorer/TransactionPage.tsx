@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
-import { colors } from "../../utils/colorConfig";
 import { renderJSONWithClickableAddresses } from "../../components/explorer/ClickableAddress";
 import { CosmosTransaction, CosmosEvent, CosmosEventAttribute, CosmosMessage } from "./types";
 import { hasElements } from "../../utils/guards";
@@ -151,10 +150,11 @@ export default function TransactionPage() {
                             <div className="flex items-center gap-2">
                                 <label className="text-ink-muted text-sm font-semibold">Status:</label>
                                 <span
-                                    className="font-bold flex items-center gap-2"
-                                    style={{
-                                        color: transaction.tx_response.code === 0 ? colors.accent.success : colors.accent.danger
-                                    }}
+                                    className={`font-bold flex items-center gap-2 ${
+                                        transaction.tx_response.code === 0
+                                            ? "text-[color:var(--accent-success)] [[data-theme=light]_&]:text-emerald-700"
+                                            : "text-[color:var(--accent-danger)] [[data-theme=light]_&]:text-red-700"
+                                    }`}
                                 >
                                     {transaction.tx_response.code === 0 ? (
                                         <>

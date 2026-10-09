@@ -6,7 +6,7 @@ import { AmountPreset, AmountPresets } from "./AmountPresets";
 import { CheckIcon } from "./walletIcons";
 import { amountInputClass, fieldInputClass, fieldLabelClass, inlinePillClass, noticeClass } from "./walletFormClasses";
 
-export interface SendModalProps {
+interface SendModalProps {
     isOpen: boolean;
     /** Available USDC, already formatted for display. */
     balanceDisplay: string;

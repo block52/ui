@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
+import { useNavigate } from "react-router-dom";
 
-import "./Dashboard.css"; // Import the CSS file with animations
+import "./Dashboard.css";
 import styles from "./Dashboard.module.css";
 
-// Ethereum Mainnet imports (for auto-switch to correct chain)
 import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
@@ -18,25 +17,21 @@ import { Modal, PoweredBy } from "../components/common";
 import { PillButton } from "../components/ui";
 import { fieldLabelClass, fieldInputClass, inlinePillClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
 import { CopyIcon, CheckIcon, WarningIcon } from "../components/modals/walletIcons";
+import { copyToClipboard } from "../utils/clipboard";
 import TableList from "../components/TableList";
 import WalletPanel from "../components/WalletPanel";
 import TransactionPanel from "../components/TransactionPanel";
 
-// Game wallet and SDK imports
-// ...existing code...
 import { GameFormat, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
 import { validateTableName, tableNameCharCount, normalizeTableName } from "../utils/tableName";
 
-// Hook imports from barrel file
 import { useUserWalletConnect, useNewTable, useCosmosWallet } from "../hooks";
-import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import type separately
+import type { CreateTableOptions } from "../hooks/game/useNewTable";
 
-// Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
 import { isTournamentFormat, toGameFormat } from "../utils/gameFormatUtils";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 
-// Password protection utils
 import {
     checkAuthCookie,
     isPasswordProtectionEnabled,
@@ -44,8 +39,6 @@ import {
     handlePasswordKeyPress as utilHandlePasswordKeyPress
 } from "../utils/passwordProtectionUtils";
 
-// Club branding imports
-import { colors, hexToRgba } from "../utils/colorConfig";
 
 // Bech32 address regex: "b52" prefix + "1" separator + valid bech32 data characters
 const B52_ADDRESS_REGEX = /^b521[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38,}$/;
@@ -57,10 +50,7 @@ const errorBoxClass = "p-3 rounded-xl border border-red-500/30 bg-red-500/10 tex
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
-    // Removed: Game selection state variables - now handled in Create Game modal
-    // Removed: Ethereum wallet state - now using Cosmos wallet only
 
-    // Password protection states - skip if no password configured in env
     const passwordEnabled = isPasswordProtectionEnabled();
     const [isAuthenticated, setIsAuthenticated] = useState<boolean>(!passwordEnabled);
     const [passwordInput, setPasswordInput] = useState<string>("");
@@ -69,38 +59,28 @@ const Dashboard: React.FC = () => {
 
     const { isConnected, open, address } = useUserWalletConnect();
 
-    // Wagmi hooks for Ethereum Mainnet (USDC deposit bridge)
     const { chain } = useWagmiAccount();
     const switchChain = useSwitchChain();
 
-    // Removed: Ethereum account hook - now using Cosmos wallet only
 
-    // Use the new useNewTable hook from hooks directory
     const { createTable, isCreating: isCreatingTable, error: createTableError } = useNewTable();
 
-    // Removed: Ethereum private key import modal states
 
-    // New game creation states
     const [showCreateGameModal, setShowCreateGameModal] = useState(false);
     const [selectedContractAddress, setSelectedContractAddress] = useState("0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7");
     const [createGameError, setCreateGameError] = useState("");
 
-    // Modal game options
     const [modalGameFormat, setModalGameFormat] = useState<GameFormat>(GameFormat.SIT_AND_GO);
-    const [modalTableName, setModalTableName] = useState(""); // Optional paid table name (poker-vm#337)
+    const [modalTableName, setModalTableName] = useState("");
     const [modalSitAndGoBuyIn, setModalSitAndGoBuyIn] = useState(1); // Single buy-in for Sit & Go
     const [modalPlayerCount, setModalPlayerCount] = useState(4);
-    // For Cash Game: min/max players
     const [modalMinPlayers, setModalMinPlayers] = useState(2);
     const [modalMaxPlayers, setModalMaxPlayers] = useState(9);
-    // Selected blind level (index in BLIND_LEVELS array)
     const [selectedBlindLevel, setSelectedBlindLevel] = useState(DEFAULT_BLIND_LEVEL_INDEX);
-    // Buy-in fields in Big Blinds (BB) for Cash games
     const [modalMinBuyInBB, setModalMinBuyInBB] = useState(20); // 20 BB default
     const [modalMaxBuyInBB, setModalMaxBuyInBB] = useState(100); // 100 BB default
 
-    // Sit & Go settings — the chain requires them (ui#690: without them the SDK throws
-    // "sit-and-go games require an sngConfig"). Same presets as /admin/tables.
+    // The chain requires Sit & Go settings; same presets as /admin/tables.
     const [modalStartingStack, setModalStartingStack] = useState(1500);
     const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(10);
     const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(1); // 25 / 50
@@ -116,19 +96,15 @@ const Dashboard: React.FC = () => {
         [isModalTournament, modalSngBlindsIndex, selectedBlindLevel]
     );
 
-    // Calculate actual buy-in values from BB using utility function
     const { minBuyIn: calculatedMinBuyIn, maxBuyIn: calculatedMaxBuyIn } = useMemo(
         () => calculateBuyIn({ minBuyInBB: modalMinBuyInBB, maxBuyInBB: modalMaxBuyInBB, bigBlind: modalBigBlind }),
         [modalMinBuyInBB, modalMaxBuyInBB, modalBigBlind]
     );
 
-    // Withdrawal Modal
     const [showWithdrawalModal, setShowWithdrawalModal] = useState(false);
 
-    // USDC Deposit Modal
     const [showUSDCDepositModal, setShowUSDCDepositModal] = useState(false);
 
-    // Cosmos wallet state and hooks
     const cosmosWallet = useCosmosWallet();
     const [showCosmosImportModal, setShowCosmosImportModal] = useState(false);
     const [showCosmosTransferModal, setShowCosmosTransferModal] = useState(false);
@@ -146,35 +122,28 @@ const Dashboard: React.FC = () => {
     const [transferError, setTransferError] = useState("");
     const [isTransferring, setIsTransferring] = useState(false);
 
-    // Password validation function
     const handlePasswordSubmit = () => {
         utilHandlePasswordSubmit(passwordInput, setIsAuthenticated, setPasswordError, setPasswordInput);
     };
 
-    // Handle Enter key press in password input
     const handlePasswordKeyPress = (e: React.KeyboardEvent) => {
         utilHandlePasswordKeyPress(e, passwordInput, setIsAuthenticated, setPasswordError, setPasswordInput);
     };
 
-    // Check for existing auth cookie on component mount
     useEffect(() => {
         if (passwordEnabled && checkAuthCookie()) {
             setIsAuthenticated(true);
         }
     }, [passwordEnabled]);
 
-    const DEFAULT_GAME_CONTRACT = "0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7"; // Example address
+    const DEFAULT_GAME_CONTRACT = "0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7";
 
-    // Function to handle creating a new game using Cosmos blockchain
-    // Paid table name (poker-vm#337): live cost preview + validation. We normalize
-    // to the chain's canonical form (trim + lowercase, ENS-style) so the preview,
-    // fee, and submitted value all match what the chain validates/charges/stores.
+    // Normalized to the chain's canonical form (trim + lowercase) so the preview, fee and submitted value match what the chain stores.
     const normalizedTableName = useMemo(() => normalizeTableName(modalTableName), [modalTableName]);
     const tableNameError = useMemo(() => validateTableName(modalTableName), [modalTableName]);
     const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
 
     const handleCreateNewGame = async () => {
-        // Check for Cosmos wallet
         if (!cosmosWallet.address) {
             setCreateGameError("No Block52 wallet found. Please create or import a Block52 wallet first.");
             return;
@@ -183,11 +152,8 @@ const Dashboard: React.FC = () => {
         setCreateGameError("");
 
         try {
-            // Build game options from modal selections
-            // For Sit & Go/Tournament, use the same value for min and max buy-in
             const isTournament = isTournamentFormat(modalGameFormat);
 
-            // Log the modal values before creating game options
 
             const gameOptions: CreateTableOptions = {
                 format: modalGameFormat,
@@ -201,7 +167,6 @@ const Dashboard: React.FC = () => {
                 ...(isTournament && { sng: { startingStack: modalStartingStack, blindLevelDuration: modalBlindLevelDuration } })
             };
 
-            // Use the createTable function from the hook (Cosmos SDK)
             const txHash = await createTable(gameOptions);
 
             if (txHash) {
@@ -216,7 +181,6 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // Cosmos wallet handlers
     const handleImportCosmosSeed = async () => {
         try {
             setCosmosImportError("");
@@ -228,7 +192,6 @@ const Dashboard: React.FC = () => {
 
             await cosmosWallet.importSeedPhrase(cosmosSeedPhrase);
 
-            // Reset form and close modal
             setCosmosSeedPhrase("");
             setCosmosImportError("");
             setShowCosmosImportModal(false);
@@ -238,22 +201,17 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // Removed: handleUpdateCosmosSeed - now handled on /wallet page
 
-    // Create new wallet handler - generates wallet and shows seed phrase
     const handleCreateNewWallet = async () => {
         try {
             setIsCreatingWallet(true);
             setSeedPhraseCopied(false);
 
-            // Generate new wallet
             const walletInfo = await generateWalletSDK("b52", 24);
 
-            // Store the seed phrase and address for display
             setNewWalletSeedPhrase(walletInfo.mnemonic);
             setNewWalletAddress(walletInfo.address);
 
-            // Show the modal with seed phrase
             setShowNewWalletModal(true);
         } catch (err) {
             console.error("Failed to generate new wallet:", err);
@@ -262,19 +220,15 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // Confirm and save the new wallet
     const handleConfirmNewWallet = async () => {
         try {
-            // Import the generated seed phrase to save it
             await cosmosWallet.importSeedPhrase(newWalletSeedPhrase);
 
-            // Close modal and reset state
             setShowNewWalletModal(false);
             setNewWalletSeedPhrase("");
             setNewWalletAddress("");
             setSeedPhraseCopied(false);
 
-            // Show success notification
             setShowWalletGeneratedNotification(true);
             setTimeout(() => setShowWalletGeneratedNotification(false), 10000);
         } catch (err) {
@@ -282,10 +236,9 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // Copy seed phrase to clipboard
-    const handleCopySeedPhrase = () => {
-        navigator.clipboard.writeText(newWalletSeedPhrase);
-        setSeedPhraseCopied(true);
+    const handleCopySeedPhrase = async () => {
+        const copied = await copyToClipboard(newWalletSeedPhrase, "Seed phrase copied to clipboard");
+        if (copied) setSeedPhraseCopied(true);
     };
 
     const handleCosmosTransfer = async () => {
@@ -309,12 +262,10 @@ const Dashboard: React.FC = () => {
                 return;
             }
 
-            // Convert to smallest unit (6 decimals for USDC)
             const amountInSmallestUnit = usdcToMicroBigInt(amount).toString();
 
             const txHash = await cosmosWallet.sendTokens(transferRecipient, amountInSmallestUnit, "usdc");
 
-            // Reset form and close modal
             setTransferRecipient("");
             setTransferAmount("");
             setTransferError("");
@@ -327,7 +278,6 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    // Get USDC balance for transfer
     const getTransferTokenBalance = useCallback(() => {
         const balance = cosmosWallet.balance.find(b => b.denom === "usdc");
         if (balance) {
@@ -336,18 +286,15 @@ const Dashboard: React.FC = () => {
         return "0.00";
     }, [cosmosWallet.balance]);
 
-    // Numeric USDC balance for transfer validation
     const numericUsdcBalance = useMemo(() => {
         const balance = cosmosWallet.balance.find(b => b.denom === "usdc");
         return balance ? microToUsdc(balance.amount) : 0;
     }, [cosmosWallet.balance]);
 
-    // Block table creation if the name is invalid, or the creator can't cover the
-    // naming fee (the definite creation-time debit, poker-vm#337).
+    // Block table creation if the creator can't cover the naming fee.
     const insufficientForName = tableNameFeeUsd > numericUsdcBalance;
 
-    // Table creation fee = 10 big blinds (pokerchain#378, ui#690), priced from the
-    // exact values handleCreateNewGame submits. null = the chain could not price it.
+    // Table creation fee, priced from the exact values handleCreateNewGame submits. null = the chain could not price it.
     const creationFeeMicro = useMemo(
         () =>
             computeTableCreationFeeMicro(
@@ -370,27 +317,23 @@ const Dashboard: React.FC = () => {
         setModalTableName("");
     };
 
-    // Check if transfer amount exceeds available balance
     const isAmountExceedingBalance = useMemo(() => {
         const amount = parseFloat(transferAmount);
         if (isNaN(amount) || amount <= 0) return false;
         return amount > numericUsdcBalance;
     }, [transferAmount, numericUsdcBalance]);
 
-    // Validate recipient is a valid b52 bech32 address
     const isValidRecipient = useMemo(() => {
         if (!transferRecipient) return false;
         return B52_ADDRESS_REGEX.test(transferRecipient);
     }, [transferRecipient]);
 
-    // Auto-switch to Ethereum Mainnet when wallet connects
     useEffect(() => {
         const autoSwitchToEthereum = async () => {
             if (isConnected && chain?.id !== ETH_CHAIN_ID && switchChain) {
                 try {
                     await switchChain.mutateAsync({ chainId: ETH_CHAIN_ID });
                 } catch (err) {
-                    // Don't show error to user - they can manually switch if needed
                 }
             }
         };
@@ -398,25 +341,19 @@ const Dashboard: React.FC = () => {
         autoSwitchToEthereum();
     }, [isConnected, chain?.id, switchChain]);
 
-    // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
     const handleDepositClick = useCallback(() => {
         setShowUSDCDepositModal(true);
     }, []);
 
-    // Memoized Withdrawal callback
     const handleWithdrawClick = useCallback(() => {
         setShowWithdrawalModal(true);
     }, []);
 
-    // Removed: handleImportModalClick - no longer needed (using Cosmos wallet)
 
-    // Memoized game selection callbacks
-    // Removed: Game selection button handlers - no longer needed
 
     return (
         <div className="min-h-screen flex flex-col relative bg-surface-page text-ink-body">
 
-            {/* Wallet Generated Notification */}
             {showWalletGeneratedNotification && (
                 <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 animate-fade-in">
                     <div className={`px-6 py-4 rounded-xl shadow-2xl border flex items-center gap-4 ${styles.walletGeneratedNotice}`}>
@@ -438,7 +375,6 @@ const Dashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Password Protection Modal (blocking: no close, no backdrop dismiss) */}
             {!isAuthenticated && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
                     <div role="dialog" aria-modal="true" aria-label="Secure Access" className="w-full max-w-[400px] max-h-full overflow-y-auto bg-surface-card border border-line rounded-2xl p-8 shadow-2xl">
@@ -477,7 +413,7 @@ const Dashboard: React.FC = () => {
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
                                     aria-label={showPassword ? "Hide password" : "Show password"}
-                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
+                                    className="absolute right-0.5 top-1/2 -translate-y-1/2 w-11 h-11 grid place-items-center rounded-btn text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
                                 >
                                     {showPassword ? (
                                         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -529,10 +465,8 @@ const Dashboard: React.FC = () => {
                 </div>
             )}
 
-            {/* Main Dashboard Content - Only show when authenticated */}
             {isAuthenticated && (
                 <>
-                    {/* Import B52 Wallet Seed Phrase Modal */}
                     <Modal
                         isOpen={showCosmosImportModal}
                         onClose={() => {
@@ -575,6 +509,7 @@ const Dashboard: React.FC = () => {
                                         setCosmosSeedPhrase("");
                                         setCosmosImportError("");
                                     }}
+                                    disabled={cosmosWallet.isLoading}
                                     className="w-full"
                                 >
                                     Cancel
@@ -583,9 +518,7 @@ const Dashboard: React.FC = () => {
                         </div>
                     </Modal>
 
-                    {/* Removed: Cosmos Update Seed Phrase Modal - now handled on /wallet page */}
 
-                    {/* New B52 Wallet Created Modal - shows seed phrase */}
                     <Modal
                         isOpen={showNewWalletModal}
                         onClose={() => {
@@ -598,25 +531,24 @@ const Dashboard: React.FC = () => {
                         widthClass="w-[520px]"
                         closeOnEscape={false}
                         closeOnBackdropClick={false}
+                        hideCloseButton
+                        isProcessing={cosmosWallet.isLoading}
                     >
                         <div className="space-y-4">
                             <p className="text-ink-muted text-sm">
                                 Write down your seed phrase and store it in a safe place. You will need it to recover your wallet.
                             </p>
 
-                            {/* Warning */}
                             <div className={`${noticeClass.warning} flex items-start gap-3`}>
                                 <WarningIcon className="w-5 h-5 shrink-0 mt-px" />
                                 <p className="m-0">Never share your seed phrase with anyone. Anyone with this phrase can access your funds.</p>
                             </div>
 
-                            {/* Address */}
                             <div>
                                 <span className={fieldLabelClass}>Wallet Address</span>
                                 <div className={`${insetBoxClass} font-mono text-sm text-ink break-all`}>{newWalletAddress}</div>
                             </div>
 
-                            {/* Seed Phrase */}
                             <div>
                                 <div className="flex items-center justify-between gap-2 mb-2">
                                     <span className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Seed Phrase (24 words)</span>
@@ -649,7 +581,6 @@ const Dashboard: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Actions */}
                             <div className="flex flex-col gap-2 pt-1">
                                 <label className="flex items-center gap-3 min-h-[44px] px-3 rounded-xl border border-line bg-surface-raised cursor-pointer select-none">
                                     <input
@@ -672,6 +603,7 @@ const Dashboard: React.FC = () => {
                                         setNewWalletAddress("");
                                         setSeedPhraseCopied(false);
                                     }}
+                                    disabled={cosmosWallet.isLoading}
                                     className="w-full"
                                 >
                                     Cancel
@@ -680,7 +612,6 @@ const Dashboard: React.FC = () => {
                         </div>
                     </Modal>
 
-                    {/* USDC Transfer Modal */}
                     <SendModal
                         isOpen={showCosmosTransferModal}
                         balanceDisplay={getTransferTokenBalance()}
@@ -701,7 +632,6 @@ const Dashboard: React.FC = () => {
                         }}
                     />
 
-                    {/* Create New Game Modal */}
                     {showCreateGameModal && (
 <Modal
                             isOpen
@@ -728,7 +658,6 @@ const Dashboard: React.FC = () => {
                                         </select>
                                     </div>
 
-                                    {/* Optional paid table name (poker-vm#337): $0.10/char, live preview */}
                                     <div>
                                         <label className={labelClass}>
                                             Table Name <span className="normal-case tracking-normal text-ink-muted">(optional)</span>
@@ -800,9 +729,7 @@ const Dashboard: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* Show different fields based on game format */}
                                     {isTournamentFormat(modalGameFormat) ? (
-                                        // For Sit & Go and Tournament: Single buy-in field
                                         <div>
                                             <label className={labelClass}>Tournament Buy-In ($)</label>
                                             <input
@@ -849,9 +776,7 @@ const Dashboard: React.FC = () => {
                                             </select>
                                         </div>
                                     ) : (
-                                        // For Cash games: Blind level and buy-in in Big Blinds (BB)
                                         <>
-                                            {/* Blind Level Dropdown - Cash games only */}
                                             <div>
                                                 <label className={labelClass}>Game Size (Small Blind / Big Blind)</label>
                                                 <select
@@ -867,7 +792,6 @@ const Dashboard: React.FC = () => {
                                                 </select>
                                             </div>
 
-                                            {/* Preset buttons */}
                                             <div>
                                                 <label className={labelClass}>Buy-In Presets</label>
                                                 <div className="flex gap-2 flex-wrap">
@@ -877,7 +801,7 @@ const Dashboard: React.FC = () => {
                                                             setModalMinBuyInBB(20);
                                                             setModalMaxBuyInBB(100);
                                                         }}
-                                                        className={`h-9 px-3.5 text-xs font-medium rounded-full transition-colors ${
+                                                        className={`h-9 px-3.5 text-xs font-medium rounded-btn transition-colors ${
                                                             modalMinBuyInBB === 20 && modalMaxBuyInBB === 100
                                                                 ? "bg-brand text-white border border-brand"
                                                                 : "border border-line-strong text-ink-soft hover:bg-surface-hover"
@@ -891,7 +815,7 @@ const Dashboard: React.FC = () => {
                                                             setModalMinBuyInBB(40);
                                                             setModalMaxBuyInBB(200);
                                                         }}
-                                                        className={`h-9 px-3.5 text-xs font-medium rounded-full transition-colors ${
+                                                        className={`h-9 px-3.5 text-xs font-medium rounded-btn transition-colors ${
                                                             modalMinBuyInBB === 40 && modalMaxBuyInBB === 200
                                                                 ? "bg-brand text-white border border-brand"
                                                                 : "border border-line-strong text-ink-soft hover:bg-surface-hover"
@@ -905,7 +829,7 @@ const Dashboard: React.FC = () => {
                                                             setModalMinBuyInBB(100);
                                                             setModalMaxBuyInBB(300);
                                                         }}
-                                                        className={`h-9 px-3.5 text-xs font-medium rounded-full transition-colors ${
+                                                        className={`h-9 px-3.5 text-xs font-medium rounded-btn transition-colors ${
                                                             modalMinBuyInBB === 100 && modalMaxBuyInBB === 300
                                                                 ? "bg-brand text-white border border-brand"
                                                                 : "border border-line-strong text-ink-soft hover:bg-surface-hover"
@@ -916,7 +840,6 @@ const Dashboard: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Buy-in inputs in BB */}
                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                                 <div>
                                                     <label className={labelClass}>Minimum Buy-In (BB)</label>
@@ -942,7 +865,6 @@ const Dashboard: React.FC = () => {
                                                 </div>
                                             </div>
 
-                                            {/* Calculated buy-in preview */}
                                             {modalBigBlind > 0 && (
                                                 <div className="bg-surface-raised rounded-xl p-3 border border-line">
                                                     <p className="text-xs text-ink-muted mb-1">Calculated Buy-In Range:</p>
@@ -998,7 +920,7 @@ const Dashboard: React.FC = () => {
                                             type="button"
                                             onClick={handleCreateNewGame}
                                             disabled={createDisabled}
-                                            className="h-12 w-full rounded-full bg-brand text-white font-semibold flex items-center justify-center transition-colors hover:bg-brand-light disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
+                                            className="h-12 w-full rounded-btn bg-brand text-white font-semibold flex items-center justify-center transition-colors hover:bg-brand-light disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
                                         >
                                             {isCreatingTable ? (
                                                 <>
@@ -1024,7 +946,7 @@ const Dashboard: React.FC = () => {
                                         <button
                                             type="button"
                                             onClick={handleCancelCreateGame}
-                                            className="h-11 w-full rounded-full text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
+                                            className="h-11 w-full rounded-btn text-sm font-medium text-ink-soft hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
                                         >
                                             Cancel
                                         </button>
@@ -1072,7 +994,6 @@ const Dashboard: React.FC = () => {
                         <PoweredBy />
                     </main>
 
-                    {/* Reset blockchain button was here, now commented out by user */}
 
                     {showWithdrawalModal && (
                         <WithdrawalModal
@@ -1094,7 +1015,6 @@ const Dashboard: React.FC = () => {
                         />
                     )}
 
-                    {/* Welcome modal: lists the next scheduled Sit & Go tournaments once per browser */}
                     <UpcomingSngModal />
                 </>
             )}

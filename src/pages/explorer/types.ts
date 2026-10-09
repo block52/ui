@@ -75,10 +75,12 @@ export interface CosmosTransaction {
 // Indexer API response types
 
 // GET /api/v1/stats/cards
+export type SuitKey = "s" | "h" | "d" | "c";
+
 export interface CardStats {
     card: string;               // "2h", "AS", etc.
     rank: string;               // "A", "K", "2", etc.
-    suit: string;               // "h", "d", "c", "s"
+    suit: SuitKey;
     total_appearances: number;
     expected_frequency: number;
     actual_frequency: number;
@@ -96,19 +98,18 @@ export interface StatsSummary {
 
 // GET /api/v1/analysis/randomness
 export interface RandomnessReport {
-    summary: StatsSummary;
     card_chi_squared: ChiSquaredResult;
     suit_chi_squared: ChiSquaredResult;
     rank_chi_squared: ChiSquaredResult;
-    outlier_cards: CardStats[];
-    duplicate_seeds: number;
 }
+
+export type ChiSquaredName = "PASS" | "MARGINAL" | "FAIL" | "NO_DATA";
 
 export interface ChiSquaredResult {
     chi_squared: number;
     degrees_of_freedom: number;
     p_value: number;
-    result: string;         // "PASS", "MARGINAL", "FAIL"
+    result: ChiSquaredName;
     interpretation: string;
 }
 
@@ -168,4 +169,41 @@ export interface HandResult {
 export interface HandDetail extends HandListItem {
     result: HandResult | null;
     revealed_cards: RevealedCard[];
+}
+
+// Cosmos REST account and validator lists (/cosmos/auth, /cosmos/staking)
+
+export interface ValidatorEntry {
+    operator_address: string;
+    status: string;
+    description: {
+        moniker: string;
+    };
+}
+
+export interface BaseAccountEntry {
+    address: string;
+    account_number?: string;
+    sequence?: string;
+}
+
+export interface AccountEntry {
+    "@type": string;
+    address?: string;
+    account_number?: string;
+    sequence?: string;
+    base_account?: BaseAccountEntry;
+    base_vesting_account?: { base_account: BaseAccountEntry };
+}
+
+export interface ValidatorsResponse {
+    validators: ValidatorEntry[];
+}
+
+export interface AccountsResponse {
+    accounts: AccountEntry[];
+}
+
+export interface AccountBalanceResponse {
+    balances: Coin[];
 }

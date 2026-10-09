@@ -3,14 +3,14 @@ import { ChainOverview } from "../../hooks/nodes/useChainOverview";
 import { useStateSyncTrust } from "../../hooks/nodes/useStateSyncTrust";
 import { SEED_NODES, SNAPSHOT_INTERVAL, STATE_SYNC_RPC_SERVERS, VALIDATOR_PEERS, CHAIN_ID, GENESIS_PATH } from "../../constants/chainNetwork";
 import { appTomlSnippet, configTomlSnippet } from "../../utils/nodePortal";
-import { copyToClipboard } from "../playPage/Table/utils";
+import { copyToClipboard } from "../../utils/clipboard";
 import { Card, PillButton } from "../ui";
 
 const CodeBlock: FC<{ title: string; code: string }> = ({ title, code }) => (
     <div className="mb-5">
         <div className="flex items-center justify-between gap-2 mb-1.5">
             <span className="text-sm text-ink-soft">{title}</span>
-            <PillButton variant="ghost" size="sm" className="max-sm:h-11" onClick={() => copyToClipboard(code, `${title} copied`)}>
+            <PillButton variant="ghost" size="sm" onClick={() => copyToClipboard(code, `${title} copied`)}>
                 Copy
             </PillButton>
         </div>
@@ -21,14 +21,13 @@ const CodeBlock: FC<{ title: string; code: string }> = ({ title, code }) => (
 const Step: FC<{ n: number; title: string; children: React.ReactNode }> = ({ n, title, children }) => (
     <Card className="p-5 sm:p-6">
         <h3 className="flex items-center gap-3 m-0 mb-4 text-[17px] font-semibold text-ink">
-            <span className="inline-flex items-center justify-center w-7 h-7 shrink-0 rounded-full bg-brand/20 text-brand-light text-sm tabular-nums">{n}</span>
+            <span className="inline-flex items-center justify-center w-7 h-7 shrink-0 rounded-full bg-brand/20 text-brand dark:text-brand-light text-sm tabular-nums">{n}</span>
             {title}
         </h3>
         {children}
     </Card>
 );
 
-/** Step-by-step setup for a new full node: binary, genesis, seeds/PEX, state sync. Config is generated live. */
 export const RunNodePanel: FC<{ overview: ChainOverview }> = ({ overview }) => {
     const { trustHeight, trustHash, error } = useStateSyncTrust(overview.latestHeight);
 

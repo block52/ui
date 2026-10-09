@@ -31,6 +31,17 @@ describe("transactionRow", () => {
             expect(formatSignedUsdc("2000000", "out")).toBe("−$2.00");
         });
 
+        it("keeps sub-cent amounts instead of showing $0.00", () => {
+            expect(formatSignedUsdc("1000", "out")).toBe("−$0.001");
+            expect(formatSignedUsdc("2500", "in")).toBe("+$0.0025");
+            expect(formatSignedUsdc("1", "neutral")).toBe("$0.000001");
+        });
+
+        it("keeps two decimals from one cent up and for zero", () => {
+            expect(formatSignedUsdc("10000", "neutral")).toBe("$0.01");
+            expect(formatSignedUsdc("0", "neutral")).toBe("$0.00");
+        });
+
         it("has no sign when neutral", () => {
             expect(formatSignedUsdc("100000", "neutral")).toBe("$0.10");
         });

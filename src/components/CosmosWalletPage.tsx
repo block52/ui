@@ -7,10 +7,9 @@ import { Card, PillButton } from "./ui";
 import { fieldLabelClass, insetBoxClass, noticeClass } from "./modals/walletFormClasses";
 import { CopyIcon, WarningIcon } from "./modals/walletIcons";
 import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
-import { toast } from "react-toastify";
+import { copyToClipboard } from "../utils/clipboard";
 import { ConfirmDialog } from "./modals/ConfirmDialog";
 
-// Seed phrase word grid: numbered chips on surface-raised
 const SeedPhraseGrid = ({ mnemonic, hidden = false }: { mnemonic: string; hidden?: boolean }) => {
     const words = mnemonic.split(" ");
     return (
@@ -25,7 +24,6 @@ const SeedPhraseGrid = ({ mnemonic, hidden = false }: { mnemonic: string; hidden
     );
 };
 
-/** Read-only value with a copy icon button. */
 const CopyField = ({ label, value, onCopy }: { label: string; value: string; onCopy: () => void }) => (
     <div>
         <span className={fieldLabelClass}>{label}</span>
@@ -35,7 +33,7 @@ const CopyField = ({ label, value, onCopy }: { label: string; value: string; onC
                 type="button"
                 onClick={onCopy}
                 aria-label={`Copy ${label.toLowerCase()}`}
-                className="shrink-0 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                className="shrink-0 w-11 h-11 grid place-items-center rounded-btn text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
             >
                 <CopyIcon />
             </button>
@@ -62,11 +60,9 @@ const CosmosWalletPage = () => {
     const [showMnemonic, setShowMnemonic] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    // Store existing wallet in state to handle updates properly
     const [existingMnemonic, setExistingMnemonic] = useState<string | null>(null);
     const [existingAddress, setExistingAddress] = useState<string | null>(null);
 
-    // Load existing wallet from localStorage on mount
     useEffect(() => {
         const loadWallet = async () => {
             const storedMnemonic = getCosmosMnemonic();
@@ -91,7 +87,6 @@ const CosmosWalletPage = () => {
         loadWallet();
     }, []);
 
-    // Generate new wallet
     const generateWalletHandler = async () => {
         try {
             setIsGenerating(true);
@@ -124,7 +119,6 @@ const CosmosWalletPage = () => {
         }
     };
 
-    // Import existing wallet
     const handleImportWallet = async () => {
         try {
             setIsGenerating(true);
@@ -178,13 +172,6 @@ const CosmosWalletPage = () => {
         setExistingAddress(null);
     };
 
-    // Copy to clipboard
-    const copyToClipboard = (text: string, label: string) => {
-        navigator.clipboard.writeText(text);
-        toast.success(`${label} copied to clipboard`);
-    };
-
-    // Show loading state while checking localStorage
     if (isLoading) {
         return (
             <div className="min-h-screen bg-surface-page grid place-items-center p-8">
@@ -203,12 +190,11 @@ const CosmosWalletPage = () => {
                     <p className="m-0 mt-1 text-sm text-ink-muted">Generate or import a wallet to receive deposits and play poker</p>
                 </div>
 
-                {/* Existing Wallet Display */}
                 {existingAddress && (
                     <Card className="p-5 sm:p-6">
                         <SectionHeading title="Current Wallet" />
                         <div className="space-y-4">
-                            <CopyField label="Address" value={existingAddress} onCopy={() => copyToClipboard(existingAddress, "Address")} />
+                            <CopyField label="Address" value={existingAddress} onCopy={() => copyToClipboard(existingAddress, "Address copied to clipboard")} />
 
                             {existingMnemonic && (
                                 <div>
@@ -218,7 +204,7 @@ const CosmosWalletPage = () => {
                                             <PillButton variant="outline" size="sm" onClick={() => setShowMnemonic(!showMnemonic)}>
                                                 {showMnemonic ? "Hide" : "Show"}
                                             </PillButton>
-                                            <PillButton variant="outline" size="sm" onClick={() => copyToClipboard(existingMnemonic, "Seed Phrase")}>
+                                            <PillButton variant="outline" size="sm" onClick={() => copyToClipboard(existingMnemonic, "Seed Phrase copied to clipboard")}>
                                                 Copy
                                             </PillButton>
                                         </div>
@@ -244,7 +230,6 @@ const CosmosWalletPage = () => {
                     </Card>
                 )}
 
-                {/* Generate New Wallet */}
                 {!existingAddress && (
                     <Card className="p-5 sm:p-6">
                         <SectionHeading title="Generate New Wallet" text="Create a new Block52 wallet with a 24-word seed phrase. This will be saved in your browser." />
@@ -268,20 +253,19 @@ const CosmosWalletPage = () => {
                                 <div>
                                     <div className="flex flex-wrap justify-between items-center gap-2 mb-2">
                                         <span className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Your seed phrase</span>
-                                        <PillButton variant="outline" size="sm" onClick={() => copyToClipboard(mnemonic, "Seed Phrase")}>
+                                        <PillButton variant="outline" size="sm" onClick={() => copyToClipboard(mnemonic, "Seed Phrase copied to clipboard")}>
                                             Copy
                                         </PillButton>
                                     </div>
                                     <SeedPhraseGrid mnemonic={mnemonic} />
                                 </div>
 
-                                <CopyField label="Your address" value={address} onCopy={() => copyToClipboard(address, "Address")} />
+                                <CopyField label="Your address" value={address} onCopy={() => copyToClipboard(address, "Address copied to clipboard")} />
                             </div>
                         )}
                     </Card>
                 )}
 
-                {/* Import Existing Wallet */}
                 {!existingAddress && (
                     <Card className="p-5 sm:p-6">
                         <SectionHeading title="Import Existing Wallet" text="Import an existing wallet using your 12 or 24-word seed phrase." />
@@ -310,12 +294,11 @@ const CosmosWalletPage = () => {
                     </Card>
                 )}
 
-                {/* Web3 Wallet Panel */}
                 <Card className="p-5 sm:p-6">
                     <SectionHeading title="Web3 Wallet" text={isWeb3Connected && web3Address ? undefined : "Connect your Web3 wallet for deposits and withdrawals."} />
                     {isWeb3Connected && web3Address ? (
                         <div className="space-y-4">
-                            <CopyField label="Connected address" value={web3Address} onCopy={() => copyToClipboard(web3Address, "Web3 Address")} />
+                            <CopyField label="Connected address" value={web3Address} onCopy={() => copyToClipboard(web3Address, "Web3 Address copied to clipboard")} />
                             <PillButton variant="outline" size="lg" className="w-full" onClick={() => disconnectWeb3()}>
                                 Disconnect Web3 Wallet
                             </PillButton>
@@ -327,7 +310,6 @@ const CosmosWalletPage = () => {
                     )}
                 </Card>
 
-                {/* Error Display */}
                 {error && (
                     <div role="alert" className={noticeClass.error}>
                         {error}

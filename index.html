@@ -26,6 +26,21 @@
 
         <link rel="manifest" href="/manifest.json" />
         <title>%VITE_APP_TITLE%</title>
+        <script>
+            // Apply the saved theme before first paint so there is no dark/light flash.
+            // Keep in sync with utils/theme.ts (key, dark-only routes, default).
+            (function () {
+                var theme = "dark";
+                try {
+                    var saved = localStorage.getItem("b52-theme");
+                    if (saved === "light" || saved === "dark") theme = saved;
+                } catch (e) {}
+                var p = location.pathname;
+                if (p.indexOf("/table/") === 0 && p !== "/table/admin") theme = "dark";
+                document.documentElement.dataset.theme = theme;
+                document.documentElement.style.colorScheme = theme;
+            })();
+        </script>
     </head>
     <body>
         <noscript>You need to enable JavaScript to run this app.</noscript>

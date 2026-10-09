@@ -5,7 +5,7 @@ import {
     groupReleasesByMonth,
     isStructuredRelease,
     parseChangeRefs,
-    parseReleaseDate,
+    parseReleaseNotes,
     releaseChanges,
     type ReleaseNote
 } from "./releaseNotes";
@@ -47,14 +47,51 @@ describe("parseChangeRefs", () => {
 });
 
 describe("dates", () => {
-    it("parses a calendar day without timezone drift", () => {
-        expect(parseReleaseDate("2026-10-07")).toEqual({ year: 2026, month: 10, day: 7 });
+    it("formats a calendar day without timezone drift", () => {
         expect(formatReleaseDate("2026-10-07")).toBe("October 7, 2026");
         expect(formatReleaseDateShort("2026-09-23")).toBe("Sep 23, 2026");
     });
 
     it("throws on a malformed date instead of guessing", () => {
-        expect(() => parseReleaseDate("Oct 7")).toThrow(/YYYY-MM-DD/);
+        expect(() => formatReleaseDate("Oct 7")).toThrow(/YYYY-MM-DD/);
+    });
+
+    it("throws on an out-of-range month or day", () => {
+        expect(() => formatReleaseDate("2026-13-05")).toThrow(/month/);
+        expect(() => formatReleaseDateShort("2026-00-05")).toThrow(/month/);
+        expect(() => formatReleaseDate("2026-10-32")).toThrow(/day/);
+        expect(() => formatReleaseDate("2026-10-00")).toThrow(/day/);
+    });
+});
+
+describe("parseChangeRefs on hostile input", () => {
+    it("handles a long whitespace run in linear time", () => {
+        const started = Date.now();
+        expect(parseChangeRefs(" ".repeat(60000) + "x").refs).toEqual([]);
+        expect(parseChangeRefs("text (ui#1)" + " ".repeat(60000)).refs).toHaveLength(1);
+        expect(Date.now() - started).toBeLessThan(500);
+    });
+});
+
+describe("parseReleaseNotes", () => {
+    it("keeps valid notes and reports each skipped entry", () => {
+        const { notes, skipped } = parseReleaseNotes([
+            note({ id: "ok" }),
+            note({ id: "bad-month", date: "2026-13-05" }),
+            { id: "no-tags", date: "2026-10-07", title: "t" },
+            { id: "bad-list", date: "2026-10-07", title: "t", tags: [], features: "x" },
+            "nope",
+            null
+        ]);
+        expect(notes.map(n => n.id)).toEqual(["ok"]);
+        expect(skipped).toHaveLength(5);
+        expect(skipped[0]).toMatch(/entry 1.*month/);
+        expect(skipped[1]).toMatch(/tags/);
+        expect(skipped[2]).toMatch(/features/);
+    });
+
+    it("rejects a payload that is not an array", () => {
+        expect(() => parseReleaseNotes({ notes: [] })).toThrow(/not an array/);
     });
 });
 

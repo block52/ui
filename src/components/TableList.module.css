@@ -5,6 +5,13 @@
     box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.45);
 }
 
+/* The dark-theme felt reads as a heavy blob on a pale row: a brighter green with a softer rim. */
+:global(:root[data-theme="light"]) .felt {
+    background: #3f9a62;
+    border-color: #9bd8b3;
+    box-shadow: inset 0 -2px 4px rgba(0, 0, 0, 0.18);
+}
+
 /* Width of the yellow players bar, set per row via --seat-fill. */
 .seatFill {
     width: var(--seat-fill);

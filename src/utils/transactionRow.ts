@@ -1,16 +1,10 @@
-/**
- * Display helpers for one row of the lobby's Recent Transactions list.
- */
-
 import { formatMicroAsUsdc } from "../constants/currency";
 import { hasContent } from "./guards";
 
-/** Money flow of a transaction relative to the wallet. */
 export type TransactionFlow = "in" | "out" | "neutral";
 
-export interface TransactionFlowInput {
+interface TransactionFlowInput {
     transferDirection?: "sent" | "received";
-    /** Poker action / derived action ("join", "create", "leave", "call", ...). */
     action?: string;
 }
 
@@ -25,13 +19,23 @@ export const transactionFlow = ({ transferDirection, action }: TransactionFlowIn
     return "neutral";
 };
 
+const MICRO_PER_CENT = 10_000;
+
+/** Two decimals, except below a cent, where up to six are kept so a sub-cent amount never reads "$0.00". */
+const formatUsdcAmount = (microAmount: string): string => {
+    const micro = Number(microAmount);
+    if (micro > 0 && micro < MICRO_PER_CENT) {
+        return formatMicroAsUsdc(microAmount, 6).replace(/0+$/, "");
+    }
+    return formatMicroAsUsdc(microAmount, 2);
+};
+
 /** "+$2.40" in, "−$2.00" out, "$0.10" neutral. Amount is micro-USDC. */
 export const formatSignedUsdc = (microAmount: string, flow: TransactionFlow): string => {
-    const value = `$${formatMicroAsUsdc(microAmount, 2)}`;
+    const value = `$${formatUsdcAmount(microAmount)}`;
     if (flow === "in") return `+${value}`;
     if (flow === "out") return `−${value}`;
     return value;
 };
 
-/** Secondary line: the parts that exist, joined by " · ". */
 export const joinDetail = (...parts: ReadonlyArray<string | undefined>): string => parts.filter(hasContent).join(" · ");

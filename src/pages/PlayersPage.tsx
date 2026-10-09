@@ -11,6 +11,16 @@ import type { PlayerSortField } from "../types/players";
 
 const PAGE_SIZE = 20;
 
+const SORT_COLUMNS: ReadonlyArray<{ field: PlayerSortField; label: string; className: string; buttonClassName: string }> = [
+    { field: "vip_points", label: "VIP", className: "hidden sm:table-cell", buttonClassName: "" },
+    { field: "total_hands", label: "Hands", className: "text-right whitespace-nowrap", buttonClassName: "justify-end" },
+    { field: "net_profit", label: "Net Profit", className: "text-right whitespace-nowrap", buttonClassName: "justify-end" },
+    { field: "total_rake_contributed", label: "Rake", className: "text-right hidden sm:table-cell", buttonClassName: "justify-end" }
+];
+
+const sortButtonClass =
+    "inline-flex items-center min-h-9 w-full uppercase tracking-[0.1em] font-semibold hover:text-ink transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
+
 const formatUsd = (micro: number): string => {
     const value = microToUsdc(micro);
     const sign = value < 0 ? "-" : "";
@@ -61,11 +71,12 @@ export default function PlayersPage() {
         }
     };
 
+    const ariaSort = (field: PlayerSortField) => (sort !== field ? "none" : order === "asc" ? "ascending" : "descending");
+
     const sortArrow = (field: PlayerSortField) => (sort === field ? (order === "asc" ? " ↑" : " ↓") : "");
 
     return (
         <ExplorerPage title="Players">
-
                 <ExplorerSearchInput
                     value={searchInput}
                     onChange={onSearchChange}
@@ -91,30 +102,14 @@ export default function PlayersPage() {
                                     <tr>
                                         <th className={`${explorerThClass} hidden sm:table-cell`}>#</th>
                                         <th className={explorerThClass}>Player</th>
-                                        <th
-                                            className={`${explorerThClass} hidden sm:table-cell cursor-pointer hover:text-ink transition-colors`}
-                                            onClick={() => toggleSort("vip_points")}
-                                        >
-                                            VIP{sortArrow("vip_points")}
-                                        </th>
-                                        <th
-                                            className={`${explorerThClass} text-right whitespace-nowrap cursor-pointer hover:text-ink transition-colors`}
-                                            onClick={() => toggleSort("total_hands")}
-                                        >
-                                            Hands{sortArrow("total_hands")}
-                                        </th>
-                                        <th
-                                            className={`${explorerThClass} text-right whitespace-nowrap cursor-pointer hover:text-ink transition-colors`}
-                                            onClick={() => toggleSort("net_profit")}
-                                        >
-                                            Net Profit{sortArrow("net_profit")}
-                                        </th>
-                                        <th
-                                            className={`${explorerThClass} text-right hidden sm:table-cell cursor-pointer hover:text-ink transition-colors`}
-                                            onClick={() => toggleSort("total_rake_contributed")}
-                                        >
-                                            Rake{sortArrow("total_rake_contributed")}
-                                        </th>
+                                        {SORT_COLUMNS.map(column => (
+                                            <th key={column.field} className={`${explorerThClass} ${column.className}`} aria-sort={ariaSort(column.field)}>
+                                                <button type="button" onClick={() => toggleSort(column.field)} className={`${sortButtonClass} ${column.buttonClassName}`}>
+                                                    {column.label}
+                                                    {sortArrow(column.field)}
+                                                </button>
+                                            </th>
+                                        ))}
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -126,7 +121,7 @@ export default function PlayersPage() {
                                         >
                                             <td className="hidden sm:table-cell px-4 py-2 text-ink-muted">{(page - 1) * PAGE_SIZE + index + 1}</td>
                                             <td className="px-4 sm:px-5 py-3">
-                                                <span className={`font-mono text-xs sm:text-sm text-brand-light hover:underline`}>
+                                                <span className="font-mono text-xs sm:text-sm text-brand-light hover:underline">
                                                     {truncateMiddle(p.player_address, 12, 8)}
                                                 </span>
                                             </td>
@@ -135,7 +130,7 @@ export default function PlayersPage() {
                                             </td>
                                             <td className="px-4 sm:px-5 py-3 text-right text-ink">{p.total_hands.toLocaleString()}</td>
                                             <td className="px-4 sm:px-5 py-3 text-right">
-                                                <span className={p.net_profit >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
+                                                <span className={p.net_profit >= 0 ? "text-green-400 [[data-theme=light]_&]:text-green-700 font-semibold" : "text-red-400 font-semibold"}>
                                                     {formatUsd(p.net_profit)}
                                                 </span>
                                             </td>

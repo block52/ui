@@ -27,7 +27,7 @@ const CopyButton: React.FC<{ copied: boolean; onClick: () => void }> = ({ copied
 );
 
 /**
- * The avatar picker (ui#733). NFTs are listed without a connected wallet: the
+ * The avatar picker. NFTs are listed without a connected wallet: the
  * connected wallet's, else a typed address's, else the wallet already linked
  * on chain. Picking one as the avatar needs the wallet connected to sign.
  */
@@ -64,7 +64,6 @@ export const ProfileAvatarModal: React.FC = () => {
 
     const { copy, copied } = useCopyToClipboard();
 
-    // Detect registration completion
     React.useEffect(() => {
         if (prevIsRegistering.current && !isRegistering) {
             setRegisteringAssetId(null);
@@ -75,7 +74,6 @@ export const ProfileAvatarModal: React.FC = () => {
         prevIsRegistering.current = isRegistering;
     }, [isRegistering, registrationError]);
 
-    // Reset success state when drawer closes
     React.useEffect(() => {
         if (!isDrawerOpen) {
             setJustRegistered(false);
@@ -283,14 +281,13 @@ export const ProfileAvatarModal: React.FC = () => {
                     >
                         Clear Avatar
                     </button>
-                    {/* Without a wallet, "Connect Wallet" sits next to the note above. */}
                     {isWalletConnected && (
                         <button className={styles.footerSecondaryButton} onClick={disconnectWallet}>
                             Disconnect Wallet
                         </button>
                     )}
                     <button
-                        className={isRegistering ? styles.footerCloseButton : justRegistered ? styles.footerSuccessButton : styles.footerCloseButton}
+                        className={justRegistered && !isRegistering ? styles.footerSuccessButton : styles.footerCloseButton}
                         onClick={closeDrawer}
                         disabled={isRegistering}
                     >

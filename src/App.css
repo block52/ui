@@ -1,10 +1,10 @@
 html {
     overflow-x: hidden;
-    background-color: #2c3245;
+    background-color: var(--page-bg, #2c3245);
 }
 
 body {
     font-family: 'Rubik', sans-serif;
-    background-color: #2c3245;
+    background-color: var(--page-bg, #2c3245);
     overflow-x: hidden;
 }

@@ -1,6 +1,3 @@
-/* Tokens mirror tailwind.config.js: surface-raised #1c1e2b, line #262938, line-strong #2c2f45,
-   ink #f5f5f7, ink-soft #b4b6c8, ink-muted #8e90a6. Accent comes from --brand-primary. */
-
 .modalSurface {
   max-height: 88vh;
   display: flex;
@@ -13,7 +10,7 @@
   display: grid;
   /* One column that may shrink: without minmax(0, …) the widest child (a long
      address or tx hash in an error) set the width and the dialog scrolled
-     sideways (ui#733). */
+     sideways . */
   grid-template-columns: minmax(0, 1fr);
   gap: 16px;
 }
@@ -36,7 +33,7 @@
 }
 
 .walletLabel {
-  color: #8e90a6;
+  color: rgb(var(--ink-muted));
   font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -54,9 +51,9 @@
   height: 44px;
   padding: 0 14px;
   border-radius: 12px;
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
-  background-color: #1c1e2b;
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
+  background-color: rgb(var(--surface-raised));
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: 13px;
   outline: none;
@@ -74,7 +71,7 @@
 
 .walletInput::placeholder,
 .searchInput::placeholder {
-  color: #8e90a6;
+  color: rgb(var(--ink-muted));
 }
 
 .copyButton {
@@ -83,7 +80,7 @@
   justify-content: center;
   height: 44px;
   padding: 0 20px;
-  border-radius: 9999px;
+  border-radius: var(--radius-btn, 0.625rem);
   border: 0;
   color: #ffffff;
   font-weight: 600;
@@ -106,18 +103,18 @@
 }
 
 .card {
-  border: 1px solid #262938;
+  border: 1px solid rgb(var(--line));
   border-radius: 14px;
   padding: 8px;
-  background-color: #1c1e2b;
+  background-color: rgb(var(--surface-raised));
   text-align: left;
   cursor: pointer;
   transition: border-color 0.15s, background-color 0.15s;
 }
 
 .card:hover:not(:disabled) {
-  border-color: #3a3d52;
-  background-color: #232636;
+  border-color: color-mix(in srgb, rgb(var(--ink-muted)) 14%, rgb(var(--line-strong)));
+  background-color: rgb(var(--surface-hover));
 }
 
 .card:disabled {
@@ -128,7 +125,7 @@
 .cardSelected,
 .cardSelected:hover:not(:disabled) {
   border-color: var(--brand-primary);
-  background-color: color-mix(in srgb, var(--brand-primary) 12%, #1c1e2b);
+  background-color: color-mix(in srgb, var(--brand-primary) 12%, rgb(var(--surface-raised)));
   box-shadow: 0 0 0 1px var(--brand-primary);
 }
 
@@ -163,7 +160,7 @@
 }
 
 .meta {
-  color: #8e90a6;
+  color: rgb(var(--ink-muted));
   font-size: 12px;
   line-height: 1.35;
   overflow-wrap: anywhere;
@@ -175,14 +172,14 @@
 }
 
 .emptyText {
-  color: #8e90a6;
+  color: rgb(var(--ink-muted));
   text-align: center;
   padding: 24px 0;
   overflow-wrap: anywhere;
 }
 
 .noteText {
-  color: #b4b6c8;
+  color: rgb(var(--ink-soft));
   font-size: 13px;
   line-height: 1.5;
   min-width: 0;
@@ -193,11 +190,16 @@
   font-size: 12px;
 }
 
+:global(:root[data-theme="light"]) .fieldError,
+:global(:root[data-theme="light"]) .footerDangerButton {
+  color: #b91c1c;
+}
+
 .inlineButton {
   flex-shrink: 0;
   height: 40px;
   padding: 0 16px;
-  border-radius: 9999px;
+  border-radius: var(--radius-btn, 0.625rem);
   border: 0;
   font-size: 13px;
   font-weight: 600;
@@ -214,10 +216,10 @@
   width: 100%;
   height: 44px;
   padding: 0 16px;
-  border-radius: 9999px;
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
-  background-color: #1c1e2b;
+  border-radius: var(--radius-btn, 0.625rem);
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
+  background-color: rgb(var(--surface-raised));
   outline: none;
 }
 
@@ -228,7 +230,7 @@
   align-items: center;
   gap: 8px;
   padding-top: 12px;
-  border-top: 1px solid #262938;
+  border-top: 1px solid rgb(var(--line));
 }
 
 .footerSecondaryButton,
@@ -238,7 +240,7 @@
 .footerSuccessButton {
   min-height: 44px;
   padding: 0 18px;
-  border-radius: 9999px;
+  border-radius: var(--radius-btn, 0.625rem);
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
@@ -248,13 +250,13 @@
 /* Ghost: Clear (when nothing to clear) and Disconnect. */
 .footerSecondaryButton {
   border: 1px solid transparent;
-  color: #b4b6c8;
+  color: rgb(var(--ink-soft));
   background-color: transparent;
 }
 
 .footerSecondaryButton:hover:not(:disabled) {
-  color: #f5f5f7;
-  background-color: #232636;
+  color: rgb(var(--ink));
+  background-color: rgb(var(--surface-hover));
 }
 
 .footerSecondaryButton:disabled {
@@ -264,13 +266,13 @@
 
 /* Refresh: outline pill. */
 .footerPrimaryButton {
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
   background-color: transparent;
 }
 
 .footerPrimaryButton:hover:not(:disabled) {
-  background-color: #232636;
+  background-color: rgb(var(--surface-hover));
 }
 
 .footerPrimaryButton:disabled {
@@ -292,13 +294,13 @@
 /* Cancel / Close: outline pill pushed to the far side. */
 .footerCloseButton {
   margin-left: auto;
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
   background-color: transparent;
 }
 
 .footerCloseButton:hover:not(:disabled) {
-  background-color: #232636;
+  background-color: rgb(var(--surface-hover));
 }
 
 .footerCloseButton:disabled {
@@ -325,8 +327,8 @@
   width: 14px;
   height: 14px;
   border-radius: 9999px;
-  border: 2px solid rgba(245, 245, 247, 0.35);
-  border-top-color: #f5f5f7;
+  border: 2px solid color-mix(in srgb, currentColor 35%, transparent);
+  border-top-color: currentColor;
   animation: avatarSpin 0.8s linear infinite;
 }
 

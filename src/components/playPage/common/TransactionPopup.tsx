@@ -74,13 +74,13 @@ const TransactionPopup: React.FC<TransactionPopupProps> = ({ txHash, onClose }) 
                     <div className="flex gap-2">
                         <Link
                             to={`/explorer/tx/${txHash}`}
-                            className="flex-1 px-3 py-1.5 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-full transition-colors text-center"
+                            className="flex-1 px-3 py-1.5 bg-brand hover:bg-brand/90 text-white text-xs font-semibold rounded-btn transition-colors text-center"
                         >
                             View on Explorer
                         </Link>
                         <button
                             onClick={onClose}
-                            className="flex-1 px-3 py-1.5 border border-line-strong hover:bg-surface-hover text-ink text-xs font-semibold rounded-full transition-colors"
+                            className="flex-1 px-3 py-1.5 border border-line-strong hover:bg-surface-hover text-ink text-xs font-semibold rounded-btn transition-colors"
                         >
                             Close
                         </button>

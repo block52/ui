@@ -59,7 +59,7 @@ export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React
     }
 
     if (typeof obj === "number" || typeof obj === "boolean") {
-        return <span className="text-sky-300">{String(obj)}</span>;
+        return <span className="text-sky-300 [[data-theme=light]_&]:text-sky-700">{String(obj)}</span>;
     }
 
     if (Array.isArray(obj)) {

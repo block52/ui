@@ -16,7 +16,6 @@ const toneClass: Record<NonNullable<StatItem["tone"]>, string> = {
     muted: "text-ink-muted"
 };
 
-/** One bordered strip of key numbers, divided by hairlines. Wraps to 2 columns on phones. */
 export const StatStrip: React.FC<{ items: ReadonlyArray<StatItem> }> = ({ items }) => (
     <div
         className="grid grid-cols-2 md:[grid-template-columns:repeat(var(--stat-cols),minmax(0,1fr))] gap-px bg-line border border-line rounded-2xl overflow-hidden"
@@ -24,7 +23,7 @@ export const StatStrip: React.FC<{ items: ReadonlyArray<StatItem> }> = ({ items 
     >
         {items.map((item, index) => (
             <div
-                key={item.label}
+                key={`${item.label}-${index}`}
                 // With an odd count the last cell spans both phone columns so no empty grey cell shows.
                 className={`bg-surface-card px-5 py-4 flex flex-col gap-1.5 min-w-0 ${
                     items.length % 2 === 1 && index === items.length - 1 ? "col-span-2 md:col-span-1" : ""

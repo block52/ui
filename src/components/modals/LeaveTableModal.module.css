@@ -14,9 +14,9 @@
 
 .buttonSecondary {
     background-color: transparent;
-    border: 1px solid #2c2f45;
+    border: 1px solid rgb(var(--line-strong));
 }
 
 .buttonSecondary:hover:not(:disabled) {
-    background-color: #232636;
+    background-color: rgb(var(--surface-hover));
 }

@@ -36,13 +36,12 @@ const LeaveTableModal: React.FC<LeaveTableModalProps> = React.memo(({ isOpen, on
             patternId="hexagons-leave"
             scrollable={false}
         >
-            {/* Warning Message */}
             <div className="mb-6">
                 <p className="text-ink-soft text-sm mb-4">Are you sure you want to leave this table?</p>
 
                 {isInActiveHand && (
                     <div className={`p-4 rounded-lg mb-4 ${styles.dangerAlertStrong}`}>
-                        <p className="text-white text-sm font-semibold mb-2">⚠️ Active Hand Warning</p>
+                        <p className="text-ink text-sm font-semibold mb-2">⚠️ Active Hand Warning</p>
                         <p className="text-ink-soft text-xs">
                             You are currently in an active hand. Leaving now will automatically <strong>fold your hand</strong> and forfeit any
                             chips you have bet this round.
@@ -50,21 +49,19 @@ const LeaveTableModal: React.FC<LeaveTableModalProps> = React.memo(({ isOpen, on
                     </div>
                 )}
 
-                {/* Stack info */}
                 <div className={`p-4 rounded-lg ${styles.panel}`}>
                     <div className="flex justify-between items-center">
                         <span className="text-ink-muted text-sm">Your Stack:</span>
-                        <span className="text-white font-bold text-lg">${stackFormatted}</span>
+                        <span className="text-ink font-bold text-lg">${stackFormatted}</span>
                     </div>
                 </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-col space-y-3">
                 <button
                     onClick={handleConfirm}
                     disabled={isLeaving}
-                    className={`w-full px-5 py-3 rounded-full font-medium text-white shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-80 disabled:cursor-not-allowed ${styles.buttonDanger}`}
+                    className={`w-full px-5 py-3 rounded-btn font-medium text-white shadow-md transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-80 disabled:cursor-not-allowed ${styles.buttonDanger}`}
                 >
                     {isLeaving ? (
                         <>
@@ -78,7 +75,7 @@ const LeaveTableModal: React.FC<LeaveTableModalProps> = React.memo(({ isOpen, on
                 <button
                     onClick={onClose}
                     disabled={isLeaving}
-                    className={`w-full px-5 py-3 rounded-full text-white font-medium transition-all duration-200 disabled:opacity-50 ${styles.buttonSecondary}`}
+                    className={`w-full px-5 py-3 rounded-btn text-ink font-medium transition-all duration-200 disabled:opacity-50 ${styles.buttonSecondary}`}
                 >
                     Cancel
                 </button>

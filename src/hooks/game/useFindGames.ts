@@ -3,22 +3,19 @@ import { GameListItem } from "@block52/poker-vm-sdk";
 import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { GameWithFormat, convertGameList } from "../../utils/convertUtils";
+import { viteEnv } from "../../utils/viteEnv";
 
-export type { GameWithFormat };
+/** The official treasury wallet; undefined when VITE_TREASURY_WALLET_ADDRESS is not set. */
+export const treasuryAddress: string | undefined = viteEnv.VITE_TREASURY_WALLET_ADDRESS;
 
-export const treasuryAddress = import.meta.env.VITE_TREASURY_WALLET_ADDRESS || "";
-
-export interface FindGamesReturn {
+interface FindGamesReturn {
     games: GameWithFormat[];
     isLoading: boolean;
     error: Error | null;
     refetch: () => Promise<void>;
 }
 
-/**
- * Custom hook to find available games from Cosmos blockchain
- * @returns Object containing available games and loading state
- */
+/** Lists the games available on the connected chain. */
 export const useFindGames = (): FindGamesReturn => {
     const [games, setGames] = useState<GameWithFormat[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -35,10 +32,8 @@ export const useFindGames = (): FindGamesReturn => {
                 throw new Error("Block52 client not initialized. Please create or import a Block52 wallet first.");
             }
 
-            // Fetch all games from Cosmos REST API
             const cosmosGames: GameListItem[] = await cosmosClient.findGames();
 
-            // Convert SDK types to UI types, filtering out invalid entries
             const availableGames: GameWithFormat[] = convertGameList(cosmosGames);
             setGames(availableGames);
         } catch (err: unknown) {

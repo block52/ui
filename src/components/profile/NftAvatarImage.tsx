@@ -13,7 +13,7 @@ interface NftAvatarImageProps {
 }
 
 /**
- * Renders an NFT avatar with an IPFS gateway fallback chain (ui#625).
+ * Renders an NFT avatar with an IPFS gateway fallback chain.
  *
  * A single public gateway is a runtime liability — `ipfs.io` 403'd a live avatar
  * (CORP `same-origin`) mid-session and the seat fell straight to the "NFT" chip.

@@ -49,7 +49,7 @@ const METHOD_NOTES: Record<DepositMethod, string> = {
     usdc: "USDC or USDT (ERC20)"
 };
 
-const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ onSuccess, onCancel, showMethodSelector = true }) => {
+const DepositCore: React.FC<DepositCoreProps> = ({ onSuccess, onCancel, onPendingChange, showMethodSelector = true }) => {
     const BRIDGE_ADDRESS = COSMOS_BRIDGE_ADDRESS;
 
     // Token selection for Web3 deposit (USDC or USDT)
@@ -260,14 +260,19 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
 
     const isDepositing = isDepositPending || isPending;
     const isApproving = isLoading || isApprovePending;
+    const isBusy = isDepositing || isApproving || creatingPayment || isCountingDown;
 
+    useEffect(() => {
+        onPendingChange?.(isBusy);
+        return () => onPendingChange?.(false);
+    }, [isBusy, onPendingChange]);
 
     const numberInputClass = "[appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none";
     const cryptoBelowMin = +amount > 0 && +amount < 10;
     const isPaymentTerminal = ["finished", "failed", "expired", "refunded"].includes(paymentStatus);
 
     const cancelButton = onCancel ? (
-        <PillButton variant="ghost" size="lg" onClick={onCancel} className="w-full">
+        <PillButton variant="ghost" size="lg" onClick={onCancel} disabled={isBusy} className="w-full">
             Cancel
         </PillButton>
     ) : null;
@@ -276,7 +281,6 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
         <div className="flex flex-col gap-4">
             {!paymentData ? (
                 <>
-                    {/* Deposit Method Selector */}
                     {showMethodSelector && (
                         <div>
                             <SegmentedControl options={METHOD_OPTIONS} value={depositMethod} onChange={setDepositMethod} ariaLabel="Deposit method" fullWidth />
@@ -286,10 +290,8 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
 
                     {depositMethod === "crypto" ? (
                         <>
-                            {/* Crypto Payment Flow */}
                             <CurrencySelector selectedCurrency={selectedCurrency} onCurrencySelect={setSelectedCurrency} />
 
-                            {/* Amount Input */}
                             <div>
                                 <label htmlFor="amount" className={fieldLabelClass}>
                                     Amount (USD)
@@ -327,12 +329,10 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
                                 )}
                             </div>
 
-                            {/* Fee Notice */}
                             <div className={noticeClass.warning}>
                                 This method uses a third-party payment processor. A processing fee applies and will be shown before you confirm.
                             </div>
 
-                            {/* Info Box */}
                             <details className="group rounded-xl border border-line bg-surface-raised">
                                 <summary className="flex items-center justify-between min-h-11 px-4 cursor-pointer list-none text-sm font-medium text-ink-soft hover:text-ink [&::-webkit-details-marker]:hidden">
                                     How crypto deposits work
@@ -348,7 +348,6 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
                                 </ol>
                             </details>
 
-                            {/* Deposit Button */}
                             <ModalFooter>
                                 <PillButton size="lg" className="w-full" onClick={handleCreateCryptoPayment} disabled={+amount < 10 || creatingPayment}>
                                     {creatingPayment ? "Processing..." : "Deposit Now"}
@@ -359,7 +358,6 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
                         </>
                     ) : (
                         <>
-                            {/* USDC Direct Deposit Flow */}
                             {address && (
                                 <div className={`flex items-center gap-3 ${insetBoxClass}`}>
                                     <div className="flex-1 min-w-0">
@@ -372,7 +370,6 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
                                 </div>
                             )}
 
-                            {/* Token Selector */}
                             {isConnected && (
                                 <div>
                                     <span className={fieldLabelClass}>Token</span>
@@ -442,7 +439,6 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
                                 )}
                             </div>
 
-                            {/* Cosmos Address Display */}
                             <div className={cosmosWallet.address ? insetBoxClass : noticeClass.warning}>
                                 <div className={cosmosWallet.address ? "text-xs uppercase tracking-[0.08em] text-ink-muted mb-1" : "font-semibold mb-1"}>
                                     {cosmosWallet.address ? "b52USDC will be minted to your Block52 address" : "No Block52 wallet found"}
@@ -489,7 +485,6 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
                 </>
             ) : (
                 <>
-                    {/* Payment Created - Show QR Code and Status */}
                     <PaymentDisplay
                         paymentAddress={paymentData.pay_address}
                         payAmount={paymentData.pay_amount}
@@ -501,7 +496,6 @@ const DepositCore: React.FC<DepositCoreProps & { onCancel?: () => void }> = ({ o
                     <PaymentStatusMonitor paymentId={paymentData.payment_id} onPaymentComplete={handlePaymentComplete} onStatusChange={setPaymentStatus} />
 
                     <ModalFooter>
-                        {/* New Payment Button - only show when payment is terminal */}
                         {isPaymentTerminal && (
                             <PillButton size="lg" className="w-full" onClick={handleNewPayment}>
                                 Create New Payment

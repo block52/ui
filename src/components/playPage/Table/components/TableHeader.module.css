@@ -3,13 +3,13 @@
  * design language; the felt keeps its own --table-* palette.
  */
 .headerRoot {
-    background-color: #12131c;
-    border-color: #262938;
+    background-color: rgb(var(--surface-page));
+    border-color: rgb(var(--line));
 }
 
 .subHeaderRoot {
-    background-color: #161722;
-    border-bottom: 1px solid #262938;
+    background-color: rgb(var(--surface-card));
+    border-bottom: 1px solid rgb(var(--line));
 }
 
 .bottomGlow {
@@ -17,8 +17,8 @@
 }
 
 .walletInfo {
-    background-color: #1c1e2b;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--line));
 }
 
 .balanceIcon {
@@ -27,18 +27,18 @@
 
 .copyTableButton {
     background-color: transparent;
-    border-color: #2c2f45;
-    color: #e4e4ea;
+    border-color: rgb(var(--line-strong));
+    color: rgb(var(--ink-body));
 }
 
 .copyTableButton:hover {
-    background-color: #232636;
+    background-color: rgb(var(--surface-hover));
     border-color: var(--brand-primary);
 }
 
 .gameFormatContainer {
-    background-color: #1c1e2b;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--line));
 }
 
 .brandText {
@@ -46,12 +46,12 @@
 }
 
 .secondaryText {
-    color: #8e90a6;
+    color: rgb(var(--ink-muted));
 }
 
 .depositButton {
-    background-color: #1c1e2b;
-    border-color: #2c2f45;
+    background-color: rgb(var(--surface-raised));
+    border-color: rgb(var(--line-strong));
     color: rgb(var(--brand-primary-light-rgb));
 }
 
@@ -67,15 +67,15 @@
 
 .sidebarToggleClosed {
     background-color: transparent;
-    color: #b4b6c8;
+    color: rgb(var(--ink-soft));
 }
 
 .sidebarToggleClosed:hover {
-    color: #f5f5f7;
+    color: rgb(var(--ink));
 }
 
 .leaveTableButton {
-    color: #8e90a6;
+    color: rgb(var(--ink-muted));
 }
 
 .leaveTableButton:hover {

@@ -99,7 +99,6 @@ const AdvancedSngParamsModal: React.FC<AdvancedSngParamsModalProps> = ({ isOpen,
                 . Blinds &amp; stacks are in chips; buy-in is in USDC.
             </p>
 
-            {/* Validation errors */}
             {showErrors && (
                 <div role="alert" className={`mt-3 ${noticeClass.error}`}>
                     <p className="m-0 text-xs font-semibold mb-1">Validation errors:</p>
@@ -111,7 +110,6 @@ const AdvancedSngParamsModal: React.FC<AdvancedSngParamsModalProps> = ({ isOpen,
                 </div>
             )}
 
-            {/* Preview */}
             <div className="mt-5">
                 <p className={`${fieldLabelClass} !mb-2`}>
                     Preview {parseResult.isValid && hasContent(jsonText.trim()) ? "(with custom params)" : "(current settings)"}

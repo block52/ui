@@ -89,7 +89,7 @@ export const ExplorerSearchInput: FC<ExplorerSearchInputProps> = ({ value, onCha
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
                     aria-label={placeholder}
-                    className="w-full h-11 pl-10 pr-4 rounded-full bg-surface-card border border-line text-sm text-ink-body placeholder:text-ink-muted outline-none focus:border-brand transition-colors"
+                    className="w-full h-11 pl-10 pr-4 rounded-btn bg-surface-card border border-line text-sm text-ink-body placeholder:text-ink-muted outline-none focus:border-brand transition-colors"
                 />
             </div>
             {onSubmit && (
@@ -112,7 +112,7 @@ export const ExplorerReloadButton: FC<{ onClick: () => void; busy?: boolean; lab
         disabled={busy}
         title={label}
         aria-label={label}
-        className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors disabled:opacity-50"
+        className="-mr-2 inline-flex h-11 w-11 items-center justify-center rounded-btn text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors disabled:opacity-50"
     >
         <svg className={`w-4 h-4 ${busy ? "animate-spin" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path

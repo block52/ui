@@ -5,7 +5,7 @@ import { useGenesisInfo } from "../../hooks/nodes/useGenesisInfo";
 import { GENESIS_PATH, GENESIS_SHA256 } from "../../constants/chainNetwork";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { faultTolerance } from "../../utils/nodePortal";
-import { copyToClipboard } from "../playPage/Table/utils";
+import { copyToClipboard } from "../../utils/clipboard";
 import { Card, CardHeader, pillClass } from "../ui";
 
 const Row: FC<{ label: string; value: string; mono?: boolean; copy?: boolean }> = ({ label, value, mono, copy }) => (
@@ -16,7 +16,7 @@ const Row: FC<{ label: string; value: string; mono?: boolean; copy?: boolean }> 
             {copy && (
                 <button
                     onClick={() => copyToClipboard(value, `${label} copied`)}
-                    className="ml-2 px-1 min-h-[44px] sm:min-h-0 text-xs text-brand-light hover:text-ink"
+                    className="ml-2 px-1 min-h-[44px] sm:min-h-0 text-xs text-brand dark:text-brand-light hover:text-ink"
                 >
                     copy
                 </button>
@@ -28,7 +28,6 @@ const Row: FC<{ label: string; value: string; mono?: boolean; copy?: boolean }> 
 const seconds = (s: string) => Number(s.replace(/s$/, ""));
 const pct = (dec: string) => `${(Number(dec) * 100).toFixed(2).replace(/\.00$/, "")}%`;
 
-/** Chain + genesis facts and the live validator set, with the network's fault tolerance. */
 export const NetworkInfoPanel: FC<{ overview: ChainOverview }> = ({ overview }) => {
     const { genesis, error: genesisError } = useGenesisInfo();
     const powers = overview.validators.map(v => v.tokens);
@@ -115,7 +114,7 @@ export const NetworkInfoPanel: FC<{ overview: ChainOverview }> = ({ overview }) 
                                         {v.jailed && <span className="ml-2 text-xs text-red-400">jailed</span>}
                                     </td>
                                     <td className="py-3 pr-4 font-mono text-xs text-ink-soft">
-                                        <Link to={`/explorer/address/${v.operatorAddress}`} className="text-ink-soft hover:text-brand-light">
+                                        <Link to={`/explorer/address/${v.operatorAddress}`} className="text-ink-soft hover:text-brand dark:hover:text-brand-light">
                                             {v.operatorAddress}
                                         </Link>
                                     </td>

@@ -9,7 +9,7 @@ import { PillLink } from "../components/ui";
 import { isEmpty } from "../utils/guards";
 import { isTournamentFormat, toGameFormat } from "../utils/gameFormatUtils";
 import styles from "./TestSigningPage.module.css";
-import { toast } from "react-toastify";
+import { copyToClipboard } from "../utils/clipboard";
 
 interface TestResult {
     functionName: string;
@@ -28,12 +28,10 @@ export default function TestSigningPage() {
     const [testResults, setTestResults] = useState<TestResult[]>([]);
     const [isInitializing, setIsInitializing] = useState(false);
 
-    // Success modal state
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
     const [successMessage, setSuccessMessage] = useState<string>("");
 
-    // Test inputs
     const [recipientAddress, setRecipientAddress] = useState("");
     const [sendAmount, setSendAmount] = useState("1"); // 1 usdc (in dollar units, will convert to micro-units)
     const [sendDenom, setSendDenom] = useState("usdc");
@@ -80,13 +78,11 @@ export default function TestSigningPage() {
         }
     ];
 
-    const copyCommand = (account: string, denom: string, amount: string) => {
+    const copyCommand = async (account: string, denom: string, amount: string) => {
         const command = `pokerchaind tx bank send ${account} ${walletAddress} ${amount}${denom} --chain-id pokerchain --keyring-backend test -y`;
-        navigator.clipboard.writeText(command);
-        toast.success("Command copied to clipboard");
+        await copyToClipboard(command, "Command copied to clipboard");
     };
 
-    // Auto-initialize client on page load
     React.useEffect(() => {
         if (!signingClient && !isInitializing) {
             initializeClient();
@@ -106,13 +102,11 @@ export default function TestSigningPage() {
         });
 
         try {
-            // Get mnemonic from storage
             const mnemonic = getCosmosMnemonic();
             if (!mnemonic) {
                 throw new Error("No mnemonic found. Please create a wallet first at /wallet");
             }
 
-            // Create wallet from mnemonic
             const hdWallet = await DirectSecp256k1HdWallet.fromMnemonic(mnemonic, {
                 prefix: "b52"
             });
@@ -134,7 +128,6 @@ export default function TestSigningPage() {
             setWallet(hdWallet);
             setWalletAddress(account.address);
 
-            // Fetch balances
             const userBalances = await client.getAllBalances(account.address);
             setBalances(userBalances);
 
@@ -248,7 +241,6 @@ export default function TestSigningPage() {
                 }
             });
 
-            // Show success modal
             setSuccessMessage(`Successfully sent ${dollarAmount} ${sendDenom.toUpperCase()}!`);
             setSuccessTxHash(txHash);
             setShowSuccessModal(true);
@@ -529,13 +521,11 @@ export default function TestSigningPage() {
     return (
         <div className="min-h-screen bg-surface-page">
             <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
-                {/* Header */}
                 <div>
                     <h1 className="m-0 text-[28px] font-semibold text-ink">Signing Cosmos Client Test Page</h1>
                     <p className="mt-1 mb-0 text-ink-muted">Test all SDK functions from Lucas's Signing Cosmos Client</p>
                 </div>
 
-                {/* Token Info Section */}
                 <div
                     className="p-5 sm:p-6 rounded-2xl mb-6 bg-brand/10 border border-brand/25"
                 >
@@ -588,7 +578,6 @@ export default function TestSigningPage() {
                     </div>
                 </div>
 
-                {/* Validator Funding Section - Primary Method for Fresh Testnet */}
                 {walletAddress && (
                     <div
                         className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.warningPanel}`}
@@ -628,18 +617,16 @@ export default function TestSigningPage() {
                                     ~/.pokerchain-testnet/node1 --fees 2000stake -y
                                 </div>
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         const command = `pokerchaind tx bank send validator ${walletAddress} 100000000stake --chain-id pokerchain --keyring-backend test --home ~/.pokerchain-testnet/node1 --fees 2000stake -y`;
-                                        navigator.clipboard.writeText(command);
-                                        toast.success("Validator funding command copied. It sends 100 stake to your wallet for gas fees.");
+                                        await copyToClipboard(command, "Validator funding command copied. It sends 100 stake to your wallet for gas fees.");
                                     }}
-                                    className={`w-full min-h-11 py-2 px-4 text-sm font-semibold rounded-full transition duration-200 hover:opacity-90 ${styles.warningActionButton}`}
+                                    className={`w-full min-h-11 py-2 px-4 text-sm font-semibold rounded-btn transition duration-200 hover:opacity-90 ${styles.warningActionButton}`}
                                 >
                                     📋 Copy Validator Funding Command (100 stake for gas)
                                 </button>
                             </div>
 
-                            {/* Stake only command (for bridge testing) */}
                             <div
                                 className={`p-4 rounded-xl mt-4 ${styles.successCommandBox}`}
                             >
@@ -649,12 +636,11 @@ export default function TestSigningPage() {
                                     ~/.pokerchain-testnet/node1 --fees 2000stake -y
                                 </div>
                                 <button
-                                    onClick={() => {
+                                    onClick={async () => {
                                         const command = `pokerchaind tx bank send validator ${walletAddress} 100000000stake --chain-id pokerchain --keyring-backend test --home ~/.pokerchain-testnet/node1 --fees 2000stake -y`;
-                                        navigator.clipboard.writeText(command);
-                                        toast.success("Stake funding command copied. It sends 100 stake for gas fees. Use the bridge to deposit USDC from Ethereum.");
+                                        await copyToClipboard(command, "Stake funding command copied. It sends 100 stake for gas fees. Use the bridge to deposit USDC from Ethereum.");
                                     }}
-                                    className={`w-full min-h-11 py-2 px-4 text-sm font-semibold rounded-full transition duration-200 hover:opacity-90 ${styles.successActionButton}`}
+                                    className={`w-full min-h-11 py-2 px-4 text-sm font-semibold rounded-btn transition duration-200 hover:opacity-90 ${styles.successActionButton}`}
                                 >
                                     📋 Copy Stake Funding Command (100 stake for gas)
                                 </button>
@@ -684,7 +670,6 @@ export default function TestSigningPage() {
                     </div>
                 )}
 
-                {/* Test Accounts Section */}
                 {walletAddress && (
                     <div
                         className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.successPanel}`}
@@ -696,7 +681,6 @@ export default function TestSigningPage() {
                             Click "Copy Command" to copy the CLI command, then run it in your terminal where pokerchaind is running.
                         </div>
 
-                        {/* Command Explanation */}
                         <div
                             className={`mb-4 p-3 rounded-xl text-xs ${styles.commandBreakdownBox}`}
                         >
@@ -738,26 +722,24 @@ export default function TestSigningPage() {
                                         </span>
                                     </div>
                                     <div className="space-y-3">
-                                        {/* stake command */}
                                         <div>
                                             <div className="text-xs text-ink-muted mb-1 font-mono">
                                                 pokerchaind tx bank send {account.name} {walletAddress.substring(0, 10)}... 10000000stake
                                             </div>
                                             <button
                                                 onClick={() => copyCommand(account.name, "stake", "10000000")}
-                                                className={`w-full min-h-11 py-2 px-3 text-xs font-medium rounded-full transition duration-200 hover:opacity-80 ${styles.blueCommandButton}`}
+                                                className={`w-full min-h-11 py-2 px-3 text-xs font-medium rounded-btn transition duration-200 hover:opacity-80 ${styles.blueCommandButton}`}
                                             >
                                                 📋 Copy: Send 10 stake (gas)
                                             </button>
                                         </div>
-                                        {/* usdc command */}
                                         <div>
                                             <div className="text-xs text-ink-muted mb-1 font-mono">
                                                 pokerchaind tx bank send {account.name} {walletAddress.substring(0, 10)}... 50000000usdc
                                             </div>
                                             <button
                                                 onClick={() => copyCommand(account.name, "usdc", "50000000")}
-                                                className={`w-full min-h-11 py-2 px-3 text-xs font-medium rounded-full transition duration-200 hover:opacity-80 ${styles.greenCommandButton}`}
+                                                className={`w-full min-h-11 py-2 px-3 text-xs font-medium rounded-btn transition duration-200 hover:opacity-80 ${styles.greenCommandButton}`}
                                             >
                                                 📋 Copy: Send 50 usdc (poker)
                                             </button>
@@ -775,14 +757,13 @@ export default function TestSigningPage() {
                     </div>
                 )}
 
-                {/* Initialization Section */}
                 <div className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.containerPanel}`}>
                     <h2 className="m-0 mb-4 text-[17px] font-semibold text-ink">1. Initialize Client</h2>
                     {!signingClient ? (
                         <button
                             onClick={initializeClient}
                             disabled={isInitializing}
-                            className={`w-full h-12 px-6 text-white text-[15px] font-semibold rounded-full transition-opacity hover:opacity-90 ${
+                            className={`w-full h-12 px-6 text-white text-[15px] font-semibold rounded-btn transition-opacity hover:opacity-90 ${
                                 isInitializing ? styles.initializeButtonLoading : styles.initializeButtonReady
                             }`}
                         >
@@ -792,7 +773,6 @@ export default function TestSigningPage() {
                         <div>
                             <div className="text-emerald-400 font-semibold mb-4">✅ Client Initialized</div>
 
-                            {/* Configuration Display */}
                             <div
                                 className={`mb-4 p-4 rounded-xl ${styles.networkConfigBox}`}
                             >
@@ -885,20 +865,17 @@ export default function TestSigningPage() {
 
                 {signingClient && (
                     <>
-                        {/* Test Sections */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-                            {/* getWalletAddress() */}
                             <div className={`p-5 sm:p-6 rounded-2xl ${styles.containerPanel}`}>
                                 <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">2. getWalletAddress()</h3>
                                 <button
                                     onClick={testGetWalletAddress}
-                                    className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
+                                    className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-btn transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
                                 >
                                     Test Get Wallet Address
                                 </button>
                             </div>
 
-                            {/* sendTokens() */}
                             <div className={`p-5 sm:p-6 rounded-2xl ${styles.containerPanel}`}>
                                 <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">3. sendTokens()</h3>
                                 <div className="space-y-3 mb-3">
@@ -932,19 +909,19 @@ export default function TestSigningPage() {
                                             />
                                             <button
                                                 onClick={() => setSendAmount("1")}
-                                                className={`min-h-11 px-4 rounded-full text-sm font-semibold ${styles.amountButtonBlue}`}
+                                                className={`min-h-11 px-4 rounded-btn text-sm font-semibold ${styles.amountButtonBlue}`}
                                             >
                                                 $1
                                             </button>
                                             <button
                                                 onClick={() => setSendAmount("5")}
-                                                className={`min-h-11 px-4 rounded-full text-sm font-semibold ${styles.amountButtonGreen}`}
+                                                className={`min-h-11 px-4 rounded-btn text-sm font-semibold ${styles.amountButtonGreen}`}
                                             >
                                                 $5
                                             </button>
                                             <button
                                                 onClick={() => setSendAmount("10")}
-                                                className={`min-h-11 px-4 rounded-full text-sm font-semibold ${styles.amountButtonGreen}`}
+                                                className={`min-h-11 px-4 rounded-btn text-sm font-semibold ${styles.amountButtonGreen}`}
                                             >
                                                 $10
                                             </button>
@@ -967,14 +944,13 @@ export default function TestSigningPage() {
                                 </div>
                                 <button
                                     onClick={testSendTokens}
-                                    className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionSuccess}`}
+                                    className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-btn transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionSuccess}`}
                                 >
                                     Test Send Tokens
                                 </button>
                             </div>
                         </div>
 
-                        {/* createGame() */}
                         <div className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.containerPanel}`}>
                             <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">4. createGame()</h3>
                             <div className="grid grid-cols-2 gap-3 mb-3">
@@ -1015,7 +991,6 @@ export default function TestSigningPage() {
                                     className={`${styles.inputField}`}
                                 />
 
-                                {/* Conditional rendering based on game format */}
                                 {isTournamentFormat(gameFormat) ? (
                                     // Sit & Go / Tournament: single buy-in
                                     <div className="col-span-2">
@@ -1074,13 +1049,12 @@ export default function TestSigningPage() {
                             </div>
                             <button
                                 onClick={testCreateGame}
-                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
+                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-btn transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
                             >
                                 Test Create Game
                             </button>
                         </div>
 
-                        {/* joinGame() */}
                         <div className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.containerPanel}`}>
                             <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">5. joinGame()</h3>
                             <div className="space-y-3 mb-3">
@@ -1120,13 +1094,12 @@ export default function TestSigningPage() {
                             </div>
                             <button
                                 onClick={testJoinGame}
-                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionSuccess}`}
+                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-btn transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionSuccess}`}
                             >
                                 Test Join Game
                             </button>
                         </div>
 
-                        {/* performAction() */}
                         <div className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.containerPanel}`}>
                             <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">6. performAction()</h3>
                             <div className="space-y-3 mb-3">
@@ -1169,25 +1142,23 @@ export default function TestSigningPage() {
                             </div>
                             <button
                                 onClick={testPerformAction}
-                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionWithdraw}`}
+                                className={`w-full h-11 px-5 text-sm font-semibold rounded-btn transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionWithdraw}`}
                             >
                                 Test Perform Action
                             </button>
                         </div>
 
-                        {/* queryGames() */}
                         <div className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.containerPanel}`}>
                             <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">7. queryGames()</h3>
                             <p className="text-ink-muted text-sm mb-4">Query all games from the blockchain</p>
                             <button
                                 onClick={testQueryGames}
-                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
+                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-btn transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
                             >
                                 Test Query Games
                             </button>
                         </div>
 
-                        {/* queryGameState() */}
                         <div className={`p-5 sm:p-6 rounded-2xl mb-6 ${styles.containerPanel}`}>
                             <h3 className="m-0 mb-4 text-[17px] font-semibold text-ink">8. queryGameState()</h3>
                             <div className="space-y-3 mb-3">
@@ -1205,7 +1176,7 @@ export default function TestSigningPage() {
                             </div>
                             <button
                                 onClick={testQueryGameState}
-                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-full transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
+                                className={`w-full h-11 px-5 text-white text-sm font-semibold rounded-btn transition-opacity hover:opacity-90 disabled:opacity-50 ${styles.actionPrimary}`}
                             >
                                 Test Query Game State
                             </button>
@@ -1213,7 +1184,6 @@ export default function TestSigningPage() {
                     </>
                 )}
 
-                {/* Test Results */}
                 <div className={`p-5 sm:p-6 rounded-2xl ${styles.containerPanel}`}>
                     <h2 className="m-0 mb-4 text-[17px] font-semibold text-ink">Test Results</h2>
                     {isEmpty(testResults) ? (
@@ -1252,7 +1222,6 @@ export default function TestSigningPage() {
                     )}
                 </div>
 
-                {/* Success Modal */}
                 {showSuccessModal && successTxHash && (
                     <Modal
                         isOpen
@@ -1271,11 +1240,8 @@ export default function TestSigningPage() {
                                 <code className="text-emerald-400 text-xs font-mono break-all">{successTxHash}</code>
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        navigator.clipboard.writeText(successTxHash);
-                                        toast.success("Transaction hash copied");
-                                    }}
-                                    className="shrink-0 w-11 h-11 sm:w-9 sm:h-9 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
+                                    onClick={() => copyToClipboard(successTxHash, "Transaction hash copied")}
+                                    className="shrink-0 w-11 h-11 sm:w-9 sm:h-9 grid place-items-center rounded-btn text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
                                     title="Copy transaction hash"
                                     aria-label="Copy transaction hash"
                                 >
@@ -1301,7 +1267,7 @@ export default function TestSigningPage() {
                                     setShowSuccessModal(false);
                                     setSuccessTxHash(null);
                                 }}
-                                className="flex-1 h-12 px-6 rounded-full border border-line-strong text-ink font-semibold text-[15px] hover:bg-ink hover:text-surface-page hover:border-ink transition-colors"
+                                className="flex-1 h-12 px-6 rounded-btn border border-line-strong text-ink font-semibold text-[15px] hover:bg-ink hover:text-surface-page hover:border-ink transition-colors"
                             >
                                 Close
                             </button>

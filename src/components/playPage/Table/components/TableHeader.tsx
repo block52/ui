@@ -20,6 +20,7 @@ import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
+import { tableDisplayName } from "../../../../utils/lobbyTables";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import styles from "./TableHeader.module.css";
 import { pillClass } from "../../../ui";
@@ -37,7 +38,7 @@ export const formatBlindCountdown = (secondsRemaining: number): string => {
 export interface TableHeaderProps {
     // Table info
     tableId: string;
-    /** Optional ENS-style table name (poker-vm#337); falls back to the truncated tableId when absent. */
+    /** Optional paid table name; falls back to the truncated tableId when absent. */
     tableName?: string;
     isMobileLandscape: boolean;
 
@@ -143,17 +144,16 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 {/* Left Section - Table button and Network selector */}
                 <div className="flex items-center space-x-2 sm:space-x-3 z-[9999] relative min-w-0 whitespace-nowrap">
                     <span
-                        className="text-white text-sm sm:text-[24px] cursor-pointer hover:text-[#ffffff] transition-colors duration-300 font-bold flex-shrink-0"
+                        className="text-white text-sm sm:text-[24px] cursor-pointer transition-colors duration-300 font-bold flex-shrink-0"
                         onClick={handleLobbyClick}
                     >
-                        {/* Named tables (poker-vm#337) show their name; unnamed fall back to the truncated id. */}
-                        {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
+                        {tableDisplayName(tableId, tableName)}
                     </span>
                     <NetworkSelector />
                     {/* Copy Table Link Button */}
                     <button
                         onClick={handleCopyTableLink}
-                        className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[40px] h-10 px-2.5 lg:px-3 rounded-full text-sm font-semibold transition-colors duration-200 border ${styles.copyTableButton}`}
+                        className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[40px] h-10 px-2.5 lg:px-3 rounded-btn text-sm font-semibold transition-colors duration-200 border ${styles.copyTableButton}`}
                         title="Copy table link to clipboard"
                         aria-label="Copy table link"
                     >
@@ -163,7 +163,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     {/* QR Code Button */}
                     <button
                         onClick={() => setShowQR(true)}
-                        className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[40px] h-10 px-2.5 xl:px-3 rounded-full text-sm font-semibold transition-colors duration-200 border ${styles.copyTableButton}`}
+                        className={`flex-shrink-0 flex items-center justify-center gap-1.5 min-w-[40px] h-10 px-2.5 xl:px-3 rounded-btn text-sm font-semibold transition-colors duration-200 border ${styles.copyTableButton}`}
                         title="Show QR code for table link"
                         aria-label="Share via QR code"
                     >
@@ -171,7 +171,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <span className="hidden xl:inline">Share via QR Code</span>
                     </button>
                     {/* Compact player count for the middle widths where the full pill below does not fit */}
-                    {gameOptions && gameOptions.minPlayers && gameOptions.maxPlayers && (
+                    {gameOptions && gameOptions.minPlayers > 0 && gameOptions.maxPlayers > 0 && (
                         <div className={`hidden md:flex xl:hidden flex-shrink-0 items-center px-3 h-8 rounded-full text-sm font-semibold tabular-nums ${styles.gameFormatContainer} ${styles.secondaryText}`}>
                             {tableActivePlayers.length}/{gameOptions.maxPlayers}
                         </div>
@@ -182,7 +182,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             <span className={`text-sm font-semibold ${styles.brandText}`}>
                                 {gameFormat ? `${formatGameFormatDisplay(gameFormat)} • ` : ""}
                                 Texas Hold'em
-                                {gameOptions.minPlayers && gameOptions.maxPlayers && (
+                                {gameOptions.minPlayers > 0 && gameOptions.maxPlayers > 0 && (
                                     <span className={`ml-1 ${styles.secondaryText}`}>
                                         ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
                                     </span>

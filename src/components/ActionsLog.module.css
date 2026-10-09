@@ -1,6 +1,6 @@
 .scroll {
   scrollbar-width: thin;
-  scrollbar-color: #2c2f45 transparent;
+  scrollbar-color: rgb(var(--line-strong)) transparent;
 }
 
 .scroll::-webkit-scrollbar {
@@ -12,6 +12,6 @@
 }
 
 .scroll::-webkit-scrollbar-thumb {
-  background-color: #2c2f45;
+  background-color: rgb(var(--line-strong));
   border-radius: 9999px;
 }

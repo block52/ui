@@ -15,13 +15,10 @@ interface Transaction {
     height: string;
     timestamp: string;
     code: number;
-    // Message type for display
     messageType?: string;
-    // Detailed action info
     action?: string;
     amount?: string;
     gameId?: string;
-    // Transfer info
     transferAmount?: string;
     transferDirection?: "sent" | "received";
 }
@@ -29,21 +26,18 @@ interface Transaction {
 interface TransactionPanelProps {
     cosmosWalletAddress: string | null;
     usdcBalance: string;
-    /** Opens the deposit flow; powers the empty state's "Make your first deposit". */
     onDeposit?: () => void;
 }
 
 const ghostIconClass =
     "w-11 h-11 lg:w-9 lg:h-9 grid place-items-center rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
 
-/** Round icon tone: green in, red failed, neutral otherwise. */
 const iconToneClass = (flow: TransactionFlow, failed: boolean): string => {
     if (failed) return "bg-red-400/15 text-red-400";
     if (flow === "in") return "bg-emerald-400/15 text-emerald-400";
     return "bg-surface-hover text-ink-body";
 };
 
-/** Arrow into the wallet (down-left) or out of it (up-right). */
 const FlowIcon: React.FC<{ incoming: boolean }> = ({ incoming }) => (
     <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
         {incoming ? (
@@ -60,7 +54,6 @@ const FlowIcon: React.FC<{ incoming: boolean }> = ({ incoming }) => (
     </svg>
 );
 
-/** A coin amount as the REST gateway serialises it — the value is a string, not a number. */
 interface Coin {
     denom: string;
     amount: string;
@@ -82,20 +75,11 @@ interface CosmosTxMessage {
     from_address?: string;
 }
 
-/** The decoded transaction body, as returned in the parallel `txs` array. */
 interface CosmosTx {
     body?: { messages?: CosmosTxMessage[] };
 }
 
-/**
- * One element of `tx_responses`.
- *
- * This is the REST gateway's JSON shape, NOT cosmjs-types' `TxResponse`. The
- * gateway emits snake_case and serialises numerics as strings: `height` here is
- * a string we `parseInt`, where cosmjs-types models it as a `bigint` (and
- * `raw_log` as `rawLog`). Importing that type would need a cast at every
- * access, which is how `any` grew here in the first place.
- */
+/** One element of `tx_responses` in the REST gateway's JSON shape: snake_case, numerics as strings (not cosmjs-types' `TxResponse`). */
 export interface CosmosTxResponse {
     txhash: string;
     height: string;
@@ -108,16 +92,11 @@ export interface TransactionResponse {
     pagination: { next_key: string | null; total: string } | null;
     total: string;
     tx_responses: CosmosTxResponse[];
-    txs?: CosmosTx[]; // Include txs for message parsing
+    txs?: CosmosTx[];
 }
 
-/** A response entry joined to its decoded body from the parallel `txs` array. */
 type TxWithBody = CosmosTxResponse & { tx?: CosmosTx };
 
-/**
- * TransactionPanel - Shows recent transactions for the connected wallet
- * Displays the last 6 transactions
- */
 const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress, usdcBalance, onDeposit }) => {
     const navigate = useNavigate();
     const { currentNetwork } = useNetwork();
@@ -135,16 +114,13 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
 
             const address = cosmosWalletAddress;
 
-            // Query for transactions where this address is the sender OR recipient
             const senderQuery = `message.sender='${address}'`;
             const recipientQuery = `transfer.recipient='${address}'`;
-            // Fetch both sent and received transactions
             const [sentResponse, receivedResponse] = await Promise.all([
                 cosmosApi.getSentTransactions(senderQuery) as Promise<TransactionResponse>,
                 cosmosApi.getReceivedTransactions(recipientQuery) as Promise<TransactionResponse>
             ]);
 
-            // Combine tx_responses with their txs for message type extraction
             const sentTxs: TxWithBody[] = (sentResponse.tx_responses || []).map((tx, i) => ({
                 ...tx,
                 tx: sentResponse.txs?.[i]
@@ -154,15 +130,12 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                 tx: receivedResponse.txs?.[i]
             }));
 
-            // Combine and deduplicate transactions by hash
             const allTxs = [...sentTxs, ...receivedTxs];
             const uniqueTxs = Array.from(new Map(allTxs.map(tx => [tx.txhash, tx])).values());
 
-            // Sort by height (descending) and take first 6
             uniqueTxs.sort((a, b) => parseInt(b.height) - parseInt(a.height));
             const recentTxs = uniqueTxs.slice(0, 6);
 
-            // Extract message type and details for display
             const formattedTxs: Transaction[] = recentTxs.map(tx => {
                 let messageType = "Transaction";
                 let action: string | undefined;
@@ -174,11 +147,9 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                 const msg = tx.tx?.body?.messages?.[0];
                 if (msg) {
                     const msgType = msg["@type"] || "";
-                    // Extract the last part of the type URL
                     const parts = msgType.split(".");
                     messageType = parts[parts.length - 1] || "Transaction";
 
-                    // Extract poker action details
                     if (msgType.includes("MsgPerformAction")) {
                         action = msg.action;
                         amount = getDisplayableActionAmount("MsgPerformAction", typeof msg.amount === "string" ? msg.amount : undefined);
@@ -194,7 +165,7 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                         action = "create";
                         gameId = msg.game_id;
                     } else if (msgType.includes("MsgSend")) {
-                        // Bank transfer — MsgSend carries a coin array, not a scalar
+                        // MsgSend carries a coin array, not a scalar
                         const coins = Array.isArray(msg.amount) ? msg.amount[0] : undefined;
                         if (coins) {
                             transferAmount = coins.amount;
@@ -203,7 +174,6 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                     }
                 }
 
-                // Check events for transfer details if not already found
                 if (!transferAmount && tx.events) {
                     transferAmount = sumUsdcTransferEvents(tx.events);
                     if (transferAmount) {
@@ -236,19 +206,16 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
         }
     }, [cosmosWalletAddress, currentNetwork.rest]);
 
-    // Fetch transactions on mount and when wallet changes
     useEffect(() => {
         fetchTransactions();
     }, [fetchTransactions, cosmosWalletAddress, usdcBalance]);
 
-    // Don't render if no wallet
     if (!cosmosWalletAddress) {
         return null;
     }
 
     return (
         <Card>
-            {/* Header */}
             <div className="flex items-center justify-between gap-2 pl-5 pr-3 lg:pr-4 pt-3 lg:pt-4 pb-1 lg:pb-2">
                 <h2 className="m-0 text-[17px] lg:text-lg font-semibold text-ink">Recent Transactions</h2>
                 <button
@@ -275,7 +242,6 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                 </button>
             </div>
 
-            {/* Content */}
             {loading && isEmpty(transactions) ? (
                 <div aria-busy="true" aria-label="Loading transactions">
                     {[0, 1, 2].map(i => (
@@ -347,7 +313,6 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                 </ul>
             )}
 
-            {/* View All Link */}
             {hasElements(transactions) && (
                 <button
                     type="button"

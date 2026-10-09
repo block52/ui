@@ -8,6 +8,9 @@ interface GameStartCountdownProps {
     onSkip?: () => void; // Optional skip function for testing
 }
 
+// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
+const noop = (): void => undefined;
+
 const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, onCountdownComplete, onSkip: _onSkip }) => {
     const [timeLeft, setTimeLeft] = useState<{
         days: number;
@@ -21,7 +24,6 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
 
     const calculateTimeLeft = useCallback(() => {
         try {
-            // Parse the game start time (assume it's in Brisbane time)
             const gameDate = new Date(gameStartTime);
 
             // Convert to Brisbane time (UTC+10, or UTC+11 during daylight saving)
@@ -62,16 +64,13 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
             }
         };
 
-        // Initial calculation
         updateCountdown();
 
-        // Set up interval to update every second
         const timer = setInterval(updateCountdown, 1000);
 
         return () => clearInterval(timer);
     }, [calculateTimeLeft, onCountdownComplete]);
 
-    // Don't render if countdown is complete
     if (!isVisible) {
         return null;
     }
@@ -86,7 +85,7 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
     ];
 
     return (
-        <Modal isOpen onClose={noop} closeOnEscape={false} closeOnBackdropClick={false} widthClass="w-[420px]">
+        <Modal isOpen onClose={noop} closeOnEscape={false} closeOnBackdropClick={false} widthClass="w-[420px]" ariaLabel="Game starting soon">
             <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-brand/10 border border-brand/30 grid place-items-center text-brand-light">
                     <svg className="w-8 h-8" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -97,7 +96,6 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
                 <p className="m-0 mt-1 text-sm text-ink-muted">Please wait for the scheduled game to begin</p>
             </div>
 
-            {/* Countdown Display */}
             <div className="grid grid-cols-4 gap-2 mt-5" role="timer" aria-live="off">
                 {units.map(unit => (
                     <div key={unit.label} className="text-center px-1 py-3 rounded-xl bg-surface-raised border border-line">
@@ -109,7 +107,6 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
                 ))}
             </div>
 
-            {/* Game Start Time Display */}
             <div className={`${insetBoxClass} mt-3 text-center`}>
                 <div className="text-[10px] uppercase tracking-[0.08em] text-ink-muted mb-1">Game starts at (Brisbane time)</div>
                 <div className="text-ink font-mono text-sm tabular-nums">
@@ -125,7 +122,6 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
                 </div>
             </div>
 
-            {/* Alpha Testing Message */}
             <div className={`${noticeClass.info} mt-3 text-center`}>
                 <div className="text-brand-light font-semibold mb-0.5 uppercase tracking-[0.08em]">Alpha testing</div>
                 This timer helps coordinate testers to begin together while we iron out bugs
@@ -135,10 +131,5 @@ const GameStartCountdown: React.FC<GameStartCountdownProps> = ({ gameStartTime, 
         </Modal>
     );
 };
-
-// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
-function noop(): void {
-    return undefined;
-}
 
 export default GameStartCountdown;

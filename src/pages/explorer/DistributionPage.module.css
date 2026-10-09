@@ -8,7 +8,6 @@
     }
 }
 
-/* Legend swatch for the dashed expected-count line (#eab308, EXPECTED_LINE_COLOR). */
 .expectedSwatch {
-    border-top: 2px dashed #eab308;
+    border-top: 2px dashed;
 }

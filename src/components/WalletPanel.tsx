@@ -1,12 +1,9 @@
 import React, { useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { copyToClipboard as copyToClipboardUtil } from "../utils/clipboard";
+import { copyToClipboard } from "../utils/clipboard";
 import { truncateMiddle } from "../utils/stringUtils";
 import { Card, PillButton } from "./ui";
-
-// Copy to clipboard utility
-const copyToClipboard = (text: string, label: string) => copyToClipboardUtil(text, `${label} copied to clipboard!`);
 
 interface WalletPanelProps {
     onDeposit: () => void;
@@ -19,7 +16,6 @@ interface WalletPanelProps {
     cosmosWalletAddress: string | null;
 }
 
-/** Ghost square icon button used in card headers (44px on phones, 36px from lg). */
 const ghostIconClass =
     "w-11 h-11 lg:w-9 lg:h-9 grid place-items-center rounded-lg text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
 
@@ -60,10 +56,6 @@ const CardTitle: React.FC<{ children?: React.ReactNode }> = ({ children }) => (
     </div>
 );
 
-/**
- * WalletPanel - Cosmos game wallet card on the lobby.
- * Shows the USDC balance, the address (copyable) and Deposit / Withdraw / Send.
- */
 const WalletPanel: React.FC<WalletPanelProps> = ({
     onDeposit,
     onWithdraw,
@@ -88,7 +80,6 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
     }, [onRefresh, isRefreshing]);
 
     if (!cosmosWalletAddress) {
-        // No wallet - show create/import options
         return (
             <Card>
                 <CardTitle />
@@ -132,7 +123,7 @@ const WalletPanel: React.FC<WalletPanelProps> = ({
                         </span>
                         <button
                             type="button"
-                            onClick={() => copyToClipboard(cosmosWalletAddress, "Address")}
+                            onClick={() => copyToClipboard(cosmosWalletAddress, "Address copied to clipboard!")}
                             className={ghostIconClass}
                             title="Copy wallet address"
                             aria-label="Copy wallet address"

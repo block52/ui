@@ -21,6 +21,9 @@ interface SitAndGoWaitingModalProps {
     playerStack?: string;
 }
 
+// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
+const noop = (): void => undefined;
+
 const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConfirm, playerStack }) => {
     const { gameOptions } = useGameOptions();
     const { emptySeatIndexes } = useVacantSeatData();
@@ -56,7 +59,6 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
     const buyInLabel = gameOptions?.startingStack ? formatSitAndGoStackString(gameOptions.startingStack) : null;
     const canShowLeaveUi = hasValue(onLeaveConfirm) && hasValue(playerStack);
 
-    // Calculate players joined
     const playersJoined = useMemo(() => {
         if (!gameOptions?.maxPlayers) return 0;
         return gameOptions.maxPlayers - emptySeatIndexes.length;
@@ -66,7 +68,6 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
 
     const playerCountLabel = getGameTypeMnemonic(gameOptions?.minPlayers);
 
-    // Don't render until game options are loaded
     if (isNullish(maxPlayers)) {
         return null;
     }
@@ -74,9 +75,8 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
     const remaining = maxPlayers - playersJoined;
 
     return (
-        <Modal isOpen onClose={noop} closeOnEscape={false} closeOnBackdropClick={false} widthClass="w-[420px]">
+        <Modal isOpen onClose={noop} closeOnEscape={false} closeOnBackdropClick={false} widthClass="w-[420px]" ariaLabel="Waiting for players">
             <div className="flex flex-col items-center text-center">
-                {/* Waiting icon with animation */}
                 <div className="w-20 h-20 rounded-full bg-brand/10 border border-brand/30 grid place-items-center relative text-brand-light">
                     <div className="absolute inset-0 rounded-full border-2 border-transparent border-t-brand-light animate-spin"></div>
                     <svg className="w-9 h-9" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24" aria-hidden="true">
@@ -92,7 +92,6 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
                 <p className="m-0 mt-1 text-sm text-ink-muted">{playerCountLabel} tournament is filling up...</p>
             </div>
 
-            {/* Players progress */}
             <div className={`${insetBoxClass} mt-5 text-center`}>
                 <div className={`${fieldLabelClass} !mb-1`}>Players joined</div>
                 <div className="text-3xl text-ink font-bold tabular-nums">
@@ -118,7 +117,6 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
                 </div>
             </div>
 
-            {/* Your status */}
             <div className={`${noticeClass.success} mt-3 flex items-center justify-center gap-2`}>
                 <div className="w-2.5 h-2.5 bg-emerald-400 rounded-full animate-pulse shrink-0"></div>
                 <span className="font-semibold text-sm">
@@ -126,7 +124,6 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
                 </span>
             </div>
 
-            {/* Leave Game: inline two-step confirmation (no separate modal) */}
             {canShowLeaveUi && isConfirming && (
                 <div className={`${insetBoxClass} mt-3 !border-red-500/30`}>
                     <p className="m-0 mb-3 text-ink text-sm font-semibold text-center">Leave this tournament?</p>
@@ -165,7 +162,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
                             type="button"
                             onClick={handleConfirm}
                             disabled={isLeaving}
-                            className="inline-flex items-center justify-center w-full h-11 rounded-full border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                            className="inline-flex items-center justify-center w-full h-11 rounded-btn border border-red-500/40 bg-red-500/10 text-red-400 text-sm font-semibold hover:bg-red-500/20 transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {isLeaving ? "Leaving..." : "Confirm Leave"}
                         </button>
@@ -180,10 +177,5 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
         </Modal>
     );
 };
-
-// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
-function noop(): void {
-    return undefined;
-}
 
 export default SitAndGoWaitingModal;

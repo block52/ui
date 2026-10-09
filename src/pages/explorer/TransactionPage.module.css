@@ -1,6 +1,6 @@
 .detailsContainer {
-    background-color: #161722;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-card));
+    border: 1px solid rgb(var(--line));
 }
 
 .errorContainer {
@@ -17,8 +17,8 @@
 }
 
 .hashBox {
-    background-color: #1c1e2b;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--line));
 }
 
 .brandText {
@@ -26,13 +26,13 @@
 }
 
 .messageCard {
-    background-color: #1c1e2b;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--line));
 }
 
 .messageDataBox {
-    background-color: #161722;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-card));
+    border: 1px solid rgb(var(--line));
     max-height: 300px;
 }
 
@@ -54,12 +54,12 @@
 }
 
 .eventExplanationContainer {
-    background-color: #1c1e2b;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--line));
 }
 
 .eventExplanationPrimer {
-    border-bottom: 1px solid #262938;
+    border-bottom: 1px solid rgb(var(--line));
 }
 
 .eventExplanationStrong {
@@ -67,8 +67,8 @@
 }
 
 .eventBreakdownCard {
-    background-color: #161722;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-card));
+    border: 1px solid rgb(var(--line));
 }
 
 .eventBreakdownTitle {
@@ -85,7 +85,19 @@
 }
 
 .rawEventsBox {
-    background-color: #1c1e2b;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--line));
     max-height: 400px;
+}
+
+:global(:root[data-theme="light"]) .successText {
+    color: #047857;
+}
+
+:global(:root[data-theme="light"]) .eventSummaryTitle {
+    color: #047857;
+}
+
+:global(:root[data-theme="light"]) .errorIcon {
+    color: #b91c1c;
 }

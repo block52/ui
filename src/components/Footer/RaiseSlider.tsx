@@ -52,7 +52,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider py-1 px-2 lg:px-4 rounded-full border text-xs lg:text-sm transition-all duration-200"
+                        : "btn-slider py-1 px-2 lg:px-4 rounded-btn border text-xs lg:text-sm transition-all duration-200"
                 }
                 onClick={onDecrement}
                 disabled={disabled}
@@ -70,11 +70,11 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 onChange={(e) => onChange(Number(e.target.value))}
                 className={
                     isMobileLandscape
-                        ? "flex-1 accent-brand h-1 rounded-full transition-all duration-200"
-                        : "flex-1 accent-brand h-2 rounded-full transition-all duration-200"
+                        ? "flex-1 accent-brand h-1 rounded-btn transition-all duration-200"
+                        : "flex-1 accent-brand h-2 rounded-btn transition-all duration-200"
                 }
                 style={{
-                    background: `linear-gradient(to right, var(--brand-primary) 0%, var(--brand-primary) ${percentage}%, #2c2f45 ${percentage}%, #2c2f45 100%)`
+                    background: `linear-gradient(to right, var(--brand-primary) 0%, var(--brand-primary) ${percentage}%, rgb(var(--line-strong)) ${percentage}%, rgb(var(--line-strong)) 100%)`
                 }}
                 disabled={disabled}
             />
@@ -84,7 +84,7 @@ export const RaiseSlider: React.FC<RaiseSliderProps> = ({
                 className={
                     isMobileLandscape
                         ? "btn-slider py-0.5 px-1.5 rounded border text-[10px] transition-all duration-200"
-                        : "btn-slider py-1 px-2 lg:px-4 rounded-full border text-xs lg:text-sm transition-all duration-200"
+                        : "btn-slider py-1 px-2 lg:px-4 rounded-btn border text-xs lg:text-sm transition-all duration-200"
                 }
                 onClick={onIncrement}
                 disabled={disabled}

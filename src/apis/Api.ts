@@ -77,6 +77,10 @@ export class CometRpcApi extends HTTPClient {
         this.get(`abci_query?path=${encodeURIComponent(`"${path}"`)}&data=${dataHex}&height=${height}`);
 }
 
+export class ReleaseNotesApi extends HTTPClient {
+    public getReleaseNotes = () => this.get<unknown>("");
+}
+
 export class IndexerApi extends HTTPClient {
     public getCardStats = () => this.get("/api/v1/stats/cards");
     public getSyncStatus = () => this.get("/api/v1/status");

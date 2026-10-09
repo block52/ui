@@ -6,7 +6,6 @@ import { noticeClass } from "./walletFormClasses";
 interface ConfirmDialogProps {
     isOpen: boolean;
     title: string;
-    /** What will happen, in one or two sentences. */
     message: React.ReactNode;
     /** Optional amber box under the message for the one thing the user must not miss. */
     warning?: React.ReactNode;
@@ -18,10 +17,7 @@ interface ConfirmDialogProps {
     onCancel: () => void;
 }
 
-/**
- * In-app replacement for window.confirm(): same look as the other modals,
- * safe default (Cancel first, Escape cancels, backdrop clicks do nothing).
- */
+/** In-app window.confirm(): Cancel takes initial focus, Escape cancels, backdrop clicks do nothing. */
 export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
     isOpen,
     title,
@@ -38,7 +34,7 @@ export const ConfirmDialog: React.FC<ConfirmDialogProps> = ({
             <p className="m-0 text-[15px] leading-relaxed text-ink-soft">{message}</p>
             {warning && <div className={noticeClass.warning}>{warning}</div>}
             <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 pt-1">
-                <PillButton variant="outline" size="lg" onClick={onCancel} className="sm:min-w-[120px]">
+                <PillButton variant="outline" size="lg" onClick={onCancel} className="sm:min-w-[120px]" data-autofocus="">
                     {cancelLabel}
                 </PillButton>
                 <PillButton

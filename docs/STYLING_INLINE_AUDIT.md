@@ -1,5 +1,7 @@
 # Styling Inline Audit (Components + Full UI)
 
+> **Historical (Feb 2026).** Snapshot of the audit when it was run. Several files it names no longer exist: `QRDeposit.tsx/.css/.module.css` and everything under `src/components/depositComponents/` were removed in the purple/dark redesign (deposit now lives in `modals/DepositCore.tsx` and `modals/CryptoPayment/`). Counts and file lists below are not current. Styling now follows `docs/THEMING.md`.
+
 Date: 2026-02-23
 Scope: `ui/src/**/*.tsx` and `ui/src/**/*.css`
 
@@ -459,8 +461,8 @@ Decision checklist (team sign-off):
 
 Phase 2 documentation is split by audience:
 
-- `src/docs/STYLING_INLINE_AUDIT_PHASE2.md` (condensed source of truth)
-- `src/docs/STYLING_INLINE_AUDIT_PHASE2_PR_READY.md` (reviewer quick-start)
-- `src/docs/STYLING_INLINE_AUDIT_PHASE2_DETAILED_LOG_2026-02-24.md` (full archived per-file log)
+- `docs/STYLING_INLINE_AUDIT_PHASE2.md` (condensed source of truth)
+- `docs/STYLING_INLINE_AUDIT_PHASE2_PR_READY.md` (reviewer quick-start)
+- `docs/STYLING_INLINE_AUDIT_PHASE2_DETAILED_LOG_2026-02-24.md` (full archived per-file log)
 
 Keep this file focused on pre-Phase 2 context and earlier wave notes.

@@ -1,5 +1,5 @@
 import React from "react";
-import { copyToClipboard as copyToClipboardUtil } from "../../utils/clipboard";
+import { copyToClipboard } from "../../utils/clipboard";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { Modal } from "../common/Modal";
 import { PillButton } from "../ui";
@@ -30,20 +30,18 @@ interface CopyFieldProps {
     label: string;
     value: string;
     copyLabel: string;
-    onCopy: (text: string, label: string) => void;
     valueClass?: string;
     breakAll?: boolean;
 }
 
-/** Labelled inset box showing a mono value with a copy icon button. */
-const CopyField: React.FC<CopyFieldProps> = ({ label, value, copyLabel, onCopy, valueClass = "text-ink-body", breakAll = true }) => (
+const CopyField: React.FC<CopyFieldProps> = ({ label, value, copyLabel, valueClass = "text-ink-body", breakAll = true }) => (
     <div className="mb-4">
         <span className={fieldLabelClass}>{label}</span>
         <div className={`${insetBoxClass} flex items-start justify-between gap-3`}>
             <code className={`text-sm font-mono tabular-nums min-w-0 ${breakAll ? "break-all" : "break-words"} ${valueClass}`}>{value}</code>
             <button
                 type="button"
-                onClick={() => onCopy(value, copyLabel)}
+                onClick={() => copyToClipboard(value, `${copyLabel} copied!`)}
                 aria-label={`Copy ${label}`}
                 className="shrink-0 w-10 h-10 -my-2 -mr-2 grid place-items-center rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
             >
@@ -53,15 +51,6 @@ const CopyField: React.FC<CopyFieldProps> = ({ label, value, copyLabel, onCopy, 
     </div>
 );
 
-/**
- * SignatureModal - Displays raw signature data for debugging withdrawals
- *
- * Shows the complete signature information including:
- * - Base64 encoded signature (from validator)
- * - Hex encoded signature (for Ethereum contract)
- * - Withdrawal parameters (nonce, amount, receiver)
- * - Bridge contract address
- */
 const SignatureModal: React.FC<SignatureModalProps> = ({
     isOpen,
     onClose,
@@ -71,9 +60,6 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
 }) => {
     if (!isOpen || !withdrawal) return null;
 
-    const copyToClipboard = (text: string, label: string) => copyToClipboardUtil(text, `${label} copied!`);
-
-    // Parse signature components (r, s, v) from hex signature
     const parseSignatureComponents = (hexSig: string | null) => {
         if (!hexSig || hexSig.length < 132) return null;
 
@@ -100,7 +86,6 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Signature Details" widthClass="w-[672px]">
-            {/* Withdrawal Info */}
             <div className={`${insetBoxClass} mb-5`}>
                 <h3 className="text-xs font-medium uppercase tracking-[0.08em] text-ink-muted mb-3">
                     Withdrawal Information
@@ -125,28 +110,24 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                 </div>
             </div>
 
-            <CopyField label="Nonce" value={withdrawal.nonce} copyLabel="Nonce" onCopy={copyToClipboard} />
+            <CopyField label="Nonce" value={withdrawal.nonce} copyLabel="Nonce" />
             <CopyField
                 label="Receiver (Ethereum Address)"
                 value={withdrawal.baseAddress}
                 copyLabel="Address"
-                onCopy={copyToClipboard}
             />
             <CopyField
                 label="Cosmos Address"
                 value={withdrawal.cosmosAddress}
                 copyLabel="Cosmos address"
-                onCopy={copyToClipboard}
             />
             <CopyField
                 label="Bridge Contract Address"
                 value={bridgeContractAddress}
                 copyLabel="Contract address"
-                onCopy={copyToClipboard}
                 valueClass="text-brand-light"
             />
 
-            {/* Signature Section */}
             {withdrawal.signature ? (
                 <>
                     <div className="border-t border-line my-6" />
@@ -156,7 +137,6 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                         label="Signature (Base64)"
                         value={withdrawal.signature}
                         copyLabel="Base64 signature"
-                        onCopy={copyToClipboard}
                     />
 
                     {signatureHex && (
@@ -164,7 +144,6 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                             label="Signature (Hex)"
                             value={signatureHex}
                             copyLabel="Hex signature"
-                            onCopy={copyToClipboard}
                         />
                     )}
 
@@ -177,7 +156,7 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                                         <span className="text-ink-muted text-xs">r:</span>
                                         <button
                                             type="button"
-                                            onClick={() => copyToClipboard(sigComponents.r, "r component")}
+                                            onClick={() => copyToClipboard(sigComponents.r, "r component copied!")}
                                             aria-label="Copy r component"
                                             className="w-10 h-10 -my-2 -mr-2 grid place-items-center rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
                                         >
@@ -191,7 +170,7 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                                         <span className="text-ink-muted text-xs">s:</span>
                                         <button
                                             type="button"
-                                            onClick={() => copyToClipboard(sigComponents.s, "s component")}
+                                            onClick={() => copyToClipboard(sigComponents.s, "s component copied!")}
                                             aria-label="Copy s component"
                                             className="w-10 h-10 -my-2 -mr-2 grid place-items-center rounded-lg text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors"
                                         >
@@ -210,7 +189,6 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                         </div>
                     )}
 
-                    {/* Signature Length */}
                     <div className="text-xs text-ink-muted tabular-nums mb-4">
                         Signature length: {signatureHex ? signatureHex.length - 2 : 0} hex chars ({signatureHex ? (signatureHex.length - 2) / 2 : 0} bytes)
                     </div>
@@ -221,17 +199,14 @@ const SignatureModal: React.FC<SignatureModalProps> = ({
                 </div>
             )}
 
-            {/* Tx Hash if completed */}
             {withdrawal.txHash && (
                 <CopyField
                     label="Ethereum Tx Hash"
                     value={withdrawal.txHash}
                     copyLabel="Tx hash"
-                    onCopy={copyToClipboard}
                 />
             )}
 
-            {/* Close Button */}
             <div className="mt-6">
                 <PillButton variant="outline" size="lg" className="w-full" onClick={onClose}>
                     Close

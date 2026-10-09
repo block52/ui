@@ -14,7 +14,6 @@ import { useGameStateContext } from "../context/GameStateContext";
 import { isEmpty, hasElements } from "../utils/guards";
 import styles from "./ActionsLog.module.css";
 
-// Simple component to display only the action log
 const ActionsLog: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const { previousActions } = useGameProgress(id);
@@ -43,18 +42,14 @@ const ActionsLog: React.FC = () => {
     // lands, not on every gameState identity flip (same approach as
     // usePlayerChipData). `previousActions` is a fresh array on every WS frame,
     // so without this the rows below were rebuilt several times a second —
-    // formatAmount runs ethers formatting PER ROW, across 40-80 rows — and the
-    // sidebar hides with a CSS class rather than unmounting, so it happened even
-    // while nobody could see it.
+    // formatAmount runs ethers formatting PER ROW, across 40-80 rows.
     const lastActionIndex = hasElements(previousActions) ? previousActions[previousActions.length - 1].index : -1;
     const actionsFingerprint = `${previousActions.length}:${lastActionIndex}`;
     const [copied, setCopied] = useState(false);
     const [copiedJSON, setCopiedJSON] = useState(false);
     const [copiedShare, setCopiedShare] = useState(false);
 
-    // Reusable utility function for copying text to clipboard
     const copyTextToClipboard = (text: string, onSuccess: () => void, errorMessage: string) => {
-        // Copy to clipboard with fallback for older browsers
         if (navigator.clipboard && navigator.clipboard.writeText) {
             navigator.clipboard
                 .writeText(text)
@@ -90,14 +85,12 @@ const ActionsLog: React.FC = () => {
         }
     };
 
-    // Function to copy action log to clipboard
     const handleCopyLog = () => {
         if (isEmpty(previousActions)) {
             toast.info("No actions to copy");
             return;
         }
 
-        // Format actions for clipboard
         const isTournament = isTournamentFormat(gameFormat);
         const actionLines = previousActions.map((action: ActionDTO) => getActionLine(action, isTournament));
 
@@ -119,7 +112,6 @@ const ActionsLog: React.FC = () => {
         );
     };
 
-    // Function to copy hand history as JSON
     const handleCopyJSON = () => {
         if (!gameState) {
             toast.info("No game state available to export");
@@ -127,9 +119,8 @@ const ActionsLog: React.FC = () => {
         }
 
         try {
-            // Create comprehensive hand history JSON with error handling for serialization
-            const handHistoryJSON = JSON.stringify(gameState, null, 2);
-            
+                const handHistoryJSON = JSON.stringify(gameState, null, 2);
+
             copyTextToClipboard(
                 handHistoryJSON,
                 () => {
@@ -234,7 +225,7 @@ const ActionsLog: React.FC = () => {
                         type="button"
                         onClick={handleCopyJSON}
                         title="Copy hand history as JSON"
-                        aria-label="Download history"
+                        aria-label="Copy hand history as JSON"
                         className={`${iconButtonBase} ${copiedJSON ? copiedColor : defaultColor}`}
                     >
                         {copiedJSON ? <FaCheck size={14} /> : <FaFileDownload size={14} />}
@@ -252,7 +243,6 @@ const ActionsLog: React.FC = () => {
             </div>
 
             <div className={`flex-1 overflow-y-auto overflow-x-hidden ${styles.scroll}`}>
-                {/* Previous hand's result, pinned above the current hand's actions */}
                 {showLastHandBlock && lastHandResult && (
                     <div className="border-b border-line bg-emerald-400/10 px-4 py-3 text-sm">
                         <div className="mb-1 text-xs font-semibold uppercase tracking-[0.08em] text-ink-muted">
@@ -273,8 +263,7 @@ const ActionsLog: React.FC = () => {
                     </ul>
                 ) : (
                     <div className="flex flex-col items-center px-6 py-12 text-center">
-                        <p className="text-[15px] font-medium text-ink">No actions yet</p>
-                        <p className="mt-1 text-sm leading-snug text-ink-muted">No actions recorded yet.</p>
+                        <p className="text-[15px] font-medium text-ink">No actions recorded yet.</p>
                     </div>
                 )}
             </div>

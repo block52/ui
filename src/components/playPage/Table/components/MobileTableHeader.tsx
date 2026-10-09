@@ -24,6 +24,7 @@ import { TopUpModal } from "../../../modals";
 import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
+import { tableDisplayName } from "../../../../utils/lobbyTables";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { useTableTopUp } from "../../../../hooks/game/useTableTopUp";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
@@ -176,7 +177,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                     className="text-white text-sm font-bold cursor-pointer truncate min-w-0 flex-1 min-h-[44px] text-left"
                     onClick={handleLobbyClick}
                 >
-                    {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
+                    {tableDisplayName(tableId, tableName)}
                 </button>
                 <div className="flex items-center flex-shrink-0">
                     {/* Balance — money on the table, wanted at a glance; tap to refresh */}

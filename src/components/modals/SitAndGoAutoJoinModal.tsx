@@ -14,7 +14,6 @@ import { formatUSDCToSimpleDollars, formatForSitAndGo } from "../../utils/number
 import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
 import { getCosmosBalance } from "../../utils/cosmosAccountUtils";
 import { useNetwork } from "../../context/NetworkContext";
-import { colors as _colors, hexToRgba as _hexToRgba } from "../../utils/colorConfig";
 import { microToUsdc } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
@@ -27,6 +26,9 @@ import { PillButton } from "../ui/PillButton";
 import { insetBoxClass, noticeClass } from "./walletFormClasses";
 import type { SitAndGoAutoJoinModalProps } from "./types";
 
+// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
+const noop = (): void => undefined;
+
 const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, onJoinSuccess }) => {
     const [accountBalance, setAccountBalance] = useState<string>("0");
     const [isBalanceLoading, setIsBalanceLoading] = useState<boolean>(true);
@@ -35,17 +37,13 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const [isJoining, setIsJoining] = useState(false);
     const { currentNetwork } = useNetwork();
 
-    // Get game options
     const { gameOptions } = useGameOptions();
     const { emptySeatIndexes, isUserAlreadyPlaying } = useVacantSeatData();
 
-    // Get the game state context to force refresh after joining
     const { subscribeToTable, gameState } = useGameStateContext();
 
-    // Get Cosmos address once
     const publicKey = useMemo(() => localStorage.getItem(STORAGE_KEYS.cosmosAddress) || undefined, []);
 
-    // Calculate formatted values
     const { maxBuyInFormatted, balanceFormatted, smallBlindFormatted, bigBlindFormatted, startingStackFormatted, entryFeeFormatted } = useMemo(() => {
         if (!gameOptions) {
             return {
@@ -58,7 +56,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             };
         }
 
-        // Check if we have valid gameOptions first
         if (!gameOptions.maxBuyIn) {
             return {
                 maxBuyInFormatted: "0.00",
@@ -72,10 +69,8 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
         // Use actual values from gameOptions (Cosmos USDC microunits - 6 decimals)
         const maxBuyInMicrounits = gameOptions.maxBuyIn;
-        // Format USDC microunits to dollars
         const maxFormatted = maxBuyInMicrounits === "1" ? "1.00" : formatUSDCToSimpleDollars(maxBuyInMicrounits);
 
-        // Balance is stored as USDC microunits (6 decimals)
         const balance = accountBalance ? parseFloat(ethers.formatUnits(accountBalance, 6)) : 0;
 
         // For SNG, blinds are stored as chip counts (not microunits)
@@ -87,7 +82,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             ? formatForSitAndGo(Number(gameOptions.bigBlind))
             : "0";
 
-        // Starting stack is in chips - format as whole number with commas
         const startingStack = gameOptions.startingStack
             ? formatForSitAndGo(Number(gameOptions.startingStack))
             : "0";
@@ -107,10 +101,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         };
     }, [gameOptions, accountBalance]);
 
-    // Protocol-fee breakdown (poker-vm#2592). The fee is skimmed OUT OF the
-    // buy-in, so the prize-pool portion is buyIn - protocolCut. When no protocol
-    // fee is configured (bps absent/0) the breakdown is hidden and behaviour is
-    // unchanged. Computed in micro-USDC bigint via the shared, tested util.
+    // The protocol fee comes OUT OF the buy-in, so the prize-pool portion is buyIn - protocolCut. Hidden when no fee is configured.
     const feeBreakdown = useMemo(() => {
         const buyIn = gameOptions?.maxBuyIn;
         const entryFee = gameOptions?.entryFee;
@@ -128,7 +119,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         };
     }, [gameOptions?.maxBuyIn, gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
 
-    // Fetch balance on mount
     useEffect(() => {
         const fetchBalance = async () => {
             try {
@@ -153,17 +143,14 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         fetchBalance();
     }, [publicKey]);
 
-    // Handle auto-join
     const handleTakeSeat = useCallback(async () => {
         if (!publicKey || !tableId || isUserAlreadyPlaying || hasJoined) return;
 
-        // Check if there are empty seats
         if (isEmpty(emptySeatIndexes)) {
             setBuyInError("No empty seats available");
             return;
         }
 
-        // Check balance
         const maxBuyInNumber = parseFloat(maxBuyInFormatted);
         if (balanceFormatted < maxBuyInNumber) {
             setBuyInError(`Insufficient balance. Need $${maxBuyInFormatted}`);
@@ -173,7 +160,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         setBuyInError("");
 
         try {
-            // Check if we have valid gameOptions
             if (!gameOptions || !gameOptions.maxBuyIn) {
                 setBuyInError("Game options not available");
                 return;
@@ -185,11 +171,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             // string — joinTable converts back to microunits internally.
             const buyInAmountInDollars = microToUsdc(gameOptions.maxBuyIn);
 
-            // Route the join through joinTable so it uses the active transport
-            // (gateway by default, ui#440). The previous path
-            // (useSitAndGoPlayerJoinRandomSeat) submitted chain-direct with
-            // seat 0 — invisible to the gateway the UI reads from, and
-            // mis-seated by the SNG engine. Claim a concrete empty seat.
+            // Claim a concrete empty seat through joinTable, on the active transport.
             await joinTable(
                 tableId,
                 {
@@ -199,29 +181,16 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 currentNetwork
             );
 
-
-            // Mark as joined and notify parent
             setHasJoined(true);
 
             // Store buy-in info in localStorage for the table component
             localStorage.setItem(STORAGE_KEYS.buyInAmount, maxBuyInFormatted);
             localStorage.setItem(STORAGE_KEYS.waitForBigBlind, JSON.stringify(false));
 
-            // Force a re-subscription to get the latest state
             subscribeToTable(tableId);
 
-            // Small delay to allow backend to process and state to update
             setTimeout(() => {
                 onJoinSuccess();
-
-                // COMMENTED OUT: Fallback refresh after 3 seconds
-                // This was causing unwanted page refreshes even when join was successful
-                // setTimeout(() => {
-                //     // Check if we have players in the game state
-                //     if (!gameState?.players || gameState.players.length === 0) {
-                //         window.location.reload();
-                //     }
-                // }, 3000);
             }, 1500);
         } catch (error) {
             console.error("❌ Failed to join Sit & Go:", error);
@@ -231,7 +200,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         }
     }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess]);
 
-    // Don't show modal if user is already playing or has joined
     if (isUserAlreadyPlaying || hasJoined) {
         return null;
     }
@@ -250,6 +218,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             closeOnEscape={false}
             closeOnBackdropClick={false}
             widthClass="w-[420px]"
+            ariaLabel="Join Sit & Go tournament"
         >
             <div className="flex flex-col items-center text-center">
                 <div className="w-16 h-16 rounded-full bg-brand/10 border border-brand/30 grid place-items-center text-brand-light">
@@ -265,16 +234,12 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 <p className="m-0 mt-1 text-sm text-ink-muted">Join this {playerCountLabel} tournament.</p>
             </div>
 
-            {/* Game options */}
             <div className="mt-5 flex flex-col gap-2">
                 <FactRow label="Format" value={`Texas Hold'em • ${playerCountLabel}`} />
                 <FactRow label="Buy-in" value={`$${maxBuyInFormatted}`} />
 
                 {entryFeeFormatted !== "0.00" && !feeBreakdown.show && <FactRow label="Entry fee" value={`$${entryFeeFormatted}`} />}
 
-                {/* Protocol-fee breakdown (poker-vm#2592). Shown only when a
-                    protocol fee is configured; the fee comes OUT OF the buy-in,
-                    so prize pool = buyIn - protocolCut, and total = buyIn + owner fee. */}
                 {feeBreakdown.show && (
                     <div className={`${insetBoxClass} !border-brand/30 flex flex-col gap-1.5`} data-testid="sng-fee-breakdown">
                         <FactLine label="Buy-in (to prize pool)" value={`$${feeBreakdown.prizePoolPortionFormatted}`} />
@@ -291,7 +256,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 <FactRow label="Your balance" value={`$${balanceFormatted.toFixed(2)}`} valueClass={hasEnoughBalance ? "text-emerald-400" : "text-red-400"} />
             </div>
 
-            {/* Players joined */}
             <div className={`${insetBoxClass} mt-2`}>
                 <FactLine label="Players joined" value={`${playersJoined} / ${playersMax}`} valueClass="text-brand-light" />
                 <div className="mt-2 h-2 rounded-full bg-line-strong overflow-hidden" role="presentation">
@@ -302,7 +266,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 </div>
             </div>
 
-            {/* Error Message */}
             {buyInError && (
                 <p role="alert" className={`m-0 mt-3 ${noticeClass.error}`}>
                     {buyInError}
@@ -310,7 +273,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             )}
 
             <ModalFooter>
-                {/* Take Seat Button */}
                 <PillButton onClick={handleTakeSeat} disabled={isTakeSeatDisabled} size="lg" className="w-full">
                     {isJoining ? (
                         <>
@@ -339,11 +301,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         </Modal>
     );
 };
-
-// Not dismissable by backdrop/Escape; satisfies Modal's required onClose.
-function noop(): void {
-    return undefined;
-}
 
 const FactLine: React.FC<{ label: string; value: string; valueClass?: string; labelClass?: string }> = ({
     label,

@@ -1,5 +1,6 @@
-// Shared building blocks for the purple/dark redesign (lobby, explorer, nodes, tech notes, modals).
 export { Card, CardHeader } from "./Card";
+export { ChoicePill } from "./ChoicePill";
+export { focusRing } from "./focusRing";
 export { PillButton, PillLink, pillClass } from "./PillButton";
 export type { PillVariant, PillSize } from "./PillButton";
 export { SegmentedControl } from "./SegmentedControl";
@@ -8,3 +9,4 @@ export { PageTabs } from "./PageTabs";
 export type { PageTab } from "./PageTabs";
 export { StatStrip } from "./StatStrip";
 export type { StatItem } from "./StatStrip";
+export { ThemeToggle } from "./ThemeToggle";

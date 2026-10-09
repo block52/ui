@@ -61,7 +61,6 @@ const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
 
     return (
         <div className="space-y-4">
-            {/* Payment facts */}
             <div className={`${insetBoxClass} text-center py-4`}>
                 <p className="text-xs uppercase tracking-[0.08em] text-ink-muted mb-1.5">Send exactly</p>
                 <p className="text-[32px] leading-tight font-semibold text-ink tabular-nums break-all">
@@ -86,23 +85,20 @@ const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
                 </div>
             </div>
 
-            {/* Network Warning */}
             <div className={`flex items-start gap-2 ${noticeClass.warning}`}>
                 <WarningIcon className="w-4 h-4 flex-shrink-0 mt-px" />
                 <p>
-                    Only send {displayName} on the <strong className="text-amber-200">{networkName}</strong> network. Sending on the wrong network will result in lost funds. Send the exact
+                    Only send {displayName} on the <strong className="text-amber-200 [:root[data-theme=light]_&]:text-amber-900">{networkName}</strong> network. Sending on the wrong network will result in lost funds. Send the exact
                     amount to avoid payment failures. Partial payments may be lost.
                 </p>
             </div>
 
-            {/* QR Code */}
             <div className="flex justify-center">
                 <div className="p-2 bg-white rounded-xl">
                     <QRCodeSVG value={qrValue} size={184} level="H" includeMargin={true} fgColor="#000000" bgColor="#FFFFFF" />
                 </div>
             </div>
 
-            {/* Payment Address */}
             <div>
                 <span className={fieldLabelClass}>Payment address</span>
                 <div className={`flex items-center gap-2 pr-1.5 ${insetBoxClass}`}>
@@ -111,14 +107,13 @@ const PaymentDisplay: React.FC<PaymentDisplayProps> = ({
                         type="button"
                         onClick={() => copy(paymentAddress, "Address copied to clipboard!")}
                         aria-label={copied ? "Address copied" : "Copy payment address"}
-                        className={`shrink-0 w-11 h-11 grid place-items-center rounded-full transition-colors hover:bg-surface-hover ${copied ? "text-emerald-400" : "text-ink-muted hover:text-ink"}`}
+                        className={`shrink-0 w-11 h-11 grid place-items-center rounded-btn transition-colors hover:bg-surface-hover ${copied ? "text-emerald-400" : "text-ink-muted hover:text-ink"}`}
                     >
                         {copied ? <CheckIcon /> : <CopyIcon />}
                     </button>
                 </div>
             </div>
 
-            {/* Instructions */}
             <details className="group rounded-xl border border-line bg-surface-raised">
                 <summary className="flex items-center justify-between min-h-11 px-4 cursor-pointer list-none text-sm font-medium text-ink-soft hover:text-ink [&::-webkit-details-marker]:hidden">
                     How to complete payment

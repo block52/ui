@@ -100,27 +100,14 @@ export interface TopUpModalProps extends BaseModalProps {
 export type USDCDepositModalProps = ControlledModalWithSuccessProps;
 
 /**
- * Props for BuyInModal
- */
-export interface BuyInModalProps extends BaseModalProps {
-    /** Optional tableId for joining specific table */
-    tableId?: string;
-    /** Optional min buy-in from Dashboard (USDC micro-units) */
-    minBuyIn?: string;
-    /** Optional max buy-in from Dashboard (USDC micro-units) */
-    maxBuyIn?: string;
-    /** Seat index (0-8) for the seat being joined */
-    seatIndex?: number;
-    /** Callback when player joins the table */
-    onJoin: (amount: string, waitForBigBlind: boolean) => void;
-}
-
-/**
  * Props for DepositCore component
  */
 export interface DepositCoreProps {
     onSuccess?: () => void;
     showMethodSelector?: boolean;
+    onCancel?: () => void;
+    /** Reports whether an approval, deposit, payment creation or post-deposit countdown is in flight. */
+    onPendingChange?: (pending: boolean) => void;
 }
 
 // ============================================================================

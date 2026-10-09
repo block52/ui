@@ -1,11 +1,11 @@
 .containerCard {
-    background-color: #161722;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-card));
+    border: 1px solid rgb(var(--line));
 }
 
 .headerCard {
-    background-color: #1c1e2b;
-    border-bottom: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border-bottom: 1px solid rgb(var(--line));
 }
 
 .brandText {
@@ -25,7 +25,7 @@
 }
 
 .secondaryBrandText {
-    color: #b4b6c8;
+    color: rgb(var(--ink-soft));
 }
 
 .primaryButton {
@@ -39,34 +39,42 @@
 
 .subtleBrandButton {
     background-color: transparent;
-    color: #f5f5f7;
-    border: 1px solid #2c2f45;
+    color: rgb(var(--ink));
+    border: 1px solid rgb(var(--line-strong));
 }
 
 .subtleBrandButton:hover {
-    background-color: #232636;
+    background-color: rgb(var(--surface-hover));
 }
 
 .txCard {
-    background-color: #1c1e2b;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-raised));
+    border: 1px solid rgb(var(--line));
 }
 
 .txHeader {
-    border-bottom: 1px solid #262938;
+    border-bottom: 1px solid rgb(var(--line));
 }
 
 .copyRawButton {
     background-color: transparent;
-    color: #f5f5f7;
-    border: 1px solid #2c2f45;
+    color: rgb(var(--ink));
+    border: 1px solid rgb(var(--line-strong));
 }
 
 .copyRawButton:hover {
-    background-color: #232636;
+    background-color: rgb(var(--surface-hover));
 }
 
 .rawDataBox {
-    background-color: #12131c;
-    border: 1px solid #262938;
+    background-color: rgb(var(--surface-page));
+    border: 1px solid rgb(var(--line));
+}
+
+:global(:root[data-theme="light"]) .successText {
+    color: #047857;
+}
+
+:global(:root[data-theme="light"]) .dangerText {
+    color: #b91c1c;
 }

@@ -20,17 +20,9 @@ export type TableFormatFilter = "all" | "cash" | "sng";
 type TableIdentity = Pick<GameWithFormat, "gameId" | "name">;
 type TableSeats = Pick<GameWithFormat, "currentPlayers" | "maxPlayers">;
 
-/** Strip a leading 0x so id slices are pure hex. */
 const bareHex = (gameId: string): string => gameId.replace(/^0x/i, "");
 
-/**
- * Display name for a table: its paid on-chain name (poker-vm#337, see
- * utils/tableName) when it has one, otherwise "Table " + the last 5 characters
- * of the gameId — the same fallback the table page header uses.
- *
- * Takes plain values (not a list item) so both the lobby and the table page
- * can share it.
- */
+/** The table's paid on-chain name when it has one, otherwise "Table " + the last 5 characters of the gameId. */
 export const tableDisplayName = (gameId: string, name?: string | null): string => {
     const trimmed = name?.trim();
     if (hasContent(trimmed)) return trimmed;
@@ -112,17 +104,14 @@ export const formatTableBuyIn = (game: Pick<GameWithFormat, "gameFormat" | "minB
     return min;
 };
 
-export interface SngPrizeInfo {
+interface SngPrizeInfo {
     /** Prize pool once every seat is filled: prize-pool portion × maxPlayers, e.g. "$3.60". */
     pool: string;
     /** Per-entry split "$0.90 + $0.10 fee", present only when a protocol fee is configured. */
     split?: string;
 }
 
-/**
- * Sit & Go prize-pool figures from the buy-in and the governable protocol fee
- * (poker-vm#2592) — the same breakdown the old buy-in column showed.
- */
+/** Sit & Go prize-pool figures from the buy-in and the governable protocol fee. */
 export const sngPrizeInfo = (game: Pick<GameWithFormat, "minBuyIn" | "entryFee" | "protocolFeeBps" | "maxPlayers">): SngPrizeInfo => {
     const breakdown = computeSngEntryBreakdown(game.minBuyIn, game.entryFee, game.protocolFeeBps);
     const pool = `$${formatMicroAsUsdc(breakdown.prizePoolPortion * BigInt(game.maxPlayers), 2)}`;

@@ -1,6 +1,6 @@
 import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
 import Table from "./components/playPage/Table";
-import { createAppKit } from "@reown/appkit/react";
+import { createAppKit, useAppKitTheme } from "@reown/appkit/react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { projectId, metadata, networks, wagmiAdapter } from "./config";
@@ -42,7 +42,9 @@ import { ProfileAvatarModal } from "./components/profile";
 import { PaymentApiProvider } from "./context/PaymentApiContext";
 import { CosmosApiProvider } from "./context/CosmosApiContext";
 import { IndexerApiProvider } from "./context/IndexerApiContext";
+import { ReleaseNotesApiProvider } from "./context/ReleaseNotesApiContext";
 import { ActionSubmitProvider } from "./context/ActionSubmitContext";
+import { ThemeProvider, useTheme } from "./context/ThemeContext";
 
 const queryClient = new QueryClient();
 
@@ -68,6 +70,13 @@ createAppKit({
 // Main App content to be wrapped with providers
 function AppContent() {
     const location = useLocation();
+    const { theme } = useTheme();
+    const { setThemeMode } = useAppKitTheme();
+
+    // Keep the wallet-connect modal in step with the app theme.
+    useEffect(() => {
+        setThemeMode(theme);
+    }, [theme, setThemeMode]);
     const [showChipDebug, setShowChipDebug] = useState(false);
 
     // Inject CSS variables on mount
@@ -150,7 +159,7 @@ function AppContent() {
                 draggable
                 pauseOnHover={false}
                 closeButton={true}
-                theme={"dark"}
+                theme={theme}
             />
             {showChipDebug && (
                 <Suspense fallback={null}>
@@ -165,6 +174,7 @@ function App() {
     return (
         // Router should be the outermost wrapper
         <Router>
+            <ThemeProvider>
             <QueryClientProvider client={queryClient}>
                 <WagmiProvider config={wagmiAdapter.wagmiConfig}>
                     <GameStateProvider>
@@ -173,9 +183,11 @@ function App() {
                             <PaymentApiProvider>
                                 <CosmosApiProvider>
                                     <IndexerApiProvider>
+                                        <ReleaseNotesApiProvider>
                                         <ActionSubmitProvider>
                                             <AppContent />
                                         </ActionSubmitProvider>
+                                        </ReleaseNotesApiProvider>
                                     </IndexerApiProvider>
                                 </CosmosApiProvider>
                             </PaymentApiProvider>
@@ -184,6 +196,7 @@ function App() {
                     </GameStateProvider>
                 </WagmiProvider>
             </QueryClientProvider>
+            </ThemeProvider>
         </Router>
     );
 }

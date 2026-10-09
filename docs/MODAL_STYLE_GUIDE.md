@@ -8,11 +8,11 @@ Reference: [#42 — Consistent Modal Styling](https://github.com/block52/ui/issu
 
 All modals must extend `<Modal>` from `src/components/common/Modal.tsx`. It provides:
 
-- Backdrop with blur (`bg-black bg-opacity-50 backdrop-blur-sm`)
-- Hexagon pattern background
-- Decorative card suits
-- Escape key to close
-- Click-outside to close
+- Backdrop with blur (`bg-overlay/70 backdrop-blur-sm`, themed)
+- `surface-card` panel, 1px `line` border, title row with a close X, bottom sheet on phones
+- Optional hexagon pattern and card suits (`showHexagonPattern`, `showCardSuits`; off by default)
+- Escape key, backdrop click and the X to close, all inert while `isProcessing`
+- Focus moved into the dialog, trapped, and returned to the trigger on close
 - `max-h-[90vh]` + `overflow-y-auto` for scroll safety
 - `max-w-[95vw]` so it never exceeds viewport width
 
@@ -37,6 +37,9 @@ import { Modal } from "../common/Modal";
 | `error` | `string \| null` | — | Error banner |
 | `closeOnEscape` | `boolean` | `true` | Escape key support |
 | `closeOnBackdropClick` | `boolean` | `true` | Click-outside support |
+| `hideCloseButton` | `boolean` | `false` | Remove the X when closing would lose data |
+| `ariaLabel` | `string` | — | Accessible name when there is no `title` |
+| `subtitle` | `string` | — | One-line description under the title |
 
 ---
 
@@ -89,26 +92,18 @@ When a modal has 4+ info rows, use a grid in compact mode:
 
 ## 3. Visual Style
 
-### Colors
+### Colours and buttons
+
+Use the theme tokens (`docs/THEMING.md`), never raw hex or `gray-*`, so the modal follows light and dark mode.
 
 | Element | Class |
 |---------|-------|
-| Card background | `bg-gray-800/90 backdrop-blur-md` |
-| Info row bg | `bg-gray-700/80` |
-| Info row border | `border border-blue-500/30` |
-| Success accent | `border-green-500/30`, `text-green-400` |
-| Error accent | `border-red-500/30`, `text-red-400` |
-| Top accent bar | `bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse` |
-| Gradient bg overlay | `bg-gradient-to-br from-blue-600/10 to-purple-600/10` |
-
-### Buttons
-
-| Type | Class |
-|------|-------|
-| Primary action | `bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600` |
-| Disabled | `bg-gray-600 cursor-not-allowed` |
-| Destructive | `bg-gradient-to-r from-red-500 to-red-600` |
-| Secondary/ghost | `bg-white bg-opacity-10 hover:bg-opacity-20` |
+| Panel | `bg-surface-card border border-line` (set by `Modal`) |
+| Inset row / input | `bg-surface-raised border border-line` (`insetBoxClass`, `fieldInputClass`) |
+| Title / body / secondary / muted text | `text-ink` / `text-ink-body` / `text-ink-soft` / `text-ink-muted` |
+| Notices | `noticeClass.info / warning / success / error` |
+| Primary / secondary / ghost button | `PillButton` `variant="primary" / "outline" / "ghost"` |
+| Destructive button | `PillButton` with `!bg-red-600 hover:!bg-red-500` (see `ConfirmDialog`) |
 
 ### Typography
 
@@ -147,7 +142,6 @@ When a modal has 4+ info rows, use a grid in compact mode:
 
 | Modal | File | What's Needed |
 |-------|------|---------------|
-| BuyInModal | `components/modals/BuyInModal.tsx` | Add `isCompact` check, reduce padding/spacing, compact slider |
 | SitAndGoWaitingModal | `components/playPage/SitAndGoWaitingModal.tsx` | Add `isCompact`, reduce player progress bar size |
 | GameStartCountdown | `components/playPage/common/GameStartCountdown.tsx` | Add `isCompact`, reduce countdown timer size |
 | USDCDepositModal | `components/modals/USDCDepositModal.tsx` | Already has `max-h-[90vh]` but needs `isCompact` for tighter layout |
@@ -164,6 +158,22 @@ When a modal has 4+ info rows, use a grid in compact mode:
 | GameStartCountdown | `components/playPage/common/GameStartCountdown.tsx` | Currently uses custom overlay — migrate to `<Modal>` wrapper |
 | USDCDepositModal | `components/modals/USDCDepositModal.tsx` | Currently uses custom overlay — migrate to `<Modal>` wrapper |
 | WithdrawalModal | `components/modals/WithdrawalModal.tsx` | Currently uses custom overlay — migrate to `<Modal>` wrapper |
+
+---
+
+## Shared building blocks
+
+| Piece | File | Use it for |
+|-------|------|-----------|
+| `Modal` | `components/common/Modal.tsx` | The shell for every dialog. Handles Escape, backdrop, X, focus trap and focus return. |
+| `ModalFooter` | `components/modals/ModalFooter.tsx` | Sticky action row for long forms. Put it last in the modal; `Modal` then drops its bottom padding. |
+| `ConfirmDialog` | `components/modals/ConfirmDialog.tsx` | Replacement for `window.confirm()`. Cancel has initial focus; backdrop does nothing. |
+| `AmountPresets` | `components/modals/AmountPresets.tsx` | Quick-amount pills under an amount field (composes `ChoicePill`). |
+| `walletFormClasses` | `components/modals/walletFormClasses.ts` | Field, input, notice and option-card classes shared by Deposit, Withdraw and Send. |
+| `walletIcons` | `components/modals/walletIcons.tsx` | Copy, check, warning and spinner icons. |
+| `components/ui` | `Card`, `PillButton`, `ChoicePill`, `SegmentedControl`, `PageTabs`, `StatStrip`, `ThemeToggle`, `focusRing` | Page-level pieces; `focusRing` is the one focus-visible class to reuse on any new interactive element. |
+
+To put focus on a specific control when a dialog opens, add `data-autofocus=""` to it.
 
 ---
 

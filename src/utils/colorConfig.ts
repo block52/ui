@@ -1,77 +1,66 @@
 /**
- * Color Configuration Utility
- * 
- * This file centralizes all color management for the application.
- * Colors can be customized via environment variables with fallback defaults.
+ * Colour configuration: every colour can be overridden by a VITE_* variable and falls back to
+ * the default below. An override that is not a 3- or 6-digit hex colour is reported with
+ * console.error and ignored, so a bad deployment value never breaks rendering.
  */
 
-import { hexToRgbChannels, mixHex } from "./colorMath";
+import { hexToRgba, hexToRgbChannels, mixHex, parseHex } from "./colorMath";
+import { viteEnv } from "./viteEnv";
 
-// Brand Colors
+export { hexToRgba };
+
+/** `raw` if it is a valid hex colour, otherwise `fallback` (after logging the bad value). */
+export const resolveHexColor = (name: string, raw: string | undefined, fallback: string): string => {
+    if (raw === undefined || raw === "") return fallback;
+    try {
+        parseHex(raw);
+        return raw;
+    } catch {
+        console.error(`${name}="${raw}" is not a 3- or 6-digit hex colour; using ${fallback}`);
+        return fallback;
+    }
+};
+
+const hexEnv = (name: string, fallback: string): string => resolveHexColor(name, viteEnv[name], fallback);
+
 export const colors = {
-  // Primary and Secondary Brand Colors
-  brand: {
-    primary: import.meta.env.VITE_BRAND_COLOR_PRIMARY || "#7c3aed",
-    secondary: import.meta.env.VITE_BRAND_COLOR_SECONDARY || "#12131c",
-  },
+    brand: {
+        primary: hexEnv("VITE_BRAND_COLOR_PRIMARY", "#7c3aed"),
+        secondary: hexEnv("VITE_BRAND_COLOR_SECONDARY", "#12131c")
+    },
 
-  // Table Background Colors
-  table: {
-    bgGradientStart: import.meta.env.VITE_TABLE_BG_GRADIENT_START || "#1a2639",
-    bgGradientMid: import.meta.env.VITE_TABLE_BG_GRADIENT_MID || "#2a3f5f",
-    bgGradientEnd: import.meta.env.VITE_TABLE_BG_GRADIENT_END || "#1a2639",
-    bgBase: import.meta.env.VITE_TABLE_BG_BASE || "#111827",
-    borderColor: import.meta.env.VITE_TABLE_BORDER_COLOR || "#3a546d",
-  },
+    table: {
+        bgGradientStart: hexEnv("VITE_TABLE_BG_GRADIENT_START", "#1a2639"),
+        bgGradientMid: hexEnv("VITE_TABLE_BG_GRADIENT_MID", "#2a3f5f"),
+        bgGradientEnd: hexEnv("VITE_TABLE_BG_GRADIENT_END", "#1a2639"),
+        bgBase: hexEnv("VITE_TABLE_BG_BASE", "#111827"),
+        borderColor: hexEnv("VITE_TABLE_BORDER_COLOR", "#3a546d")
+    },
 
-  // Animation Colors (for gradient backgrounds)
-  animation: {
-    color1: import.meta.env.VITE_ANIM_COLOR_1 || "#221d3a",
-    color2: import.meta.env.VITE_ANIM_COLOR_2 || "#1a1830",
-    color3: import.meta.env.VITE_ANIM_COLOR_3 || "#1e1a36",
-    color4: import.meta.env.VITE_ANIM_COLOR_4 || "#14131f",
-    color5: import.meta.env.VITE_ANIM_COLOR_5 || "#191729",
-  },
+    animation: {
+        color1: hexEnv("VITE_ANIM_COLOR_1", "#221d3a"),
+        color2: hexEnv("VITE_ANIM_COLOR_2", "#1a1830"),
+        color3: hexEnv("VITE_ANIM_COLOR_3", "#1e1a36"),
+        color4: hexEnv("VITE_ANIM_COLOR_4", "#14131f"),
+        color5: hexEnv("VITE_ANIM_COLOR_5", "#191729")
+    },
 
-  // Accent Colors
-  accent: {
-    glow: import.meta.env.VITE_ACCENT_COLOR_GLOW || "#64ffda",
-    success: import.meta.env.VITE_ACCENT_COLOR_SUCCESS || "#10b981",
-    danger: import.meta.env.VITE_ACCENT_COLOR_DANGER || "#ef4444",
-    warning: import.meta.env.VITE_ACCENT_COLOR_WARNING || "#f59e0b",
-    withdraw: import.meta.env.VITE_ACCENT_COLOR_WITHDRAW || (import.meta.env.VITE_BRAND_COLOR_SECONDARY || "#1a2639"),
-  },
+    accent: {
+        glow: hexEnv("VITE_ACCENT_COLOR_GLOW", "#64ffda"),
+        success: hexEnv("VITE_ACCENT_COLOR_SUCCESS", "#10b981"),
+        danger: hexEnv("VITE_ACCENT_COLOR_DANGER", "#ef4444"),
+        warning: hexEnv("VITE_ACCENT_COLOR_WARNING", "#f59e0b"),
+        withdraw: hexEnv("VITE_ACCENT_COLOR_WITHDRAW", hexEnv("VITE_BRAND_COLOR_SECONDARY", "#1a2639"))
+    },
 
-  // UI Element Colors
-  ui: {
-    bgDark: import.meta.env.VITE_UI_BG_DARK || "#161722",
-    bgMedium: import.meta.env.VITE_UI_BG_MEDIUM || "#232636",
-    borderColor: import.meta.env.VITE_UI_BORDER_COLOR || "#262938",
-    textSecondary: import.meta.env.VITE_UI_TEXT_SECONDARY || "#8e90a6"
-  },
+    ui: {
+        bgDark: hexEnv("VITE_UI_BG_DARK", "#161722"),
+        bgMedium: hexEnv("VITE_UI_BG_MEDIUM", "#232636"),
+        borderColor: hexEnv("VITE_UI_BORDER_COLOR", "#262938"),
+        textSecondary: hexEnv("VITE_UI_TEXT_SECONDARY", "#8e90a6")
+    }
 };
 
-// Helper function to convert hex to rgba
-export const hexToRgba = (hex: string | undefined, alpha: number): string => {
-  if (!hex || !hex.startsWith("#")) {
-    return `rgba(0, 0, 0, ${alpha})`; // Fallback to transparent black
-  }
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-};
-
-// Get color with opacity
-export const getColorWithOpacity = (colorKey: string, opacity: number): string => {
-  const color = colorKey.split(".").reduce((obj, key) => obj[key], colors as any);
-  if (color && color.startsWith("#")) {
-    return hexToRgba(color, opacity);
-  }
-  return color;
-};
-
-// CSS custom properties generator
 export const generateCSSVariables = (): string => {
   return `
     :root {
@@ -108,15 +97,21 @@ export const generateCSSVariables = (): string => {
       --ui-border-color: ${colors.ui.borderColor};
       --ui-text-secondary: ${colors.ui.textSecondary};
     }
+    :root[data-theme="light"] {
+      --brand-primary-light-rgb: ${hexToRgbChannels(mixHex(colors.brand.primary, "#000000", 0.3))};
+      --brand-secondary: #ffffff;
+      --ui-bg-dark: #ffffff;
+      --ui-bg-medium: #f1f2f7;
+      --ui-border-color: #e3e4ee;
+      --ui-text-secondary: #6b6f86;
+    }
   `;
 };
 
-// Table header gradient
 export const getTableHeaderGradient = (): string => {
   return `linear-gradient(to right, ${colors.table.bgGradientStart}, ${colors.table.bgGradientMid}, ${colors.table.bgGradientEnd})`;
 };
 
-// Animation background gradients
 export const getAnimationGradient = (mouseX: number, mouseY: number): string => {
   return `
     radial-gradient(circle at ${mouseX}% ${mouseY}%, ${hexToRgba(colors.animation.color1, 0.8)} 0%, transparent 60%),
@@ -127,7 +122,6 @@ export const getAnimationGradient = (mouseX: number, mouseY: number): string => 
   `;
 };
 
-// Hexagon pattern stroke color
 export const getHexagonStroke = (): string => {
   return hexToRgba(colors.brand.primary, 0.5);
 };

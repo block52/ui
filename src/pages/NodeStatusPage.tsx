@@ -71,7 +71,6 @@ function formatUptime(genesisTime: string): string {
     return `${minutes}m`;
 }
 
-/** Page title with a way back to the node list (replaces the explorer shortcut cards). */
 const NodePageHeader = ({ title }: { title: string }) => (
     <div className="flex flex-col gap-2">
         <Link to="/nodes" className="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-0 w-fit text-sm text-ink-muted hover:text-ink">
@@ -106,8 +105,6 @@ export default function NodeStatusPage() {
     });
     const [loading, setLoading] = useState(true);
 
-    // Find the network by name (case-insensitive, URL-decoded)
-    // Check presets first, then discovered networks, then URL state
     const decodedName = decodeURIComponent(name || "");
     const networkFromState = location.state?.network as NetworkEndpoints | undefined;
     const network =
@@ -120,7 +117,6 @@ export default function NodeStatusPage() {
             setLoading(true);
 
             try {
-                // Fetch node info, latest block, and sync status in parallel
                 const api = cosmosApiFactory(networkConfig.rest);
                 const [nodeInfoRes, latestBlockRes, syncRes] = await Promise.allSettled([
                     api.getNodeInfo(AbortSignal.timeout(10000)),
@@ -139,13 +135,11 @@ export default function NodeStatusPage() {
                     online = true;
                 }
 
-                // Parse latest block
                 if (latestBlockRes.status === "fulfilled") {
                     latestBlock = latestBlockRes.value as LatestBlock;
                     online = true;
                 }
 
-                // Parse sync status
                 if (syncRes.status === "fulfilled") {
                     syncStatus = syncRes.value as SyncStatus;
                 }
@@ -179,13 +173,11 @@ export default function NodeStatusPage() {
             document.title = `${network.name} Node Status - Block52`;
             fetchNodeStatus(network);
 
-            // Auto-refresh every 15 seconds
             const interval = setInterval(() => fetchNodeStatus(network), 15000);
             return () => clearInterval(interval);
         }
     }, [network, fetchNodeStatus]);
 
-    // Network not found
     if (!network) {
         return (
             <div className="min-h-screen bg-surface-page text-ink-body">
@@ -226,9 +218,7 @@ export default function NodeStatusPage() {
                 <NodePageHeader title={network.name} />
 
                 <div className="flex flex-col gap-6">
-                    {/* Status Card */}
                     <Card>
-                        {/* Status Header */}
                         <div className={`px-5 py-4 sm:px-6 ${status.online ? "bg-emerald-400/10" : "bg-red-400/10"} border-b border-line`}>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
@@ -245,7 +235,7 @@ export default function NodeStatusPage() {
                                     <button
                                         onClick={() => fetchNodeStatus(network)}
                                         disabled={loading}
-                                        className="inline-flex items-center justify-center w-11 h-11 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-full transition-colors disabled:opacity-50"
+                                        className="inline-flex items-center justify-center w-11 h-11 text-ink-muted hover:text-ink hover:bg-surface-hover rounded-btn transition-colors disabled:opacity-50"
                                         title="Refresh"
                                         aria-label="Refresh"
                                     >
@@ -275,21 +265,17 @@ export default function NodeStatusPage() {
                             )}
                         </div>
 
-                        {/* Node Details */}
                         <div className="px-5 sm:px-6 py-2">
-                            {/* Block Height */}
                             <div className={detailRowClass}>
                                 <span className="text-ink-muted">Block Height</span>
                                 <span className="text-ink font-mono text-lg">{status.online ? `#${parseInt(blockHeight).toLocaleString()}` : "N/A"}</span>
                             </div>
 
-                            {/* Chain ID */}
                             <div className={detailRowClass}>
                                 <span className="text-ink-muted">Chain ID</span>
                                 <span className="text-ink font-mono">{chainId}</span>
                             </div>
 
-                            {/* Last Block Time */}
                             {blockTime && (
                                 <div className={detailRowClass}>
                                     <span className="text-ink-muted">Last Block</span>
@@ -297,7 +283,6 @@ export default function NodeStatusPage() {
                                 </div>
                             )}
 
-                            {/* Running Since / Uptime */}
                             {blockTime && (
                                 <div className={detailRowClass}>
                                     <span className="text-ink-muted">Time Since Block</span>
@@ -305,7 +290,6 @@ export default function NodeStatusPage() {
                                 </div>
                             )}
 
-                            {/* Node Version */}
                             {status.nodeInfo?.application_version?.version && (
                                 <div className={detailRowClass}>
                                     <span className="text-ink-muted">Node Version</span>
@@ -313,7 +297,6 @@ export default function NodeStatusPage() {
                                 </div>
                             )}
 
-                            {/* Cosmos SDK Version */}
                             {status.nodeInfo?.application_version?.cosmos_sdk_version && (
                                 <div className={detailRowClass}>
                                     <span className="text-ink-muted">Cosmos SDK</span>
@@ -321,7 +304,6 @@ export default function NodeStatusPage() {
                                 </div>
                             )}
 
-                            {/* Moniker */}
                             {status.nodeInfo?.default_node_info?.moniker && (
                                 <div className={detailRowClass}>
                                     <span className="text-ink-muted">Moniker</span>
@@ -329,14 +311,12 @@ export default function NodeStatusPage() {
                                 </div>
                             )}
 
-                            {/* Last Checked */}
                             <div className="flex flex-wrap justify-between items-center gap-x-4 gap-y-1 py-3">
                                 <span className="text-ink-muted">Last Checked</span>
                                 <span className="text-ink-muted text-sm">{status.lastChecked.toLocaleTimeString()}</span>
                             </div>
                         </div>
 
-                        {/* Error Message */}
                         {status.error && !status.online && (
                             <div className="px-5 sm:px-6 py-4 bg-red-400/10 border-t border-red-400/30">
                                 <p className="text-red-400 text-sm">{status.error}</p>
@@ -344,7 +324,6 @@ export default function NodeStatusPage() {
                         )}
                     </Card>
 
-                    {/* Endpoints Card */}
                     <Card>
                         <CardHeader title="Endpoints" />
                         <div className="px-5 sm:px-6 py-4 space-y-4">

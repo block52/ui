@@ -115,7 +115,7 @@ export const NetworkSelector: React.FC = () => {
                 onClick={toggleOpen}
                 aria-haspopup="listbox"
                 aria-expanded={isOpen}
-                className={`flex items-center gap-2 px-4 py-2 min-h-[44px] rounded-full transition-colors duration-200 ${styles.dropdownButton}`}
+                className={`flex items-center gap-2 px-3.5 h-11 lg:h-9 rounded-btn transition-colors duration-200 ${styles.dropdownButton}`}
             >
                 <span className="font-medium text-sm whitespace-nowrap">{currentNetwork.name}</span>
                 <svg

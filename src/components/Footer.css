@@ -16,13 +16,13 @@
 
 /* Muck button */
 .btn-muck {
-  background: #1c1e2b;
-  border: 1px solid #2c2f45;
+  background: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line-strong));
   transition: all 0.2s ease;
 }
 
 .btn-muck:hover {
-  background: #232636;
+  background: rgb(var(--surface-hover));
   border-color: var(--brand-primary);
 }
 
@@ -86,21 +86,21 @@
 
 /* Check button */
 .btn-check {
-  background: #1c1e2b;
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
+  background: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
   transition: all 0.2s ease;
 }
 
 .btn-check:hover {
-  background: color-mix(in srgb, var(--brand-primary) 18%, #1c1e2b);
+  background: color-mix(in srgb, var(--brand-primary) 18%, rgb(var(--surface-raised)));
   border-color: var(--brand-primary);
   transform: scale(1.05);
 }
 
 /* Fold button */
 .btn-fold {
-  background: #161722;
+  background: rgb(var(--surface-card));
   border: 1px solid color-mix(in srgb, var(--accent-danger) 55%, transparent);
   color: #fca5a5;
   transition: all 0.2s ease;
@@ -116,14 +116,14 @@
 
 /* Call button */
 .btn-call {
-  background: #1c1e2b;
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
+  background: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
   transition: all 0.2s ease;
 }
 
 .btn-call:hover {
-  background: color-mix(in srgb, var(--brand-primary) 18%, #1c1e2b);
+  background: color-mix(in srgb, var(--brand-primary) 18%, rgb(var(--surface-raised)));
   border-color: var(--brand-primary);
   transform: scale(1.05);
 }
@@ -146,28 +146,28 @@
 
 /* Slider buttons */
 .btn-slider {
-  background: #1c1e2b;
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
+  background: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
   transition: all 0.2s ease;
 }
 
 .btn-slider:hover {
-  background: #232636;
+  background: rgb(var(--surface-hover));
   border-color: var(--brand-primary);
   transform: scale(1.05);
 }
 
 /* Pot buttons */
 .btn-pot {
-  background: #1c1e2b;
-  border: 1px solid #2c2f45;
-  color: #e4e4ea;
+  background: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink-body));
   transition: all 0.2s ease;
 }
 
 .btn-pot:hover {
-  background: #232636;
+  background: rgb(var(--surface-hover));
   border-color: var(--brand-primary);
   color: #ffffff;
   transform: scale(1.05);
@@ -175,7 +175,7 @@
 
 /* All-in button */
 .btn-all-in {
-  background: color-mix(in srgb, var(--brand-primary) 20%, #1c1e2b);
+  background: color-mix(in srgb, var(--brand-primary) 20%, rgb(var(--surface-raised)));
   border: 1px solid var(--brand-primary);
   color: #ffffff;
   transition: all 0.2s ease;
@@ -190,8 +190,8 @@
 
 /* Dynamic input styles */
 .input-field {
-  background-color: #1c1e2b;
-  border-color: #2c2f45;
+  background-color: rgb(var(--surface-raised));
+  border-color: rgb(var(--line-strong));
   color: white;
 }
 
@@ -211,14 +211,14 @@
 
 /* Sit out button */
 .btn-sit-out {
-  background: #1c1e2b;
-  border: 1px solid #2c2f45;
+  background: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line-strong));
   color: white;
   transition: all 0.3s ease;
 }
 
 .btn-sit-out:hover {
-  background: #232636;
+  background: rgb(var(--surface-hover));
   border-color: var(--brand-primary);
   box-shadow: 0 0 15px color-mix(in srgb, var(--brand-primary) 30%, transparent);
   transform: scale(1.05);

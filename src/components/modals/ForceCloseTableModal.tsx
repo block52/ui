@@ -10,7 +10,6 @@ export interface ForceCloseTableModalProps {
     onClose: () => void;
     onConfirm: () => Promise<void>;
     gameId: string;
-    /** Current seated player count, surfaced in the warning copy. */
     seatedPlayerCount: number;
 }
 
@@ -19,8 +18,6 @@ export interface ForceCloseTableModalProps {
  * Distinct from DeleteTableModal (empty-table path): the warning copy here
  * highlights that players will be kicked off AND refunded, which is a
  * stronger action than deleting an idle table.
- *
- * See block52/poker-vm#2173.
  */
 const ForceCloseTableModal: React.FC<ForceCloseTableModalProps> = React.memo(
     ({ isOpen, onClose, onConfirm, gameId, seatedPlayerCount }) => {
@@ -85,7 +82,7 @@ const ForceCloseTableModal: React.FC<ForceCloseTableModalProps> = React.memo(
                     <button
                         onClick={handleConfirm}
                         disabled={isClosing}
-                        className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-6 rounded-full bg-red-600 hover:bg-red-500 text-white text-[15px] font-semibold whitespace-nowrap transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
+                        className="w-full sm:flex-1 inline-flex items-center justify-center gap-2 h-12 px-6 rounded-btn bg-red-600 hover:bg-red-500 text-white text-[15px] font-semibold whitespace-nowrap transition-colors disabled:opacity-60 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-400"
                     >
                         {isClosing ? (
                             <>

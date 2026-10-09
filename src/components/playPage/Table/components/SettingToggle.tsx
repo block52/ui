@@ -1,11 +1,7 @@
-/**
- * SettingToggle - presentational accessible switch row for the settings panel.
- */
-
 import React, { useId } from "react";
 import styles from "./SidePanel.module.css";
 
-export interface SettingToggleProps {
+interface SettingToggleProps {
     label: string;
     description: string;
     checked: boolean;
@@ -34,7 +30,7 @@ export const SettingToggle: React.FC<SettingToggleProps> = ({ label, description
                 aria-describedby={descriptionId}
                 onClick={onToggle}
                 title={checked ? "Enabled — click to disable" : "Disabled — click to enable"}
-                className="group -my-2 -mr-2 flex h-11 w-14 flex-shrink-0 items-center justify-center rounded-full focus:outline-none"
+                className="group -my-2 -mr-2 flex h-11 w-14 flex-shrink-0 items-center justify-center rounded-full focus-visible:outline-none"
             >
                 <span
                     className={`relative block h-6 w-11 rounded-full transition-colors duration-200 group-focus-visible:ring-2 group-focus-visible:ring-brand-light group-focus-visible:ring-offset-2 group-focus-visible:ring-offset-surface-card ${

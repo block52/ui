@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, use } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { isNetworkError } from "../../apis/HTTPClient";
 import { useNavigate } from "react-router-dom";
 import { fromBech32, toBech32 } from "@cosmjs/encoding";
@@ -21,49 +21,51 @@ import { StatStrip } from "../../components/ui";
 import { isEmpty, hasElements } from "../../utils/guards";
 import { Pagination } from "../../components/common";
 import { useCosmosApi } from "../../context/CosmosApiContext";
+import { accountAddressOf, accountTypeLabel, parseAccountBalanceResponse, parseAccountsResponse, parseValidatorsResponse } from "../../utils/typeConversions";
+import { Coin } from "./types";
+
 
 const PAGE_SIZE = 20;
-
-interface ValidatorInfo {
-    operatorAddress: string;
-    accountAddress: string;
-    moniker: string;
-    status: string;
-}
 
 interface AccountInfo {
     address: string;
     type: string;
-    balances: { denom: string; amount: string }[];
+    balances: Coin[];
     totalUsdcValue: number;
-    isValidator?: boolean;
+    isValidator: boolean;
     validatorMoniker?: string;
     validatorStatus?: string;
 }
 
-export interface ValidatorsResponse {
-    pagination: {
-        next_key: string | null;
-        total: string;
-    };
-    validators: any[];
-}
+type SortField = "balance" | "address";
 
-export interface AccountsResponse {
-    pagination: {
-        next_key: string | null;
-        total: string;
-    };
-    accounts: any[];
-}
+const DENOM_NAMES: Record<string, string> = {
+    usdc: "USDC",
+    uusdc: "USDC",
+    stake: "STAKE",
+    ustake: "STAKE"
+};
 
-export interface AccountBalanceResponse {
-    pagination: {
-        next_key: string | null;
-        total: string;
-    };
-    balances: { denom: string; amount: string }[];
-}
+/** Validators and their accounts share a key and differ only in bech32 prefix (b52valoper... vs b521...). */
+const valoperToAccount = (valoperAddr: string): string | null => {
+    try {
+        const decoded = fromBech32(valoperAddr);
+        return toBech32(decoded.prefix.replace("valoper", ""), decoded.data);
+    } catch (e) {
+        console.error("Error converting valoper address:", e);
+        return null;
+    }
+};
+
+const formatBalance = (amount: string, denom: string) => {
+    const displayDenom = DENOM_NAMES[denom.toLowerCase()] ?? denom.toUpperCase();
+    return `${microToUsdc(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${displayDenom}`;
+};
+
+const sortButtonClass =
+    "inline-flex items-center gap-1 min-h-9 w-full uppercase tracking-[0.1em] font-semibold hover:text-ink transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
+
+const truncateAddress = (addr: string) => (addr.length <= 20 ? addr : truncateMiddle(addr, 12, 8));
 
 export default function AllAccountsPage() {
     const navigate = useNavigate();
@@ -72,7 +74,7 @@ export default function AllAccountsPage() {
     const [accounts, setAccounts] = useState<AccountInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [sortBy, setSortBy] = useState<"balance" | "address">("balance");
+    const [sortBy, setSortBy] = useState<SortField>("balance");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     // The box is a draft; the applied filter changes on Search/Enter (or when cleared).
     const [searchInput, setSearchInput] = useState("");
@@ -84,24 +86,6 @@ export default function AllAccountsPage() {
     };
     const [currentPage, setCurrentPage] = useState(1);
     const cosmosApi = useCosmosApi();
-
-    // Convert validator operator address (b52valoper...) to account address (b521...)
-    const valoperToAccount = (valoperAddr: string): string => {
-        // Both addresses are derived from the same pubkey, just different prefixes
-        // Use proper bech32 decode/encode to handle the checksum correctly
-        try {
-            const decoded = fromBech32(valoperAddr);
-            // Get the base prefix (e.g., "b52" from "b52valoper")
-            // The "1" in "b521..." is the bech32 separator, not part of the prefix
-            const basePrefix = decoded.prefix.replace("valoper", "");
-            // Re-encode with the account prefix
-            const accountAddr = toBech32(basePrefix, decoded.data);
-            return accountAddr;
-        } catch (e) {
-            console.error("Error converting valoper address:", e);
-        }
-        return "";
-    };
 
     const fetchAllAccounts = useCallback(async () => {
         try {
@@ -117,100 +101,54 @@ export default function AllAccountsPage() {
                 throw new Error("Block52 client not initialized");
             }
 
-            // Fetch validators first to identify validator accounts
-            const validatorMap = new Map<string, ValidatorInfo>();
+            const validatorMap = new Map<string, { moniker: string; status: string }>();
             try {
-                const validatorsResponse = (await cosmosApi.getValidators(100)) as ValidatorsResponse;
-                if (validatorsResponse) {
-                    const validators = validatorsResponse.validators || [];
-
-                    validators.forEach((v: any) => {
-                        const operatorAddress = v.operator_address;
-                        const accountAddress = valoperToAccount(operatorAddress);
-                        const moniker = v.description?.moniker || "Unknown";
-                        // Status: BOND_STATUS_BONDED, BOND_STATUS_UNBONDING, BOND_STATUS_UNBONDED
-                        const status = v.status?.replace("BOND_STATUS_", "") || "Unknown";
-
-                        if (accountAddress) {
-                            validatorMap.set(accountAddress, {
-                                operatorAddress,
-                                accountAddress,
-                                moniker,
-                                status
-                            });
-                        }
-                    });
-                }
+                const { validators } = parseValidatorsResponse(await cosmosApi.getValidators(100));
+                validators.forEach(v => {
+                    const accountAddress = valoperToAccount(v.operator_address);
+                    if (accountAddress) {
+                        // BOND_STATUS_BONDED, BOND_STATUS_UNBONDING or BOND_STATUS_UNBONDED
+                        validatorMap.set(accountAddress, { moniker: v.description.moniker, status: v.status.replace("BOND_STATUS_", "") });
+                    }
+                });
             } catch (e) {
                 console.error("Error fetching validators:", e);
             }
 
-            // Fetch all accounts from the auth module
-            const accountsResponse = (await cosmosApi.getAccounts()) as AccountsResponse;
+            const { accounts: rawAccounts } = parseAccountsResponse(await cosmosApi.getAccounts());
 
-            if (!accountsResponse) {
-                throw new Error("Failed to fetch accounts");
-            }
+            const accountsWithBalances = await Promise.all(
+                rawAccounts.map(async (account): Promise<AccountInfo | null> => {
+                    const address = accountAddressOf(account);
+                    if (address === null) return null;
 
-            const rawAccounts = accountsResponse.accounts || [];
-
-            // Process accounts and fetch balances for each
-            const accountsWithBalances: AccountInfo[] = await Promise.all(
-                rawAccounts.map(async (account: any) => {
-                    // Extract address based on account type
-                    const address = account.address || account.base_account?.address || account.base_vesting_account?.base_account?.address || "";
-
-                    // Determine account type
-                    let type = "Unknown";
-                    if (account["@type"]) {
-                        const typePath = account["@type"];
-                        type = typePath.split(".").pop() || "Unknown";
-                        if (type === "BaseAccount") {
-                            type = "B52 Account";
-                        }
-                    }
-
-                    // Fetch balances for this account
-                    let balances: { denom: string; amount: string }[] = [];
+                    let balances: Coin[] = [];
                     let totalUsdcValue = 0;
-
-                    if (address) {
-                        try {
-                            const balanceResponse = (await cosmosApi.getBalanceByAddress(address)) as AccountBalanceResponse;
-                            if (balanceResponse) {
-                                balances = balanceResponse.balances || [];
-
-                                // Calculate total USDC value (sum usdc balances)
-                                balances.forEach(b => {
-                                    if (b.denom === "usdc" || b.denom === "uusdc") {
-                                        totalUsdcValue += microToUsdc(b.amount);
-                                    }
-                                });
+                    try {
+                        balances = parseAccountBalanceResponse(await cosmosApi.getBalanceByAddress(address)).balances;
+                        balances.forEach(b => {
+                            if (b.denom === "usdc" || b.denom === "uusdc") {
+                                totalUsdcValue += microToUsdc(b.amount);
                             }
-                        } catch (e) {
-                            console.error(`Failed to fetch balance for ${address}:`, e);
-                        }
+                        });
+                    } catch (e) {
+                        console.error(`Failed to fetch balance for ${address}:`, e);
                     }
 
-                    // Check if this account is a validator
                     const validatorInfo = validatorMap.get(address);
-
                     return {
                         address,
-                        type,
+                        type: accountTypeLabel(account["@type"]),
                         balances,
                         totalUsdcValue,
-                        isValidator: !!validatorInfo,
+                        isValidator: validatorInfo !== undefined,
                         validatorMoniker: validatorInfo?.moniker,
                         validatorStatus: validatorInfo?.status
                     };
                 })
             );
 
-            // Filter out accounts without addresses
-            const validAccounts = accountsWithBalances.filter(a => a.address);
-
-            setAccounts(validAccounts);
+            setAccounts(accountsWithBalances.filter((a): a is AccountInfo => a !== null));
         } catch (err) {
             const message = err instanceof Error ? err.message : "";
             let errorMessage = "Failed to fetch accounts";
@@ -228,13 +166,12 @@ export default function AllAccountsPage() {
         } finally {
             setLoading(false);
         }
-    }, [currentNetwork]);
+    }, [currentNetwork, cosmosApi]);
 
     useEffect(() => {
         fetchAllAccounts();
     }, [fetchAllAccounts]);
 
-    // Set page title
     useEffect(() => {
         document.title = "All Accounts - Block52 Explorer";
 
@@ -243,18 +180,15 @@ export default function AllAccountsPage() {
         };
     }, []);
 
-    // Sort and filter accounts
     const filteredAndSortedAccounts = useMemo(() => {
         let filtered = accounts;
 
-        // Apply search filter
         if (searchFilter) {
             filtered = filtered.filter(
                 a => a.address.toLowerCase().includes(searchFilter.toLowerCase()) || a.type.toLowerCase().includes(searchFilter.toLowerCase())
             );
         }
 
-        // Sort
         return [...filtered].sort((a, b) => {
             if (sortBy === "balance") {
                 return sortOrder === "desc" ? b.totalUsdcValue - a.totalUsdcValue : a.totalUsdcValue - b.totalUsdcValue;
@@ -264,7 +198,6 @@ export default function AllAccountsPage() {
         });
     }, [accounts, searchFilter, sortBy, sortOrder]);
 
-    // Reset to page 1 when filter/sort changes
     useEffect(() => {
         setCurrentPage(1);
     }, [searchFilter, sortBy, sortOrder]);
@@ -274,7 +207,6 @@ export default function AllAccountsPage() {
         return filteredAndSortedAccounts.slice(start, start + PAGE_SIZE);
     }, [filteredAndSortedAccounts, currentPage]);
 
-    // Stats
     const stats = useMemo(() => {
         const totalAccounts = accounts.length;
         const totalUsdc = accounts.reduce((sum, a) => sum + a.totalUsdcValue, 0);
@@ -284,22 +216,7 @@ export default function AllAccountsPage() {
         return { totalAccounts, totalUsdc, accountsWithBalance, validatorCount };
     }, [accounts]);
 
-    const formatBalance = (amount: string, denom: string) => {
-        const value = microToUsdc(amount);
-        // Map known denoms to display names
-        const denomMap: Record<string, string> = {
-            usdc: "USDC",
-            uusdc: "USDC",
-            stake: "STAKE",
-            ustake: "STAKE"
-        };
-        const displayDenom = denomMap[denom.toLowerCase()] || denom.toUpperCase();
-        return `${value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${displayDenom}`;
-    };
-
-    const truncateAddress = (addr: string) => (addr.length <= 20 ? addr : truncateMiddle(addr, 12, 8));
-
-    const toggleSort = (field: "balance" | "address") => {
+    const toggleSort = (field: SortField) => {
         if (sortBy === field) {
             setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
         } else {
@@ -307,6 +224,8 @@ export default function AllAccountsPage() {
             setSortOrder("desc");
         }
     };
+
+    const ariaSort = (field: SortField) => (sortBy !== field ? "none" : sortOrder === "asc" ? "ascending" : "descending");
 
     return (
         <ExplorerPage>
@@ -333,7 +252,6 @@ export default function AllAccountsPage() {
                     />
                 </div>
 
-                {/* Accounts */}
                 <ExplorerPanel
                     header={`Accounts${!loading && !error && hasElements(filteredAndSortedAccounts) ? ` · ${filteredAndSortedAccounts.length.toLocaleString()}` : ""}`}
                     action={<ExplorerReloadButton onClick={fetchAllAccounts} busy={loading} />}
@@ -350,18 +268,16 @@ export default function AllAccountsPage() {
                                 <thead>
                                     <tr>
                                         <th className={`${explorerThClass} hidden sm:table-cell`}>#</th>
-                                        <th
-                                            className={`${explorerThClass} cursor-pointer hover:text-ink transition-colors`}
-                                            onClick={() => toggleSort("address")}
-                                        >
-                                            Address {sortBy === "address" && (sortOrder === "asc" ? "↑" : "↓")}
+                                        <th className={explorerThClass} aria-sort={ariaSort("address")}>
+                                            <button type="button" onClick={() => toggleSort("address")} className={sortButtonClass}>
+                                                Address {sortBy === "address" && (sortOrder === "asc" ? "↑" : "↓")}
+                                            </button>
                                         </th>
                                         <th className={`${explorerThClass} hidden md:table-cell`}>Type</th>
-                                        <th
-                                            className={`${explorerThClass} text-right cursor-pointer hover:text-ink transition-colors`}
-                                            onClick={() => toggleSort("balance")}
-                                        >
-                                            USDC Balance {sortBy === "balance" && (sortOrder === "asc" ? "↑" : "↓")}
+                                        <th className={`${explorerThClass} text-right`} aria-sort={ariaSort("balance")}>
+                                            <button type="button" onClick={() => toggleSort("balance")} className={`${sortButtonClass} justify-end`}>
+                                                USDC Balance {sortBy === "balance" && (sortOrder === "asc" ? "↑" : "↓")}
+                                            </button>
                                         </th>
                                         <th className={`${explorerThClass} hidden md:table-cell text-right`}>
                                             All Balances
@@ -449,7 +365,6 @@ export default function AllAccountsPage() {
                     )}
                 </ExplorerPanel>
 
-                {/* Results count — small screens only (pagination shows it on larger screens) */}
                 {!loading && !error && (
                     <div className="sm:hidden mt-4 text-center text-ink-muted text-sm">
                         Showing {Math.min((currentPage - 1) * PAGE_SIZE + 1, filteredAndSortedAccounts.length)}–

@@ -13,8 +13,6 @@
  *   - returns null if there's no result yet (player still active);
  *   - returns null if the user has already dismissed it this game
  *     (localStorage flag keyed on `${tableId}:${userAddress}`).
- *
- * Refs block52/ui#371, originally tracked in block52/poker-vm#2106.
  */
 import React, { useEffect, useMemo, useState } from "react";
 import { truncateMiddle } from "../../utils/stringUtils";
@@ -52,16 +50,14 @@ interface SitAndGoResultModalProps {
     tableId: string | undefined;
     /**
      * Invoked when the user clicks "Spectate Table". Should fire the
-     * chain leave action so the finished table can be reaped (see
-     * acceptance criteria in block52/ui#371). The parent passes
-     * `handleLeaveTableConfirm` here.
+     * chain leave action so the finished table can be reaped.
      */
     onLeave: () => void | Promise<void>;
     /**
      * Invoked when a paid finisher clicks "Claim winnings". Fires the SNG prize
      * claim (record hand-end state + settle via MsgLeaveGame). Distinct from
      * onLeave: post-start the roster is frozen — finishers claim, they don't
-     * leave. (pokerchain#239)
+     * leave.
      */
     onClaim: () => Promise<void>;
 }
@@ -98,12 +94,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
         setDismissed(localStorage.getItem(dismissKey(tableId, userAddress)) === "true");
     }, [tableId, userAddress]);
 
-    // Claim-NFT flow. Wired but currently gated on
-    // block52/poker-vm#2119 piece 2 (chain signature endpoint) and
-    // piece 1 deploy (contract address). The button surfaces the
-    // structured error from the underlying hook if either is missing
-    // so the user sees a clear "coming soon" message rather than a
-    // silent failure or zero-address tx.
+    // Gated on the chain signature endpoint and the contract address; the button surfaces the hook's structured error if either is missing.
     const { fetchSignature } = useFetchSngClaimSignature();
     const { claim, isClaimConfirmed, claimError, hash: claimHash } = useClaimSngWinNFT();
     const { address: web3Address, isConnected: isWeb3Connected, open: openWalletConnect } = useUserWalletConnect();
@@ -199,6 +190,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
                 closeOnEscape={false}
                 closeOnBackdropClick={false}
                 widthClass="w-[420px]"
+                ariaLabel="Sit & Go result"
             >
                 <div className="flex flex-col items-center text-center">
                     <div

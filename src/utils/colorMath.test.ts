@@ -1,4 +1,4 @@
-import { hexToRgbChannels, mixHex } from "./colorMath";
+import { hexToRgbChannels, hexToRgba, mixHex, parseHex } from "./colorMath";
 
 describe("hexToRgbChannels", () => {
     it("returns space-separated channels", () => {
@@ -9,9 +9,34 @@ describe("hexToRgbChannels", () => {
         expect(hexToRgbChannels("#FFFFFF")).toBe("255 255 255");
     });
 
-    it("rejects shorthand and non-hex input", () => {
-        expect(() => hexToRgbChannels("#fff")).toThrow(/6-digit hex/);
-        expect(() => hexToRgbChannels("rgb(0,0,0)")).toThrow(/6-digit hex/);
+    it("expands 3-digit shorthand", () => {
+        expect(hexToRgbChannels("#fff")).toBe("255 255 255");
+        expect(hexToRgbChannels("#1a2")).toBe("17 170 34");
+    });
+
+    it("rejects non-hex input", () => {
+        expect(() => hexToRgbChannels("rgb(0,0,0)")).toThrow(/hex colour/);
+        expect(() => hexToRgbChannels("rebeccapurple")).toThrow(/hex colour/);
+        expect(() => hexToRgbChannels("#12345")).toThrow(/hex colour/);
+        expect(() => hexToRgbChannels("")).toThrow(/hex colour/);
+    });
+});
+
+describe("parseHex", () => {
+    it("returns numeric channels", () => {
+        expect(parseHex("#7c3aed")).toEqual([124, 58, 237]);
+        expect(parseHex("#F0a")).toEqual([255, 0, 170]);
+    });
+});
+
+describe("hexToRgba", () => {
+    it("builds an rgba string", () => {
+        expect(hexToRgba("#7c3aed", 0.5)).toBe("rgba(124, 58, 237, 0.5)");
+        expect(hexToRgba("#000", 1)).toBe("rgba(0, 0, 0, 1)");
+    });
+
+    it("throws instead of returning transparent black for invalid input", () => {
+        expect(() => hexToRgba("nope", 0.5)).toThrow(/hex colour/);
     });
 });
 

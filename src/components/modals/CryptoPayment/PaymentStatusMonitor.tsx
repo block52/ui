@@ -180,7 +180,6 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
 
     return (
         <div className="space-y-4">
-            {/* Status Header */}
             {isComplete ? (
                 <div role="status" className="p-5 rounded-xl border border-emerald-500/30 bg-emerald-500/10 text-center">
                     <div className="w-12 h-12 mx-auto mb-3 grid place-items-center rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400">
@@ -210,7 +209,6 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
                 </div>
             )}
 
-            {/* Payment Details */}
             {status.actually_paid && (
                 <div className={`space-y-2 ${insetBoxClass}`}>
                     <div className="flex justify-between gap-3 text-sm">
@@ -240,7 +238,6 @@ const PaymentStatusMonitor: React.FC<PaymentStatusMonitorProps> = ({ paymentId, 
                 </div>
             )}
 
-            {/* Processing Steps */}
             {isProcessing && (
                 <ol className={`space-y-2.5 text-sm ${insetBoxClass}`} aria-label="Payment progress">
                     {steps.map(step => (

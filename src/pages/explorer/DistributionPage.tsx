@@ -18,21 +18,23 @@ import { CardStats, StatsSummary, RandomnessReport, IndexerStatus, ChiSquaredRes
 import { ExplorerError, ExplorerLoading, ExplorerPage, ExplorerPanel } from "../../components/explorer/ExplorerPanel";
 import { Card, PillButton, StatStrip, StatItem } from "../../components/ui";
 import { useIndexerApi } from "../../context/IndexerApiContext";
+import { useTheme } from "../../context/ThemeContext";
 import {
-    CHART_GRID_COLOR,
-    CHART_TICK_COLOR,
-    EXPECTED_LINE_COLOR,
+    ChartChrome,
     SUIT_GROUPS,
     TestBadge,
     Verdict,
     cardLabel,
     chiSquaredBadge,
     distributionVerdict,
+    expectedLineColor,
     formatChiSquared,
     isIndexerSynced,
+    readChartChrome,
     sortCardsBySuit,
     suitColor
 } from "../../utils/cardDistribution";
+import { parseCardStats, parseIndexerStatus, parseRandomnessReport, parseStatsSummary } from "../../utils/typeConversions";
 import styles from "./DistributionPage.module.css";
 
 ChartJS.register(BarController, BarElement, LineController, LineElement, PointElement, CategoryScale, LinearScale, Tooltip);
@@ -49,12 +51,24 @@ const badgeStyle: Record<TestBadge, { label: string; className: string }> = {
 
 const verdictItem: Record<Verdict, Pick<StatItem, "value" | "tone">> = {
     fair: { value: "Looks fair", tone: "good" },
+    borderline: { value: <span className="text-amber-300">Borderline</span> },
     bias: { value: "Possible bias", tone: "bad" },
     waiting: { value: "Waiting for data", tone: "muted" }
 };
 
-/** One chart slot: a card, or a gap between suit groups. */
 type Slot = { card: CardStats } | { gap: true };
+
+/** Chart.js cannot read CSS variables, so the chart chrome is re-read from the page whenever the theme attribute changes. */
+const useChartChrome = (): ChartChrome | null => {
+    const [chrome, setChrome] = useState<ChartChrome | null>(readChartChrome);
+    useEffect(() => {
+        const observer = new MutationObserver(() => setChrome(readChartChrome()));
+        observer.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+        setChrome(readChartChrome());
+        return () => observer.disconnect();
+    }, []);
+    return chrome;
+};
 
 export default function DistributionPage() {
     const [cardStats, setCardStats] = useState<CardStats[]>([]);
@@ -65,36 +79,31 @@ export default function DistributionPage() {
     const [error, setError] = useState<string | null>(null);
 
     const indexerApi = useIndexerApi();
+    const { theme } = useTheme();
+    const chrome = useChartChrome();
 
     const fetchData = useCallback(async () => {
         try {
             setLoading(true);
             setError(null);
 
-            // Card stats are the primary data for the chart.
-            const cardsRes = await indexerApi.getCardStats();
-            setCardStats(cardsRes as CardStats[]);
+            setCardStats(parseCardStats(await indexerApi.getCardStats()));
 
-            // Indexer sync status (non-critical)
+            // Everything below is non-critical: the chart still renders without it.
             try {
-                const statusRes = await indexerApi.getSyncStatus();
-                setIndexerStatus(statusRes as IndexerStatus);
+                setIndexerStatus(parseIndexerStatus(await indexerApi.getSyncStatus()));
             } catch (err) {
                 console.error("Failed to fetch indexer status:", err);
             }
 
-            // Summary stats (non-critical)
             try {
-                const summaryRes = await indexerApi.getSummaryStats();
-                setSummary(summaryRes as StatsSummary);
+                setSummary(parseStatsSummary(await indexerApi.getSummaryStats()));
             } catch (err) {
                 console.error("Failed to fetch summary stats:", err);
             }
 
-            // Randomness analysis (non-critical)
             try {
-                const randomnessRes = await indexerApi.getRandomnessAnalysis();
-                setRandomness(randomnessRes as RandomnessReport);
+                setRandomness(parseRandomnessReport(await indexerApi.getRandomnessAnalysis()));
             } catch (err) {
                 console.error("Failed to fetch randomness analysis:", err);
             }
@@ -108,9 +117,7 @@ export default function DistributionPage() {
     }, [indexerApi]);
 
     useEffect(() => {
-        (async () => {
-            await fetchData();
-        })();
+        fetchData();
     }, [fetchData]);
 
     useEffect(() => {
@@ -123,7 +130,7 @@ export default function DistributionPage() {
     const totalCardsDealt = useMemo(() => cardStats.reduce((sum, c) => sum + c.total_appearances, 0), [cardStats]);
     const expectedPerCard = totalCardsDealt / 52;
 
-    // Hands indexed: the summary endpoint, else the status endpoint (both report total_hands).
+    // Both endpoints report total_hands; the summary wins when present.
     const handsIndexed = summary ? summary.total_hands : indexerStatus ? indexerStatus.total_hands : null;
 
     const verdict = distributionVerdict(randomness ? randomness.card_chi_squared.result : null, totalCardsDealt);
@@ -135,7 +142,7 @@ export default function DistributionPage() {
         { label: "Verdict", ...verdictItem[verdict] }
     ];
 
-    // Suit groups (S, H, D, C) separated by an empty slot so the bars read as four clusters.
+    // An empty slot between suit groups makes the bars read as four clusters.
     const slots = useMemo((): Slot[] => {
         const sorted = sortCardsBySuit(cardStats);
         return sorted.flatMap((card, i): Slot[] =>
@@ -151,7 +158,7 @@ export default function DistributionPage() {
                     type: "bar" as const,
                     label: "Times dealt",
                     data: slots.map(s => ("card" in s ? s.card.total_appearances : null)),
-                    backgroundColor: slots.map(s => ("card" in s ? suitColor(s.card.suit) : "transparent")),
+                    backgroundColor: slots.map(s => ("card" in s ? suitColor(s.card.suit, theme) : "transparent")),
                     borderRadius: 2,
                     categoryPercentage: 0.9,
                     barPercentage: 0.9,
@@ -161,7 +168,7 @@ export default function DistributionPage() {
                     type: "line" as const,
                     label: "Expected",
                     data: slots.map(() => expectedPerCard),
-                    borderColor: EXPECTED_LINE_COLOR,
+                    borderColor: expectedLineColor(theme),
                     borderWidth: 2,
                     borderDash: [6, 4],
                     pointRadius: 0,
@@ -170,11 +177,12 @@ export default function DistributionPage() {
                 }
             ]
         }),
-        [slots, expectedPerCard]
+        [slots, expectedPerCard, theme]
     );
 
-    const chartOptions = useMemo(
-        (): ChartOptions<"bar" | "line"> => ({
+    const chartOptions = useMemo((): ChartOptions<"bar" | "line"> | null => {
+        if (chrome === null) return null;
+        return {
             responsive: true,
             maintainAspectRatio: false,
             interaction: { mode: "index", intersect: false },
@@ -199,19 +207,18 @@ export default function DistributionPage() {
             scales: {
                 x: {
                     grid: { display: false },
-                    border: { color: CHART_GRID_COLOR },
-                    ticks: { color: CHART_TICK_COLOR, autoSkip: false, maxRotation: 0, font: { size: 11 } }
+                    border: { color: chrome.grid },
+                    ticks: { color: chrome.tick, autoSkip: false, maxRotation: 0, font: { size: 11 } }
                 },
                 y: {
                     beginAtZero: true,
-                    grid: { color: CHART_GRID_COLOR },
+                    grid: { color: chrome.grid },
                     border: { display: false },
-                    ticks: { color: CHART_TICK_COLOR, font: { size: 11 } }
+                    ticks: { color: chrome.tick, font: { size: 11 } }
                 }
             }
-        }),
-        [slots, expectedPerCard, totalCardsDealt]
-    );
+        };
+    }, [slots, expectedPerCard, totalCardsDealt, chrome]);
 
     const syncPill = indexerStatus && (
         <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-full border border-line bg-surface-card text-sm text-ink-soft tabular-nums">
@@ -250,19 +257,18 @@ export default function DistributionPage() {
 
                     <StatStrip items={stats} />
 
-                    {/* Chart */}
                     <Card className="p-4 sm:p-6 flex flex-col gap-4">
                         <div className="flex flex-wrap items-center justify-between gap-3">
                             <h2 className="m-0 text-[17px] font-semibold text-ink">Times each card was dealt</h2>
                             <ul className="flex flex-wrap gap-x-4 gap-y-1 m-0 p-0 list-none text-[13px] text-ink-soft">
                                 {SUIT_GROUPS.map(g => (
                                     <li key={g.key} className="flex items-center gap-1.5">
-                                        <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: g.color }} aria-hidden="true" />
+                                        <span className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: g.color[theme] }} aria-hidden="true" />
                                         {g.name}
                                     </li>
                                 ))}
                                 <li className="flex items-center gap-1.5">
-                                    <span className={`w-4 ${styles.expectedSwatch}`} aria-hidden="true" />
+                                    <span className={`w-4 ${styles.expectedSwatch}`} style={{ borderTopColor: expectedLineColor(theme) }} aria-hidden="true" />
                                     Expected
                                 </li>
                             </ul>
@@ -276,6 +282,8 @@ export default function DistributionPage() {
                                         : "No indexed hands have revealed cards to count. The chart fills in as hands reach showdown."}
                                 </p>
                             </div>
+                        ) : chartOptions === null ? (
+                            <ExplorerError>The chart colours could not be read from the page theme.</ExplorerError>
                         ) : (
                             <div className="overflow-x-auto">
                                 <div className={`min-w-[760px] ${styles.chartContainer}`}>
@@ -285,7 +293,6 @@ export default function DistributionPage() {
                         )}
                     </Card>
 
-                    {/* Chi-squared randomness tests */}
                     <section className="flex flex-col gap-3.5">
                         <h2 className="m-0 text-[17px] font-semibold text-ink">
                             Randomness tests <span className="text-ink-muted font-normal">· chi-squared</span>

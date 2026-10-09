@@ -20,6 +20,13 @@
     }
 }
 
+/* Never wider than the viewport. :where() keeps this at zero specificity so a caller's own
+   max-w-* class in widthClass always wins (a plain class here, or a max-w-[95vw] utility after
+   widthClass, used to override max-w-[480px] and stretch dialogs across wide screens). */
+:where(.modalContainer) {
+    max-width: 95vw;
+}
+
 .modalContainer {
     animation: modalIn 160ms ease-out;
 }
@@ -30,10 +37,10 @@
     }
 }
 
-/* A modal with a pinned footer (ModalFooter) lets the footer own the bottom spacing, so the
-   gap under the buttons does not double up with the dialog's own padding. */
-.modalContainer:has([data-modal-footer]) {
-    padding-bottom: 0 !important;
+/* A modal that ends with a pinned footer (ModalFooter) lets the footer own the bottom spacing,
+   so the gap under the buttons does not double up with the dialog's own padding. */
+.modalContainer:has([data-modal-footer]:last-child) {
+    padding-bottom: 0;
 }
 
 /* Phones: the modal becomes a full-width bottom sheet whatever widthClass the

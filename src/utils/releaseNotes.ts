@@ -1,12 +1,5 @@
-/**
- * Pure helpers for the Tech Notes page (release notes JSON from block52/cards).
- *
- * The page renders one release expanded, an archive grouped by month, and a
- * per-kind change list whose trailing PR references (`(ui#719)`,
- * `(poker-vm#2636)`) are split out of the text and linked to GitHub.
- */
+/** Pure helpers for the Tech Notes page (release notes JSON from block52/cards). */
 
-/** One release as published in release-notes.json. */
 export interface ReleaseNote {
     id: string;
     /** Calendar date, `YYYY-MM-DD`. */
@@ -25,12 +18,12 @@ export interface ReleaseNote {
 
 export type ChangeKind = "feature" | "bugFix" | "improvement" | "test";
 
-export interface ReleaseChange {
+interface ReleaseChange {
     kind: ChangeKind;
     text: string;
 }
 
-export interface ChangeRef {
+interface ChangeRef {
     /** As written, e.g. `ui#719` or `#2614`. */
     label: string;
     /** Repo under the block52 org, when the reference names one. */
@@ -40,93 +33,80 @@ export interface ChangeRef {
     url?: string;
 }
 
-export const GITHUB_ORG_URL = "https://github.com/block52";
+const GITHUB_ORG_URL = "https://github.com/block52";
 
-/** Change kinds in display order, with their JSON field. */
-export const CHANGE_KINDS: ReadonlyArray<{ kind: ChangeKind; field: "features" | "bugFixes" | "improvements" | "tests" }> = [
+const CHANGE_KINDS: ReadonlyArray<{ kind: ChangeKind; field: "features" | "bugFixes" | "improvements" | "tests" }> = [
     { kind: "feature", field: "features" },
     { kind: "bugFix", field: "bugFixes" },
     { kind: "improvement", field: "improvements" },
     { kind: "test", field: "tests" }
 ];
 
-/** Flatten a release's structured lists into one ordered change list. */
-export function releaseChanges(note: ReleaseNote): ReleaseChange[] {
-    return CHANGE_KINDS.flatMap(({ kind, field }) => (note[field] ?? []).map(text => ({ kind, text })));
-}
+export const releaseChanges = (note: ReleaseNote): ReleaseChange[] =>
+    CHANGE_KINDS.flatMap(({ kind, field }) => (note[field] ?? []).map(text => ({ kind, text })));
 
-/** True when the release uses the structured lists rather than a free-form body. */
-export function isStructuredRelease(note: ReleaseNote): boolean {
-    return [note.highlights, note.features, note.bugFixes, note.improvements, note.tests].some(list => list !== undefined);
-}
+export const isStructuredRelease = (note: ReleaseNote): boolean =>
+    [note.highlights, note.features, note.bugFixes, note.improvements, note.tests].some(list => list !== undefined);
 
-/** Count changes per kind. Every kind is present in the result (0 when absent). */
-export function countChangesByKind(changes: ReadonlyArray<ReleaseChange>): Record<ChangeKind, number> {
+export const countChangesByKind = (changes: ReadonlyArray<ReleaseChange>): Record<ChangeKind, number> => {
     const counts: Record<ChangeKind, number> = { feature: 0, bugFix: 0, improvement: 0, test: 0 };
     for (const change of changes) counts[change.kind] += 1;
     return counts;
-}
+};
 
 const REF_PATTERN = /^(?:([a-z0-9][a-z0-9._-]*))?#(\d+)$/i;
-const TRAILING_GROUP = /\s*\(([^()]*)\)\s*$/;
+const TRAILING_GROUP = /\(([^()]*)\)$/;
 
 /**
- * Split trailing PR/issue references out of a change line.
- *
- * Only a final parenthetical made up entirely of references is taken
- * (`"... (ui#719)"`, `"... (#676, #668)"`); any other parenthetical stays in
- * the text. Repo-qualified refs link to `github.com/block52/<repo>/issues/<n>`
- * (GitHub redirects that to the PR when it is one).
+ * Split a trailing parenthetical made up entirely of PR/issue references out of
+ * a change line. Repo-qualified refs link to `github.com/block52/<repo>/issues/<n>`.
  */
-export function parseChangeRefs(line: string): { text: string; refs: ChangeRef[] } {
-    const match = TRAILING_GROUP.exec(line);
+export const parseChangeRefs = (line: string): { text: string; refs: ChangeRef[] } => {
+    const trimmed = line.trimEnd();
+    const match = TRAILING_GROUP.exec(trimmed);
     if (!match) return { text: line, refs: [] };
 
-    const parts = match[1].split(",").map(part => part.trim());
     const refs: ChangeRef[] = [];
-    for (const part of parts) {
+    for (const part of match[1].split(",").map(item => item.trim())) {
         const ref = REF_PATTERN.exec(part);
         if (!ref) return { text: line, refs: [] };
         const repo = ref[1];
         const number = Number(ref[2]);
         refs.push(repo ? { label: part, repo, number, url: `${GITHUB_ORG_URL}/${repo}/issues/${number}` } : { label: part, number });
     }
-    return { text: line.slice(0, match.index).trimEnd(), refs };
-}
+    return { text: trimmed.slice(0, match.index).trimEnd(), refs };
+};
 
 const MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
 
-/**
- * Parse a release `YYYY-MM-DD` date as a calendar day.
- * (Not via `new Date(iso)`, which reads it as UTC midnight and shows the
- * previous day west of Greenwich.)
- */
-export function parseReleaseDate(iso: string): { year: number; month: number; day: number } {
+// Not `new Date(iso)`: that reads the date as UTC midnight and shows the previous day west of Greenwich.
+const parseReleaseDate = (iso: string): { year: number; month: number; day: number } => {
     const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso);
     if (!match) throw new Error(`Release date "${iso}" is not YYYY-MM-DD`);
-    return { year: Number(match[1]), month: Number(match[2]), day: Number(match[3]) };
-}
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    if (month < 1 || month > 12) throw new Error(`Release date "${iso}" has month ${month}, expected 1-12`);
+    if (day < 1 || day > 31) throw new Error(`Release date "${iso}" has day ${day}, expected 1-31`);
+    return { year: Number(match[1]), month, day };
+};
 
-/** `October 7, 2026` */
-export function formatReleaseDate(iso: string): string {
+export const formatReleaseDate = (iso: string): string => {
     const { year, month, day } = parseReleaseDate(iso);
     return `${MONTHS[month - 1]} ${day}, ${year}`;
-}
+};
 
-/** `Oct 7, 2026` */
-export function formatReleaseDateShort(iso: string): string {
+export const formatReleaseDateShort = (iso: string): string => {
     const { year, month, day } = parseReleaseDate(iso);
     return `${MONTHS[month - 1].slice(0, 3)} ${day}, ${year}`;
-}
+};
 
-export interface ReleaseMonthGroup {
+interface ReleaseMonthGroup {
     /** `October 2026` */
     label: string;
     items: Array<{ note: ReleaseNote; day: number }>;
 }
 
-/** Group releases by calendar month, keeping the input order. */
-export function groupReleasesByMonth(notes: ReadonlyArray<ReleaseNote>): ReleaseMonthGroup[] {
+export const groupReleasesByMonth = (notes: ReadonlyArray<ReleaseNote>): ReleaseMonthGroup[] => {
     const groups: ReleaseMonthGroup[] = [];
     for (const note of notes) {
         const { year, month, day } = parseReleaseDate(note.date);
@@ -139,4 +119,44 @@ export function groupReleasesByMonth(notes: ReadonlyArray<ReleaseNote>): Release
         group.items.push({ note, day });
     }
     return groups;
-}
+};
+
+const LIST_FIELDS = ["highlights", "features", "bugFixes", "improvements", "tests"] as const;
+
+const isStringArray = (value: unknown): value is string[] => Array.isArray(value) && value.every(item => typeof item === "string");
+
+const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null && !Array.isArray(value);
+
+/** Returns why a payload entry is not a usable release note, or null when it is one. */
+const releaseNoteProblem = (entry: unknown): string | null => {
+    if (!isRecord(entry)) return "not an object";
+    if (typeof entry.id !== "string" || entry.id === "") return "id is not a non-empty string";
+    if (typeof entry.title !== "string") return "title is not a string";
+    if (typeof entry.date !== "string") return "date is not a string";
+    try {
+        parseReleaseDate(entry.date);
+    } catch (err) {
+        return err instanceof Error ? err.message : "date is invalid";
+    }
+    if (!isStringArray(entry.tags)) return "tags is not an array of strings";
+    for (const field of LIST_FIELDS) {
+        if (entry[field] !== undefined && !isStringArray(entry[field])) return `${field} is not an array of strings`;
+    }
+    if (entry.version !== undefined && typeof entry.version !== "string") return "version is not a string";
+    if (entry.body !== undefined && typeof entry.body !== "string") return "body is not a string";
+    return null;
+};
+
+const isReleaseNote = (entry: unknown): entry is ReleaseNote => releaseNoteProblem(entry) === null;
+
+/** Keeps the well-formed release notes of a fetched payload and reports one message per skipped entry. */
+export const parseReleaseNotes = (payload: unknown): { notes: ReleaseNote[]; skipped: string[] } => {
+    if (!Array.isArray(payload)) throw new Error("Release notes payload is not an array");
+    const notes: ReleaseNote[] = [];
+    const skipped: string[] = [];
+    payload.forEach((entry: unknown, index) => {
+        if (isReleaseNote(entry)) notes.push(entry);
+        else skipped.push(`entry ${index}: ${releaseNoteProblem(entry)}`);
+    });
+    return { notes, skipped };
+};

@@ -94,7 +94,7 @@ export default function PlayerProfilePage() {
                             <StatCard
                                 label="Net Profit"
                                 value={formatUsd(profile.net_profit)}
-                                valueClass={profile.net_profit >= 0 ? "text-green-400" : "text-red-400"}
+                                valueClass={profile.net_profit >= 0 ? "text-green-400 [[data-theme=light]_&]:text-green-700" : "text-red-400"}
                             />
                             <StatCard label="Total Buy-In" value={formatUsd(profile.total_buy_ins)} />
                             <StatCard label="Total Cash-Out" value={formatUsd(profile.total_cash_outs)} />

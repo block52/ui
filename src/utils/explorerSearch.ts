@@ -1,34 +1,38 @@
 /**
- * Classifies what a person typed into the explorer search box and maps it to the
- * explorer page that shows it. Pure, so the routing rule is unit-tested.
+ * Maps what a person typed into the explorer search box to the explorer page
+ * that shows it. Pure, so the routing rule is unit-tested.
  *
- * - all digits            → block height  → /explorer/block/:height
- * - starts with "b52"     → account       → /explorer/address/:address
- * - anything else         → tx hash       → /explorer/tx/:hash
+ * - all digits                       → block height → /explorer/block/:height
+ * - 64 hex characters (opt. "0x")    → tx hash      → /explorer/tx/:hash
+ * - starts with "b52"                → account      → /explorer/address/:address
+ * - anything else                    → tx hash      → /explorer/tx/:hash
+ *
+ * The hash shape is checked before the address prefix: "b52" is valid hex, so
+ * about 1 in 4096 transaction hashes start with it.
  */
 
-export type ExplorerQuery =
+type ExplorerQuery =
     | { kind: "empty" }
     | { kind: "block"; height: string }
     | { kind: "address"; address: string }
     | { kind: "tx"; hash: string };
 
 const BLOCK_HEIGHT = /^\d+$/;
+const TX_HASH = /^(?:0x)?([0-9a-f]{64})$/i;
 const ADDRESS_PREFIX = "b52";
 
-/** @example classifyExplorerQuery(" 1234 ") // { kind: "block", height: "1234" } */
-export const classifyExplorerQuery = (raw: string): ExplorerQuery => {
+const classifyExplorerQuery = (raw: string): ExplorerQuery => {
     const query = raw.trim();
     if (query === "") return { kind: "empty" };
     if (BLOCK_HEIGHT.test(query)) {
-        // Drop leading zeros so "007" opens block 7; a lone "0" stays "0".
         return { kind: "block", height: query.replace(/^0+(?=\d)/, "") };
     }
+    const hash = TX_HASH.exec(query);
+    if (hash) return { kind: "tx", hash: hash[1] };
     if (query.toLowerCase().startsWith(ADDRESS_PREFIX)) return { kind: "address", address: query.toLowerCase() };
     return { kind: "tx", hash: query };
 };
 
-/** The route for a search, or null when there is nothing to search for. */
 export const explorerSearchPath = (raw: string): string | null => {
     const query = classifyExplorerQuery(raw);
     switch (query.kind) {

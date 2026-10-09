@@ -1,5 +1,5 @@
 .topUpEnabled {
-    background: #1c1e2b;
+    background: rgb(var(--surface-raised));
     border-color: var(--brand-primary);
     cursor: pointer;
     opacity: 1;
@@ -10,8 +10,8 @@
 }
 
 .topUpDisabled {
-    background: #161722;
-    border-color: #262938;
+    background: rgb(var(--surface-card));
+    border-color: rgb(var(--line));
     cursor: not-allowed;
     opacity: 0.5;
 }

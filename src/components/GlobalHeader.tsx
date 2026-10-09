@@ -4,6 +4,8 @@ import { NetworkSelector } from "./NetworkSelector";
 import { useNetwork } from "../context/NetworkContext";
 import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
+import { ThemeToggle } from "./ui/ThemeToggle";
+import { useTheme } from "../context/ThemeContext";
 import { hasElements } from "../utils/guards";
 import styles from "./GlobalHeader.module.css";
 
@@ -12,13 +14,10 @@ interface MenuItem {
     label: string;
     icon: string;
     badge?: string;
-    iconOnly?: boolean; // Show only icon, hide label (for discreet menu items)
-    newTab?: boolean; // Open link in new tab
+    iconOnly?: boolean;
+    newTab?: boolean;
 }
 
-// Logo component with error handling - uses VITE_CLUB_LOGO env variable
-// Falls back to /logo1080.png if not set, then to text if image fails
-// Memoized to prevent unnecessary re-renders
 const LogoComponent: React.FC = React.memo(() => {
     const [imageError, setImageError] = useState(false);
     const clubLogo = import.meta.env.VITE_CLUB_LOGO;
@@ -43,10 +42,8 @@ const LogoComponent: React.FC = React.memo(() => {
     );
 });
 
-// Reusable component for network status and selector (extracted to avoid recreation on every render)
 const NetworkStatusAndSelector: React.FC<{ latestBlockHeight: string | null; hasError: boolean }> = ({ latestBlockHeight, hasError }) => (
     <>
-        {/* Block Height Indicator - clickable link to block explorer */}
         {latestBlockHeight && (
             <Link
                 to={`/explorer/block/${latestBlockHeight}`}
@@ -69,6 +66,7 @@ export const GlobalHeader: React.FC = () => {
     const location = useLocation();
     const [isMenuOpen, setIsMenuOpen] = useState(false);
     const { currentNetwork } = useNetwork();
+    const { preference: themePreference, toggle: toggleTheme } = useTheme();
     const [latestBlockHeight, setLatestBlockHeight] = useState<string | null>(null);
     const [hasError, setHasError] = useState(false);
 
@@ -77,7 +75,6 @@ export const GlobalHeader: React.FC = () => {
     const hideOnPaths = ["/table/"];
     const shouldHide = hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin";
 
-    // Fetch latest block height
     useEffect(() => {
         // Hidden on this route — the poll would fetch, setState and re-render for
         // a header that renders null. The early `return null` below is AFTER this
@@ -115,9 +112,6 @@ export const GlobalHeader: React.FC = () => {
         return null;
     }
 
-    // User-facing menu items (always visible)
-    // Note: Wallet removed - accessible via settings button in Dashboard
-    // Note: Withdrawals moved to Admin > Bridge Management section
     const userMenuItems: MenuItem[] = [
         { path: "/admin/tables", label: "Tables", icon: "M4 6h16M4 10h16M4 14h16M4 18h16" },
         { path: "/explorer", label: "Block Explorer", icon: "M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" },
@@ -126,37 +120,31 @@ export const GlobalHeader: React.FC = () => {
         { path: "/tech-notes", label: "Tech Notes", icon: "M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" },
     ];
 
-    // Admin/dev menu items - icon only for discreet access
     const adminMenuItems: MenuItem[] = [
         { path: "/admin", label: "Admin", icon: "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z", iconOnly: true }
     ];
 
-    // User-facing menu items only (admin moved to right side of header)
-    const menuItems: MenuItem[] = [...userMenuItems];
 
     return (
         <header
             className={`sticky top-0 z-40 w-full ${styles.headerShell}`}
         >
             <div className="w-full px-4 lg:px-8 py-3.5">
-                {/* Desktop Layout: 3-column flexbox with logo+nav on left, network status on right */}
                 <div className="hidden lg:flex items-center justify-between">
-                    {/* Left: Logo + Navigation */}
                     <div className="flex items-center gap-7">
                         <Link to="/" className="hover:opacity-80 transition-opacity flex items-center">
                             <LogoComponent />
                         </Link>
 
-                        {/* Desktop Navigation */}
                         <nav className="flex items-center gap-[22px]">
-                            {menuItems.map(item => (
+                            {userMenuItems.map(item => (
                                 <Link
                                     key={item.path}
                                     to={item.path}
                                     target={item.newTab ? "_blank" : undefined}
                                     rel={item.newTab ? "noopener noreferrer" : undefined}
                                     aria-current={isItemActive(location.pathname, item.path) ? "page" : undefined}
-                                    className={`relative px-1 py-2 text-sm transition-colors flex items-center after:absolute after:left-0 after:right-0 after:-bottom-[18px] after:h-0.5 after:rounded-full after:transition-opacity ${
+                                    className={`relative px-1 py-2 text-sm transition-colors flex items-center after:absolute after:left-0 after:right-0 after:-bottom-[18px] after:h-0.5 after:rounded-btn after:transition-opacity ${
                                         isItemActive(location.pathname, item.path)
                                             ? `${styles.navLinkActive} after:bg-brand after:opacity-100`
                                             : `${styles.navLinkInactive} after:bg-brand after:opacity-0 hover:after:opacity-40`
@@ -176,14 +164,14 @@ export const GlobalHeader: React.FC = () => {
                         </nav>
                     </div>
 
-                    {/* Right: Admin + Network Status & Selector */}
                     <div className="flex items-center gap-4 flex-shrink-0">
                         <NetworkStatusAndSelector latestBlockHeight={latestBlockHeight} hasError={hasError} />
-                        {/* Admin icon - discreet access */}
+                        <ThemeToggle />
                         <Link
                             to="/admin"
                             className={`p-2 rounded-lg transition-all duration-200 hover:opacity-80 ${location.pathname === "/admin" ? styles.navItemActive : styles.navItemInactive}`}
                             title="Admin"
+                            aria-label="Admin"
                         >
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -193,14 +181,11 @@ export const GlobalHeader: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Mobile/Tablet Layout: Keep original structure */}
                 <div className="flex lg:hidden items-center justify-between">
-                    {/* Left side - Logo/Title */}
                     <Link to="/" className="hover:opacity-80 transition-opacity flex items-center">
                         <LogoComponent />
                     </Link>
 
-                    {/* Right side - Network Selector & Mobile Menu */}
                     <div className="flex items-center gap-4">
                         <div className="hidden md:flex items-center gap-4">
                             <NetworkStatusAndSelector latestBlockHeight={latestBlockHeight} hasError={hasError} />
@@ -209,13 +194,13 @@ export const GlobalHeader: React.FC = () => {
                             <NetworkSelector />
                         </div>
 
-                        {/* Mobile Menu Button */}
+                        <ThemeToggle className="hidden sm:grid" />
                         <button
                             type="button"
                             onClick={() => setIsMenuOpen(!isMenuOpen)}
                             aria-label={isMenuOpen ? "Close menu" : "Open menu"}
                             aria-expanded={isMenuOpen}
-                            className={`w-11 h-11 grid place-items-center rounded-full border transition-colors ${
+                            className={`w-11 h-11 grid place-items-center rounded-btn border transition-colors ${
                                 isMenuOpen ? "bg-surface-hover border-line-strong text-ink" : "border-transparent text-ink-soft hover:bg-surface-hover hover:text-ink"
                             }`}
                         >
@@ -241,7 +226,7 @@ export const GlobalHeader: React.FC = () => {
                             className="absolute inset-x-0 top-0 h-screen bg-black/60 backdrop-blur-sm cursor-default"
                         />
                         <nav aria-label="Main" className="relative bg-surface-card border-b border-line shadow-[0_24px_60px_rgba(0,0,0,0.55)] p-3 flex flex-col gap-1">
-                            {menuItems.map(item => {
+                            {userMenuItems.map(item => {
                                 const active = isItemActive(location.pathname, item.path);
                                 return (
                                     <Link
@@ -275,6 +260,8 @@ export const GlobalHeader: React.FC = () => {
                                 <Link
                                     key={item.path}
                                     to={item.path}
+                                    target={item.newTab ? "_blank" : undefined}
+                                    rel={item.newTab ? "noopener noreferrer" : undefined}
                                     onClick={() => setIsMenuOpen(false)}
                                     aria-current={isItemActive(location.pathname, item.path) ? "page" : undefined}
                                     className="flex items-center gap-3 min-h-[44px] px-3 rounded-xl text-sm text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors"
@@ -287,6 +274,19 @@ export const GlobalHeader: React.FC = () => {
                                     {item.label}
                                 </Link>
                             ))}
+
+                            <button
+                                type="button"
+                                onClick={toggleTheme}
+                                className="flex items-center gap-3 min-h-[44px] px-3 rounded-xl text-sm text-ink-muted hover:bg-surface-hover hover:text-ink transition-colors"
+                            >
+                                <span className="w-9 h-9 grid place-items-center flex-none">
+                                    <svg className="w-[18px] h-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
+                                    </svg>
+                                </span>
+                                {themePreference === "dark" ? "Switch to light mode" : "Switch to dark mode"}
+                            </button>
                         </nav>
                     </div>
                 )}

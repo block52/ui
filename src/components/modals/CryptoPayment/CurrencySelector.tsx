@@ -67,7 +67,6 @@ const CurrencySelector: React.FC<CurrencySelectorProps> = ({ selectedCurrency, o
         <div>
             <span className={fieldLabelClass}>Currency to deposit</span>
 
-            {/* Currency Grid */}
             <div className="grid grid-cols-2 gap-3" role="radiogroup" aria-label="Deposit currency">
                 {DEPOSIT_CURRENCIES.map(currency => {
                     const selected = selectedCurrency === currency.code;

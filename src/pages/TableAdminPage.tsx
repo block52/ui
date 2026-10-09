@@ -10,8 +10,7 @@ import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
 import { validateTableName, normalizeTableName, tableNameCharCount } from "../utils/tableName";
-import { Card, CardHeader, PillButton, pillClass, StatStrip } from "../components/ui";
-import { PillToggle } from "../components/admin/PillToggle";
+import { Card, CardHeader, ChoicePill, PillButton, pillClass, StatStrip } from "../components/ui";
 import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
@@ -20,15 +19,6 @@ import { isTournamentFormat, getGameFormat, toGameFormat } from "../utils/gameFo
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
 import type { AdvancedSngParams } from "../utils/sngAdvancedParams";
-
-/**
- * TableAdminPage - Admin interface for creating and managing poker tables
- *
- * Features:
- * - Create new poker tables (Sit & Go, Texas Hold'em)
- * - View all tables with their settings
- * - Join tables directly from the dashboard
- */
 
 interface TableData {
     gameId: string;
@@ -52,9 +42,8 @@ export default function TableAdminPage() {
     const { createTable, isCreating, error: createError } = useNewTable();
     const { games: fetchedGames, isLoading, error: gamesError, refetch } = useFindGames();
 
-    // Default table settings for Cash Game, 9 players, Texas Hold'em
     const [gameFormat, setGameFormat] = useState<GameFormat>(GameFormat.CASH);
-    const [tableName, setTableName] = useState(""); // Optional paid table name (poker-vm#337)
+    const [tableName, setTableName] = useState("");
     const [minPlayers] = useState(2);
     const [maxPlayers, setMaxPlayers] = useState(9);
     
@@ -65,7 +54,6 @@ export default function TableAdminPage() {
     const [sngSmallBlind, setSngSmallBlind] = useState(25);
     const [sngBigBlind, setSngBigBlind] = useState(50);
 
-    // Get effective blind values based on game format
     const smallBlind = useMemo(() => {
         if (isTournamentFormat(gameFormat)) {
             return sngSmallBlind.toString();
@@ -103,7 +91,7 @@ export default function TableAdminPage() {
     const [startingStack, setStartingStack] = useState(1500);
     const [blindLevelDuration, setBlindLevelDuration] = useState(10);
     // Flat entry fee in USDC dollars (2dp), skimmed to the creator on top of the
-    // buy-in. "0" = no fee. (poker-vm#2118)
+    // buy-in. "0" = no fee.
     const [entryFee, setEntryFee] = useState("0");
     const [showStructure, setShowStructure] = useState(false);
     const [showAdvancedModal, setShowAdvancedModal] = useState(false);
@@ -120,30 +108,25 @@ export default function TableAdminPage() {
         if (params.buyIn !== undefined) setTournamentBuyIn(params.buyIn.toString());
     };
 
-    // Calculate actual buy-in values from BB
     const { minBuyIn: calculatedMinBuyIn, maxBuyIn: calculatedMaxBuyIn } = useMemo(
         () => calculateBuyIn({ minBuyInBB, maxBuyInBB, bigBlind: parseFloat(bigBlind) || 0 }),
         [minBuyInBB, maxBuyInBB, bigBlind]
     );
 
-    // Rake settings (optional)
     const [enableRake, setEnableRake] = useState(false);
     const [rakeFreeThreshold, setRakeFreeThreshold] = useState("0");
     const [rakePercentage, setRakePercentage] = useState("5");
     const [rakeCap, setRakeCap] = useState("0.10");
     const [rakeOwner, setRakeOwner] = useState("");
 
-    // Success modal state
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     const [successTxHash, setSuccessTxHash] = useState<string | null>(null);
     const [createdGameAddress, setCreatedGameAddress] = useState<string | null>(null);
     const [tableCountBeforeCreation, setTableCountBeforeCreation] = useState<number>(0);
 
-    // Player counts from game state
     const [playerCounts, setPlayerCounts] = useState<Record<string, number>>({});
     const [cosmosClient] = useState(() => new CosmosClient(getDefaultCosmosConfig()));
 
-    // Get USDC balance from wallet
     const usdcBalance = useMemo(() => {
         const balance = cosmosWallet.balance.find(b => b.denom === "usdc");
         return balance ? parseInt(balance.amount) : 0;
@@ -151,13 +134,13 @@ export default function TableAdminPage() {
 
     const usdcBalanceFormatted = (usdcBalance / Math.pow(10, USDC_DECIMALS)).toFixed(6);
 
-    // Paid table name (poker-vm#337): normalize to the chain's canonical form so the
+    // Paid table name: normalize to the chain's canonical form so the
     // preview, fee, validation and submitted value all match the chain.
     const normalizedTableName = useMemo(() => normalizeTableName(tableName), [tableName]);
     const tableNameError = useMemo(() => validateTableName(tableName), [tableName]);
     const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
 
-    // Table creation fee = 10 big blinds (pokerchain#378, ui#690), priced from the
+    // Table creation fee = 10 big blinds, priced from the
     // exact values handleCreateTable submits. null = the chain could not price it.
     const creationFeeMicro = useMemo(
         () =>
@@ -177,7 +160,6 @@ export default function TableAdminPage() {
     const hasEnoughUsdc = totalCostMicro !== null && BigInt(usdcBalance) >= totalCostMicro;
     const insufficientForName = totalCostMicro !== null && normalizedTableName.length > 0 && BigInt(usdcBalance) < totalCostMicro;
 
-    // Transform fetched games to TableData format - memoized to prevent infinite loops
     const tables: TableData[] = useMemo(() => {
         const mappedTables = fetchedGames.map((game) => ({
             gameId: game.gameId,
@@ -199,7 +181,6 @@ export default function TableAdminPage() {
         return sortTablesByAvailableSeats(mappedTables);
     }, [fetchedGames]);
 
-    // Create a new table using the useNewTable hook
     const handleCreateTable = async () => {
 
         if (!cosmosWallet.address) {
@@ -207,7 +188,6 @@ export default function TableAdminPage() {
             return;
         }
 
-        // Build rake config if enabled
         const rakeConfig = enableRake ? {
             rakeFreeThreshold: parseFloat(rakeFreeThreshold),
             rakePercentage: parseFloat(rakePercentage),
@@ -220,7 +200,6 @@ export default function TableAdminPage() {
         const finalMinBuyIn = isTournament ? parseFloat(tournamentBuyIn) : calculatedMinBuyIn;
         const finalMaxBuyIn = isTournament ? parseFloat(tournamentBuyIn) : calculatedMaxBuyIn;
 
-        // Build SNG config if this is a tournament/SNG
         const sngConfig = isTournament ? {
             startingStack,
             blindLevelDuration,
@@ -249,9 +228,7 @@ export default function TableAdminPage() {
 
 
             if (result) {
-                // Show success modal with transaction link
                 setSuccessTxHash(result.txHash);
-                // Set the game address immediately if we got it from the transaction
                 setCreatedGameAddress(result.gameId);
                 setShowSuccessModal(true);
                 setTableName("");
@@ -320,7 +297,6 @@ export default function TableAdminPage() {
         fetchPlayerCounts();
     }, [tables, cosmosClient]);
 
-    // Show error toast if createError or gamesError changes
     useEffect(() => {
         if (createError) {
             toast.error(createError.message);
@@ -330,30 +306,25 @@ export default function TableAdminPage() {
         }
     }, [createError, gamesError]);
 
-    // Note: createdGameAddress is now set directly from the transaction response
-    // when creating a table, so we no longer need to guess from the sorted tables list
 
-    // Stats
     const totalTables = tables.length;
     const activeTables = tables.filter(t => t.status === "playing" || t.status === "waiting").length;
     const sitAndGoTables = tables.filter(t => t.maxPlayers <= 6).length;
 
     const labelCls = "block text-xs uppercase tracking-[0.08em] text-ink-muted mb-1.5";
     const inputCls =
-        "w-full h-11 px-3.5 rounded-xl bg-surface-raised border border-line-strong text-ink text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/30 disabled:opacity-50 [color-scheme:dark]";
+        "w-full h-11 px-3.5 rounded-xl bg-surface-raised border border-line-strong text-ink text-sm outline-none transition-colors focus:border-brand focus:ring-2 focus:ring-brand/30 disabled:opacity-50";
     const hintCls = "text-ink-muted text-xs mt-1.5";
     const subCardCls = "bg-surface-raised rounded-xl px-4 py-3";
 
     return (
         <div className="min-h-screen bg-surface-page">
             <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
-                {/* Header */}
                 <div>
                     <h1 className="m-0 text-[28px] font-semibold text-ink">Table Admin Dashboard</h1>
                     <p className="mt-1 mb-0 text-ink-muted">Create and manage poker tables</p>
                 </div>
 
-                {/* Stats */}
                 <StatStrip
                     items={[
                         { label: "Total Tables", value: totalTables },
@@ -362,7 +333,6 @@ export default function TableAdminPage() {
                     ]}
                 />
 
-                {/* Create Table Form */}
                 <Card>
                     <CardHeader
                         title="Create New Table"
@@ -378,13 +348,11 @@ export default function TableAdminPage() {
                         }
                     />
                     <div className="p-5 flex flex-col gap-5">
-                        {/* Creation Fee Info */}
                         <div className={`${subCardCls} flex flex-wrap items-center justify-between gap-2`}>
                             <span className="text-ink-muted text-sm">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds):</span>
                             <span className="text-ink font-mono tabular-nums text-sm">{creationFeeFormatted} USDC</span>
                         </div>
 
-                        {/* Optional paid table name (poker-vm#337): $0.10/char, live preview */}
                         <div>
                             <label className={labelCls}>
                                 Table Name <span className="normal-case tracking-normal">(optional)</span>
@@ -414,7 +382,6 @@ export default function TableAdminPage() {
                             )}
                         </div>
 
-                        {/* Insufficient USDC Warning */}
                         {cosmosWallet.address && !hasEnoughUsdc && (
                             <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-4">
                                 <div className="flex items-start gap-3">
@@ -472,7 +439,6 @@ export default function TableAdminPage() {
                                 </select>
                             </div>
 
-                            {/* Blinds Dropdown - Cash games only */}
                             {gameFormat === GameFormat.CASH && (
                                 <div className="md:col-span-2">
                                     <label className={labelCls}>Game Size (Small Blind / Big Blind)</label>
@@ -491,11 +457,9 @@ export default function TableAdminPage() {
                             )}
                         </div>
 
-                        {/* Buy-In Section */}
                         {isTournamentFormat(gameFormat) ? (
                             <div className="flex flex-col gap-5">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    {/* Buy In */}
                                     <div>
                                         <label className={labelCls}>Buy In ($)</label>
                                         <input
@@ -509,7 +473,6 @@ export default function TableAdminPage() {
                                         <p className={hintCls}>All players pay the same buy in</p>
                                     </div>
 
-                                    {/* Entry Fee */}
                                     <div>
                                         <label className={labelCls}>Entry Fee ($)</label>
                                         <input
@@ -525,19 +488,18 @@ export default function TableAdminPage() {
                                     </div>
                                 </div>
 
-                                {/* Starting Stack */}
                                 <div>
                                     <label className={labelCls}>Starting Stack (chips)</label>
                                     <div className="flex gap-2 flex-wrap mb-3">
-                                        <PillToggle selected={startingStack === 1000} onClick={() => setStartingStack(1000)}>
+                                        <ChoicePill selected={startingStack === 1000} onClick={() => setStartingStack(1000)}>
                                             Turbo (1000)
-                                        </PillToggle>
-                                        <PillToggle selected={startingStack === 1500} onClick={() => setStartingStack(1500)}>
+                                        </ChoicePill>
+                                        <ChoicePill selected={startingStack === 1500} onClick={() => setStartingStack(1500)}>
                                             Standard (1500)
-                                        </PillToggle>
-                                        <PillToggle selected={startingStack === 3000} onClick={() => setStartingStack(3000)}>
+                                        </ChoicePill>
+                                        <ChoicePill selected={startingStack === 3000} onClick={() => setStartingStack(3000)}>
                                             Deep Stack (3000)
-                                        </PillToggle>
+                                        </ChoicePill>
                                     </div>
                                     <input
                                         type="number"
@@ -549,51 +511,48 @@ export default function TableAdminPage() {
                                     />
                                 </div>
 
-                                {/* Starting Blinds (chips) */}
                                 <div>
                                     <label className={labelCls}>Starting Blinds (chips)</label>
                                     <div className="flex gap-2 flex-wrap">
-                                        <PillToggle
+                                        <ChoicePill
                                             selected={sngSmallBlind === 10 && sngBigBlind === 20}
                                             onClick={() => { setSngSmallBlind(10); setSngBigBlind(20); }}
                                         >
                                             10 / 20
-                                        </PillToggle>
-                                        <PillToggle
+                                        </ChoicePill>
+                                        <ChoicePill
                                             selected={sngSmallBlind === 25 && sngBigBlind === 50}
                                             onClick={() => { setSngSmallBlind(25); setSngBigBlind(50); }}
                                         >
                                             25 / 50
-                                        </PillToggle>
-                                        <PillToggle
+                                        </ChoicePill>
+                                        <ChoicePill
                                             selected={sngSmallBlind === 50 && sngBigBlind === 100}
                                             onClick={() => { setSngSmallBlind(50); setSngBigBlind(100); }}
                                         >
                                             50 / 100
-                                        </PillToggle>
+                                        </ChoicePill>
                                     </div>
                                 </div>
 
-                                {/* Blind Level Duration */}
                                 <div>
                                     <label className={labelCls}>Blind Level Duration</label>
                                     <div className="flex gap-2 flex-wrap">
-                                        <PillToggle selected={blindLevelDuration === 3} onClick={() => setBlindLevelDuration(3)}>
+                                        <ChoicePill selected={blindLevelDuration === 3} onClick={() => setBlindLevelDuration(3)}>
                                             Hyper (3 min)
-                                        </PillToggle>
-                                        <PillToggle selected={blindLevelDuration === 5} onClick={() => setBlindLevelDuration(5)}>
+                                        </ChoicePill>
+                                        <ChoicePill selected={blindLevelDuration === 5} onClick={() => setBlindLevelDuration(5)}>
                                             Turbo (5 min)
-                                        </PillToggle>
-                                        <PillToggle selected={blindLevelDuration === 10} onClick={() => setBlindLevelDuration(10)}>
+                                        </ChoicePill>
+                                        <ChoicePill selected={blindLevelDuration === 10} onClick={() => setBlindLevelDuration(10)}>
                                             Standard (10 min)
-                                        </PillToggle>
-                                        <PillToggle selected={blindLevelDuration === 15} onClick={() => setBlindLevelDuration(15)}>
+                                        </ChoicePill>
+                                        <ChoicePill selected={blindLevelDuration === 15} onClick={() => setBlindLevelDuration(15)}>
                                             Deep (15 min)
-                                        </PillToggle>
+                                        </ChoicePill>
                                     </div>
                                 </div>
 
-                                {/* SNG Settings Summary */}
                                 <div className={subCardCls}>
                                     <p className="m-0 text-ink-muted text-xs mb-1">SNG Settings:</p>
                                     <p className="m-0 text-emerald-400 text-sm font-medium">
@@ -604,7 +563,6 @@ export default function TableAdminPage() {
                                     </p>
                                 </div>
 
-                                {/* Advanced Options — custom params via JSON */}
                                 <PillButton variant="outline" size="md" className="w-full" onClick={() => setShowAdvancedModal(true)}>
                                     <span>⚙</span>
                                     Advanced Options (Custom Params)
@@ -612,32 +570,30 @@ export default function TableAdminPage() {
                             </div>
                         ) : (
                             <div className="flex flex-col gap-5">
-                                {/* Buy-In Presets */}
                                 <div>
                                     <label className={labelCls}>Buy-In Presets</label>
                                     <div className="flex gap-2 flex-wrap">
-                                        <PillToggle
+                                        <ChoicePill
                                             selected={minBuyInBB === 20 && maxBuyInBB === 100}
                                             onClick={() => { setMinBuyInBB(BUY_IN_PRESETS.STANDARD.minBuyInBB); setMaxBuyInBB(BUY_IN_PRESETS.STANDARD.maxBuyInBB); }}
                                         >
                                             Standard (20-100 BB)
-                                        </PillToggle>
-                                        <PillToggle
+                                        </ChoicePill>
+                                        <ChoicePill
                                             selected={minBuyInBB === 40 && maxBuyInBB === 200}
                                             onClick={() => { setMinBuyInBB(BUY_IN_PRESETS.DEEP.minBuyInBB); setMaxBuyInBB(BUY_IN_PRESETS.DEEP.maxBuyInBB); }}
                                         >
                                             Deep (40-200 BB)
-                                        </PillToggle>
-                                        <PillToggle
+                                        </ChoicePill>
+                                        <ChoicePill
                                             selected={minBuyInBB === 100 && maxBuyInBB === 300}
                                             onClick={() => { setMinBuyInBB(BUY_IN_PRESETS.DEEP_STACK.minBuyInBB); setMaxBuyInBB(BUY_IN_PRESETS.DEEP_STACK.maxBuyInBB); }}
                                         >
                                             Deep Stack (100-300 BB)
-                                        </PillToggle>
+                                        </ChoicePill>
                                     </div>
                                 </div>
 
-                                {/* Buy-In BB Inputs */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <label className={labelCls}>Min Buy-In (BB)</label>
@@ -663,7 +619,6 @@ export default function TableAdminPage() {
                                     </div>
                                 </div>
 
-                                {/* Calculated Preview */}
                                 {parseFloat(bigBlind) > 0 && (
                                     <div className={subCardCls}>
                                         <p className="m-0 text-ink-muted text-xs mb-1">Calculated Buy-In Range:</p>
@@ -678,7 +633,6 @@ export default function TableAdminPage() {
                             </div>
                         )}
 
-                        {/* Show Structure Section - Only for SNG/Tournament */}
                         {isTournamentFormat(gameFormat) && (
                             <div>
                                 <div className="flex items-center gap-2.5 min-h-[44px]">
@@ -730,7 +684,6 @@ export default function TableAdminPage() {
                             </div>
                         )}
 
-                        {/* Rake Configuration Section - Only for Cash Games */}
                         <div>
                             <div className="flex items-center gap-2.5 min-h-[44px]">
                                 <input
@@ -817,7 +770,7 @@ export default function TableAdminPage() {
                                 type="button"
                                 onClick={refetch}
                                 disabled={isLoading}
-                                className="w-11 h-11 flex-shrink-0 inline-flex items-center justify-center rounded-full border border-line-strong text-ink-soft hover:bg-surface-hover hover:text-ink transition-colors disabled:opacity-50"
+                                className="w-11 h-11 flex-shrink-0 inline-flex items-center justify-center rounded-btn border border-line-strong text-ink-soft hover:bg-surface-hover hover:text-ink transition-colors disabled:opacity-50"
                                 title="Refresh tables"
                                 aria-label="Refresh tables"
                             >
@@ -845,10 +798,8 @@ export default function TableAdminPage() {
                     </div>
                 </Card>
 
-                {/* Tables List */}
                 <TableList />
 
-                {/* Info Box */}
                 <details className="group border border-line rounded-2xl bg-surface-card px-5 py-4">
                     <summary className="cursor-pointer text-ink font-semibold marker:text-ink-muted">ℹ️ How This Works</summary>
                     <ul className="mt-3 mb-0 pl-5 text-ink-soft text-sm leading-relaxed space-y-1 list-disc">
@@ -861,7 +812,6 @@ export default function TableAdminPage() {
                 </details>
             </div>
 
-            {/* Advanced SNG Options Modal */}
             <AdvancedSngParamsModal
                 isOpen={showAdvancedModal}
                 onClose={() => setShowAdvancedModal(false)}
@@ -876,7 +826,6 @@ export default function TableAdminPage() {
                 onApply={handleApplyAdvancedParams}
             />
 
-            {/* Success Modal */}
             {showSuccessModal && successTxHash && (
                 <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 px-4">
                     <div className="bg-surface-card border border-line-strong rounded-2xl p-6 sm:p-8 max-w-lg w-full shadow-2xl">
@@ -890,7 +839,7 @@ export default function TableAdminPage() {
                                 <code className="text-brand-light text-xs font-mono break-all">{successTxHash}</code>
                                 <button
                                     onClick={() => copyToClipboard(successTxHash, "Transaction hash copied!")}
-                                    className="w-11 h-11 inline-flex items-center justify-center rounded-full text-ink-soft hover:bg-surface-hover hover:text-ink transition-colors flex-shrink-0"
+                                    className="w-11 h-11 inline-flex items-center justify-center rounded-btn text-ink-soft hover:bg-surface-hover hover:text-ink transition-colors flex-shrink-0"
                                     title="Copy transaction hash"
                                     aria-label="Copy transaction hash"
                                 >

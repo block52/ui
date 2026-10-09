@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
+import { useFindGames, treasuryAddress } from "../hooks/game/useFindGames";
+import { GameWithFormat } from "../utils/convertUtils";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import { useForceCloseGame } from "../hooks/game/useForceCloseGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
@@ -28,9 +29,9 @@ import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
 import { Card, PillButton, SegmentedControl, pillClass } from "./ui";
 import styles from "./TableList.module.css";
-import { isNullish, isEmpty } from "../utils/guards";
+import { hasContent, isNullish, isEmpty } from "../utils/guards";
+import { viteEnv } from "../utils/viteEnv";
 
-/** Rows per page on the desktop table. */
 const PAGE_SIZE = 15;
 /** Cards revealed per "Show more" tap on phones. */
 const MOBILE_BATCH = 10;
@@ -45,12 +46,10 @@ const FORMAT_TAB_LABELS: ReadonlyArray<{ value: TableFormatFilter; label: string
 const thClass =
     "px-4 py-4 text-left text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted whitespace-nowrap [&_button]:uppercase [&_button]:tracking-[0.1em] [&_button]:min-h-9";
 
-/** Small green felt "table" glyph in front of every table name. */
 const FeltIcon: React.FC<{ small?: boolean }> = ({ small = false }) => (
     <span aria-hidden="true" className={`flex-none rounded-full ${styles.felt} ${small ? "w-8 h-5" : "w-9 h-[22px]"}`} />
 );
 
-/** Thin yellow fill bar + "3 / 9". */
 const SeatsBar: React.FC<{ game: GameWithFormat; barWidthClass: string }> = ({ game, barWidthClass }) => (
     <span className="flex items-center gap-3">
         <span className={`inline-block h-1 rounded-sm bg-line overflow-hidden ${barWidthClass}`}>
@@ -94,13 +93,8 @@ const CloseIcon: React.FC = () => (
 );
 
 const dangerIconClass =
-    "w-11 h-11 md:w-9 md:h-9 grid place-items-center rounded-full border border-red-400/40 text-red-400 hover:bg-red-400/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
+    "w-11 h-11 md:w-9 md:h-9 grid place-items-center rounded-btn border border-red-400/40 text-red-400 hover:bg-red-400/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors";
 
-/**
- * TableList - the lobby's table browser (home page right column).
- * Desktop (md+): sortable, paginated table. Phones: card list with "Show more".
- * Join/Watch links open the table in a new tab.
- */
 interface TableListProps {
     onCreateTable?: () => void;
 }
@@ -119,7 +113,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
     const [formatSortDir, setFormatSortDir] = useState<SortDirection>(null);
     const [buyInSortDir, setBuyInSortDir] = useState<SortDirection>(null);
     const [gameIdSearch, setGameIdSearch] = useState("");
-    const [showTreasuryOnly, setShowTreasuryOnly] = useState(!!treasuryAddress);
+    const [showTreasuryOnly, setShowTreasuryOnly] = useState(hasContent(treasuryAddress));
     // Drives the full-width segmented control on phones. matchMedia is
     // guarded — jsdom lacks it; the fallback is sm-up.
     const [isSmUp, setIsSmUp] = useState<boolean>(() =>
@@ -193,11 +187,14 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         resetPaging();
     }, [resetPaging]);
 
-    // Treasury toggle + search: the pool the tab counts are taken from.
+    const officialOnly = showTreasuryOnly && hasContent(treasuryAddress);
+
+    // The pool the format tab counts are taken from: Official toggle and search applied, format tab not.
     const searchedGames = useMemo(() => {
-        const pool = showTreasuryOnly && treasuryAddress ? rawGames.filter(g => g.creator === treasuryAddress) : rawGames;
+        const treasury = hasContent(treasuryAddress) ? treasuryAddress.toLowerCase() : null;
+        const pool = officialOnly && treasury !== null ? rawGames.filter(g => g.creator !== undefined && g.creator.toLowerCase() === treasury) : rawGames;
         return pool.filter(g => matchesTableSearch(g, gameIdSearch));
-    }, [rawGames, showTreasuryOnly, gameIdSearch]);
+    }, [rawGames, officialOnly, gameIdSearch]);
 
     const formatCounts = useMemo(() => countByFormat(searchedGames), [searchedGames]);
 
@@ -222,10 +219,13 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         return sortLobbyTables(filtered);
     }, [searchedGames, formatFilter, playersSortDir, formatSortDir, buyInSortDir]);
 
+    // A refetch can leave fewer pages than the current one (a table was deleted).
+    const page = Math.min(currentPage, Math.max(1, Math.ceil(games.length / PAGE_SIZE)));
+
     const pagedGames = useMemo(() => {
-        const start = (currentPage - 1) * PAGE_SIZE;
+        const start = (page - 1) * PAGE_SIZE;
         return games.slice(start, start + PAGE_SIZE);
-    }, [games, currentPage]);
+    }, [games, page]);
 
     const mobileGames = useMemo(() => games.slice(0, mobileVisible), [games, mobileVisible]);
     const mobileRemaining = remainingCount(games.length, mobileVisible);
@@ -237,20 +237,18 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
 
     const isSngTab = formatFilter === "sng";
 
-    // Club branding (VITE_CLUB_NAME), shown as the card subtitle.
-    const clubName = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
+    const clubName = viteEnv.VITE_CLUB_NAME;
 
     const handleDeleteGame = useCallback(async () => {
-        if (!deleteModalGameId) return;
+        if (deleteModalGameId === null) return;
         const result = await deleteGame(deleteModalGameId);
         if (result) {
             refetch();
         }
     }, [deleteModalGameId, deleteGame, refetch]);
 
-    // Handle force-close (non-empty cash table — refunds everyone)
     const handleForceCloseGame = useCallback(async () => {
-        if (!forceCloseGameTarget) return;
+        if (forceCloseGameTarget === null) return;
         const result = await forceCloseGame(forceCloseGameTarget.gameId);
         if (result) {
             refetch();
@@ -261,12 +259,9 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         return cosmosAddress && game.creator && game.creator.toLowerCase() === cosmosAddress.toLowerCase();
     };
 
-    // Delete: creator + no seated players.
     const canDelete = (game: GameWithFormat) => isCreator(game) && game.currentPlayers === 0;
 
-    // Cash-only force-close: creator + non-empty. SNG/Tournament is
-    // deliberately excluded — refund semantics for a partial tournament are
-    // a separate product decision (see block52/poker-vm#2173).
+    // Cash-only: refund semantics for a partial SNG/Tournament are a separate product decision.
     const canForceClose = (game: GameWithFormat) => isCreator(game) && game.currentPlayers > 0 && isCashFormat(game.gameFormat);
 
     // Non-empty SNG/Tournament tables the creator owns: show the button
@@ -364,13 +359,13 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         <div className="flex flex-wrap items-center justify-between gap-3.5">
             <div className="flex flex-col gap-0.5 min-w-0">
                 <h2 className="m-0 text-[22px] md:text-2xl font-semibold text-ink">Tables</h2>
-                <span className="text-ink-muted text-sm">{clubName} club</span>
+                {hasContent(clubName) && <span className="text-ink-muted text-sm">{clubName} club</span>}
             </div>
             <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
                 <div className="w-full sm:w-auto">
                     <SegmentedControl options={formatOptions} value={formatFilter} onChange={handleFormatFilter} ariaLabel="Game format" fullWidth={!isSmUp} />
                 </div>
-                <label className="flex items-center gap-2 h-11 px-3.5 flex-1 min-w-[180px] sm:flex-none sm:w-56 rounded-full border border-line bg-surface-card text-ink-muted focus-within:border-brand transition-colors">
+                <label className="flex items-center gap-2 h-11 px-3.5 flex-1 min-w-[180px] sm:flex-none sm:w-56 rounded-btn border border-line bg-surface-card text-ink-muted focus-within:border-brand transition-colors">
                     <SearchIcon />
                     <span className="sr-only">Search tables</span>
                     <input
@@ -387,7 +382,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                         aria-pressed={showTreasuryOnly}
                         onClick={handleTreasuryToggle}
                         title="Show only tables created by the official treasury"
-                        className={`inline-flex items-center gap-1.5 h-11 px-4 rounded-full border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light ${
+                        className={`inline-flex items-center gap-1.5 h-11 px-4 rounded-btn border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light ${
                             showTreasuryOnly ? "border-brand/50 bg-brand/15 text-brand-light" : "border-line text-ink-soft hover:text-ink hover:bg-surface-hover"
                         }`}
                     >
@@ -422,7 +417,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                             </span>
                             <span className="hidden md:block h-3 w-16 rounded bg-surface-raised" />
                             <span className="hidden md:block h-3 w-24 rounded bg-surface-raised" />
-                            <span className="h-9 w-[76px] rounded-full bg-surface-raised flex-none" />
+                            <span className="h-9 w-[76px] rounded-btn bg-surface-raised flex-none" />
                         </div>
                     ))}
                 </div>
@@ -442,11 +437,16 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         }
 
         if (isEmpty(games)) {
-            const filtering = gameIdSearch.trim().length > 0 || formatFilter !== "all";
+            const filtering = gameIdSearch.trim().length > 0 || formatFilter !== "all" || officialOnly;
             return (
                 <div className="px-6 py-12 text-center">
                     <p className="text-ink-body font-medium mb-1">{filtering ? "No tables match" : "No tables available"}</p>
                     <p className="text-ink-muted text-sm">{filtering ? "Try another format or search." : "Create the first table to start playing!"}</p>
+                    {officialOnly && (
+                        <PillButton variant="outline" size="md" onClick={handleTreasuryToggle} className="mt-4">
+                            Show all tables
+                        </PillButton>
+                    )}
                     {!filtering && onCreateTable && (
                         <PillButton variant="primary" size="md" onClick={onCreateTable} className="mt-4">
                             Create table
@@ -458,7 +458,6 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
 
         return (
             <>
-                {/* Desktop table (md and up) */}
                 <div className="hidden md:block">
                     <div className="overflow-x-auto">
                         <table className="w-full border-collapse">
@@ -506,10 +505,9 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                             </tbody>
                         </table>
                     </div>
-                    <Pagination currentPage={currentPage} totalItems={games.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} itemLabel="tables" />
+                    <Pagination currentPage={page} totalItems={games.length} pageSize={PAGE_SIZE} onPageChange={setCurrentPage} itemLabel="tables" />
                 </div>
 
-                {/* Phone card list (below md) */}
                 <ul className="md:hidden m-0 p-0 list-none">
                     {mobileGames.map(game => (
                         <li key={game.gameId} className="flex flex-col gap-2.5 px-4 py-3.5 border-b border-line last:border-b-0">
@@ -551,22 +549,19 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
             {header}
             <Card as="div">{renderBody()}</Card>
 
-            {/* Delete Table Modal — empty-table path */}
-            <DeleteTableModal
-                isOpen={!!deleteModalGameId}
-                onClose={() => setDeleteModalGameId(null)}
-                onConfirm={handleDeleteGame}
-                gameId={deleteModalGameId || ""}
-            />
+            {deleteModalGameId !== null && (
+                <DeleteTableModal isOpen onClose={() => setDeleteModalGameId(null)} onConfirm={handleDeleteGame} gameId={deleteModalGameId} />
+            )}
 
-            {/* Force-close Table Modal — non-empty cash-table path (#2173) */}
-            <ForceCloseTableModal
-                isOpen={!!forceCloseGameTarget}
-                onClose={() => setForceCloseGameTarget(null)}
-                onConfirm={handleForceCloseGame}
-                gameId={forceCloseGameTarget?.gameId || ""}
-                seatedPlayerCount={forceCloseGameTarget?.currentPlayers || 0}
-            />
+            {forceCloseGameTarget !== null && (
+                <ForceCloseTableModal
+                    isOpen
+                    onClose={() => setForceCloseGameTarget(null)}
+                    onConfirm={handleForceCloseGame}
+                    gameId={forceCloseGameTarget.gameId}
+                    seatedPlayerCount={forceCloseGameTarget.currentPlayers}
+                />
+            )}
         </section>
     );
 };

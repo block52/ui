@@ -12,9 +12,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
     const [isProcessing, setIsProcessing] = useState(false);
     const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-    // block52/poker-vm#2141 / ui#279: while a hand is in progress (PREFLOP..SHOWDOWN)
-    // the PVM queues the top-up and only credits it at the next reInit. Surface that
-    // to the player so they don't expect chips to land mid-hand.
+    // While a hand is in progress the PVM queues the top-up and credits it at the next reInit; tell the player.
     const { gameState } = useGameStateContext();
     const handInProgress =
         gameState?.round !== undefined &&
@@ -109,7 +107,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 <p className="text-ink-body mb-6">{successMessage}</p>
                 <button
                     onClick={onClose}
-                    className={`w-full px-5 py-3 rounded-full text-white font-medium hover:opacity-80 transition-opacity ${styles.buyButton}`}
+                    className={`w-full px-5 py-3 rounded-btn text-white font-medium hover:opacity-80 transition-opacity ${styles.buyButton}`}
                 >
                     Close
                 </button>
@@ -127,7 +125,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 </p>
                 <button
                     onClick={onClose}
-                    className={`w-full px-5 py-3 rounded-full text-white font-medium transition-colors ${styles.cancelButton}`}
+                    className={`w-full px-5 py-3 rounded-btn text-ink font-medium transition-colors ${styles.cancelButton}`}
                 >
                     Close
                 </button>
@@ -146,33 +144,30 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
             patternId="hexagons-topup"
             scrollable={false}
         >
-            {/* Current Stack */}
             <div className={`mb-2 rounded-lg ${styles.infoCard}`}>
                 <div className="text-xs text-ink-muted mb-0.5">Current Stack</div>
-                <div className="text-lg font-bold text-white">${currentStackFormatted}</div>
+                <div className="text-lg font-bold text-ink">${currentStackFormatted}</div>
                 <div className="text-xs text-ink-muted mt-0.5">Table Max: ${maxBuyInFormatted}</div>
             </div>
 
-            {/* Wallet Balance */}
             <div className={`mb-3 rounded-lg ${styles.infoCard}`}>
                 <div className="text-xs text-ink-muted mb-0.5">Wallet Balance</div>
-                <div className="text-lg font-bold text-white">${walletBalanceFormatted}</div>
+                <div className="text-lg font-bold text-ink">${walletBalanceFormatted}</div>
             </div>
 
-            {/* Top-Up Amount Selection */}
             <div className="mb-4">
                 <label className="block text-ink-soft mb-2 font-medium text-sm">Top-Up Amount</label>
                 <div className="flex gap-2 mb-2">
                     <button
                         onClick={handleMinClick}
-                        className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
+                        className={`flex-1 py-2 text-ink rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
                     >
                         <div className="text-xs text-ink-muted">MIN</div>
                         <div className="font-bold">${minTopUpFormatted}</div>
                     </button>
                     <button
                         onClick={handleMaxClick}
-                        className={`flex-1 py-2 text-white rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
+                        className={`flex-1 py-2 text-ink rounded transition duration-200 hover:bg-opacity-80 ${styles.maxButton}`}
                     >
                         <div className="text-xs text-ink-muted">MAX</div>
                         <div className="font-bold">${maxTopUpFormatted}</div>
@@ -186,19 +181,18 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                         step="0.01"
                         value={topUpAmount}
                         onChange={e => handleTopUpChange(e.target.value)}
-                        className={`w-full p-2 text-white rounded-lg text-center ${styles.amountInput}`}
+                        className={`w-full p-2 text-ink rounded-lg text-center ${styles.amountInput}`}
                         style={isAmountInvalid && topUpAmount ? { borderColor: "red" } : undefined}
                         placeholder="0.00"
                     />
                 </div>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex flex-col space-y-3">
                 <button
                     onClick={handleTopUpClick}
                     disabled={isProcessing || isAmountInvalid}
-                    className={`w-full px-5 py-2 rounded-full font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
+                    className={`w-full px-5 py-2 rounded-btn font-medium text-white shadow-md flex items-center justify-center gap-2 ${styles.buyButton}`}
                 >
                     {isProcessing ? (
                         <>
@@ -212,7 +206,7 @@ const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyI
                 <button
                     onClick={onClose}
                     disabled={isProcessing}
-                    className={`w-full px-5 py-2 rounded-full text-white font-medium transition-all duration-200 disabled:opacity-50 ${styles.cancelButton}`}
+                    className={`w-full px-5 py-2 rounded-btn text-ink font-medium transition-all duration-200 disabled:opacity-50 ${styles.cancelButton}`}
                 >
                     Cancel
                 </button>

@@ -1,7 +1,13 @@
 module.exports = {
+    // `dark:` utilities apply when <html data-theme="dark"> (set by ThemeProvider / index.html).
+    darkMode: ["selector", '[data-theme="dark"]'],
     content: ["./src/**/*.{js,ts,jsx,tsx}"], // Adjust based on your project
     theme: {
         extend: {
+            // Corner radius for every button-shaped control (one number to tune). Avatars, dots and switches stay rounded-full.
+            borderRadius: {
+                btn: "var(--radius-btn)"
+            },
             colors: {
                 // Accent: follows VITE_BRAND_COLOR_PRIMARY via the CSS variables
                 // injected by utils/colorConfig.generateCSSVariables().
@@ -9,22 +15,24 @@ module.exports = {
                     DEFAULT: "rgb(var(--brand-primary-rgb) / <alpha-value>)",
                     light: "rgb(var(--brand-primary-light-rgb) / <alpha-value>)"
                 },
-                // Neutral dark surfaces shared by the lobby, explorer, nodes and modals.
+                // Neutral surfaces and text: values live in src/styles/theme.css (dark default,
+                // [data-theme="light"] override) so every page follows the active theme.
                 surface: {
-                    page: "#12131c",
-                    card: "#161722",
-                    raised: "#1c1e2b",
-                    hover: "#232636"
+                    page: "rgb(var(--surface-page) / <alpha-value>)",
+                    card: "rgb(var(--surface-card) / <alpha-value>)",
+                    raised: "rgb(var(--surface-raised) / <alpha-value>)",
+                    hover: "rgb(var(--surface-hover) / <alpha-value>)"
                 },
                 line: {
-                    DEFAULT: "#262938",
-                    strong: "#2c2f45"
+                    DEFAULT: "rgb(var(--line) / <alpha-value>)",
+                    strong: "rgb(var(--line-strong) / <alpha-value>)"
                 },
+                overlay: "rgb(var(--overlay) / <alpha-value>)",
                 ink: {
-                    DEFAULT: "#f5f5f7",
-                    body: "#e4e4ea",
-                    soft: "#b4b6c8",
-                    muted: "#8e90a6"
+                    DEFAULT: "rgb(var(--ink) / <alpha-value>)",
+                    body: "rgb(var(--ink-body) / <alpha-value>)",
+                    soft: "rgb(var(--ink-soft) / <alpha-value>)",
+                    muted: "rgb(var(--ink-muted) / <alpha-value>)"
                 }
             },
             spacing: {

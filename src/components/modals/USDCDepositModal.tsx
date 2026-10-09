@@ -7,8 +7,8 @@ import { Modal } from "../common/Modal";
 
 const USDCDepositModal: React.FC<USDCDepositModalProps> = ({ isOpen, onClose, onSuccess }) => {
     const cosmosWallet = useCosmosWallet();
+    const [isDepositPending, setIsDepositPending] = React.useState(false);
 
-    // Get USDC balance from Cosmos wallet
     const b52Balance = React.useMemo(() => {
         const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
         if (!usdcBalance) return "0.00";
@@ -21,8 +21,7 @@ const USDCDepositModal: React.FC<USDCDepositModalProps> = ({ isOpen, onClose, on
     };
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Deposit" subtitle="Add USDC to your game wallet" widthClass="w-full max-w-[460px]">
-            {/* Current Balance */}
+        <Modal isOpen={isOpen} onClose={onClose} title="Deposit" subtitle="Add USDC to your game wallet" widthClass="w-full max-w-[460px]" isProcessing={isDepositPending}>
             <div className="mb-4 px-4 py-2.5 rounded-xl bg-surface-raised border border-line flex items-center justify-between gap-3">
                 <span className="text-xs uppercase tracking-[0.08em] text-ink-muted">Game wallet balance</span>
                 <span className="text-base font-semibold tabular-nums text-ink">
@@ -30,8 +29,7 @@ const USDCDepositModal: React.FC<USDCDepositModalProps> = ({ isOpen, onClose, on
                 </span>
             </div>
 
-            {/* Deposit Core Component (renders the sticky footer with the primary action + Cancel) */}
-            <DepositCore onSuccess={handleSuccess} onCancel={onClose} showMethodSelector={true} />
+            <DepositCore onSuccess={handleSuccess} onCancel={onClose} onPendingChange={setIsDepositPending} showMethodSelector={true} />
         </Modal>
     );
 };

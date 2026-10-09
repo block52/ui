@@ -56,7 +56,7 @@ export const ExplorerHeader = ({ title = "Block Explorer", subtitle = "Pokerchai
                     <p className="m-0 text-ink-muted leading-normal">{subtitle}</p>
                 </div>
                 <form role="search" onSubmit={submit} className="w-full sm:w-auto sm:flex-[0_1_420px] sm:min-w-[260px]">
-                    <label className="flex items-center gap-2 h-11 px-4 rounded-full border border-line bg-surface-card text-ink-muted focus-within:border-brand transition-colors">
+                    <label className="flex items-center gap-2 h-11 px-4 rounded-btn border border-line bg-surface-card text-ink-muted focus-within:border-brand transition-colors">
                         <SearchIcon />
                         <input
                             type="search"

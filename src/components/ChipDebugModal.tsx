@@ -3,13 +3,7 @@ import Chip from "./playPage/common/Chip";
 import { decomposeAmount, ChipStackEntry, parseCustomAmounts, chipColorClass } from "../utils/chipBreakdown";
 import { hasElements } from "../utils/guards";
 
-/**
- * Convert a dollar amount to USDC micro-unit string (6 decimals).
- * $1.50 → "1500000"
- */
-function dollarsToUsdc(dollars: number): string {
-    return Math.round(dollars * 1_000_000).toString();
-}
+const dollarsToUsdc = (dollars: number): string => Math.round(dollars * 1_000_000).toString();
 
 interface Preset {
     label: string;
@@ -17,11 +11,9 @@ interface Preset {
     description: string;
 }
 
-/** Default dollar amount shown in the debug panel when first opened */
 const DEFAULT_AMOUNT = 50;
 
 const PRESETS: Preset[] = [
-    // --- Single chip ---
     { label: "$0.02 SB", amounts: [0.02], description: "Micro-stakes small blind" },
     { label: "$0.04 BB", amounts: [0.04], description: "Micro-stakes big blind" },
     { label: "$1", amounts: [1], description: "Single white chip" },
@@ -30,29 +22,21 @@ const PRESETS: Preset[] = [
     { label: "$100", amounts: [100], description: "Single black chip" },
     { label: "$500", amounts: [500], description: "Single purple chip" },
     { label: "$1000", amounts: [1000], description: "Single yellow chip" },
-
-    // --- Vertical stacks ---
     { label: "$2 (2×$1)", amounts: [2], description: "2 white chips stacked" },
     { label: "$3 (3×$1)", amounts: [3], description: "3 white chips stacked" },
     { label: "$4 (4×$1)", amounts: [4], description: "4 white chips stacked (cap)" },
     { label: "$10 (2×$5)", amounts: [10], description: "2 red chips stacked" },
     { label: "$200 (2×$100)", amounts: [200], description: "2 black chips stacked" },
     { label: "$400 (4×$100)", amounts: [400], description: "4 black chips (vis cap)" },
-
-    // --- 2 columns ---
     { label: "$6 (5+1)", amounts: [6], description: "1 red + 1 white" },
     { label: "$30 (25+5)", amounts: [30], description: "1 green + 1 red" },
     { label: "$125 (100+25)", amounts: [125], description: "1 black + 1 green" },
     { label: "$150 (100+2×25)", amounts: [150], description: "1 black + 2 green stacked" },
     { label: "$600 (500+100)", amounts: [600], description: "1 purple + 1 black" },
-
-    // --- 3 columns ---
     { label: "$31 (25+5+1)", amounts: [31], description: "green + red + white" },
     { label: "$130 (100+25+5)", amounts: [130], description: "black + green + red" },
     { label: "$312 (3×100+2×5+2×1)", amounts: [312], description: "3 stacked + 2 cols" },
     { label: "$5555", amounts: [5555], description: "orange + purple + green (capped)" },
-
-    // --- Multi-action (betting rounds) ---
     { label: "BB + Call", amounts: [0.04, 0.08], description: "2 actions → 2 white chips" },
     { label: "SB + Call + Call", amounts: [0.02, 0.06, 0.12], description: "3 actions → 3 chips" },
     { label: "BB($50) + Call($100)", amounts: [50, 100], description: "2 green + 1 black" },
@@ -89,7 +73,6 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
     const usdcAmounts = liveAmounts.map(dollarsToUsdc);
     const totalUsdc = dollarsToUsdc(totalDollars);
 
-    // Decompose for breakdown display
     const breakdownPerAction = liveAmounts.map(amt => ({
         dollars: amt,
         stacks: decomposeAmount(Math.floor(amt)),
@@ -104,14 +87,13 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 className="bg-surface-card rounded-2xl shadow-2xl border border-line w-[800px] max-w-[95vw] max-h-[92vh] sm:max-h-[90vh] overflow-y-auto"
                 onClick={e => e.stopPropagation()}
             >
-                {/* Header */}
                 <div className="flex items-center justify-between gap-3 px-5 sm:px-6 py-3 border-b border-line">
                     <h2 className="m-0 text-[17px] font-semibold text-ink">Chip Debug Panel</h2>
                     <button
                         type="button"
                         onClick={onClose}
                         aria-label="Close"
-                        className="-mr-2.5 shrink-0 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
+                        className="-mr-2.5 shrink-0 w-11 h-11 grid place-items-center rounded-btn text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
                             <path strokeLinecap="round" d="M5 5l10 10M15 5L5 15" />
@@ -120,7 +102,6 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                 </div>
 
                 <div className="p-5 sm:p-6 space-y-6">
-                    {/* Live preview with dark table-like background */}
                     <div className="bg-surface-raised border border-line rounded-xl p-6 sm:p-8 flex flex-col items-center gap-6">
                         <span className="text-ink-muted text-xs uppercase tracking-[0.08em]">Live Preview (actual Chip component)</span>
                         <div className="flex items-center justify-center min-h-[60px]">
@@ -131,7 +112,6 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         </div>
                     </div>
 
-                    {/* Custom input */}
                     <div>
                         <label className="block mb-2 text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">
                             Custom amounts (dollar values, comma-separated for multiple actions):
@@ -148,7 +128,6 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         </p>
                     </div>
 
-                    {/* Presets grid */}
                     <div>
                         <span className="block mb-2 text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Presets:</span>
                         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
@@ -169,7 +148,6 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                         </div>
                     </div>
 
-                    {/* Decomposition breakdown */}
                     <div>
                         <span className="block mb-2 text-xs font-medium uppercase tracking-[0.08em] text-ink-muted">Breakdown:</span>
                         <div className="bg-surface-raised border border-line rounded-xl p-4 space-y-3">
@@ -200,7 +178,6 @@ const ChipDebugModal: React.FC<{ onClose: () => void }> = ({ onClose }) => {
                                 </div>
                             ))}
 
-                            {/* Summary */}
                             <div className="pt-2 border-t border-line text-xs text-ink-muted font-mono flex flex-wrap gap-x-4 gap-y-1">
                                 <span>Total stacks (columns): {breakdownPerAction.reduce((sum, a) => sum + a.stacks.length, 0)}</span>
                                 <span>Total visible chips: {breakdownPerAction.reduce((sum, a) => sum + a.stacks.reduce((s: number, st: ChipStackEntry) => s + st.visibleCount, 0), 0)}</span>

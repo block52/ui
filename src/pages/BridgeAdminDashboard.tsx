@@ -172,7 +172,6 @@ export default function BridgeAdminDashboard() {
         const newDeposits: Deposit[] = [];
 
         try {
-            // Connect to Ethereum
             const provider = new ethers.JsonRpcProvider(ethRpcUrl);
             const contract = new ethers.Contract(bridgeContractAddress, BRIDGE_DEPOSITS_ABI, provider);
 
@@ -233,7 +232,6 @@ export default function BridgeAdminDashboard() {
         }
     }, [currentPage, itemsPerPage, ethRpcUrl, checkProcessingStatus]);
 
-    // Process a single deposit
     const handleProcessDeposit = async (depositIndex: number) => {
         if (!cosmosWallet.address) {
             toast.error("No Block52 wallet found. Please create or import a wallet first.");
@@ -245,7 +243,6 @@ export default function BridgeAdminDashboard() {
         try {
             const { signingClient } = await getSigningClient(currentNetwork);
 
-            // Process the deposit
             const hash = await signingClient.processDeposit(depositIndex);
 
             // Wait for transaction confirmation
@@ -284,12 +281,10 @@ export default function BridgeAdminDashboard() {
         }
     };
 
-    // Load deposits on mount and when page changes
     useEffect(() => {
         loadDeposits();
     }, [currentPage, itemsPerPage, loadDeposits]);
 
-    // Load hot wallet info
     const loadHotWalletInfo = useCallback(async () => {
         setIsLoadingHotWallet(true);
         try {
@@ -306,12 +301,10 @@ export default function BridgeAdminDashboard() {
         }
     }, []);
 
-    // Load hot wallet info on mount
     useEffect(() => {
         loadHotWalletInfo();
     }, [loadHotWalletInfo]);
 
-    // Handle manual bridge submission
     const handleManualBridge = async (e: React.FormEvent) => {
         e.preventDefault();
 
@@ -343,9 +336,7 @@ export default function BridgeAdminDashboard() {
                 toast.success(`Bridge successful! TX: ${response.txHash.slice(0, 10)}...`);
                 setManualCosmosAddress("");
                 setManualAmount("");
-                // Reload hot wallet info
                 loadHotWalletInfo();
-                // Reload deposits to show the new one
                 loadDeposits();
             } else {
                 toast.error(response.message || "Bridge failed");
@@ -358,7 +349,6 @@ export default function BridgeAdminDashboard() {
         }
     };
 
-    // Handle approve bridge
     const handleApproveBridge = async () => {
         setIsApproving(true);
         try {
@@ -378,21 +368,18 @@ export default function BridgeAdminDashboard() {
         }
     };
 
-    // Handle items per page change - save to localStorage
     const handleItemsPerPageChange = (value: number) => {
         setItemsPerPage(value);
         localStorage.setItem(STORAGE_KEYS.bridgeItemsPerPage, value.toString());
         setCurrentPage(1);
     };
 
-    // Handle sort order change - save to localStorage
     const handleSortOrderChange = () => {
         const newOrder = sortOrder === "desc" ? "asc" : "desc";
         setSortOrder(newOrder);
         localStorage.setItem(STORAGE_KEYS.bridgeSortOrder, newOrder);
     };
 
-    // Process all pending deposits
     const handleProcessAllPending = async () => {
         const pendingDeposits = deposits.filter(d => d.status === "pending");
         if (isEmpty(pendingDeposits)) {
@@ -446,7 +433,6 @@ export default function BridgeAdminDashboard() {
         })
         .sort((a, b) => (sortOrder === "desc" ? b.index - a.index : a.index - b.index));
 
-    // Stats
     const totalDeposits = deposits.length;
     const processedCount = deposits.filter(d => d.status === "processed").length;
     const pendingCount = deposits.filter(d => d.status === "pending").length;
@@ -461,7 +447,6 @@ export default function BridgeAdminDashboard() {
     return (
         <div className="min-h-screen bg-surface-page">
             <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
-                {/* Header */}
                 <div>
                     <h1 className="m-0 text-[28px] font-semibold text-ink">Bridge Admin Dashboard</h1>
                     <p className="mt-1 mb-0 text-ink-muted">
@@ -470,7 +455,6 @@ export default function BridgeAdminDashboard() {
                     </p>
                 </div>
 
-                {/* Configuration Error Warning */}
                 {configError && (
                     <div className={`${noticeClass.error} flex items-start gap-3`}>
                         <svg className="w-5 h-5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -491,7 +475,6 @@ export default function BridgeAdminDashboard() {
                     </div>
                 )}
 
-                {/* Stats */}
                 <StatStrip
                     items={[
                         { label: "Total Deposits", value: totalDeposits },
@@ -500,7 +483,6 @@ export default function BridgeAdminDashboard() {
                     ]}
                 />
 
-                {/* Manual Bridge Section - Collapsible */}
                 <Card>
                     <button
                         type="button"
@@ -524,7 +506,6 @@ export default function BridgeAdminDashboard() {
                     {showManualBridge && (
                         <div className="p-5 border-t border-line">
                             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                                {/* Hot Wallet Info */}
                                 <div className={`${insetBoxClass} p-4`}>
                                     <div className="flex items-center justify-between gap-3 mb-3">
                                         <h4 className="m-0 text-sm font-semibold text-ink">Hot Wallet</h4>
@@ -574,7 +555,6 @@ export default function BridgeAdminDashboard() {
                                     )}
                                 </div>
 
-                                {/* Manual Bridge Form */}
                                 <form onSubmit={handleManualBridge} className={`${insetBoxClass} p-4`}>
                                     <h4 className="m-0 mb-3 text-sm font-semibold text-ink">Send USDC to Block52</h4>
                                     <div className="flex flex-col gap-4">
@@ -623,7 +603,6 @@ export default function BridgeAdminDashboard() {
                     )}
                 </Card>
 
-                {/* Bridge Sync Status */}
                 <Card>
                     <CardHeader
                         title="Bridge Sync Status"
@@ -661,7 +640,6 @@ export default function BridgeAdminDashboard() {
                     </div>
                 </Card>
 
-                {/* Deposits: controls + table */}
                 <Card>
                     <CardHeader
                         title="Deposits"
@@ -751,7 +729,7 @@ export default function BridgeAdminDashboard() {
                                                         type="button"
                                                         onClick={() => copyToClipboard(deposit.recipient, "Address copied!")}
                                                         aria-label="Copy address"
-                                                        className="w-11 h-11 sm:w-8 sm:h-8 grid place-items-center rounded-full flex-shrink-0 text-ink-muted hover:text-ink hover:bg-surface-raised transition-colors"
+                                                        className="w-11 h-11 sm:w-8 sm:h-8 grid place-items-center rounded-btn flex-shrink-0 text-ink-muted hover:text-ink hover:bg-surface-raised transition-colors"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                             <path
@@ -821,7 +799,6 @@ export default function BridgeAdminDashboard() {
                         </table>
                     </div>
 
-                    {/* Pagination Controls */}
                     <div className="px-5 py-4 border-t border-line flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="text-ink-muted text-sm">
                             Page {currentPage} of {totalPages > 0 ? totalPages : 1} • Showing deposits {(currentPage - 1) * itemsPerPage} -{" "}
@@ -846,7 +823,6 @@ export default function BridgeAdminDashboard() {
                     </div>
                 </Card>
 
-                {/* Info Box */}
                 <div className={`${noticeClass.info} !p-4`}>
                     <h3 className="m-0 mb-2 text-sm font-semibold text-ink">How This Works</h3>
                     <ul className="m-0 text-sm space-y-1 list-disc list-inside text-ink-soft">

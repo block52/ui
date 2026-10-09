@@ -1,0 +1,51 @@
+/*
+ * Colour tokens for both themes, as space-separated RGB channels so Tailwind can add
+ * opacity (bg-surface-card/60). tailwind.config.js reads these variables; CSS modules
+ * use rgb(var(--surface-card)). Dark is the default; <html data-theme="light"> switches.
+ * The felt, chips and suit colours are not themed: the table page always renders dark.
+ */
+:root {
+    --surface-page: 18 19 28;
+    --surface-card: 22 23 34;
+    --surface-raised: 28 30 43;
+    --surface-hover: 35 38 54;
+    --line: 38 41 56;
+    --line-strong: 44 47 69;
+    --ink: 245 245 247;
+    --ink-body: 228 228 234;
+    --ink-soft: 180 182 200;
+    --ink-muted: 142 144 166;
+    --overlay: 0 0 0;
+    --page-bg: #12131c;
+    --radius-btn: 0.625rem;
+    color-scheme: dark;
+}
+
+:root[data-theme="light"] {
+    --surface-page: 246 246 250;
+    --surface-card: 255 255 255;
+    --surface-raised: 241 242 247;
+    --surface-hover: 233 234 242;
+    --line: 227 228 238;
+    --line-strong: 208 210 224;
+    --ink: 20 21 31;
+    --ink-body: 38 40 56;
+    --ink-soft: 74 77 99;
+    --ink-muted: 107 111 134;
+    --overlay: 20 21 31;
+    --page-bg: #f6f6fa;
+    color-scheme: light;
+}
+
+/*
+ * Semantic text colours chosen for dark surfaces (400/300 shades) are too faint on white,
+ * so light mode maps them to the darker shades of the same hue.
+ */
+:root[data-theme="light"] .text-emerald-400 { color: #047857; }
+:root[data-theme="light"] .text-emerald-300 { color: #047857; }
+:root[data-theme="light"] .text-red-400 { color: #b91c1c; }
+:root[data-theme="light"] .text-red-300 { color: #b91c1c; }
+:root[data-theme="light"] .text-amber-300 { color: #92400e; }
+:root[data-theme="light"] .text-amber-400 { color: #b45309; }
+:root[data-theme="light"] .text-yellow-300 { color: #a16207; }
+:root[data-theme="light"] .text-amber-300\/70 { color: rgb(146 64 14 / 0.8); }

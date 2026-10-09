@@ -111,13 +111,13 @@ const NoWalletOverlay: React.FC<NoWalletOverlayProps> = ({ onWalletReady }) => {
                             <button
                                 onClick={handleCreate}
                                 disabled={isBusy}
-                                className={`w-full py-3 rounded-full font-semibold text-white disabled:opacity-50 transition-all ${styles.primaryButton}`}
+                                className={`w-full py-3 rounded-btn font-semibold text-white disabled:opacity-50 transition-all ${styles.primaryButton}`}
                             >
                                 {isBusy ? "Generating..." : "Create New Wallet"}
                             </button>
                             <button
                                 onClick={() => setStep("importing")}
-                                className={`w-full py-3 rounded-full font-semibold text-white transition-all ${styles.secondaryButton}`}
+                                className={`w-full py-3 rounded-btn font-semibold text-white transition-all ${styles.secondaryButton}`}
                             >
                                 Import Existing Wallet
                             </button>
@@ -153,7 +153,7 @@ const NoWalletOverlay: React.FC<NoWalletOverlayProps> = ({ onWalletReady }) => {
 
                         <button
                             onClick={handleCopySeed}
-                            className={`relative w-full py-2 rounded-full text-sm font-medium transition-all ${styles.copyButton}`}
+                            className={`relative w-full py-2 rounded-btn text-sm font-medium transition-all ${styles.copyButton}`}
                         >
                             {seedCopied ? "✓ Copied!" : "Copy to Clipboard"}
                         </button>
@@ -162,13 +162,13 @@ const NoWalletOverlay: React.FC<NoWalletOverlayProps> = ({ onWalletReady }) => {
                             <button
                                 onClick={handleConfirmSeedPhrase}
                                 disabled={isBusy}
-                                className={`w-full py-3 rounded-full font-semibold text-white disabled:opacity-50 transition-all ${styles.primaryButton}`}
+                                className={`w-full py-3 rounded-btn font-semibold text-white disabled:opacity-50 transition-all ${styles.primaryButton}`}
                             >
                                 {isBusy ? "Saving..." : "I've Saved My Seed Phrase — Continue"}
                             </button>
                             <button
                                 onClick={() => setStep("choose")}
-                                className={`w-full py-2 rounded-full text-sm transition-all ${styles.ghostButton}`}
+                                className={`w-full py-2 rounded-btn text-sm transition-all ${styles.ghostButton}`}
                             >
                                 Back
                             </button>
@@ -206,13 +206,13 @@ const NoWalletOverlay: React.FC<NoWalletOverlayProps> = ({ onWalletReady }) => {
                             <button
                                 onClick={handleImport}
                                 disabled={isBusy || !importPhrase.trim()}
-                                className={`w-full py-3 rounded-full font-semibold text-white disabled:opacity-50 transition-all ${styles.primaryButton}`}
+                                className={`w-full py-3 rounded-btn font-semibold text-white disabled:opacity-50 transition-all ${styles.primaryButton}`}
                             >
                                 {isBusy ? "Importing..." : "Import Wallet"}
                             </button>
                             <button
                                 onClick={() => { setStep("choose"); setError(""); }}
-                                className={`w-full py-2 rounded-full text-sm transition-all ${styles.ghostButton}`}
+                                className={`w-full py-2 rounded-btn text-sm transition-all ${styles.ghostButton}`}
                             >
                                 Back
                             </button>

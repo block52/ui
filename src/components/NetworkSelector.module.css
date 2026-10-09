@@ -1,14 +1,14 @@
 .dropdownButton {
   background-color: transparent;
-  border: 1px solid #2c2f45;
-  color: #e4e4ea;
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink-body));
 }
 
 .dropdownButton:hover {
-  background-color: #232636;
-  border-color: #3a3d52;
+  background-color: rgb(var(--surface-hover));
+  border-color: rgb(var(--ink-muted));
 }
 
 .dropdownMenu {
-  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.35);
 }

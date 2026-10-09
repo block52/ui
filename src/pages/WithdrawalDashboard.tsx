@@ -25,8 +25,7 @@ import { describeWithdrawError } from "../utils/withdrawalSignature";
  * 2-step withdrawal flow:
  *   Step 1: User sends withdrawal request to Block52 (signed by cosmos key, eth address in message).
  *   Step 2: User calls the deposit contract withdraw() on Ethereum via MetaMask, with a
- *           validator's signature: the one stored on chain if any, else one fetched from a
- *           validator's withdrawal_signature query (pokerchain#392).
+ *           validator's signature.
  *
  * This dashboard auto-polls for pending withdrawals so users see status updates in real time.
  */
@@ -54,27 +53,23 @@ export default function WithdrawalDashboard() {
     const [processingNonce, setProcessingNonce] = useState<string | null>(null);
     const [filter, setFilter] = useState<"all" | "pending" | "signed" | "completed">("all");
 
-    // Withdrawal initiation modal state
     const [showInitiateModal, setShowInitiateModal] = useState(false);
     const [withdrawalAmount, setWithdrawalAmount] = useState("");
     const [withdrawalBaseAddress, setWithdrawalBaseAddress] = useState("");
     const [isInitiating, setIsInitiating] = useState(false);
 
-    // Signature modal state
     const [showSignatureModal, setShowSignatureModal] = useState(false);
     const [selectedWithdrawal, setSelectedWithdrawal] = useState<Withdrawal | null>(null);
 
     // Bridge configuration - Ethereum Mainnet
     const bridgeContractAddress = COSMOS_BRIDGE_ADDRESS;
 
-    // Load withdrawal base address from connected wallet
     useEffect(() => {
         if (isConnected && baseAddress) {
             setWithdrawalBaseAddress(baseAddress);
         }
     }, [isConnected, baseAddress]);
 
-    // Load withdrawals for current user
     const loadWithdrawals = useCallback(async () => {
         if (!cosmosWallet.address) {
             setWithdrawals([]);
@@ -86,10 +81,8 @@ export default function WithdrawalDashboard() {
         try {
             const { signingClient } = await getSigningClient(currentNetwork);
 
-            // Fetch withdrawal requests for this user
             const withdrawalRequests = await signingClient.listWithdrawalRequests(cosmosWallet.address);
 
-            // Map to display format
             const mappedWithdrawals: Withdrawal[] = withdrawalRequests.map((wr: any) => ({
                 nonce: wr.nonce,
                 cosmosAddress: wr.cosmos_address,
@@ -109,7 +102,6 @@ export default function WithdrawalDashboard() {
         }
     }, [cosmosWallet.address, currentNetwork]);
 
-    // Initiate a new withdrawal
     const handleInitiateWithdrawal = async () => {
         if (!cosmosWallet.address) {
             toast.error("No Block52 wallet found. Please create or import a wallet first.");
@@ -126,7 +118,6 @@ export default function WithdrawalDashboard() {
             return;
         }
 
-        // Validate Base address format
         if (!ethers.isAddress(withdrawalBaseAddress)) {
             toast.error("Invalid Ethereum address");
             return;
@@ -137,10 +128,8 @@ export default function WithdrawalDashboard() {
         try {
             const { signingClient } = await getSigningClient(currentNetwork);
 
-            // Convert USDC to micro (6 decimals)
             const microAmount = parseUsdcToMicro(withdrawalAmount);
 
-            // Initiate the withdrawal
             const hash = await signingClient.initiateWithdrawal(withdrawalBaseAddress, microAmount);
 
             toast.success(
@@ -150,7 +139,6 @@ export default function WithdrawalDashboard() {
                 </div>
             );
 
-            // Close modal and reset form
             setShowInitiateModal(false);
             setWithdrawalAmount("");
             setWithdrawalBaseAddress(baseAddress || "");
@@ -167,7 +155,6 @@ export default function WithdrawalDashboard() {
         }
     };
 
-    // Complete a signed withdrawal on Ethereum
     const handleCompleteWithdrawal = async (withdrawal: Withdrawal) => {
         if (!isConnected || !baseAddress) {
             toast.error("Please connect your Ethereum wallet first");
@@ -177,16 +164,13 @@ export default function WithdrawalDashboard() {
         setProcessingNonce(withdrawal.nonce);
 
         try {
-            // Ask a validator first: anyone can overwrite the signature stored on
-            // chain with one the bridge rejects (pokerchain#358). Fall back to the
-            // stored one (base64) only if no validator answers (pokerchain#392).
+            // Ask a validator first: the signature stored on chain can be overwritten with one the bridge rejects. Fall back to it only if no validator answers.
             const hexSignature = await fetchWithdrawalSignature(withdrawal).catch((err: unknown) => {
                 if (!withdrawal.signature) throw err;
                 console.error("No validator signature; using the one stored on chain:", err);
                 return base64ToHex(withdrawal.signature);
             });
 
-            // Use the useWithdraw hook which properly uses wagmi/reown wallet
             await withdraw(
                 withdrawal.nonce,
                 withdrawal.baseAddress,
@@ -207,7 +191,6 @@ export default function WithdrawalDashboard() {
         }
     };
 
-    // Handle withdrawal confirmation via useWithdraw hook
     useEffect(() => {
         if (isWithdrawConfirmed && processingNonce) {
             toast.success(
@@ -217,7 +200,6 @@ export default function WithdrawalDashboard() {
                 </div>
             );
 
-            // Update withdrawal status to completed
             setWithdrawals(prev =>
                 prev.map(w =>
                     w.nonce === processingNonce ? { ...w, status: "completed" as const, txHash: hash } : w
@@ -226,14 +208,12 @@ export default function WithdrawalDashboard() {
 
             setProcessingNonce(null);
 
-            // Refresh withdrawals from chain
             setTimeout(() => {
                 loadWithdrawals();
             }, 2000);
         }
     }, [isWithdrawConfirmed, processingNonce, hash, loadWithdrawals]);
 
-    // Handle withdrawal errors
     useEffect(() => {
         if (withdrawError && processingNonce) {
             console.error("Withdrawal error:", withdrawError);
@@ -242,19 +222,16 @@ export default function WithdrawalDashboard() {
         }
     }, [withdrawError, processingNonce]);
 
-    // Load withdrawals on mount and when wallet changes
     useEffect(() => {
         loadWithdrawals();
     }, [loadWithdrawals]);
 
-    // Auto-poll for pending withdrawals every 5 seconds
     const autoPollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
     useEffect(() => {
         const hasPending = withdrawals.some(w => w.status === "pending");
 
         if (hasPending && cosmosWallet.address) {
-            // Start auto-polling
             if (!autoPollRef.current) {
                 autoPollRef.current = setInterval(() => {
                     loadWithdrawals();
@@ -276,25 +253,21 @@ export default function WithdrawalDashboard() {
         };
     }, [withdrawals, cosmosWallet.address, loadWithdrawals]);
 
-    // Filter withdrawals based on selected filter
     const filteredWithdrawals = withdrawals.filter(withdrawal => {
         if (filter === "all") return true;
         return withdrawal.status === filter;
     });
 
-    // Stats
     const totalWithdrawals = withdrawals.length;
     const pendingCount = withdrawals.filter(w => w.status === "pending").length;
     const signedCount = withdrawals.filter(w => w.status === "signed").length;
     const completedCount = withdrawals.filter(w => w.status === "completed").length;
 
-    // Handle opening the signature modal
     const handleViewSignature = (withdrawal: Withdrawal) => {
         setSelectedWithdrawal(withdrawal);
         setShowSignatureModal(true);
     };
 
-    // Compute hex signature for selected withdrawal
     const selectedSignatureHex = useMemo(() => {
         if (!selectedWithdrawal?.signature) return null;
         try {
@@ -319,7 +292,7 @@ export default function WithdrawalDashboard() {
 
     const thClass = "px-5 py-3 text-xs font-medium uppercase tracking-[0.1em] text-ink-muted whitespace-nowrap";
     const iconButtonClass =
-        "shrink-0 w-11 h-11 sm:w-9 sm:h-9 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
+        "shrink-0 w-11 h-11 sm:w-9 sm:h-9 grid place-items-center rounded-btn text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light";
 
     const copyIcon = (
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -349,7 +322,6 @@ export default function WithdrawalDashboard() {
             onClick={() => handleCompleteWithdrawal(withdrawal)}
             disabled={processingNonce === withdrawal.nonce || !isConnected || !baseAddress}
             title={withTitle && (!isConnected || !baseAddress) ? "Connect your Ethereum wallet first" : undefined}
-            className="min-h-11 sm:min-h-9"
         >
             {processingNonce === withdrawal.nonce ? "Completing..." : "Complete on Ethereum"}
         </PillButton>
@@ -358,7 +330,6 @@ export default function WithdrawalDashboard() {
     return (
         <div className="min-h-screen bg-surface-page">
             <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
-                {/* Header */}
                 <div>
                     <h1 className="m-0 text-[28px] font-semibold text-ink">USDC Withdrawals</h1>
                     <p className="mt-1 mb-0 text-ink-muted">
@@ -367,7 +338,6 @@ export default function WithdrawalDashboard() {
                     </p>
                 </div>
 
-                {/* Stats */}
                 <StatStrip
                     items={[
                         { label: "Total Withdrawals", value: totalWithdrawals },
@@ -377,7 +347,6 @@ export default function WithdrawalDashboard() {
                     ]}
                 />
 
-                {/* Wallet Status */}
                 <Card>
                     <CardHeader title="Wallets" />
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-5">
@@ -396,7 +365,6 @@ export default function WithdrawalDashboard() {
                     </div>
                 </Card>
 
-                {/* Withdrawals */}
                 <Card>
                     <CardHeader
                         title="Withdrawals"
@@ -416,10 +384,10 @@ export default function WithdrawalDashboard() {
                                     <option value="signed">Signed</option>
                                     <option value="completed">Completed</option>
                                 </select>
-                                <PillButton variant="outline" size="sm" onClick={loadWithdrawals} disabled={isLoading} className="min-h-11 sm:min-h-9">
+                                <PillButton variant="outline" size="sm" onClick={loadWithdrawals} disabled={isLoading}>
                                     {isLoading ? "Loading..." : "Refresh"}
                                 </PillButton>
-                                <PillButton size="sm" onClick={() => setShowInitiateModal(true)} disabled={!cosmosWallet.address} className="min-h-11 sm:min-h-9">
+                                <PillButton size="sm" onClick={() => setShowInitiateModal(true)} disabled={!cosmosWallet.address}>
                                     + New Withdrawal
                                 </PillButton>
                             </>
@@ -503,7 +471,6 @@ export default function WithdrawalDashboard() {
                                                             size="sm"
                                                             onClick={() => handleViewSignature(withdrawal)}
                                                             title="View signature details"
-                                                            className="min-h-11 sm:min-h-9"
                                                         >
                                                             {eyeIcon}
                                                             View Sig
@@ -521,7 +488,6 @@ export default function WithdrawalDashboard() {
                     </div>
                 </Card>
 
-                {/* Info Box */}
                 <div className={`${noticeClass.info} !p-4`}>
                     <h3 className="m-0 mb-2 text-sm font-semibold text-ink">How Withdrawals Work</h3>
                     <ul className="m-0 pl-4 space-y-1 list-disc text-ink-soft text-sm">
@@ -540,7 +506,6 @@ export default function WithdrawalDashboard() {
                 </div>
             </div>
 
-            {/* Initiate Withdrawal Modal */}
             <Modal
                 isOpen={showInitiateModal}
                 onClose={() => {
@@ -549,6 +514,7 @@ export default function WithdrawalDashboard() {
                 }}
                 title="Initiate Withdrawal"
                 isProcessing={isInitiating}
+                closeOnBackdropClick={false}
                 widthClass="w-[28rem]"
             >
                 <div className="space-y-4">
@@ -609,7 +575,6 @@ export default function WithdrawalDashboard() {
                 </div>
             </Modal>
 
-            {/* Signature Modal */}
             <SignatureModal
                 isOpen={showSignatureModal}
                 onClose={() => {

@@ -1,10 +1,9 @@
-import React, { useEffect, useCallback } from "react";
+import React, { useCallback, useEffect, useRef } from "react";
+import { useFocusTrap } from "../../hooks/useFocusTrap";
+import { focusRing } from "../ui/focusRing";
 import { colors, getHexagonStroke } from "../../utils/colorConfig";
 import styles from "./Modal.module.css";
 
-/**
- * Shared hexagon pattern background for modals
- */
 const HexagonPattern = React.memo<{ patternId?: string }>(({ patternId = "hexagons-modal" }) => (
     <div className="absolute inset-0 opacity-5 overflow-hidden pointer-events-none">
         <svg width="100%" height="100%" xmlns="http://www.w3.org/2000/svg">
@@ -25,9 +24,6 @@ const HexagonPattern = React.memo<{ patternId?: string }>(({ patternId = "hexago
 
 HexagonPattern.displayName = "HexagonPattern";
 
-/**
- * Decorative card suits for modal corners
- */
 const CardSuits = React.memo(() => (
     <>
         <div className="absolute -right-8 -top-8 text-6xl opacity-10 rotate-12">♠</div>
@@ -38,13 +34,9 @@ const CardSuits = React.memo(() => (
 CardSuits.displayName = "CardSuits";
 
 export interface BaseModalProps {
-    /** Whether the modal is currently open/visible */
     isOpen: boolean;
-    /** Callback when modal should be closed */
     onClose: () => void;
-    /** Modal content */
     children: React.ReactNode;
-    /** Optional title displayed at top of modal */
     title?: string;
     /** Optional one-line description shown under the title */
     subtitle?: string;
@@ -72,35 +64,17 @@ export interface BaseModalProps {
     closeOnBackdropClick?: boolean;
     /** Whether the modal content should scroll when it overflows (default: true) */
     scrollable?: boolean;
+    /** Hide the title row's close X, for flows where closing would lose data (default: false) */
+    hideCloseButton?: boolean;
+    /** Accessible name when the modal has no visible `title` */
+    ariaLabel?: string;
 }
 
 /**
- * BaseModal - A reusable modal component with consistent styling
- *
- * Features:
- * - Dark backdrop with blur
- * - surface-card panel, 1px line border, rounded-2xl
- * - Title row with a ghost close button (when a title is given)
- * - Bottom sheet on phones (full width, pinned to the bottom)
- * - Error display
- * - Keyboard shortcuts (Escape to close)
- * - Close on backdrop click
- * - Optional hexagon pattern / card-suit decorations (off by default)
- *
- * @example
- * ```tsx
- * <Modal
- *   isOpen={isOpen}
- *   onClose={handleClose}
- *   title="Confirm Action"
- *   titleIcon="⚠"
- *   error={error}
- *   isProcessing={isLoading}
- * >
- *   <p>Modal content here</p>
- *   <button onClick={handleConfirm}>Confirm</button>
- * </Modal>
- * ```
+ * Shared dialog shell: backdrop, title row with close X, error banner, bottom sheet on phones.
+ * Focus moves into the dialog on open (an element marked `data-autofocus`, else the first
+ * control that is not the close X), is trapped by Tab/Shift+Tab, and returns to the trigger on
+ * close. While `isProcessing`, Escape, the backdrop and the X are all inert.
  */
 export const Modal: React.FC<BaseModalProps> = React.memo(
     ({
@@ -120,9 +94,13 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
         patternId,
         closeOnEscape = true,
         closeOnBackdropClick = true,
-        scrollable = true
+        scrollable = true,
+        hideCloseButton = false,
+        ariaLabel
     }) => {
-        // Handle Escape key press
+        const dialogRef = useRef<HTMLDivElement>(null);
+        useFocusTrap(dialogRef, isOpen);
+
         useEffect(() => {
             if (!isOpen || !closeOnEscape) return;
 
@@ -136,35 +114,30 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
             return () => window.removeEventListener("keydown", handleKeyDown);
         }, [isOpen, onClose, isProcessing, closeOnEscape]);
 
-        // Handle backdrop click
         const handleBackdropClick = useCallback(() => {
             if (closeOnBackdropClick && !isProcessing) {
                 onClose();
             }
         }, [closeOnBackdropClick, isProcessing, onClose]);
 
-        // Don't render if not open
         if (!isOpen) return null;
 
         return (
             <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center sm:p-4">
-                {/* Backdrop */}
-                <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={handleBackdropClick} />
+                <div className="absolute inset-0 bg-overlay/70 backdrop-blur-sm" onClick={handleBackdropClick} />
 
-                {/* Modal Container */}
                 <div
+                    ref={dialogRef}
+                    tabIndex={-1}
                     role="dialog"
                     aria-modal="true"
-                    aria-label={title}
-                    className={`relative bg-surface-card border border-line rounded-2xl shadow-2xl text-ink-body p-5 sm:p-6 overflow-x-hidden ${scrollable ? "overflow-y-auto max-h-[92vh] sm:max-h-[90vh]" : "overflow-y-hidden"} ${widthClass} max-w-[95vw] ${className} ${styles.modalContainer}`}
+                    aria-label={title ?? ariaLabel}
+                    className={`relative bg-surface-card border border-line rounded-2xl shadow-2xl text-ink-body p-5 sm:p-6 overflow-x-hidden focus:outline-none ${scrollable ? "overflow-y-auto max-h-[92vh] sm:max-h-[90vh]" : "overflow-y-hidden"} ${widthClass} ${className} ${styles.modalContainer}`}
                 >
-                    {/* Hexagon pattern background */}
                     {showHexagonPattern && <HexagonPattern patternId={patternId} />}
 
-                    {/* Decorative card suits */}
                     {showCardSuits && <CardSuits />}
 
-                    {/* Title row */}
                     {title && (
                         <div className="relative flex items-center justify-between gap-3 -mt-1.5 mb-4 pb-3 border-b border-line">
                             <div className="min-w-0">
@@ -178,21 +151,23 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
                                 </h2>
                                 {subtitle && <p className="m-0 mt-0.5 text-sm font-normal text-ink-muted">{subtitle}</p>}
                             </div>
-                            <button
-                                type="button"
-                                onClick={onClose}
-                                disabled={isProcessing}
-                                aria-label="Close"
-                                className="-mr-2.5 shrink-0 w-11 h-11 grid place-items-center rounded-full text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-light"
-                            >
-                                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                                    <path strokeLinecap="round" d="M5 5l10 10M15 5L5 15" />
-                                </svg>
-                            </button>
+                            {!hideCloseButton && (
+                                <button
+                                    type="button"
+                                    onClick={onClose}
+                                    disabled={isProcessing}
+                                    aria-label="Close"
+                                    data-modal-close=""
+                                    className={`-mr-2.5 shrink-0 w-11 h-11 grid place-items-center rounded-btn text-ink-muted hover:text-ink hover:bg-surface-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed ${focusRing}`}
+                                >
+                                    <svg className="w-5 h-5" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                                        <path strokeLinecap="round" d="M5 5l10 10M15 5L5 15" />
+                                    </svg>
+                                </button>
+                            )}
                         </div>
                     )}
 
-                    {/* Error Display */}
                     {error && (
                         <div role="alert" className="relative mb-4 flex items-start gap-2 p-3 rounded-xl border border-red-500/30 bg-red-500/10 text-red-400 text-sm">
                             <svg className="w-4 h-4 mt-0.5 shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
@@ -206,7 +181,6 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
                         </div>
                     )}
 
-                    {/* Modal Content */}
                     {children}
                 </div>
             </div>
@@ -216,7 +190,6 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
 
 Modal.displayName = "Modal";
 
-// Re-export the hexagon pattern for use in custom implementations
 export { HexagonPattern };
 
 export default Modal;

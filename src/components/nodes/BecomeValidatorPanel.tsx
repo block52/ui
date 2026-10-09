@@ -21,12 +21,7 @@ const Field: FC<{ label: string; hint?: string; error?: string | null; children:
     </label>
 );
 
-/**
- * Self-service bonding: MsgCreateValidator from the connected Block52 wallet.
- * The UI checks what the chain can't: that one validator never gets enough power
- * to halt the chain alone, and that the operator confirms the node is synced
- * with this exact consensus key.
- */
+// The UI checks what the chain can't: one validator never gets enough power to halt the chain alone, and the operator confirms the node is synced with this key.
 export const BecomeValidatorPanel: FC<{ overview: ChainOverview; onBonded: () => void }> = ({ overview, onBonded }) => {
     const { address, balance } = useCosmosWallet();
     const { createValidator, isSubmitting, error: submitError, txHash } = useCreateValidator();
@@ -101,7 +96,7 @@ export const BecomeValidatorPanel: FC<{ overview: ChainOverview; onBonded: () =>
         return (
             <Card className="p-6 text-ink-soft">
                 Bonding is signed by your Block52 wallet, whose account becomes the validator&apos;s operator.{" "}
-                <Link to="/wallet" className="text-brand-light hover:text-ink underline-offset-2 hover:underline">
+                <Link to="/wallet" className="text-brand dark:text-brand-light hover:text-ink underline-offset-2 hover:underline">
                     Create or import a wallet
                 </Link>{" "}
                 first.

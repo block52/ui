@@ -2,35 +2,3 @@
   background-color: color-mix(in srgb, var(--accent-success) 95%, transparent);
   border-color: var(--accent-success);
 }
-
-.successBg {
-  background-color: var(--accent-success);
-}
-
-.balanceBox {
-  background-color: color-mix(in srgb, var(--ui-bg-medium) 60%, transparent);
-  border: 1px solid color-mix(in srgb, var(--brand-primary) 30%, transparent);
-}
-
-.cancelGradientButton {
-  background: linear-gradient(
-    135deg,
-    var(--accent-danger) 0%,
-    color-mix(in srgb, var(--accent-danger) 80%, transparent) 100%
-  );
-}
-
-.successText {
-  color: var(--accent-success);
-}
-
-.seedPhraseCopyDefault {
-  background-color: var(--ui-bg-medium);
-  border: 1px solid var(--ui-border-color);
-}
-
-.seedPhraseCopySuccess {
-  background-color: var(--accent-success);
-  border: 1px solid var(--ui-border-color);
-}
-

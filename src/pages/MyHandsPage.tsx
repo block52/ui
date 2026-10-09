@@ -16,7 +16,7 @@ import type { PlayerHand } from "../types/players";
 const PAGE_SIZE = 25;
 
 const toneClass: Record<HandOutcomeTone, string> = {
-    won: "text-green-400 font-semibold",
+    won: "text-green-400 [[data-theme=light]_&]:text-green-700 font-semibold",
     lost: "text-red-400",
     neutral: "text-ink-soft"
 };

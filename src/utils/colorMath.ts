@@ -1,30 +1,25 @@
 /**
  * Pure hex-colour helpers used to derive theme tokens from the configurable
- * brand colour (VITE_BRAND_COLOR_PRIMARY). Kept free of `import.meta.env`
- * so they run under Jest.
+ * brand colour (VITE_BRAND_COLOR_PRIMARY).
  */
 
-const HEX_PATTERN = /^#[0-9a-fA-F]{6}$/;
+const HEX_PATTERN = /^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/;
 
-const parseHex = (hex: string): [number, number, number] => {
+/** Parse "#rgb" or "#rrggbb" into 0-255 channels; throws on anything else. */
+export const parseHex = (hex: string): [number, number, number] => {
     if (!HEX_PATTERN.test(hex)) {
-        throw new Error(`colorMath: "${hex}" is not a 6-digit hex colour`);
+        throw new Error(`colorMath: "${hex}" is not a 3- or 6-digit hex colour`);
     }
-    return [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
+    const full = hex.length === 4 ? `#${hex[1]}${hex[1]}${hex[2]}${hex[2]}${hex[3]}${hex[3]}` : hex;
+    return [parseInt(full.slice(1, 3), 16), parseInt(full.slice(3, 5), 16), parseInt(full.slice(5, 7), 16)];
 };
 
 const toHex = (channel: number): string => Math.round(channel).toString(16).padStart(2, "0");
 
-/**
- * Space-separated RGB channels for Tailwind's `rgb(var(--x) / <alpha-value>)`.
- * @example hexToRgbChannels("#7c3aed") // "124 58 237"
- */
+/** Space-separated channels for Tailwind's `rgb(var(--x) / <alpha-value>)`: "#7c3aed" gives "124 58 237". */
 export const hexToRgbChannels = (hex: string): string => parseHex(hex).join(" ");
 
-/**
- * Blend `hex` toward `target` by `amount` (0 keeps `hex`, 1 returns `target`).
- * @example mixHex("#000000", "#ffffff", 0.5) // "#808080"
- */
+/** Blend `hex` toward `target` by `amount` (0 keeps `hex`, 1 returns `target`). */
 export const mixHex = (hex: string, target: string, amount: number): string => {
     if (amount < 0 || amount > 1) {
         throw new Error(`colorMath: mix amount ${amount} is outside 0..1`);
@@ -32,4 +27,10 @@ export const mixHex = (hex: string, target: string, amount: number): string => {
     const from = parseHex(hex);
     const to = parseHex(target);
     return `#${from.map((c, i) => toHex(c + (to[i] - c) * amount)).join("")}`;
+};
+
+/** "rgba(r, g, b, alpha)" for a 3- or 6-digit hex; throws on invalid hex. */
+export const hexToRgba = (hex: string, alpha: number): string => {
+    const [r, g, b] = parseHex(hex);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };

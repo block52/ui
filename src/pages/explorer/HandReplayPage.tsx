@@ -145,7 +145,7 @@ export default function HandReplayPage() {
                                     </Link>
                                 </p>
                             )}
-                            <button onClick={fetchHand} className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-ink rounded transition-colors">
+                            <button onClick={fetchHand} className="mt-4 px-4 py-2 bg-red-700 hover:bg-red-600 text-white rounded transition-colors">
                                 Retry
                             </button>
                         </div>
@@ -235,7 +235,7 @@ export default function HandReplayPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                     <div>
                                         <p className="text-sm text-ink-muted">Winner(s)</p>
-                                        <p className="text-green-400 font-semibold">
+                                        <p className="text-green-400 [[data-theme=light]_&]:text-green-700 font-semibold">
                                             {hand.result.winner_count} winner{hand.result.winner_count !== 1 ? "s" : ""}
                                         </p>
                                     </div>
@@ -270,7 +270,7 @@ export default function HandReplayPage() {
                                                 className="text-ink-muted hover:text-ink transition-colors"
                                                 title="Copy deck string"
                                             >
-                                                {copiedField === "deck" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                                {copiedField === "deck" ? <FaCheck size={12} className="text-green-400 [[data-theme=light]_&]:text-green-700" /> : <FaCopy size={12} />}
                                             </button>
                                         </div>
                                         <p className="text-ink font-mono text-xs break-all bg-surface-raised rounded-lg p-3 border border-line">{hand.deck}</p>
@@ -287,7 +287,7 @@ export default function HandReplayPage() {
                                                 className="text-ink-muted hover:text-ink transition-colors"
                                                 title="Copy deck seed"
                                             >
-                                                {copiedField === "seed" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                                {copiedField === "seed" ? <FaCheck size={12} className="text-green-400 [[data-theme=light]_&]:text-green-700" /> : <FaCopy size={12} />}
                                             </button>
                                         </div>
                                         <p className="text-ink font-mono text-xs break-all bg-surface-raised rounded-lg p-3 border border-line">{hand.deck_seed}</p>
@@ -304,7 +304,7 @@ export default function HandReplayPage() {
                                                 className="text-ink-muted hover:text-ink transition-colors"
                                                 title="Copy deck hash"
                                             >
-                                                {copiedField === "hash" ? <FaCheck size={12} className="text-green-400" /> : <FaCopy size={12} />}
+                                                {copiedField === "hash" ? <FaCheck size={12} className="text-green-400 [[data-theme=light]_&]:text-green-700" /> : <FaCopy size={12} />}
                                             </button>
                                         </div>
                                         <p className="text-ink font-mono text-xs break-all bg-surface-raised rounded-lg p-3 border border-line">{deckHash}</p>

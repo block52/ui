@@ -17,8 +17,6 @@ import { ModalFooter } from "./ModalFooter";
 import { AmountPresets, type AmountPreset } from "./AmountPresets";
 import { CheckIcon, CopyIcon, SpinnerRing } from "./walletIcons";
 
-// ethers is still used for address validation in handleWithdraw
-
 /**
  * WithdrawalModal Component
  *
@@ -137,9 +135,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
 
                     const found = matching[0];
 
-                    // A validator signs on request (pokerchain#392). Prefer that to the
-                    // signature stored on chain, which anyone can overwrite with one the
-                    // bridge rejects (pokerchain#358); use the stored one only as a fallback.
+                    // Prefer a validator's on-demand signature: the one stored on chain can be overwritten with one the bridge rejects.
                     let signature: string | null = null;
                     if (found) {
                         signature = await fetchWithdrawalSignature({ nonce: found.nonce, baseAddress: found.base_address, amount: found.amount }).catch(
@@ -177,7 +173,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
         [currentNetwork, cosmosAddress, fetchWithdrawalSignature]
     );
 
-    // ─── Step 1: Initiate withdrawal on Cosmos ───────────────────────────
     const handleWithdraw = async () => {
         if (!isWeb3Connected || !web3Address) {
             setError("Please connect your Web3 wallet first");
@@ -230,7 +225,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
         }
     };
 
-    // ─── Step 2: Complete withdrawal on Ethereum ─────────────────────────
     const handleCompleteOnEthereum = async () => {
         if (!withdrawalInfo) {
             setError("No withdrawal signature available");
@@ -315,11 +309,9 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
             closeOnBackdropClick={false}
             closeOnEscape={false}
         >
-            {/* ─── STEP: Input ─────────────────────────────────────── */}
             {step === "input" && (
                 <>
                     <div className="space-y-4">
-                        {/* Route */}
                         <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2" aria-label="Withdrawal route">
                             <div className={`${insetBoxClass} min-w-0`}>
                                 <p className="m-0 text-[11px] uppercase tracking-[0.08em] text-ink-muted">From</p>
@@ -334,7 +326,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                             </div>
                         </div>
 
-                        {/* Available */}
                         <div className="text-center py-1">
                             <p className="m-0 text-xs uppercase tracking-[0.08em] text-ink-muted">Available</p>
                             <p className="m-0 mt-1 text-3xl font-bold tabular-nums text-ink">
@@ -342,7 +333,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                             </p>
                         </div>
 
-                        {/* Step 1 */}
                         <section className={`p-4 rounded-2xl border ${walletConnected ? "border-line bg-surface-card" : "border-brand/40 bg-brand/5"}`} aria-label="Step 1">
                             <div className="flex items-center gap-3">
                                 {stepBadge(walletConnected, !walletConnected, "1")}
@@ -369,7 +359,7 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                                             type="button"
                                             onClick={() => copy(web3Address, "Address copied to clipboard!")}
                                             aria-label={copied ? "Address copied" : "Copy withdrawal address"}
-                                            className={`shrink-0 w-11 h-11 grid place-items-center rounded-full transition-colors hover:bg-surface-hover ${copied ? "text-emerald-400" : "text-ink-muted hover:text-ink"}`}
+                                            className={`shrink-0 w-11 h-11 grid place-items-center rounded-btn transition-colors hover:bg-surface-hover ${copied ? "text-emerald-400" : "text-ink-muted hover:text-ink"}`}
                                         >
                                             {copied ? <CheckIcon /> : <CopyIcon />}
                                         </button>
@@ -384,7 +374,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                             )}
                         </section>
 
-                        {/* Step 2 */}
                         <section
                             className={`p-4 rounded-2xl border transition-opacity ${walletConnected ? "border-brand/40 bg-brand/5" : "border-line bg-surface-card opacity-60"}`}
                             aria-label="Step 2"
@@ -445,7 +434,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                 </>
             )}
 
-            {/* ─── STEP: Initiating cosmos tx ──────────────────────── */}
             {step === "initiating" && (
                 <div role="status" className="text-center py-8">
                     <SpinnerRing toneClass="border-brand" />
@@ -454,7 +442,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                 </div>
             )}
 
-            {/* ─── STEP: Waiting for validator signature ───────────── */}
             {step === "waiting_signature" && (
                 <>
                     <div role="status" className="text-center py-4">
@@ -481,7 +468,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                 </>
             )}
 
-            {/* ─── STEP: Ready to complete on Ethereum ─────────────── */}
             {step === "ready_to_complete" && withdrawalInfo && (
                 <>
                     <div className="space-y-4">
@@ -522,7 +508,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                 </>
             )}
 
-            {/* ─── STEP: Completing on Ethereum ────────────────────── */}
             {step === "completing_eth" && (
                 <div role="status" className="text-center py-8">
                     <SpinnerRing toneClass="border-emerald-400" />
@@ -531,7 +516,6 @@ const WithdrawalModal: React.FC<WithdrawalModalProps> = ({ isOpen, onClose, onSu
                 </div>
             )}
 
-            {/* ─── STEP: Done ──────────────────────────────────────── */}
             {step === "done" && (
                 <>
                     <div role="status" className="text-center py-4">

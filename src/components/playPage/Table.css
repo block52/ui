@@ -67,7 +67,7 @@
 }
 
 .bg-custom-footer {
-    background: #12131c;
+    background: rgb(var(--surface-page));
     border-top: 1px solid var(--ui-border-color);
 }
 
@@ -157,7 +157,7 @@
 
 /* Header specific styles */
 .bg-custom-header {
-    background: #12131c;
+    background: rgb(var(--surface-page));
     border-bottom: 1px solid var(--ui-border-color);
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { Link } from "react-router-dom";
 import type { BlockResponse } from "@block52/poker-vm-sdk";
 import { isNetworkError, httpStatusText } from "../../apis/HTTPClient";
@@ -26,87 +26,82 @@ export default function BlocksPage() {
     const [error, setError] = useState<string | null>(null);
     const [onlyWithTxs, setOnlyWithTxs] = useState(false);
     const { currentNetwork } = useNetwork();
+    const hasBlocksRef = useRef(false);
 
-    const fetchBlocks = useCallback(async () => {
-        try {
-            setLoading(true);
-            const cosmosClient = getCosmosClient({
-                rpc: currentNetwork.rpc,
-                rest: currentNetwork.rest
-            });
+    const fetchBlocks = useCallback(
+        async (showLoading: boolean) => {
+            try {
+                if (showLoading) setLoading(true);
+                const cosmosClient = getCosmosClient({
+                    rpc: currentNetwork.rpc,
+                    rest: currentNetwork.rest
+                });
 
-            if (!cosmosClient) {
-                throw new Error("Block52 client not initialized.");
-            }
-
-            const recentBlocks = await cosmosClient.getLatestBlocks(BLOCK_COUNT);
-            // Sort blocks by height in descending order (newest first)
-            const sortedBlocks = [...recentBlocks].sort((a, b) => parseInt(b.block.header.height) - parseInt(a.block.header.height));
-            setBlocks(sortedBlocks);
-            setError(null);
-        } catch (err) {
-            const message = err instanceof Error ? err.message : "";
-            // Provide detailed, network-specific error messages
-            let errorMessage = "Failed to fetch blocks";
-            let suggestion = "";
-
-            // Determine error type and provide helpful guidance
-            if (message.includes("timeout")) {
-                errorMessage = "Request timeout after 10 seconds";
-                if (currentNetwork.name === "Localhost") {
-                    suggestion = " - Check if 'ignite chain serve' is running";
-                } else {
-                    suggestion = " - Production network may be slow. Try localhost for development or retry in a moment";
+                if (!cosmosClient) {
+                    throw new Error("Block52 client not initialized.");
                 }
-            } else if (isNetworkError(err) || message.includes("ECONNREFUSED")) {
-                errorMessage = `Cannot connect to ${currentNetwork.name}`;
-                if (currentNetwork.name === "Localhost") {
-                    suggestion = " - Run 'ignite chain serve' in the pokerchain directory";
-                } else {
-                    suggestion = " - Network may be down. Try selecting a different network";
+
+                const recentBlocks = await cosmosClient.getLatestBlocks(BLOCK_COUNT);
+                const sortedBlocks = [...recentBlocks].sort((a, b) => parseInt(b.block.header.height) - parseInt(a.block.header.height));
+                hasBlocksRef.current = hasElements(sortedBlocks);
+                setBlocks(sortedBlocks);
+                setError(null);
+            } catch (err) {
+                const message = err instanceof Error ? err.message : "";
+                let errorMessage = "Failed to fetch blocks";
+                let suggestion = "";
+
+                if (message.includes("timeout")) {
+                    errorMessage = "Request timeout after 10 seconds";
+                    if (currentNetwork.name === "Localhost") {
+                        suggestion = " - Check if 'ignite chain serve' is running";
+                    } else {
+                        suggestion = " - Production network may be slow. Try localhost for development or retry in a moment";
+                    }
+                } else if (isNetworkError(err) || message.includes("ECONNREFUSED")) {
+                    errorMessage = `Cannot connect to ${currentNetwork.name}`;
+                    if (currentNetwork.name === "Localhost") {
+                        suggestion = " - Run 'ignite chain serve' in the pokerchain directory";
+                    } else {
+                        suggestion = " - Network may be down. Try selecting a different network";
+                    }
+                } else if (httpStatusText(err)) {
+                    errorMessage = `Server error: ${httpStatusText(err)}`;
+                    suggestion = " - The node may be restarting or under maintenance";
+                } else if (message) {
+                    errorMessage = message;
                 }
-            } else if (httpStatusText(err)) {
-                errorMessage = `Server error: ${httpStatusText(err)}`;
-                suggestion = " - The node may be restarting or under maintenance";
-            } else if (message) {
-                errorMessage = message;
-            }
 
-            const fullMessage = errorMessage + suggestion;
+                const fullMessage = errorMessage + suggestion;
 
-            // Graceful degradation: Keep old blocks if we have cached data
-            if (hasElements(blocks)) {
-                setError(`Network unavailable - showing cached data. ${fullMessage}`);
-            } else {
-                setError(fullMessage);
+                if (hasBlocksRef.current) {
+                    setError(`Network unavailable - showing cached data. ${fullMessage}`);
+                } else {
+                    setError(fullMessage);
+                }
                 console.error("Error fetching blocks:", err);
+            } finally {
+                setLoading(false);
             }
-        } finally {
-            setLoading(false);
-        }
-    }, [currentNetwork, blocks.length]);
+        },
+        [currentNetwork]
+    );
 
     useEffect(() => {
-        // Set page title
         document.title = "Block Explorer - Block52 Chain";
 
-        // Clear client when network changes to force re-initialization
+        // A new network needs a fresh client.
         clearCosmosClient();
 
-        // Initial fetch
-        fetchBlocks();
-
-        // Auto-refresh every 10 seconds (reduced frequency to minimize re-renders)
-        const interval = setInterval(fetchBlocks, REFRESH_MS);
+        fetchBlocks(false);
+        const interval = setInterval(() => fetchBlocks(false), REFRESH_MS);
 
         return () => {
             clearInterval(interval);
-            // Reset title when component unmounts
             document.title = "Block52 Chain";
         };
-    }, [currentNetwork, fetchBlocks]);
+    }, [fetchBlocks]);
 
-    // Summary numbers, computed only from the blocks actually loaded.
     const stats = useMemo((): StatItem[] => {
         const latest = blocks[0];
         const avg = averageBlockTimeSeconds(blocks.map(b => b.block.header.time));
@@ -123,7 +118,7 @@ export default function BlocksPage() {
     const visibleBlocks = useMemo(() => (onlyWithTxs ? blocks.filter(b => hasElements(b.block.data.txs)) : blocks), [blocks, onlyWithTxs]);
 
     const retryButton = (
-        <PillButton variant="outline" size="sm" onClick={() => fetchBlocks()} disabled={loading}>
+        <PillButton variant="outline" size="sm" onClick={() => fetchBlocks(true)} disabled={loading}>
             {loading ? "Retrying…" : "Retry"}
         </PillButton>
     );
@@ -145,7 +140,6 @@ export default function BlocksPage() {
 
     return (
         <ExplorerPage>
-            {/* First load / first-load failure: no data yet, so no stats or table. */}
             {isEmpty(blocks) ? (
                 <ExplorerPanel header="Latest blocks" action={error ? retryButton : undefined}>
                     {loading && !error ? (
@@ -165,7 +159,6 @@ export default function BlocksPage() {
                 <div className="flex flex-col gap-6">
                     <StatStrip items={stats} />
 
-                    {/* Refresh failed, but cached blocks are still shown below. */}
                     {error && (
                         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-5 py-3 rounded-2xl border border-red-400/40 bg-red-400/10">
                             <span className="text-sm text-red-300">{error}</span>

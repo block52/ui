@@ -5,7 +5,7 @@ import { useCosmosApiFactory } from "../context/CosmosApiContext";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { DiscoveredNode, discoverNodes, probeNodes, getCachedNodes, cacheNodes, clearNodeCache } from "../services/nodeDiscovery";
 import { isEmpty, hasElements, hasValue } from "../utils/guards";
-import { formatAgo, secondsBetween, sumBigInt } from "../utils/nodePortal";
+import { formatAgo, parseLatestBlockHeight, parseValidatorsResponse, secondsBetween, sumBigInt, type ValidatorSummary } from "../utils/nodePortal";
 import { formatMicroAsUsdc } from "../constants/currency";
 import ValidatorEarningsPanel from "../components/explorer/ValidatorEarningsPanel";
 import { useValidatorBonds } from "../hooks/game/useValidatorBonds";
@@ -25,18 +25,11 @@ const TABS: ReadonlyArray<{ key: NodesTab; label: string }> = [
     { key: "validator", label: "Become a validator" }
 ];
 
-// Filter out localhost for production view
 const productionNodes = NETWORK_PRESETS.filter(n => n.name !== "Localhost");
 
 interface NodeInfo {
     status: "checking" | "online" | "offline";
     blockHeight: string | null;
-}
-
-interface ValidatorInfo {
-    moniker: string;
-    operatorAddress: string;
-    status: string;
 }
 
 type DotTone = "good" | "bad" | "pending";
@@ -53,32 +46,35 @@ const statusTextClass: Record<DotTone, string> = {
     pending: "text-ink-muted"
 };
 
-/** Node name with a status dot (soft ring) and the status word under it. */
 const NodeNameCell = ({ name, tone, statusLabel, mobileRole }: { name: string; tone: DotTone; statusLabel: string; mobileRole?: React.ReactNode }) => (
     <div className="flex items-center gap-3">
         <span className={`w-2.5 h-2.5 shrink-0 rounded-full ring-4 ${dotClass[tone]}`} aria-hidden="true" />
         <div className="flex flex-col gap-0.5 min-w-0">
             <span className="text-ink text-[15px] font-medium">{name}</span>
             <span className={`text-xs ${statusTextClass[tone]}`}>{statusLabel}</span>
-            {/* The Role column is hidden on phones; show the pill here instead. */}
             {mobileRole && <span className="sm:hidden mt-1">{mobileRole}</span>}
         </div>
     </div>
 );
 
-/** `isValidator` is null until the validator set has loaded: show a muted placeholder, not a guessed role. */
-const RolePill = ({ isValidator }: { isValidator: boolean | null }) =>
-    isValidator === null ? (
+type RoleState = { kind: "loading" } | { kind: "failed" } | { kind: "known"; isValidator: boolean };
+
+const RolePill = ({ role }: { role: RoleState }) =>
+    role.kind === "loading" ? (
         <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-line text-ink-muted" aria-label="Role loading">
             …
+        </span>
+    ) : role.kind === "failed" ? (
+        <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold bg-line text-ink-muted" title="Validator set could not be loaded">
+            Unknown
         </span>
     ) : (
         <span
             className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                isValidator ? "bg-brand/20 text-brand-light" : "bg-blue-500/15 text-blue-300"
+                role.isValidator ? "bg-brand/20 text-brand dark:text-brand-light" : "bg-blue-500/15 text-blue-700 dark:text-blue-300"
             }`}
         >
-            {isValidator ? "Validator" : "Sync"}
+            {role.isValidator ? "Validator" : "Sync"}
         </span>
     );
 
@@ -87,8 +83,18 @@ const formatHeight = (height: string): string => `#${parseInt(height).toLocaleSt
 const thClass = "px-4 py-3.5 first:pl-5 last:pr-5 text-left text-xs font-semibold uppercase tracking-[0.1em] text-ink-muted";
 const tdClass = "px-4 py-3.5 first:pl-5 last:pr-5 whitespace-nowrap";
 const rowClass = "border-t border-line hover:bg-surface-raised transition-colors";
-// PillLink/PillButton "sm" is 36px; grow to a 44px tap target on phones.
-const detailsPillExtra = "max-sm:h-11";
+
+const CheckedAgo = ({ at }: { at: number }) => {
+    const [now, setNow] = useState(() => Date.now());
+
+    useEffect(() => {
+        setNow(Date.now());
+        const interval = setInterval(() => setNow(Date.now()), 1000);
+        return () => clearInterval(interval);
+    }, [at]);
+
+    return <span className="text-ink-muted text-sm">Checked {formatAgo(secondsBetween(at, now))}</span>;
+};
 
 const SearchIcon = () => (
     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -106,52 +112,40 @@ export default function NodesPage() {
     const [isProbing, setIsProbing] = useState(false);
     const [nodeInfo, setNodeInfo] = useState<Record<string, NodeInfo>>({});
     const [lastCheckedAt, setLastCheckedAt] = useState<number | null>(null);
-    const [now, setNow] = useState(() => Date.now());
-    const [validators, setValidators] = useState<ValidatorInfo[]>([]);
-    // False until a node has answered the validator query; roles and counts are unknown before that.
+    const [validators, setValidators] = useState<ValidatorSummary[]>([]);
     const [validatorsLoaded, setValidatorsLoaded] = useState(false);
-    // Validator bonded-USDC weights + protocol-fee earnings (poker-vm#2592).
-    // Bonded USDC per validator comes from the standard Cosmos staking `tokens`
-    // field (bond denom is USDC), so no custom poker-module query is needed. See
-    // useValidatorBonds. Accrued fee earnings over time remain a separate concern.
+    const [validatorsError, setValidatorsError] = useState<string | null>(null);
     const { bonds: validatorBonds, hasQuery: hasValidatorBondQuery, isLoading: isValidatorBondsLoading } = useValidatorBonds();
-    // Fetch validators from the network
     const fetchValidators = useCallback(async () => {
-        // Try fetching from the first online preset node
+        setValidatorsError(null);
+        let lastError: unknown = null;
         for (const node of productionNodes) {
             try {
-                const data = (await cosmosApiFactory(node.rest).getValidatorsByStatus("BOND_STATUS_BONDED", AbortSignal.timeout(10000))) as {
-                    validators?: any[];
-                };
-                const validatorList: ValidatorInfo[] = (data.validators || []).map((v: any) => ({
-                    moniker: v.description?.moniker || "",
-                    operatorAddress: v.operator_address || "",
-                    status: v.status || ""
-                }));
-                setValidators(validatorList);
+                const data = await cosmosApiFactory(node.rest).getValidatorsByStatus("BOND_STATUS_BONDED", AbortSignal.timeout(10000));
+                const parsed = parseValidatorsResponse(data);
+                if (parsed.skipped > 0) console.error(`Skipped ${parsed.skipped} malformed validator entries from ${node.name}`);
+                setValidators(parsed.validators);
                 setValidatorsLoaded(true);
                 return;
-            } catch {
-                // Try next node
+            } catch (err) {
+                console.error(`Failed to load validators from ${node.name}:`, err);
+                lastError = err;
             }
         }
+        setValidatorsError(lastError instanceof Error ? lastError.message : "No preset node answered the validator query");
     }, [cosmosApiFactory]);
 
-    // Check if a moniker matches a validator
-    // Handles variations like "Texas Hodl" matching "validator-texashodl"
+    // Fuzzy: "Texas Hodl" matches "validator-texashodl".
     const isValidator = useCallback(
         (moniker: string): boolean => {
             if (!moniker || isEmpty(validators)) return false;
-            // Normalize: lowercase, remove spaces/dashes/underscores
             const normalize = (s: string) => s.toLowerCase().replace(/[\s\-_]/g, "");
             const normalizedMoniker = normalize(moniker);
             return validators.some(v => {
                 const normalizedValidator = normalize(v.moniker);
-                // Check if either contains the other, or if they share significant overlap
                 return (
                     normalizedValidator.includes(normalizedMoniker) ||
                     normalizedMoniker.includes(normalizedValidator) ||
-                    // Also check for partial matches like "texashodl" in "validator-texashodl"
                     normalizedValidator.replace("validator", "").includes(normalizedMoniker.replace("validator", "")) ||
                     normalizedMoniker.replace("validator", "").includes(normalizedValidator.replace("validator", ""))
                 );
@@ -160,36 +154,26 @@ export default function NodesPage() {
         [validators]
     );
 
-    // Check node status and get block height
     const checkNode = useCallback(
         async (network: NetworkEndpoints): Promise<NodeInfo> => {
             try {
-                const data = (await cosmosApiFactory(network.rest).getLatestBlock(AbortSignal.timeout(5000))) as {
-                    block?: { header?: { height?: string } };
-                    sdk_block?: { header?: { height?: string } };
-                };
-                const header = data.block?.header || data.sdk_block?.header;
-                return {
-                    status: "online",
-                    blockHeight: header?.height || null
-                };
-            } catch {
+                const data = await cosmosApiFactory(network.rest).getLatestBlock(AbortSignal.timeout(5000));
+                return { status: "online", blockHeight: parseLatestBlockHeight(data) };
+            } catch (err) {
+                console.error(`Node ${network.name} did not answer:`, err);
                 return { status: "offline", blockHeight: null };
             }
         },
         [cosmosApiFactory]
     );
 
-    // Check all nodes on page load
     const checkAllNodes = useCallback(async () => {
-        // Set all to checking
         const initialInfo: Record<string, NodeInfo> = {};
         productionNodes.forEach(n => {
             initialInfo[n.name] = { status: "checking", blockHeight: null };
         });
         setNodeInfo(initialInfo);
 
-        // Check each node in parallel
         const results = await Promise.all(
             productionNodes.map(async network => {
                 const info = await checkNode(network);
@@ -197,7 +181,6 @@ export default function NodesPage() {
             })
         );
 
-        // Update info
         const newInfo: Record<string, NodeInfo> = {};
         results.forEach(r => {
             newInfo[r.name] = r.info;
@@ -206,7 +189,6 @@ export default function NodesPage() {
         setLastCheckedAt(Date.now());
     }, [checkNode]);
 
-    // Discover new nodes from the network
     const handleDiscoverNodes = useCallback(async () => {
         setIsDiscovering(true);
         clearNodeCache();
@@ -214,13 +196,11 @@ export default function NodesPage() {
         try {
             const discovered = await discoverNodes(productionNodes, productionNodes);
 
-            // Filter out nodes that match presets
             const newDiscovered = discovered.filter(d => !d.isPreset);
 
             setDiscoveredNodes(newDiscovered);
             cacheNodes(newDiscovered);
 
-            // Now probe the discovered nodes to check reachability
             if (hasElements(newDiscovered)) {
                 setIsProbing(true);
                 const probed = await probeNodes(newDiscovered);
@@ -236,7 +216,6 @@ export default function NodesPage() {
         }
     }, []);
 
-    // Handle adding a discovered node to the network selector
     const handleAddToNetworks = useCallback(
         (node: DiscoveredNode) => {
             if (node.endpoints) {
@@ -246,7 +225,6 @@ export default function NodesPage() {
         [addDiscoveredNetwork]
     );
 
-    // Check if a node is already added to networks
     const isNodeAdded = useCallback(
         (node: DiscoveredNode) => {
             if (!node.endpoints) return false;
@@ -260,7 +238,6 @@ export default function NodesPage() {
         if (next) setTab(next.key);
     }, []);
 
-    // Load cached discovered nodes on mount
     useEffect(() => {
         const cached = getCachedNodes();
         if (cached) {
@@ -274,27 +251,16 @@ export default function NodesPage() {
         fetchValidators();
     }, [checkAllNodes, fetchValidators]);
 
-    // Tick the "Checked … ago" label once the first check has finished.
-    useEffect(() => {
-        if (lastCheckedAt === null) return;
-        setNow(Date.now());
-        const interval = setInterval(() => setNow(Date.now()), 1000);
-        return () => clearInterval(interval);
-    }, [lastCheckedAt]);
-
-    // Calculate stats
     const presetOnlineCount = Object.values(nodeInfo).filter(n => n.status === "online").length;
     const discoveredReachableCount = discoveredNodes.filter(n => n.probeStatus === "reachable").length;
     const totalOnline = presetOnlineCount + discoveredReachableCount;
     const totalNodes = productionNodes.length + discoveredNodes.length;
 
-    // Count validators and sync nodes (sync = non-validator nodes)
     const presetValidatorCount = productionNodes.filter(n => isValidator(n.name)).length;
     const discoveredValidatorCount = discoveredNodes.filter(n => isValidator(n.moniker)).length;
     const totalSyncNodes = totalNodes - (presetValidatorCount + discoveredValidatorCount);
 
-    // Total bonded USDC from the bonds already loaded for the earnings panel; when
-    // those are unavailable, fall back to the highest block height seen instead.
+    // Falls back to the highest block height when the earnings panel has no bonds.
     const totalBonded = useMemo(
         () => (hasValidatorBondQuery && hasElements(validatorBonds) ? sumBigInt(validatorBonds.map(b => BigInt(b.bondedUsdc.toString()))) : null),
         [hasValidatorBondQuery, validatorBonds]
@@ -342,10 +308,14 @@ export default function NodesPage() {
 
     const hasDiscovered = hasElements(discoveredNodes);
 
+    const roleOf = (moniker: string): RoleState => {
+        if (validatorsLoaded) return { kind: "known", isValidator: isValidator(moniker) };
+        return validatorsError === null ? { kind: "loading" } : { kind: "failed" };
+    };
+
     return (
         <div className="min-h-screen bg-surface-page text-ink-body">
             <main className="max-w-[1376px] mx-auto px-4 py-6 sm:px-8 sm:py-8 flex flex-col gap-6">
-                {/* Header */}
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div className="flex flex-col gap-1">
                         <h1 className="m-0 text-[28px] font-semibold text-ink">Network Nodes</h1>
@@ -375,14 +345,20 @@ export default function NodesPage() {
                     <>
                         <StatStrip items={stats} />
 
-                        {/* Preset nodes */}
+                        {validatorsError !== null && (
+                            <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 rounded-xl border border-red-500/30 bg-red-500/10 text-sm">
+                                <span className="text-red-400">Could not load the validator set from any preset node: {validatorsError}</span>
+                                <PillButton variant="outline" size="sm" onClick={fetchValidators}>
+                                    Retry
+                                </PillButton>
+                            </div>
+                        )}
+
                         <Card>
                             <CardHeader
                                 title="Preset nodes"
                                 actions={
-                                    lastCheckedAt !== null && (
-                                        <span className="text-ink-muted text-sm">Checked {formatAgo(secondsBetween(lastCheckedAt, now))}</span>
-                                    )
+                                    lastCheckedAt !== null && <CheckedAgo at={lastCheckedAt} />
                                 }
                             />
                             <div className="overflow-x-auto">
@@ -401,7 +377,7 @@ export default function NodesPage() {
                                     <tbody>
                                         {productionNodes.map(network => {
                                             const info = nodeInfo[network.name];
-                                            const status = info?.status || "checking";
+                                            const status = info?.status ?? "checking";
                                             const blockHeight = info?.blockHeight;
                                             const tone: DotTone = status === "online" ? "good" : status === "offline" ? "bad" : "pending";
 
@@ -412,11 +388,11 @@ export default function NodesPage() {
                                                             name={network.name}
                                                             tone={tone}
                                                             statusLabel={status === "checking" ? "Checking..." : status === "online" ? "Online" : "Offline"}
-                                                            mobileRole={<RolePill isValidator={validatorsLoaded ? isValidator(network.name) : null} />}
+                                                            mobileRole={<RolePill role={roleOf(network.name)} />}
                                                         />
                                                     </td>
                                                     <td className={`${tdClass} hidden sm:table-cell`}>
-                                                        <RolePill isValidator={validatorsLoaded ? isValidator(network.name) : null} />
+                                                        <RolePill role={roleOf(network.name)} />
                                                     </td>
                                                     <td className={`${tdClass} tabular-nums`}>
                                                         {status === "offline" ? (
@@ -431,7 +407,6 @@ export default function NodesPage() {
                                                     <td className={`${tdClass} text-right`}>
                                                         <PillLink
                                                             to={`/node/${encodeURIComponent(network.name)}`}
-                                                            className={detailsPillExtra}
                                                             aria-label={`${network.name} details`}
                                                         >
                                                             Details
@@ -446,8 +421,6 @@ export default function NodesPage() {
                         </Card>
 
                         <div className={`grid grid-cols-1 gap-6 items-start ${hasDiscovered ? "" : "lg:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]"}`}>
-                            {/* Validator Earnings (poker-vm#2592) — bonded USDC is the
-                                SNG protocol-fee split weight; earnings await a backend query. */}
                             <ValidatorEarningsPanel
                                 bonds={validatorBonds}
                                 hasQuery={hasValidatorBondQuery}
@@ -455,7 +428,6 @@ export default function NodesPage() {
                                 className="min-w-0"
                             />
 
-                            {/* Discovered nodes */}
                             {!hasDiscovered ? (
                                 <Card className="p-6 flex flex-col items-start gap-2.5">
                                     <h2 className="m-0 text-[17px] font-semibold text-ink">Discovered nodes</h2>
@@ -502,12 +474,14 @@ export default function NodesPage() {
                                                                 />
                                                             </td>
                                                             <td className={tdClass}>
-                                                                <RolePill isValidator={validatorsLoaded ? isValidator(node.moniker) : null} />
+                                                                <RolePill role={roleOf(node.moniker)} />
                                                             </td>
                                                             <td className={tdClass}>
                                                                 <span
                                                                     className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                                                                        node.isIpBased ? "bg-orange-500/15 text-orange-300" : "bg-cyan-500/15 text-cyan-300"
+                                                                        node.isIpBased
+                                                                            ? "bg-orange-500/15 text-orange-700 dark:text-orange-300"
+                                                                            : "bg-cyan-500/15 text-cyan-800 dark:text-cyan-300"
                                                                     }`}
                                                                 >
                                                                     {node.isIpBased ? "IP" : "Domain"}
@@ -537,17 +511,15 @@ export default function NodesPage() {
                                                                             <PillButton
                                                                                 variant="ghost"
                                                                                 size="sm"
-                                                                                className={detailsPillExtra}
                                                                                 onClick={() => handleAddToNetworks(node)}
                                                                             >
                                                                                 Add to networks
                                                                             </PillButton>
                                                                         )}
-                                                                        {/* Plain Link: PillLink has no router `state`, which carries the endpoints. */}
                                                                         <Link
                                                                             to={`/node/${encodeURIComponent(node.moniker)}`}
                                                                             state={{ network: node.endpoints }}
-                                                                            className={pillClass("outline", "sm", detailsPillExtra)}
+                                                                            className={pillClass("outline", "sm")}
                                                                             aria-label={`${node.moniker} details`}
                                                                         >
                                                                             Details

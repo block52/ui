@@ -7,7 +7,7 @@ import React from "react";
  * Layout notes (this is subtle, see Modal.module.css):
  * - No negative bottom margin: a sticky element is clamped inside its parent's content box,
  *   so a footer hanging below it got pushed up over the last field.
- * - The Modal drops its own bottom padding when it contains a [data-modal-footer]; the
+ * - The Modal drops its own bottom padding when it ends with a [data-modal-footer]; the
  *   footer's own bottom padding (including the phone safe area) replaces it, so the
  *   spacing under the buttons is the same whether the content fits or scrolls.
  * - Negative side margins cancel the Modal's side padding so the divider runs edge to edge.

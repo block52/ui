@@ -1,8 +1,6 @@
-/* Developer tool styling: tinted panels and command boxes on the dark surface tokens. */
-
 .infoCommandBox {
-  background-color: #1c1e2b;
-  border: 1px solid #262938;
+  background-color: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line));
 }
 
 .warningPanel {
@@ -20,8 +18,8 @@
 .accountCard,
 .walletAddressBox,
 .networkConfigBox {
-  background-color: #1c1e2b;
-  border: 1px solid #262938;
+  background-color: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line));
 }
 
 .warningActionButton {
@@ -64,20 +62,19 @@
 }
 
 .containerPanel {
-  background-color: #161722;
-  border: 1px solid #262938;
+  background-color: rgb(var(--surface-card));
+  border: 1px solid rgb(var(--line));
 }
 
 .inputField {
   min-height: 2.75rem;
   padding: 0 0.875rem;
   border-radius: 0.75rem;
-  background-color: #1c1e2b;
-  border: 1px solid #2c2f45;
-  color: #f5f5f7;
+  background-color: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line-strong));
+  color: rgb(var(--ink));
   font-size: 0.875rem;
   outline: none;
-  color-scheme: dark;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
 
@@ -96,7 +93,8 @@
 }
 
 .actionWithdraw {
-  background: #2c2f45;
+  background: rgb(var(--line-strong));
+  color: rgb(var(--ink));
 }
 
 .brandPrimaryText {
@@ -104,13 +102,13 @@
 }
 
 .initializeButtonLoading {
-  background: #232636;
-  color: #8e90a6;
+  background: rgb(var(--surface-hover));
+  color: rgb(var(--ink-muted));
 }
 
 .testResultCard {
-  background-color: #1c1e2b;
-  border: 1px solid #262938;
+  background-color: rgb(var(--surface-raised));
+  border: 1px solid rgb(var(--line));
 }
 
 .testResultSuccess {
@@ -122,5 +120,22 @@
 }
 
 .testResultPending {
-  border-color: #2c2f45;
+  border-color: rgb(var(--line-strong));
+}
+
+:global(:root[data-theme="light"]) .warningTitle {
+  color: #92400e;
+}
+
+:global(:root[data-theme="light"]) .successTitle,
+:global(:root[data-theme="light"]) .successText,
+:global(:root[data-theme="light"]) .greenCommandButton,
+:global(:root[data-theme="light"]) .amountButtonGreen {
+  color: #047857;
+}
+
+:global(:root[data-theme="light"]) .blueCommandButton,
+:global(:root[data-theme="light"]) .amountButtonBlue,
+:global(:root[data-theme="light"]) .brandPrimaryText {
+  color: rgb(var(--brand-primary-light-rgb));
 }

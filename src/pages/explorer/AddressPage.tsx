@@ -183,7 +183,7 @@ export default function AddressPage() {
                                 onClick={() => copyToClipboard(urlAddress, "Address copied")}
                                 title="Copy address"
                                 aria-label="Copy address"
-                                className={"shrink-0 -m-2 inline-flex h-11 w-11 items-center justify-center rounded-full text-ink-soft hover:text-ink hover:bg-surface-hover transition-colors"}
+                                className={"shrink-0 -m-2 inline-flex h-11 w-11 items-center justify-center rounded-btn text-ink-soft hover:text-ink hover:bg-surface-hover transition-colors"}
                             >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                     <path

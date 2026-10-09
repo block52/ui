@@ -264,7 +264,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <button
                     onClick={handleSitInClick}
                     disabled={sittingIn}
-                    className={`flex items-center justify-center gap-2 rounded-full shadow-lg border font-bold tracking-wide uppercase transition-all duration-150 ${
+                    className={`flex items-center justify-center gap-2 rounded-btn shadow-lg border font-bold tracking-wide uppercase transition-all duration-150 ${
                         sittingIn
                             ? "bg-brand/70 border-brand text-white/80 cursor-wait"
                             : "bg-brand border-brand text-white hover:bg-brand-light hover:border-brand-light hover:scale-105 active:scale-95"
@@ -290,7 +290,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <button
                     onClick={handleSitInClick}
                     disabled={sittingIn}
-                    className={`flex items-center gap-2 rounded-full shadow-lg border font-bold tracking-wide uppercase transition-all duration-150 ${
+                    className={`flex items-center gap-2 rounded-btn shadow-lg border font-bold tracking-wide uppercase transition-all duration-150 ${
                         sittingIn
                             ? "bg-brand/70 border-brand text-white/80 cursor-wait"
                             : "bg-brand border-brand text-white hover:bg-brand-light hover:border-brand-light hover:scale-105 active:scale-95 animate-pulse"

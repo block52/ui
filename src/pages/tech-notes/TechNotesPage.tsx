@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { Card, PillButton } from "../../components/ui";
+import { useReleaseNotes } from "../../hooks/useReleaseNotes";
 import { isEmpty, hasElements, hasContent } from "../../utils/guards";
 import {
     countChangesByKind,
@@ -14,10 +15,6 @@ import {
     type ReleaseNote
 } from "../../utils/releaseNotes";
 
-const RELEASE_NOTES_URL =
-    import.meta.env.VITE_APP_RELEASE_NOTE_URL ?? "https://raw.githubusercontent.com/block52/cards/refs/heads/main/release-notes/release-notes.json";
-
-/** Earlier releases shown per "Show older releases" step. */
 const EARLIER_PAGE_SIZE = 5;
 
 type KindFilter = "all" | ChangeKind;
@@ -25,8 +22,8 @@ type KindFilter = "all" | ChangeKind;
 const KIND_STYLE: Record<ChangeKind, { label: string; chip: string; text: string; dot: string }> = {
     feature: { label: "Feature", chip: "Features", text: "text-emerald-400", dot: "bg-emerald-400" },
     bugFix: { label: "Bug fix", chip: "Bug fixes", text: "text-red-400", dot: "bg-red-400" },
-    improvement: { label: "Improvement", chip: "Improvements", text: "text-sky-400", dot: "bg-sky-400" },
-    test: { label: "Test", chip: "Tests", text: "text-teal-400", dot: "bg-teal-400" }
+    improvement: { label: "Improvement", chip: "Improvements", text: "text-sky-700 dark:text-sky-400", dot: "bg-sky-400" },
+    test: { label: "Test", chip: "Tests", text: "text-teal-700 dark:text-teal-400", dot: "bg-teal-400" }
 };
 
 const ChevronRight = () => (
@@ -35,14 +32,13 @@ const ChevronRight = () => (
     </svg>
 );
 
-/** Filter chip: dot, label, count. */
-function KindChip({ label, count, dot, selected, onClick }: { label: string; count: number; dot: string; selected: boolean; onClick: () => void }) {
+const KindChip = ({ label, count, dot, selected, onClick }: { label: string; count: number; dot: string; selected: boolean; onClick: () => void }) => {
     return (
         <button
             type="button"
             aria-pressed={selected}
             onClick={onClick}
-            className={`flex items-center gap-1.5 h-11 sm:h-9 px-3.5 rounded-full border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light ${
+            className={`flex items-center gap-1.5 h-11 sm:h-9 px-3.5 rounded-btn border text-sm font-medium transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand-light ${
                 selected ? "border-brand bg-brand/15 text-ink" : "border-line-strong text-ink-soft hover:text-ink hover:bg-surface-hover"
             }`}
         >
@@ -51,10 +47,9 @@ function KindChip({ label, count, dot, selected, onClick }: { label: string; cou
             <span className="text-ink-muted tabular-nums">{count}</span>
         </button>
     );
-}
+};
 
-/** One change row: kind label, text, PR refs. */
-function ChangeRow({ kind, line }: { kind: ChangeKind; line: string }) {
+const ChangeRow = ({ kind, line }: { kind: ChangeKind; line: string }) => {
     const { text, refs } = parseChangeRefs(line);
     const style = KIND_STYLE[kind];
     return (
@@ -63,13 +58,13 @@ function ChangeRow({ kind, line }: { kind: ChangeKind; line: string }) {
             <span className="flex-1 min-w-0 text-ink-body leading-relaxed break-words">{text}</span>
             {hasElements(refs) && (
                 <span className="shrink-0 flex flex-wrap gap-x-2 font-mono text-xs">
-                    {refs.map(ref =>
+                    {refs.map((ref, i) =>
                         ref.url ? (
-                            <a key={ref.label} href={ref.url} target="_blank" rel="noopener noreferrer" className="text-brand-light hover:text-ink hover:underline">
+                            <a key={`${ref.label}-${i}`} href={ref.url} target="_blank" rel="noopener noreferrer" className="text-brand dark:text-brand-light hover:text-ink hover:underline">
                                 {ref.label}
                             </a>
                         ) : (
-                            <span key={ref.label} className="text-ink-muted">
+                            <span key={`${ref.label}-${i}`} className="text-ink-muted">
                                 {ref.label}
                             </span>
                         )
@@ -78,17 +73,15 @@ function ChangeRow({ kind, line }: { kind: ChangeKind; line: string }) {
             )}
         </li>
     );
-}
+};
 
-/** The expanded release: pills, date, title, highlights, filterable change list. */
-function ReleaseArticle({ note, isLatest }: { note: ReleaseNote; isLatest: boolean }) {
+const ReleaseArticle = ({ note, isLatest }: { note: ReleaseNote; isLatest: boolean }) => {
     const [filter, setFilter] = useState<KindFilter>("all");
     const changes = useMemo(() => releaseChanges(note), [note]);
     const counts = useMemo(() => countChangesByKind(changes), [changes]);
     const visible = filter === "all" ? changes : changes.filter(change => change.kind === filter);
     const structured = isStructuredRelease(note);
     const highlights = note.highlights ?? [];
-    // Tests only get a chip when the release has some; the other kinds always show.
     const chipKinds: ChangeKind[] = counts.test > 0 ? ["feature", "bugFix", "improvement", "test"] : ["feature", "bugFix", "improvement"];
 
     return (
@@ -110,7 +103,7 @@ function ReleaseArticle({ note, isLatest }: { note: ReleaseNote; isLatest: boole
 
             {hasElements(highlights) && (
                 <div className="flex flex-col gap-2 px-[18px] py-4 rounded-xl bg-brand/10">
-                    <span className="text-brand-light text-xs font-semibold uppercase tracking-[0.08em]">Highlights</span>
+                    <span className="text-brand dark:text-brand-light text-xs font-semibold uppercase tracking-[0.08em]">Highlights</span>
                     <ul className="m-0 pl-[18px] list-disc text-ink-body leading-relaxed">
                         {highlights.map((item, i) => (
                             <li key={i}>{item}</li>
@@ -148,36 +141,12 @@ function ReleaseArticle({ note, isLatest }: { note: ReleaseNote; isLatest: boole
             )}
         </Card>
     );
-}
+};
 
 export default function TechNotesPage() {
-    const [notes, setNotes] = useState<ReleaseNote[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { notes, loading, error, refetch } = useReleaseNotes();
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [earlierShown, setEarlierShown] = useState(EARLIER_PAGE_SIZE);
-
-    const fetchNotes = useCallback(async () => {
-        setLoading(true);
-        setError(null);
-        try {
-            const response = await fetch(RELEASE_NOTES_URL);
-            if (!response.ok) {
-                throw new Error(`Failed to fetch release notes: ${response.status}`);
-            }
-            const data: ReleaseNote[] = await response.json();
-            setNotes(data);
-        } catch (err) {
-            console.error("Failed to fetch release notes:", err);
-            setError(err instanceof Error ? err.message : "Failed to load release notes");
-        } finally {
-            setLoading(false);
-        }
-    }, []);
-
-    useEffect(() => {
-        fetchNotes();
-    }, [fetchNotes]);
 
     const latest = notes[0];
     const selected = notes.find(note => note.id === selectedId) ?? latest;
@@ -206,7 +175,7 @@ export default function TechNotesPage() {
                 {error && (
                     <Card className="p-6 flex flex-col items-center gap-4 text-center">
                         <p className="m-0 text-red-400">{error}</p>
-                        <PillButton variant="outline" size="sm" onClick={fetchNotes}>
+                        <PillButton variant="outline" size="sm" onClick={refetch}>
                             Retry
                         </PillButton>
                     </Card>
@@ -216,7 +185,6 @@ export default function TechNotesPage() {
 
                 {!loading && !error && selected && (
                     <div className="flex flex-col lg:flex-row gap-6 lg:gap-8 items-start">
-                        {/* Archive: sidebar on desktop */}
                         <aside aria-label="Release archive" className="hidden lg:flex flex-col gap-[18px] w-[260px] shrink-0 sticky top-6">
                             {months.map(month => (
                                 <div key={month.label} className="flex flex-col gap-0.5">
@@ -244,7 +212,6 @@ export default function TechNotesPage() {
                         </aside>
 
                         <div className="flex-1 min-w-0 w-full flex flex-col gap-4">
-                            {/* Archive: a select on phones and tablets */}
                             <label className="lg:hidden flex flex-col gap-1.5">
                                 <span className="text-ink-muted text-xs uppercase tracking-[0.08em]">Release</span>
                                 <select
@@ -283,7 +250,7 @@ export default function TechNotesPage() {
                                         <button
                                             type="button"
                                             onClick={() => setEarlierShown(shown => shown + EARLIER_PAGE_SIZE)}
-                                            className="w-full h-[52px] border-t border-line text-brand-light font-medium hover:bg-surface-raised transition-colors"
+                                            className="w-full h-[52px] border-t border-line text-brand dark:text-brand-light font-medium hover:bg-surface-raised transition-colors"
                                         >
                                             Show older releases
                                         </button>

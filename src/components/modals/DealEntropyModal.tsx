@@ -93,7 +93,6 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
             widthClass="w-[440px]"
             patternId="hexagons-deal"
         >
-            {/* System Entropy Display */}
             <div className="mb-4">
                 <label className="block text-ink-soft mb-1.5 font-medium text-sm">System Entropy</label>
                 <div
@@ -105,7 +104,6 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                 <p className="text-ink-muted text-xs mt-1">Generated from secure random source</p>
             </div>
 
-            {/* Password Input */}
             <div className="mb-4">
                 <label className="block text-ink-soft mb-1.5 font-medium text-sm">
                     Add Password <span className="text-ink-muted">(optional)</span>
@@ -116,13 +114,13 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                         value={password}
                         onChange={e => setPassword(e.target.value)}
                         placeholder="Enter a password to add your own entropy"
-                        className={`w-full p-3 pr-10 text-white rounded-lg text-sm focus:outline-none ${styles.passwordInput}`}
+                        className={`w-full p-3 pr-10 text-ink rounded-lg text-sm focus:outline-none ${styles.passwordInput}`}
                         disabled={isDealing}
                     />
                     <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-white transition-colors"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-ink-muted hover:text-ink transition-colors"
                         tabIndex={-1}
                     >
                         {showPassword ? (
@@ -140,7 +138,6 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                 <p className="text-ink-muted text-xs mt-1">Your password is hashed and mixed with system entropy</p>
             </div>
 
-            {/* Password Hash Display (only shown if password entered) */}
             {passwordHash && (
                 <div className="mb-4">
                     <label className="block text-ink-soft mb-1.5 font-medium text-sm">Password Hash</label>
@@ -153,7 +150,6 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                 </div>
             )}
 
-            {/* Final Entropy Display */}
             <div className="mb-5">
                 <label className="block text-ink-soft mb-1.5 font-medium text-sm">
                     Final Entropy {passwordHash ? "(combined)" : "(system only)"}
@@ -167,19 +163,18 @@ const DealEntropyModal: React.FC<DealEntropyModalProps> = React.memo(({ tableId,
                 <p className="text-ink-muted text-xs mt-1">This value will be sent with the deal transaction</p>
             </div>
 
-            {/* Action Buttons */}
             <div className="flex justify-between space-x-4">
                 <button
                     onClick={onClose}
                     disabled={isDealing}
-                    className={`px-5 py-3 rounded-full text-white font-medium flex-1 transition-all duration-200 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed ${styles.buttonSecondary}`}
+                    className={`px-5 py-3 rounded-btn text-ink font-medium flex-1 transition-all duration-200 hover:opacity-80 disabled:opacity-50 disabled:cursor-not-allowed ${styles.buttonSecondary}`}
                 >
                     Cancel
                 </button>
                 <button
                     onClick={handleDealClick}
                     disabled={isDealing}
-                    className={`px-5 py-3 rounded-full text-white font-bold flex-1 transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles.buttonPrimary}`}
+                    className={`px-5 py-3 rounded-btn text-white font-bold flex-1 transition-all duration-200 hover:opacity-90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${styles.buttonPrimary}`}
                 >
                     {isDealing ? (
                         <>

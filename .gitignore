@@ -34,3 +34,10 @@ tsconfig.tsbuildinfo
 
 # Test coverage output
 coverage
+
+# Playwright MCP session output and TypeScript build info
+.playwright-mcp/
+*.tsbuildinfo
+
+# Local code-review reports (not part of the codebase)
+.reviews/

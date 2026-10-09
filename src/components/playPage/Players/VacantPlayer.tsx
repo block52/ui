@@ -26,7 +26,8 @@ import { useGameOptions } from "../../../hooks/game/useGameOptions";
 import CustomDealer from "../../../assets/CustomDealer.svg";
 import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "../../../utils/numberUtils";
 import { useCosmosWallet } from "../../../hooks";
-import { microToUsdc } from "../../../constants/currency";
+import { formatMicroAsUsdc, microToUsdc, parseMicroToBigInt } from "../../../constants/currency";
+import { buildBuyInPresets } from "../../../utils/buyInPresets";
 import { hasElements } from "../../../utils/guards";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
@@ -91,8 +92,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 handleJoinClick();
                 return;
             }
-            // Silent no-ops are a debugging trap — say WHY the click did
-            // nothing (ui#440 live-testing).
+            // Say why the click did nothing rather than failing silently.
             console.error(
                 `[VacantPlayer] seat ${index} click ignored:`,
                 isUserAlreadyPlaying
@@ -123,12 +123,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             return isNaN(val) ? minBuyInNum : val;
         }, [buyInAmount, minBuyInNum]);
 
-        // Check if buy-in exceeds available balance. This gates the join button
-        // for BOTH transports: under WS-first (#2325) a gateway join relays a
-        // real MsgJoinGame that escrows from the on-chain USDC balance, so an
-        // unfunded player must not be able to attempt a buy-in (#2433). The
-        // earlier gateway bypass (ui#440/poker-vm#2221) predates that and let
-        // unfunded users click into a seat — removed.
+        // A join escrows from the on-chain USDC balance, so an unfunded player must not be able to attempt a buy-in.
         const exceedsBalance = useMemo(() => {
             const buyInValue = parseFloat(buyInAmount) || 0;
             const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
@@ -230,41 +225,23 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             [isUserAlreadyPlaying, canJoinThisSeat, index]
         );
 
-        // Close handler for the modal chrome (backdrop, Escape, close button, Cancel).
-        // Modal ignores these while isProcessing (isJoining), as the old backdrop did.
         const closeBuyInModal = useCallback(() => setShowBuyInModal(false), []);
 
-        // View-only: subtitle under the title, e.g. "Cash game · $0.01 / $0.02 blinds"
         const modalSubtitle = useMemo(() => {
             const { stakeLabel } = getBlindsForDisplay(isSitAndGo ? GameFormat.SIT_AND_GO : GameFormat.CASH, gameOptions?.smallBlind, gameOptions?.bigBlind);
             return `${isSitAndGo ? "Sit & Go" : "Cash game"}${stakeLabel ? ` · ${stakeLabel} blinds` : ""}`;
         }, [isSitAndGo, gameOptions?.smallBlind, gameOptions?.bigBlind]);
 
-        // Quick-amount stops derived only from min/max/big blind, never above the
-        // player's balance. Picking one sets the amount exactly as the slider does.
         const presets = useMemo(() => {
             if (isSitAndGo) return [];
             const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
-            const balanceNum = usdcBalance ? microToUsdc(usdcBalance.amount) : 0;
-            const cap = Math.min(maxBuyInNum, Math.floor(balanceNum * 100) / 100);
-            const candidates = [{ label: "Min", amount: minBuyInNum }];
-            if (bigBlindValue > 0) {
-                candidates.push({ label: "50 BB", amount: bigBlindValue * 50 }, { label: "100 BB", amount: bigBlindValue * 100 });
-            }
-            candidates.push({ label: "Max", amount: cap });
-            const seen = new Set<string>();
-            // Walk from the end so "Max" / "Min" win over a duplicate "100 BB".
-            return candidates
-                .filter(c => c.amount >= minBuyInNum && c.amount <= cap)
-                .map(c => ({ label: c.label, value: formatDollars(c.amount) }))
-                .reverse()
-                .filter(c => {
-                    if (seen.has(c.value)) return false;
-                    seen.add(c.value);
-                    return true;
-                })
-                .reverse();
-        }, [isSitAndGo, cosmosWallet.balance, minBuyInNum, maxBuyInNum, bigBlindValue]);
+            return buildBuyInPresets({
+                minMicro: parseMicroToBigInt(gameOptions?.minBuyIn),
+                maxMicro: parseMicroToBigInt(gameOptions?.maxBuyIn),
+                bigBlindMicro: parseMicroToBigInt(gameOptions?.bigBlind),
+                balanceMicro: parseMicroToBigInt(usdcBalance?.amount)
+            }).map(p => ({ label: p.label, value: formatMicroAsUsdc(p.micro) }));
+        }, [isSitAndGo, cosmosWallet.balance, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, gameOptions?.bigBlind]);
 
         const pickPreset = useCallback((value: string) => {
             setBuyInAmount(value);
@@ -297,8 +274,6 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                         {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
                     </div>
 
-                    {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
-                    {/* Dealer Button — rendered at table level using geometry positions */}
                 </div>
 
                 {/* Buy-in modal - using portal to render at document body */}

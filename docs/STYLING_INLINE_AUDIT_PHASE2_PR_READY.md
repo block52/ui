@@ -26,7 +26,7 @@ Scope: Phase 1 + Phase 2 inline-style migration and parity verification
 
 - Runtime-only exception files: **17**
 - Canonical exception registry and reasons:
-  - See `src/docs/STYLING_INLINE_AUDIT_PHASE2.md` → **Final runtime exception registry (normalized, 2026-02-24)**
+  - See `docs/STYLING_INLINE_AUDIT_PHASE2.md` → **Final runtime exception registry (normalized, 2026-02-24)**
 
 ## Token parity status
 
@@ -35,7 +35,7 @@ Scope: Phase 1 + Phase 2 inline-style migration and parity verification
   - `src/components/playPage/Table.css` (`.text-glow`, `.sit-out-toggle*`)
   - `src/components/playPage/common/Badge.css` (`.timer-extension-button` base, `.tournament-payout-win`)
 - Canonical parity matrix and rationale:
-  - See `src/docs/STYLING_INLINE_AUDIT_PHASE2.md` → **CSS value parity verification against colorConfig (2026-02-24)**
+  - See `docs/STYLING_INLINE_AUDIT_PHASE2.md` → **CSS value parity verification against colorConfig (2026-02-24)**
 
 ## Pre-PR checklist (recommended)
 

@@ -8,7 +8,7 @@ import { copyToClipboard as copyToClipboardUtil } from "../utils/clipboard";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { Card, CardHeader, PillButton } from "../components/ui";
 import { useCosmosApi } from "../context/CosmosApiContext";
-import { AccountBalanceResponse, AccountsResponse, ValidatorsResponse } from "./explorer/AllAccountsPage";
+import { AccountBalanceResponse, AccountsResponse, ValidatorsResponse } from "./explorer/types";
 
 interface GenesisAccount {
     address: string;
@@ -67,7 +67,6 @@ export default function GenesisState() {
     const { currentNetwork } = useNetwork();
     const cosmosApi = useCosmosApi(currentNetwork.rest);
 
-    // Derive addresses from mnemonics on mount
     useEffect(() => {
         deriveAddresses();
     }, []);
@@ -99,27 +98,22 @@ export default function GenesisState() {
         setError(null);
 
         try {
-            // Fetch all accounts
             const accountsResponse = (await cosmosApi.getAccounts(1000)) as AccountsResponse;
 
             const accountsData = accountsResponse.accounts;
 
-            // Fetch validators
             const validatorsResponse = (await cosmosApi.getValidators()) as ValidatorsResponse;
             setValidators(validatorsResponse.validators || []);
 
-            // Process accounts and fetch balances
             const processedAccounts: GenesisAccount[] = [];
 
             for (const account of accountsData || []) {
                 const address = account.address || account.base_account?.address;
                 if (!address) continue;
 
-                // Fetch balance for this account
                 const balanceResponse = (await cosmosApi.getBalanceByAddress(address)) as AccountBalanceResponse;
                 const balanceData = balanceResponse.balances || [];
 
-                // Check if this is a validator
                 const validator = validatorsResponse.validators?.find(
                     (v: any) => v.operator_address && address.startsWith("b52") && v.operator_address.replace("b52valoper", "b52") === address
                 );
@@ -228,7 +222,6 @@ export default function GenesisState() {
     return (
         <div className="min-h-screen bg-surface-page text-ink-body">
             <main className="max-w-[1376px] mx-auto px-4 py-6 sm:px-8 sm:py-8 flex flex-col gap-6">
-                {/* Header */}
                 <div className="flex flex-wrap items-end justify-between gap-4">
                     <div className="flex flex-col gap-1">
                         <h1 className="m-0 text-[28px] font-semibold text-ink">Genesis state</h1>
@@ -239,7 +232,6 @@ export default function GenesisState() {
                     </PillButton>
                 </div>
 
-                {/* Your Wallet Status */}
                 {cosmosAddress && (
                     <Card className={myWalletInGenesis ? "border-emerald-400/40" : "border-amber-400/40"}>
                         <CardHeader title="Your connected wallet" />
@@ -247,7 +239,7 @@ export default function GenesisState() {
                             <div className="flex flex-wrap items-center gap-2">
                                 <span className="text-ink-muted">Address:</span>
                                 <code className="text-ink font-mono text-[13px] bg-surface-page px-2 py-1 rounded-lg break-all">{cosmosAddress}</code>
-                                <PillButton variant="ghost" size="sm" className="max-sm:h-11" onClick={() => copyToClipboard(cosmosAddress, "Address")}>
+                                <PillButton variant="ghost" size="sm" onClick={() => copyToClipboard(cosmosAddress, "Address")}>
                                     Copy
                                 </PillButton>
                             </div>
@@ -261,7 +253,7 @@ export default function GenesisState() {
                             </div>
                             {!myWalletInGenesis && (
                                 <div className="mt-3 p-4 bg-amber-400/10 border border-amber-400/30 rounded-xl">
-                                    <p className="text-amber-200 text-sm">
+                                    <p className="text-amber-800 dark:text-amber-200 text-sm">
                                         <strong>Tip:</strong> Your wallet doesn't have any tokens. Import one of the test account mnemonics below to get
                                         started!
                                     </p>
@@ -271,7 +263,6 @@ export default function GenesisState() {
                     </Card>
                 )}
 
-                {/* Genesis Accounts */}
                 <Card>
                     <CardHeader title={`Genesis accounts (${accounts.length})`} />
                     <div className="p-4 sm:p-5 space-y-3">
@@ -298,7 +289,7 @@ export default function GenesisState() {
                                             <PillButton
                                                 variant="ghost"
                                                 size="sm"
-                                                className="max-sm:h-11 flex-shrink-0"
+                                                className="flex-shrink-0"
                                                 onClick={() => copyToClipboard(account.address, "Address")}
                                             >
                                                 Copy
@@ -307,7 +298,6 @@ export default function GenesisState() {
                                     </div>
                                 </div>
 
-                                {/* Balances */}
                                 <div className="mt-3">
                                     <h4 className="text-xs uppercase tracking-[0.08em] text-ink-muted mb-2">Balances</h4>
                                     {hasElements(account.balances) ? (
@@ -323,7 +313,6 @@ export default function GenesisState() {
                                     )}
                                 </div>
 
-                                {/* Account metadata */}
                                 <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-muted">
                                     <span>Account #: {account.accountNumber}</span>
                                     <span>Sequence: {account.sequence}</span>
@@ -333,7 +322,6 @@ export default function GenesisState() {
                     </div>
                 </Card>
 
-                {/* Well-Known Test Accounts */}
                 <Card>
                     <CardHeader title="Well-known test accounts" subtitle="From config.yml" />
                     <div className="p-4 sm:p-5 space-y-3">
@@ -341,7 +329,6 @@ export default function GenesisState() {
                         {WELL_KNOWN_ACCOUNTS.map(wellKnown => {
                             const derivedAddress = derivedAddresses.get(wellKnown.name);
 
-                            // Try to find this account in genesis using derived address
                             const genesisAccount = derivedAddress ? accounts.find(acc => acc.address === derivedAddress) : null;
 
                             const isMyWalletAccount = derivedAddress && cosmosAddress?.toLowerCase() === derivedAddress.toLowerCase();
@@ -363,7 +350,7 @@ export default function GenesisState() {
                                                     </span>
                                                 )}
                                                 {genesisAccount ? (
-                                                    <span className="px-2.5 py-0.5 bg-brand/20 text-brand-light text-xs font-semibold rounded-full">
+                                                    <span className="px-2.5 py-0.5 bg-brand/20 text-brand dark:text-brand-light text-xs font-semibold rounded-full">
                                                         In genesis
                                                     </span>
                                                 ) : (
@@ -374,7 +361,6 @@ export default function GenesisState() {
                                             </div>
                                             <p className="text-xs text-ink-muted">Test account from config.yml</p>
 
-                                            {/* Show derived address */}
                                             {derivedAddress && (
                                                 <div className="mt-2 flex items-start gap-2">
                                                     <span className="text-xs text-ink-muted pt-1 flex-shrink-0">Address:</span>
@@ -384,7 +370,7 @@ export default function GenesisState() {
                                                     <PillButton
                                                         variant="ghost"
                                                         size="sm"
-                                                        className="max-sm:h-11 flex-shrink-0"
+                                                        className="flex-shrink-0"
                                                         onClick={() => copyToClipboard(derivedAddress, `${wellKnown.name} address`)}
                                                     >
                                                         Copy
@@ -392,7 +378,6 @@ export default function GenesisState() {
                                                 </div>
                                             )}
 
-                                            {/* Show balances if account is in genesis */}
                                             {genesisAccount && hasElements(genesisAccount.balances) && (
                                                 <div className="mt-2">
                                                     <span className="text-xs text-ink-muted">Balances: </span>
@@ -417,7 +402,7 @@ export default function GenesisState() {
                                                 <PillButton
                                                     variant="outline"
                                                     size="sm"
-                                                    className="max-sm:h-11 flex-shrink-0"
+                                                    className="flex-shrink-0"
                                                     onClick={() => copyToClipboard(wellKnown.mnemonic, `${wellKnown.name} mnemonic`)}
                                                 >
                                                     Copy
@@ -438,7 +423,6 @@ export default function GenesisState() {
                     </div>
                 </Card>
 
-                {/* Validators Info */}
                 {hasElements(validators) && (
                     <Card>
                         <CardHeader title={`Validators (${validators.length})`} />
@@ -467,7 +451,6 @@ export default function GenesisState() {
                     </Card>
                 )}
 
-                {/* Bridge State Export/Import Section */}
                 <Card>
                     <CardHeader title="Bridge state export" subtitle="For chain reset" />
                     <div className="p-4 sm:p-5">
@@ -491,7 +474,6 @@ export default function GenesisState() {
 
                         {bridgeState && (
                             <div className="space-y-4">
-                                {/* Stats */}
                                 <div className="grid grid-cols-2 gap-px bg-line border border-line rounded-2xl overflow-hidden">
                                     <div className="bg-surface-card px-4 py-3">
                                         <div className="text-xs uppercase tracking-[0.08em] text-ink-muted">Withdrawal requests</div>
@@ -503,14 +485,12 @@ export default function GenesisState() {
                                     </div>
                                 </div>
 
-                                {/* Genesis JSON */}
                                 <div>
                                     <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
                                         <h3 className="m-0 text-[15px] font-semibold text-ink">Genesis JSON (poker module state)</h3>
                                         <PillButton
                                             variant="outline"
                                             size="sm"
-                                            className="max-sm:h-11"
                                             onClick={() => copyToClipboard(JSON.stringify(bridgeState, null, 2), "Bridge state")}
                                         >
                                             Copy JSON
@@ -521,7 +501,6 @@ export default function GenesisState() {
                                     </div>
                                 </div>
 
-                                {/* Instructions */}
                                 <div className="bg-surface-raised border border-line rounded-xl p-4">
                                     <h3 className="m-0 text-[15px] font-semibold text-ink mb-3">How to import into a new genesis</h3>
                                     <ol className="list-decimal list-inside text-sm text-ink-soft space-y-2">

@@ -1,6 +1,8 @@
 # Styling Inline Audit — Phase 2
 
-> PR handoff summary: `src/docs/STYLING_INLINE_AUDIT_PHASE2_PR_READY.md`
+> **Historical (Feb 2026).** Snapshot of the audit when it was run. Several files it names no longer exist: `QRDeposit.tsx/.css/.module.css` and everything under `src/components/depositComponents/` were removed in the purple/dark redesign (deposit now lives in `modals/DepositCore.tsx` and `modals/CryptoPayment/`). Counts and file lists below are not current. Styling now follows `docs/THEMING.md`.
+
+> PR handoff summary: `docs/STYLING_INLINE_AUDIT_PHASE2_PR_READY.md`
 
 ## Phase 2 kickoff (2026-02-24)
 

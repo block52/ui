@@ -11,17 +11,6 @@ import { Card, CardHeader, PillButton } from "../components/ui";
 import { fieldInputClass, fieldLabelClass, insetBoxClass, noticeClass } from "../components/modals/walletFormClasses";
 import { copyToClipboard } from "../utils/clipboard";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
-/**
- * ManualBridgeTrigger - Simple page to manually process bridge deposits
- *
- * MVP Features:
- * - Input field for deposit index
- * - "Query" button to preview deposit info
- * - "Process Deposit" button
- * - Status display
- * - Transaction hash on success
- */
-
 export default function ManualBridgeTrigger() {
     const cosmosWallet = useCosmosWallet();
     const { currentNetwork } = useNetwork();
@@ -33,7 +22,6 @@ export default function ManualBridgeTrigger() {
     const [depositDetails, setDepositDetails] = useState<any>(null);
     const [queryResult, setQueryResult] = useState<{ recipient: string; amount: string } | null>(null);
 
-    // Bridge configuration - Ethereum Mainnet
     const bridgeContractAddress = COSMOS_BRIDGE_ADDRESS;
     const ethRpcUrl = import.meta.env.VITE_MAINNET_RPC_URL || import.meta.env.VITE_MAINNET_RPC_URL;
 
@@ -54,7 +42,6 @@ export default function ManualBridgeTrigger() {
         setQueryResult(null);
 
         try {
-            // Connect to Ethereum Mainnet
             const provider = new ethers.JsonRpcProvider(ethRpcUrl);
             const contract = new ethers.Contract(bridgeContractAddress, BRIDGE_DEPOSITS_ABI, provider);
 
@@ -101,7 +88,6 @@ export default function ManualBridgeTrigger() {
         try {
             const { signingClient } = await getSigningClient(currentNetwork);
 
-            // Process the deposit
             const hash = await signingClient.processDeposit(index);
 
             // Wait a bit then query the transaction for details and check if it succeeded
@@ -151,7 +137,6 @@ export default function ManualBridgeTrigger() {
     return (
         <div className="min-h-screen bg-surface-page">
             <div className="max-w-[1376px] mx-auto px-4 sm:px-8 py-8 flex flex-col gap-6">
-                {/* Header */}
                 <div>
                     <h1 className="m-0 text-[28px] font-semibold text-ink">Manual Bridge Trigger</h1>
                     <p className="mt-1 mb-0 text-ink-muted">Process Ethereum deposits manually by deposit index</p>
@@ -159,7 +144,6 @@ export default function ManualBridgeTrigger() {
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
                     <div className="flex flex-col gap-6 min-w-0">
-                        {/* Wallet Info */}
                         <Card>
                             <CardHeader title="Block52 Wallet" />
                             <div className="p-5">
@@ -182,11 +166,9 @@ export default function ManualBridgeTrigger() {
                             </div>
                         </Card>
 
-                        {/* Process Deposit Card */}
                         <Card>
                             <CardHeader title="Process Deposit" />
                             <div className="p-5 flex flex-col gap-4">
-                                {/* Input */}
                                 <div>
                                     <label htmlFor="deposit-index" className={fieldLabelClass}>
                                         Deposit Index
@@ -204,7 +186,6 @@ export default function ManualBridgeTrigger() {
                                     <p className="text-xs text-ink-muted mt-2 mb-0">The index of the deposit in the Ethereum bridge contract</p>
                                 </div>
 
-                                {/* Query Button */}
                                 <PillButton variant="outline" onClick={handleQueryDeposit} disabled={isQuerying || isProcessing} className="w-full">
                                     {isQuerying ? (
                                         <>
@@ -216,7 +197,6 @@ export default function ManualBridgeTrigger() {
                                     )}
                                 </PillButton>
 
-                                {/* Query Result Display */}
                                 {queryResult && (
                                     <div className={`${noticeClass.info} !p-4`}>
                                         <p className="m-0 mb-3 text-sm font-medium text-ink">Deposit Information</p>
@@ -233,7 +213,6 @@ export default function ManualBridgeTrigger() {
                                     </div>
                                 )}
 
-                                {/* Process Button */}
                                 <PillButton onClick={handleProcessDeposit} disabled={isProcessing || isQuerying || !cosmosWallet.address} className="w-full">
                                     {isProcessing ? (
                                         <>
@@ -245,7 +224,6 @@ export default function ManualBridgeTrigger() {
                                     )}
                                 </PillButton>
 
-                                {/* Error Display */}
                                 {error && (
                                     <div className={noticeClass.error}>
                                         <p className="m-0 font-medium">Error</p>
@@ -253,7 +231,6 @@ export default function ManualBridgeTrigger() {
                                     </div>
                                 )}
 
-                                {/* Success Display */}
                                 {txHash && (
                                     <div className={noticeClass.success}>
                                         <p className="m-0 mb-2 font-medium">Success!</p>
@@ -266,7 +243,7 @@ export default function ManualBridgeTrigger() {
                                                         type="button"
                                                         onClick={() => copyToClipboard(txHash, "Transaction hash copied!")}
                                                         aria-label="Copy transaction hash"
-                                                        className="w-11 h-11 sm:w-8 sm:h-8 grid place-items-center rounded-full flex-shrink-0 text-ink-muted hover:text-ink hover:bg-surface-raised transition-colors"
+                                                        className="w-11 h-11 sm:w-8 sm:h-8 grid place-items-center rounded-btn flex-shrink-0 text-ink-muted hover:text-ink hover:bg-surface-raised transition-colors"
                                                     >
                                                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                                                             <path
@@ -294,7 +271,6 @@ export default function ManualBridgeTrigger() {
                         </Card>
                     </div>
 
-                    {/* Instructions */}
                     <Card>
                         <CardHeader title="How it works:" level="h3" />
                         <ol className="m-0 p-5 pl-9 text-ink-soft text-sm flex flex-col gap-2 list-decimal">

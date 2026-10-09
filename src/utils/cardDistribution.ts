@@ -1,27 +1,29 @@
-/**
- * Pure helpers for the Hand Distribution page: ordering the 52 cards into suit
- * groups for the chart and turning the indexer's chi-squared results into labels.
- */
+import { ChiSquaredName, SuitKey } from "../pages/explorer/types";
+import { Theme } from "./theme";
 
-export const RANK_ORDER: ReadonlyArray<string> = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
+const RANK_ORDER: ReadonlyArray<string> = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
 
-export type SuitKey = "s" | "h" | "d" | "c";
-
-export interface SuitGroup {
+interface SuitGroup {
     key: SuitKey;
     name: string;
-    color: string;
+    color: Record<Theme, string>;
 }
 
-/** Chart order and colours: spades, hearts, diamonds, clubs. */
-export const SUIT_GROUPS: ReadonlyArray<SuitGroup> = [
-    { key: "s", name: "Spades", color: "#d4d4dc" },
-    { key: "h", name: "Hearts", color: "#f87171" },
-    { key: "d", name: "Diamonds", color: "#60a5fa" },
-    { key: "c", name: "Clubs", color: "#15803d" }
-];
+const SUITS: Record<SuitKey, SuitGroup> = {
+    s: { key: "s", name: "Spades", color: { dark: "#d4d4dc", light: "#3f3f50" } },
+    h: { key: "h", name: "Hearts", color: { dark: "#f87171", light: "#dc2626" } },
+    d: { key: "d", name: "Diamonds", color: { dark: "#60a5fa", light: "#2563eb" } },
+    c: { key: "c", name: "Clubs", color: { dark: "#15803d", light: "#15803d" } }
+};
 
-export const EXPECTED_LINE_COLOR = "#eab308";
+/** Chart order: spades, hearts, diamonds, clubs. */
+export const SUIT_GROUPS: ReadonlyArray<SuitGroup> = [SUITS.s, SUITS.h, SUITS.d, SUITS.c];
+
+const EXPECTED_LINE_COLOR: Record<Theme, string> = { dark: "#eab308", light: "#ca8a04" };
+
+export const expectedLineColor = (theme: Theme): string => EXPECTED_LINE_COLOR[theme];
+
+export const suitColor = (suit: SuitKey, theme: Theme): string => SUITS[suit].color[theme];
 
 interface CardLike {
     rank: string;
@@ -37,14 +39,7 @@ export const sortCardsBySuit = <T extends CardLike>(cards: ReadonlyArray<T>): T[
     return [...cards].sort((a, b) => order(suitIndex(a.suit)) - order(suitIndex(b.suit)) || order(rankIndex(a.rank)) - order(rankIndex(b.rank)));
 };
 
-/** Bar colour for a card's suit; throws on a suit the indexer should never send. */
-export const suitColor = (suit: string): string => {
-    const group = SUIT_GROUPS[suitIndex(suit)];
-    if (!group) throw new Error(`cardDistribution: unknown suit "${suit}"`);
-    return group.color;
-};
-
-/** Human-readable card name for a tooltip, e.g. "A of spades". */
+/** Card name for a tooltip, e.g. "A of spades". */
 export const cardLabel = (card: CardLike): string => {
     const group = SUIT_GROUPS[suitIndex(card.suit)];
     return group ? `${card.rank.toUpperCase()} of ${group.name.toLowerCase()}` : `${card.rank}${card.suit}`;
@@ -52,41 +47,50 @@ export const cardLabel = (card: CardLike): string => {
 
 export type TestBadge = "pass" | "marginal" | "fail" | "noData";
 
-/** Maps the indexer's chi-squared `result` ("PASS" | "MARGINAL" | "FAIL" | "NO_DATA") to a badge. */
-export const chiSquaredBadge = (result: string): TestBadge => {
-    switch (result) {
-        case "PASS":
-            return "pass";
-        case "MARGINAL":
-            return "marginal";
-        case "FAIL":
-            return "fail";
-        case "NO_DATA":
-            return "noData";
-        default:
-            throw new Error(`cardDistribution: unknown chi-squared result "${result}"`);
+const BADGES: Record<ChiSquaredName, TestBadge> = { PASS: "pass", MARGINAL: "marginal", FAIL: "fail", NO_DATA: "noData" };
+
+export const chiSquaredBadge = (result: ChiSquaredName): TestBadge => BADGES[result];
+
+export type Verdict = "fair" | "borderline" | "bias" | "waiting";
+
+/** Overall verdict from the card-level chi-squared test; no dealt cards or no result means nothing to judge yet. */
+export const distributionVerdict = (cardTestResult: ChiSquaredName | null, cardsDealt: number): Verdict => {
+    if (cardTestResult === null || cardsDealt === 0) return "waiting";
+    switch (chiSquaredBadge(cardTestResult)) {
+        case "noData":
+            return "waiting";
+        case "pass":
+            return "fair";
+        case "marginal":
+            return "borderline";
+        case "fail":
+            return "bias";
     }
 };
 
-export type Verdict = "fair" | "bias" | "waiting";
+const CHANNELS = /^(\d{1,3})\s+(\d{1,3})\s+(\d{1,3})$/;
 
-/**
- * Overall verdict from the card-level chi-squared test. No dealt cards (or no
- * test result) means there is nothing to judge yet.
- */
-export const distributionVerdict = (cardTestResult: string | null, cardsDealt: number): Verdict => {
-    if (cardTestResult === null || cardsDealt === 0) return "waiting";
-    const badge = chiSquaredBadge(cardTestResult);
-    if (badge === "noData") return "waiting";
-    return badge === "pass" ? "fair" : "bias";
+/** A theme token's "R G B" channels (see styles/theme.css) as a canvas colour, or null when they are not three channels. */
+export const channelsToRgb = (channels: string): string | null => {
+    const match = CHANNELS.exec(channels.trim());
+    return match ? `rgb(${match[1]}, ${match[2]}, ${match[3]})` : null;
 };
 
-/** Chart chrome, matching the `line` and `ink-muted` design tokens (chart.js needs literal colours). */
-export const CHART_GRID_COLOR = "#262938";
-export const CHART_TICK_COLOR = "#8e90a6";
+export interface ChartChrome {
+    grid: string;
+    tick: string;
+}
+
+/** Chart.js draws on a canvas and cannot use CSS variables, so the `line` and `ink-muted` tokens are read from the page. */
+export const readChartChrome = (): ChartChrome | null => {
+    const style = getComputedStyle(document.documentElement);
+    const grid = channelsToRgb(style.getPropertyValue("--line"));
+    const tick = channelsToRgb(style.getPropertyValue("--ink-muted"));
+    return grid !== null && tick !== null ? { grid, tick } : null;
+};
 
 /** Blocks the indexer may trail the chain head by and still count as synced (about one refresh). */
-export const INDEXER_SYNC_TOLERANCE_BLOCKS = 10;
+const INDEXER_SYNC_TOLERANCE_BLOCKS = 10;
 
 /**
  * Whether the indexer has caught up with the chain head. Uses heights

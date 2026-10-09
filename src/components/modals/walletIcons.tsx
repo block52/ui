@@ -1,7 +1,5 @@
 import React from "react";
 
-/** Small stroke icons used by the wallet money modals and the wallet page. */
-
 export const CopyIcon: React.FC<{ className?: string }> = ({ className = "w-[18px] h-[18px]" }) => (
     <svg className={className} viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true">
         <rect x="7" y="7" width="10" height="10" rx="2" />
