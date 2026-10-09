@@ -569,8 +569,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
                         {/* Main Action Buttons */}
                         {showActionButtons && !showSmallBlindButton && !showBigBlindButton && (
-                            <div className="flex flex-col gap-2 lg:flex-row-reverse lg:items-start lg:gap-6">
-                                <div className="lg:flex-none lg:w-[430px]">
+                            <div className="flex flex-col gap-2 lg:flex-row-reverse lg:items-stretch lg:gap-6">
+                                <div className="lg:flex-none lg:w-[430px] lg:min-h-[52px]">
                                 <MainActionButtons
                                     canFold={canFoldAnytime}
                                     canCheck={hasCheckAction}

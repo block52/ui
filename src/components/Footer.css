@@ -86,7 +86,7 @@
 
 /* Check button */
 .btn-check {
-  background: rgb(var(--surface-raised));
+  background: rgb(var(--surface-card) / 0.55);
   border: 1px solid rgb(var(--line-strong));
   color: rgb(var(--ink));
   transition: all 0.2s ease;
@@ -100,7 +100,7 @@
 
 /* Fold button */
 .btn-fold {
-  background: rgb(var(--surface-card));
+  background: rgb(var(--surface-card) / 0.55);
   border: 1px solid color-mix(in srgb, var(--accent-danger) 55%, transparent);
   color: #fca5a5;
   transition: all 0.2s ease;
@@ -116,7 +116,7 @@
 
 /* Call button */
 .btn-call {
-  background: rgb(var(--surface-raised));
+  background: rgb(var(--surface-card) / 0.55);
   border: 1px solid rgb(var(--line-strong));
   color: rgb(var(--ink));
   transition: all 0.2s ease;
@@ -184,7 +184,7 @@
 
 /* Slider buttons */
 .btn-slider {
-  background: rgb(var(--surface-raised));
+  background: rgb(var(--surface-card) / 0.55);
   border: 1px solid rgb(var(--line-strong));
   color: rgb(var(--ink));
   transition: all 0.2s ease;
@@ -198,7 +198,7 @@
 
 /* Pot buttons */
 .btn-pot {
-  background: rgb(var(--surface-raised));
+  background: rgb(var(--surface-card) / 0.55);
   border: 1px solid rgb(var(--line-strong));
   color: rgb(var(--ink-body));
   transition: all 0.2s ease;
