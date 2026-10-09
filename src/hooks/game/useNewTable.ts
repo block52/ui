@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { GameFormat, GameVariant, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
+import { getTxWithBackoff } from "../../utils/cosmos/getTxWithBackoff";
 import { useNetwork } from "../../context/NetworkContext";
 import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
 import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
@@ -147,13 +148,9 @@ export const useNewTable = (): UseNewTableReturn => {
                     return null;
                 }
 
-                // Wait a moment for the transaction to be indexed
-                await new Promise(resolve => setTimeout(resolve, 2000));
-
-                let tx;
-                try {
-                    tx = await cosmosClient.getTx(txHash);
-                } catch (_txError) {
+                // Poll until the tx is indexed instead of sleeping a fixed 2s (ui#431)
+                const tx = await getTxWithBackoff(hash => cosmosClient.getTx(hash), txHash);
+                if (!tx) {
                     // Indexer hiccup — tx is on-chain but we couldn't fetch it.
                     return { txHash, gameId: null };
                 }
