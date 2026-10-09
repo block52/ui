@@ -318,23 +318,23 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     {/* Settings gear icon */}
                     <button
                         type="button"
-                        className={`grid place-items-center w-8 h-8 sm:w-9 sm:h-9 cursor-pointer transition-colors duration-200 rounded-btn mr-1 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
+                        className={`grid place-items-center w-6 h-6 sm:w-7 sm:h-7 cursor-pointer transition-colors duration-200 rounded-btn mr-1 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
                         onClick={onToggleSettings}
                         title="Toggle Settings"
                         aria-label="Toggle settings"
                         aria-pressed={openSettings}
                     >
-                        <IoSettingsOutline size={18} />
+                        <IoSettingsOutline size={15} />
                     </button>
                     <button
                         type="button"
-                        className={`grid place-items-center w-8 h-8 sm:w-9 sm:h-9 cursor-pointer transition-colors duration-200 rounded-btn ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
+                        className={`grid place-items-center w-6 h-6 sm:w-7 sm:h-7 cursor-pointer transition-colors duration-200 rounded-btn ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
                         onClick={onCloseSideBar}
                         title="Toggle Action Log"
                         aria-label="Toggle action log"
                         aria-pressed={openSidebar}
                     >
-                        {openSidebar ? <LuPanelLeftOpen size={18} /> : <LuPanelLeftClose size={18} />}
+                        {openSidebar ? <LuPanelLeftOpen size={15} /> : <LuPanelLeftClose size={15} />}
                     </button>
                     {/* Only show Leave Table button if user is seated — and never
                         for SNG, where the roster is frozen once play starts
@@ -343,13 +343,13 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     {currentPlayerData && !(gameFormat && isSitAndGoFormat(gameFormat)) && (
                         <button
                             type="button"
-                            className={`h-8 sm:h-9 px-3 cursor-pointer flex items-center gap-2 rounded-btn border text-xs sm:text-sm font-semibold transition-colors duration-200 ml-2 sm:ml-3 ${styles.leaveTableButton}`}
+                            className={`h-6 sm:h-7 px-2.5 cursor-pointer flex items-center gap-1.5 rounded-btn border text-xs font-semibold transition-colors duration-200 ml-2 sm:ml-3 ${styles.leaveTableButton}`}
                             onClick={handleLeaveTableClick}
                             title="Leave Table"
                         >
                             <span className="hidden sm:inline">Leave table</span>
                             <span className="sm:hidden">Leave</span>
-                            <RxExit size={16} />
+                            <RxExit size={14} />
                         </button>
                     )}
                 </div>
