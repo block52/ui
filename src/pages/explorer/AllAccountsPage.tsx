@@ -6,6 +6,8 @@ import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { microToUsdc } from "../../constants/currency";
 import { truncateMiddle } from "../../utils/stringUtils";
+import { formatTimestampAbsolute, formatTimestampRelative } from "../../utils/formatUtils";
+import { compareLastActive, latestTimestamp } from "../../utils/accountActivity";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import {
@@ -23,6 +25,8 @@ import { useCosmosApi } from "../../context/CosmosApiContext";
 
 const PAGE_SIZE = 20;
 
+type SortField = "balance" | "address" | "lastActive";
+
 interface ValidatorInfo {
     operatorAddress: string;
     accountAddress: string;
@@ -35,6 +39,8 @@ interface AccountInfo {
     type: string;
     balances: { denom: string; amount: string }[];
     totalUsdcValue: number;
+    /** Timestamp of the account's most recent sent or received tx; null when it has none. */
+    lastActive: string | null;
     isValidator?: boolean;
     validatorMoniker?: string;
     validatorStatus?: string;
@@ -64,6 +70,10 @@ export interface AccountBalanceResponse {
     balances: { denom: string; amount: string }[];
 }
 
+interface LatestTransactionResponse {
+    tx_responses?: { timestamp: string }[];
+}
+
 export default function AllAccountsPage() {
     const navigate = useNavigate();
     const { currentNetwork } = useNetwork();
@@ -71,7 +81,7 @@ export default function AllAccountsPage() {
     const [accounts, setAccounts] = useState<AccountInfo[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [sortBy, setSortBy] = useState<"balance" | "address">("balance");
+    const [sortBy, setSortBy] = useState<SortField>("balance");
     const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     // The box is a draft; the applied filter changes on Search/Enter (or when cleared).
     const [searchInput, setSearchInput] = useState("");
@@ -100,6 +110,21 @@ export default function AllAccountsPage() {
             console.error("Error converting valoper address:", e);
         }
         return "";
+    };
+
+    // The most recent tx the account sent or received. Failures leave the column blank
+    // rather than failing the whole table.
+    const fetchLastActive = async (address: string): Promise<string | null> => {
+        try {
+            const [sent, received] = (await Promise.all([
+                cosmosApi.getLatestTransaction(`message.sender='${address}'`),
+                cosmosApi.getLatestTransaction(`transfer.recipient='${address}'`)
+            ])) as LatestTransactionResponse[];
+            return latestTimestamp([sent.tx_responses?.[0]?.timestamp, received.tx_responses?.[0]?.timestamp]);
+        } catch (e) {
+            console.error(`Failed to fetch last activity for ${address}:`, e);
+            return null;
+        }
     };
 
     const fetchAllAccounts = useCallback(async () => {
@@ -191,6 +216,8 @@ export default function AllAccountsPage() {
                         }
                     }
 
+                    const lastActive = address ? await fetchLastActive(address) : null;
+
                     // Check if this account is a validator
                     const validatorInfo = validatorMap.get(address);
 
@@ -199,6 +226,7 @@ export default function AllAccountsPage() {
                         type,
                         balances,
                         totalUsdcValue,
+                        lastActive,
                         isValidator: !!validatorInfo,
                         validatorMoniker: validatorInfo?.moniker,
                         validatorStatus: validatorInfo?.status
@@ -257,6 +285,8 @@ export default function AllAccountsPage() {
         return [...filtered].sort((a, b) => {
             if (sortBy === "balance") {
                 return sortOrder === "desc" ? b.totalUsdcValue - a.totalUsdcValue : a.totalUsdcValue - b.totalUsdcValue;
+            } else if (sortBy === "lastActive") {
+                return compareLastActive(a.lastActive, b.lastActive, sortOrder);
             } else {
                 return sortOrder === "desc" ? b.address.localeCompare(a.address) : a.address.localeCompare(b.address);
             }
@@ -298,7 +328,7 @@ export default function AllAccountsPage() {
 
     const truncateAddress = (addr: string) => (addr.length <= 20 ? addr : truncateMiddle(addr, 12, 8));
 
-    const toggleSort = (field: "balance" | "address") => {
+    const toggleSort = (field: SortField) => {
         if (sortBy === field) {
             setSortOrder(prev => (prev === "asc" ? "desc" : "asc"));
         } else {
@@ -375,6 +405,12 @@ export default function AllAccountsPage() {
                                         >
                                             USDC Balance {sortBy === "balance" && (sortOrder === "asc" ? "↑" : "↓")}
                                         </th>
+                                        <th
+                                            className="hidden sm:table-cell px-4 py-2 text-left text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => toggleSort("lastActive")}
+                                        >
+                                            Last Active {sortBy === "lastActive" && (sortOrder === "asc" ? "↑" : "↓")}
+                                        </th>
                                         <th className="hidden md:table-cell px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap">
                                             All Balances
                                         </th>
@@ -425,6 +461,15 @@ export default function AllAccountsPage() {
                                                         maximumFractionDigits: 2
                                                     })}
                                                 </span>
+                                            </td>
+                                            <td className="hidden sm:table-cell px-4 py-2 whitespace-nowrap">
+                                                {account.lastActive ? (
+                                                    <span className="text-gray-300" title={formatTimestampAbsolute(account.lastActive)}>
+                                                        {formatTimestampRelative(account.lastActive)}
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-gray-500">-</span>
+                                                )}
                                             </td>
                                             <td className="hidden md:table-cell px-4 py-2 text-right">
                                                 {isEmpty(account.balances) ? (
