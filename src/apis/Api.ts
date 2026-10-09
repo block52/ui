@@ -1,12 +1,6 @@
 import HTTPClient from "./HTTPClient";
 import { hasContent, hasValue } from "../utils/guards";
-import type {
-    PlayerSearchParams,
-    PlayersListResponse,
-    PlayerProfile,
-    PlayerSessionsResponse,
-    PlayerHandsResponse
-} from "../types/players";
+import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
 
 export class PaymentApi extends HTTPClient {
@@ -15,10 +9,27 @@ export class PaymentApi extends HTTPClient {
     public getPaymentStatus = (paymentId: string) => this.get(`/api/nowpayments/payment/${paymentId}`);
     public getDepositSession = (userAddress: string) => this.get(`/deposit-sessions/user/${userAddress}`);
     public getHotWalletInfo = () => this.get("/api/nowpayments/hot-wallet-info");
-    public manualBridge = (data: { cosmosAddress: string; amount: string }) => this.post("/api/nowpayments/manual-bridge", data);
-    public approveBridge = () => this.post("/api/nowpayments/approve-bridge");
+    // Hot-wallet routes: the proxy refuses them without the admin key (poker-vm#2638).
+    public manualBridge = (data: { cosmosAddress: string; amount: string }, adminKey: string) =>
+        this.post("/api/nowpayments/manual-bridge", data, sendsFunds(adminKey));
+    public approveBridge = (adminKey: string) => this.post("/api/nowpayments/approve-bridge", undefined, sendsFunds(adminKey));
+    public getUnbridgedPayments = (adminKey: string) => this.get("/api/nowpayments/unbridged", adminHeaders(adminKey));
+    public retryBridge = (paymentId: string, adminKey: string) =>
+        this.post(`/api/nowpayments/retry-bridge/${encodeURIComponent(paymentId)}`, undefined, sendsFunds(adminKey));
+    public markBridged = (paymentId: string, txHash: string, adminKey: string) =>
+        this.post(`/api/nowpayments/mark-bridged/${encodeURIComponent(paymentId)}`, { txHash }, adminHeaders(adminKey));
     public createDepositSession = (data: { userAddress: string; depositAddress: string }) => this.post("/deposit-sessions", data);
 }
+
+const adminHeaders = (adminKey: string) => ({ headers: { "X-Admin-Key": adminKey } });
+
+/**
+ * The proxy answers a hot-wallet send only after the Ethereum tx confirms (up to
+ * 2 minutes), so these calls must not inherit PaymentApi's 5 s timeout: it fired
+ * mid-send and the page reported a payment that had gone through as not sent.
+ */
+export const FUND_MOVING_TIMEOUT_MS = 180_000;
+const sendsFunds = (adminKey: string) => ({ ...adminHeaders(adminKey), timeout: FUND_MOVING_TIMEOUT_MS });
 
 export class CosmosApi extends HTTPClient {
     public getSentTransactions = (senderQuery: string) => this.get(`/cosmos/tx/v1beta1/txs?query=${encodeURIComponent(senderQuery)}&order_by=2&limit=10`);
@@ -40,8 +51,7 @@ export class CosmosApi extends HTTPClient {
         });
     public getGameStateAt = (gameId: string, handNumber: number, actionIndex: number) =>
         this.get(`block52/pokerchain/poker/v1/game_state_at/${gameId}/${handNumber}/${actionIndex}`);
-    public getPublicGameState = (gameId: string) =>
-        this.get(`/block52/pokerchain/poker/v1/game_state_public/${gameId}`);
+    public getPublicGameState = (gameId: string) => this.get(`/block52/pokerchain/poker/v1/game_state_public/${gameId}`);
     public getPublicGameStateAtBlock = (gameId: string, blockHeight: number) =>
         this.get(`/block52/pokerchain/poker/v1/game_state_public/${gameId}`, {
             headers: { "x-cosmos-block-height": String(blockHeight) }
