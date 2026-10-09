@@ -151,6 +151,7 @@ import { useTurnNotification } from "../../hooks/notifications/useTurnNotificati
 import ConnectionBanner from "./ConnectionBanner";
 
 import { hasElements } from "../../utils/guards";
+import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
 
 //* Here's the typical sequence of a poker hand:
 //* ANTE - Initial forced bets
@@ -179,8 +180,9 @@ const NetworkDisplay = memo(({ isMainnet = false }: NetworkDisplayProps) => {
 NetworkDisplay.displayName = "NetworkDisplay";
 
 // Global debug state — shared between LayoutDebugOverlay and Table component
-// Keys: 1 = all overlays, 2 = geometry, 3 = seats, 4 = chips, 5 = dealers,
-// 6 = crosshair, 7 = hole-card slots + deck (ui#21 dealing-animation targets)
+// Keys (ui#741): Ctrl+I/⌘I = all overlays + enable debug mode, then while on:
+// 2 = geometry, 3 = seats, 4 = chips, 5 = dealers, 6 = crosshair,
+// 7 = hole-card slots + deck (ui#21 dealing-animation targets)
 let _debugChips = false;
 let _debugDealers = false;
 let _debugSeats = false;
@@ -199,50 +201,66 @@ function useDebugToggle() {
     return { showChips: _debugChips, showDealers: _debugDealers, showSeats: _debugSeats, showGeometry: _debugGeometry, showCards: _debugCards };
 }
 
-/** DEBUG OVERLAY: Press 'D' to toggle. Shows draggable marker with coordinates. */
+/**
+ * DEBUG OVERLAY (ui#741): Ctrl+I (⌘I on macOS) toggles all overlays and enables
+ * debug mode. Once on, 2=geometry, 3=seats, 4=chips, 5=dealers, 6=crosshair,
+ * 7=cards. Key events from inputs are ignored so typing never flips the overlays.
+ */
 const LayoutDebugOverlay = () => {
     const [visible, setVisible] = useState(false);
+    const [debugMode, setDebugMode] = useState(false);
     const [pos, setPos] = useState({ x: 200, y: 200 });
     const [dragging, setDragging] = useState(false);
     const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
-            // 1=all overlays, 2=geometry, 3=seats, 4=chips, 5=dealers, 6=crosshair
-            if (e.key === "1") {
-                const s = !_debugGeometry;
-                _debugGeometry = s;
-                _debugChips = s;
-                _debugDealers = s;
-                _debugSeats = s;
-                _debugCards = s;
-                debugListeners.forEach(cb => cb());
-            }
-            if (e.key === "2") {
-                _debugGeometry = !_debugGeometry;
-                debugListeners.forEach(cb => cb());
-            }
-            if (e.key === "3") {
-                _debugSeats = !_debugSeats;
-                debugListeners.forEach(cb => cb());
-            }
-            if (e.key === "4") {
-                _debugChips = !_debugChips;
-                debugListeners.forEach(cb => cb());
-            }
-            if (e.key === "5") {
-                _debugDealers = !_debugDealers;
-                debugListeners.forEach(cb => cb());
-            }
-            if (e.key === "6") setVisible(v => !v);
-            if (e.key === "7") {
-                _debugCards = !_debugCards;
-                debugListeners.forEach(cb => cb());
+            const action = resolveDebugOverlayAction(e, debugMode);
+            if (action === null) return;
+
+            // Firefox uses Ctrl+I for Page Info and editors for italic — claim it.
+            if (action === "all") e.preventDefault();
+
+            switch (action) {
+                case "all": {
+                    const s = !_debugGeometry;
+                    _debugGeometry = s;
+                    _debugChips = s;
+                    _debugDealers = s;
+                    _debugSeats = s;
+                    _debugCards = s;
+                    setDebugMode(s);
+                    debugListeners.forEach(cb => cb());
+                    break;
+                }
+                case "geometry":
+                    _debugGeometry = !_debugGeometry;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "seats":
+                    _debugSeats = !_debugSeats;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "chips":
+                    _debugChips = !_debugChips;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "dealers":
+                    _debugDealers = !_debugDealers;
+                    debugListeners.forEach(cb => cb());
+                    break;
+                case "crosshair":
+                    setVisible(v => !v);
+                    break;
+                case "cards":
+                    _debugCards = !_debugCards;
+                    debugListeners.forEach(cb => cb());
+                    break;
             }
         };
         window.addEventListener("keydown", handleKey);
         return () => window.removeEventListener("keydown", handleKey);
-    }, []);
+    }, [debugMode]);
 
     useEffect(() => {
         if (!visible) return;
