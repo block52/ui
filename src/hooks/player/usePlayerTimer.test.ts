@@ -16,11 +16,15 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 
 const mockUseGameData = jest.fn();
 const mockUseGameUI = jest.fn();
+const mockUseReplay = jest.fn();
 jest.mock("../../context/gameState/GameDataContext", () => ({
     useGameData: () => mockUseGameData()
 }));
 jest.mock("../../context/gameState/GameUIContext", () => ({
     useGameUI: () => mockUseGameUI()
+}));
+jest.mock("../../context/gameState/ReplayContext", () => ({
+    useReplay: () => mockUseReplay()
 }));
 
 // The two direct broadcasters #644 removed. If the hook ever reaches for one
@@ -54,9 +58,10 @@ const state = (nextToAct = 1, timeout = 30) => ({
     }
 });
 
-const setState = (snapshot: unknown) => {
+const setState = (snapshot: unknown, isReplayMode = false) => {
     mockUseGameData.mockReturnValue({ gameState: snapshot, isOptimistic: false });
     mockUseGameUI.mockReturnValue({ isLoading: false, error: null });
+    mockUseReplay.mockReturnValue({ isReplayMode, replayHandNumber: isReplayMode ? 9 : null, replayActionIndex: null });
 };
 
 describe("usePlayerTimer", () => {
@@ -146,6 +151,26 @@ describe("usePlayerTimer", () => {
             expect(seats).toHaveLength(2);
             expect(mockFold).not.toHaveBeenCalled();
             expect(mockCheck).not.toHaveBeenCalled();
+        });
+    });
+
+    // ui#721: a hand replay is a frozen snapshot. The snapshot still carries a
+    // nextToAct seat, but there is no live turn, so the timer must not run —
+    // otherwise its per-second re-render flashes the "whose turn" indicator.
+    describe("replay mode freezes the turn (ui#721)", () => {
+        it("is inactive for the snapshot's next-to-act seat in replay", () => {
+            setState(state(1), /* isReplayMode */ true);
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isActive).toBe(false);
+            expect(result.current.isCurrentUserTurn).toBe(false);
+            expect(result.current.timeRemaining).toBe(0);
+        });
+
+        it("is active for that same seat when NOT in replay", () => {
+            setState(state(1), /* isReplayMode */ false);
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isActive).toBe(true);
+            expect(result.current.isCurrentUserTurn).toBe(true);
         });
     });
 });

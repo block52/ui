@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
+import { useReplay } from "../../context/gameState/ReplayContext";
 import { PlayerStatus, PlayerDTO } from "@block52/poker-vm-sdk";
 import { PlayerTimerReturn } from "../../types/index";
 import { useGameOptions } from "../game/useGameOptions";
@@ -31,6 +32,7 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
 
     const { gameState } = useGameData();
     const { isLoading, error } = useGameUI();
+    const { isReplayMode } = useReplay();
 
     // Get game options for timeout value
     const { gameOptions } = useGameOptions();
@@ -72,10 +74,13 @@ export const usePlayerTimer = (tableId?: string, playerSeat?: number): PlayerTim
     turnAnchorRef.current = resolveTurnAnchor(turnAnchorRef.current, turnId, lastActionTimestamp);
     const anchoredActionTimestamp = turnAnchorRef.current.anchorMs;
 
-    // Check if this player is next to act
+    // Check if this player is next to act. A hand replay is a frozen snapshot with
+    // no live turn, so no seat is ever "to act" — this keeps the countdown timer and
+    // its per-second re-render off during replay (ui#721).
     const isNextToAct = useMemo((): boolean => {
+        if (isReplayMode) return false;
         return gameState?.nextToAct === playerSeat;
-    }, [gameState?.nextToAct, playerSeat]);
+    }, [isReplayMode, gameState?.nextToAct, playerSeat]);
 
     // Count active players 
     const activePlayerCount = useMemo((): number => {
