@@ -5,7 +5,7 @@ export const AUTO_ACTION_DELAY_MS = 500;
 
 /**
  * The "latch, wait, fire once" core shared by the automatic-action hooks
- * (useAutoFold, usePreCheck, useAutoShowCards, useAutoMuck).
+ * (useAutoFold, usePreCheckFold, useAutoShowCards, useAutoMuck).
  *
  * While `shouldArm` is true and the latch is open, it latches and starts the
  * settle timer; `fire` runs once when the timer elapses. The latch reopens when

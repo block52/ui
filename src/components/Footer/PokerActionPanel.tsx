@@ -30,7 +30,7 @@ import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
 import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
-import { usePreCheck } from "../../hooks/playerActions/usePreCheck";
+import { usePreCheckFold } from "../../hooks/playerActions/usePreCheckFold";
 import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
 import { useAutoShowCards } from "../../hooks/playerActions/useAutoShowCards";
 import { useAutoMuck } from "../../hooks/playerActions/useAutoMuck";
@@ -62,7 +62,7 @@ import { ShowdownButtons } from "./ShowdownButtons";
 import { BlindButtonGroup } from "./BlindButtonGroup";
 import { MainActionButtons } from "./MainActionButtons";
 import { RaiseBetControls } from "./RaiseBetControls";
-import { PreCheckControl } from "./PreCheckControl";
+import { PreCheckFoldControl } from "./PreCheckFoldControl";
 import { isCheckFreeForPlayer } from "../../utils/chipUtils";
 
 // Import types
@@ -233,9 +233,9 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoFoldEnabled
     );
 
-    // Pre-select "Check" (ui#388): before it's the player's turn, if checking
-    // would be free, offer a box that auto-checks the instant action reaches them.
-    // Ephemeral per-round intent — NOT a persisted setting.
+    // Pre-select "Check/Fold" (ui#388): before it's the player's turn, if checking
+    // would be free, offer a box that checks when action reaches them, or folds if
+    // someone bets first. Ephemeral per-round intent — NOT a persisted setting.
     const [preCheckQueued, setPreCheckQueued] = useState(false);
 
     // "Checking is free for me right now": no one has out-committed me this round
@@ -246,25 +246,39 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     );
 
     // Offer the control only while the opt-in setting is ON (default OFF, ui#388),
-    // and then only while seated in the hand, not to act, and check-free.
-    const showPreCheck = preSelectCheck && !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && facingNoBet;
+    // and then only while seated in the hand and not to act. It is first offered
+    // while check-free; once ticked it stays visible after a bet lands (relabelled
+    // "Fold") so the player can see, and untick, what will happen.
+    const showPreCheck = preSelectCheck && !isUsersTurn && playerStatus === PlayerStatus.ACTIVE && (facingNoBet || preCheckQueued);
 
-    // Clear the queued intent when the box should hide for a reason OTHER than it
-    // becoming the player's turn (a bet landed, or they left ACTIVE). When the turn
-    // arrives we intentionally leave it set so usePreCheck can consume it.
+    // Clear the queued intent when the player leaves the hand (fold, bust, sit
+    // out). A bet landing does NOT clear it — that is when Check/Fold folds. When
+    // the turn arrives we leave it set so usePreCheckFold can consume it.
     useEffect(() => {
-        if (preCheckQueued && !isUsersTurn && (!facingNoBet || playerStatus !== PlayerStatus.ACTIVE)) {
+        if (preCheckQueued && !isUsersTurn && playerStatus !== PlayerStatus.ACTIVE) {
             setPreCheckQueued(false);
         }
-    }, [preCheckQueued, isUsersTurn, facingNoBet, playerStatus]);
+    }, [preCheckQueued, isUsersTurn, playerStatus]);
 
-    // A queued pre-check is scoped to the current betting round only.
+    // A queued Check/Fold is scoped to the current betting round only.
     useEffect(() => {
         setPreCheckQueued(false);
     }, [gameState?.round]);
 
     const clearPreCheck = useCallback(() => setPreCheckQueued(false), []);
-    usePreCheck(tableId, network, preCheckQueued, hasCheckAction, isUsersTurn, submit, isSubmitBusy, onTransactionSubmitted, clearPreCheck);
+    usePreCheckFold(
+        tableId,
+        network,
+        preCheckQueued,
+        hasCheckAction,
+        hasCallAction,
+        hasFoldAction,
+        isUsersTurn,
+        submit,
+        isSubmitBusy,
+        onTransactionSubmitted,
+        clearPreCheck
+    );
 
     // Auto-show-cards hook - automatically shows cards when the action timer expires
     useAutoShowCards(tableId, network, hasShowAction, isUsersTurn, timeRemaining, submit, isSubmitBusy, onTransactionSubmitted);
@@ -472,13 +486,14 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                     isMobileLandscape ? "mx-1 space-y-0.5 max-w-full" : "lg:w-[570px] mx-4 lg:mx-0 space-y-2 lg:space-y-3 max-w-full"
                 }`}
             >
-                {/* Pre-select "Check" (ui#388) — offered when it's not your turn
-                    and checking is currently free; auto-checks on your turn, and
-                    clears itself the moment a bet lands. */}
+                {/* Pre-select "Check/Fold" (ui#388) — offered when it's not your
+                    turn and checking is currently free; on your turn it checks if
+                    still free, or folds if someone bet. */}
                 {showPreCheck && (
-                    <PreCheckControl
+                    <PreCheckFoldControl
                         checked={preCheckQueued}
                         onChange={setPreCheckQueued}
+                        facingBet={!facingNoBet}
                         isMobileLandscape={isMobileLandscape}
                     />
                 )}
