@@ -13,6 +13,8 @@
  *   contentEditable) are ignored entirely, so typing never toggles debug UI.
  */
 
+import { isNullish } from "./guards";
+
 /** Which overlay(s) a key press should toggle, or `null` for no-op. */
 export type DebugOverlayAction =
     | "all" // Ctrl+I — toggle every overlay (and the debug-mode gate)
@@ -34,7 +36,7 @@ export interface DebugKeyEvent {
 
 /** True when the event originated from a text-entry / editable element. */
 export function isEditableTarget(target: EventTarget | null | undefined): boolean {
-    if (!target || !(target instanceof HTMLElement)) return false;
+    if (isNullish(target) || !(target instanceof HTMLElement)) return false;
     const tag = target.tagName;
     if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return true;
     return target.isContentEditable === true;
