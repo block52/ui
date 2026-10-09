@@ -1,6 +1,5 @@
 import { PlayerActionType, ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
-import { hasValue } from "./guards";
 
 type CalculatePotBetAmountParams = {
     currentRound: TexasHoldemRound;
@@ -67,22 +66,12 @@ function parseVariationToMultiplier(variation: string): number {
     }
 }
 
-/** Optional constraints applied to a pot-fraction sizing. */
-export type PotBetVariationOptions = {
-    // The big blind in micro-units. When provided, an OPENING bet (no bet to
-    // face) is floored at the big blind: a small pot can make e.g. 1/4 pot round
-    // below the minimum legal open, and no-limit forbids opening under the BB
-    // (#692). Not applied when facing a bet — a RAISE TO's floor is the
-    // game-provided legal minimum, which the caller clamps separately.
-    bigBlind?: bigint;
-};
-
 /**
  * Calculates a pot bet amount with optional variation multiplier.
  *
  * Correct poker pot bet formula:
  * - When facing a bet (callAmount > 0): CALL + fraction × (CALL + POT)
- * - When first to act (callAmount = 0): fraction × POT, floored at the big blind
+ * - When first to act (callAmount = 0): fraction × POT
  *
  * For full pot (fraction = 1): CALL + (CALL + POT) = 2×CALL + POT
  *
@@ -90,16 +79,13 @@ export type PotBetVariationOptions = {
  *
  * @param params Standard pot bet calculation parameters
  * @param variation Pot size variation (default: '1' for full pot)
- * @param options Optional constraints (e.g. the big-blind floor for opening bets)
  * @returns The calculated pot bet amount with variation applied
  */
 export function calculatePotBetWithVariation(
     params: CalculatePotBetAmountParams,
-    variation: PotBetVariation = "1",
-    options: PotBetVariationOptions = {}
+    variation: PotBetVariation = "1"
 ): bigint {
     const { callAmount, pot } = params;
-    const { bigBlind } = options;
 
     // Convert variation to multiplier
     const multiplier = typeof variation === "number"
@@ -111,10 +97,8 @@ export function calculatePotBetWithVariation(
     const multiplierBigInt = BigInt(Math.round(multiplier * Number(PRECISION)));
 
     if (callAmount === 0n) {
-        // First to act — a fraction of the pot, but never below the big blind:
-        // a quarter of a tiny pot can round under the minimum legal open (#692).
-        const fractionOfPot = (pot * multiplierBigInt) / PRECISION;
-        return hasValue(bigBlind) && fractionOfPot < bigBlind ? bigBlind : fractionOfPot;
+        // First to act — a fraction of the pot
+        return (pot * multiplierBigInt) / PRECISION;
     }
 
     // Facing a bet: CALL + fraction × (CALL + POT)
