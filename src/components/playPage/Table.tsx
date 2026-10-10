@@ -57,8 +57,8 @@ import {
     TableHeader,
     MobileTableHeader,
     TableBoard,
-    TableSidebar,
-    TableSettingsSidebar,
+    TablePanel,
+    type TablePanelTab,
     TableModals,
     PlayerSeating,
     PlayerActionButtons,
@@ -795,7 +795,11 @@ const Table = React.memo(() => {
     }, [publicKey, fetchAccountBalance]);
 
     // Zoom is now managed by useTableLayout hook
-    const [openSidebar, setOpenSidebar] = useState(false);
+    //
+    // Always-visible floating panel with two tabs (History default, then
+    // Settings) — replaces the two former fly-out overlays (ui#752). The panel
+    // is never closed; the header gear/panel controls just switch the tab.
+    const [panelTab, setPanelTab] = useState<TablePanelTab>("history");
 
     // Leave table modal state
     const [isLeaveModalOpen, setIsLeaveModalOpen] = useState(false);
@@ -1129,22 +1133,6 @@ const Table = React.memo(() => {
     // Position arrays are now managed by useTableLayout hook
     // useEffect(() => { ... }, [tableSize, id]);
 
-    const onCloseSideBar = useCallback(() => {
-        setOpenSidebar(prev => {
-            if (!prev) setOpenSettings(false);
-            return !prev;
-        });
-    }, []);
-
-    const [openSettings, setOpenSettings] = useState(false);
-
-    const onToggleSettings = useCallback(() => {
-        setOpenSettings(prev => {
-            if (!prev) setOpenSidebar(false);
-            return !prev;
-        });
-    }, []);
-
     // Memoize formatted balance - Cosmos returns microunits (6 decimals)
     const balanceFormatted = useMemo(() => (accountBalance ? formatUSDCToSimpleDollars(accountBalance) : "0.00"), [accountBalance]);
 
@@ -1388,16 +1376,12 @@ const Table = React.memo(() => {
                     minBuyIn={gameOptions?.minBuyIn || "0"}
                     maxBuyIn={gameOptions?.maxBuyIn || "0"}
                     walletBalance={accountBalance}
-                    openSidebar={openSidebar}
-                    openSettings={openSettings}
                     tableStyle={tableStyle}
                     onCycleTableStyle={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
                     handleLobbyClick={handleLobbyClick}
                     handleCopyTableLink={handleCopyTableLink}
                     fetchAccountBalance={fetchAccountBalance}
                     copyToClipboard={copyToClipboard}
-                    onCloseSideBar={onCloseSideBar}
-                    onToggleSettings={onToggleSettings}
                     handleLeaveTableClick={handleLeaveTableClick}
                     handleShareHand={handleShareHand}
                 />
@@ -1418,15 +1402,11 @@ const Table = React.memo(() => {
                     actionCount={actionCount}
                     nextToAct={nextToAct}
                     currentPlayerData={currentPlayerData || null}
-                    openSidebar={openSidebar}
-                    openSettings={openSettings}
                     handleLobbyClick={handleLobbyClick}
                     handleCopyTableLink={handleCopyTableLink}
                     handleDepositClick={handleDepositClick}
                     fetchAccountBalance={fetchAccountBalance}
                     copyToClipboard={copyToClipboard}
-                    onCloseSideBar={onCloseSideBar}
-                    onToggleSettings={onToggleSettings}
                     handleLeaveTableClick={handleLeaveTableClick}
                     handleShareHand={handleShareHand}
                 />
@@ -1603,11 +1583,8 @@ const Table = React.memo(() => {
                     </div>
                 ))}
 
-            {/*//! ACTION LOG OVERLAY */}
-            <TableSidebar isOpen={openSidebar} />
-
-            {/*//! SETTINGS OVERLAY */}
-            <TableSettingsSidebar isOpen={openSettings} />
+            {/*//! FLOATING PANEL — always visible, History + Settings tabs (ui#752) */}
+            <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} />
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />

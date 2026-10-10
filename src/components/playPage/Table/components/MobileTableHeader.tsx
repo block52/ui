@@ -13,8 +13,6 @@
 
 import React, { useState } from "react";
 import { FaBars, FaCopy, FaQrcode, FaShare, FaTimes } from "react-icons/fa";
-import { IoSettingsOutline } from "react-icons/io5";
-import { LuPanelLeftOpen, LuPanelLeftClose } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
@@ -68,10 +66,6 @@ export interface MobileTableHeaderProps {
     maxBuyIn: string;
     walletBalance: string;
 
-    // Sidebar state
-    openSidebar: boolean;
-    openSettings: boolean;
-
     // Table style (the fixed bottom-left selector is hidden on mobile)
     tableStyle: TableStyleOption;
     onCycleTableStyle: () => void;
@@ -81,8 +75,6 @@ export interface MobileTableHeaderProps {
     handleCopyTableLink: () => void;
     fetchAccountBalance: () => void;
     copyToClipboard: (text: string) => void;
-    onCloseSideBar: () => void;
-    onToggleSettings: () => void;
     handleLeaveTableClick: () => void;
     handleShareHand: () => void;
 }
@@ -118,16 +110,12 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     minBuyIn,
     maxBuyIn,
     walletBalance,
-    openSidebar,
-    openSettings,
     tableStyle,
     onCycleTableStyle,
     handleLobbyClick,
     handleCopyTableLink,
     fetchAccountBalance,
     copyToClipboard,
-    onCloseSideBar,
-    onToggleSettings,
     handleLeaveTableClick,
     handleShareHand
 }) => {
@@ -312,15 +300,8 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <span>Share on X</span>
                         </a>
 
-                        {/* Panels */}
-                        <button className={menuRowClass} onClick={closeMenuAnd(onCloseSideBar)}>
-                            {openSidebar ? <LuPanelLeftOpen size={16} /> : <LuPanelLeftClose size={16} />}
-                            <span>Action log</span>
-                        </button>
-                        <button className={menuRowClass} onClick={closeMenuAnd(onToggleSettings)}>
-                            <IoSettingsOutline size={16} />
-                            <span>Settings</span>
-                        </button>
+                        {/* Panel entries removed — the floating panel's own tab bar
+                            (History / Settings) switches tabs now (ui#752). */}
 
                         {/* Top-up — disabled while in the current hand, same rule as the
                             desktop button (#597): enablement comes from the TOP_UP legal action. */}

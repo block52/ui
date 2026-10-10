@@ -62,16 +62,12 @@ function renderHeader(over: { seated?: boolean; legalActions?: LegalActionDTO[] 
                 minBuyIn="0"
                 maxBuyIn="0"
                 walletBalance="0"
-                openSidebar={false}
-                openSettings={false}
                 tableStyle="modern"
                 onCycleTableStyle={jest.fn()}
                 handleLobbyClick={jest.fn()}
                 handleCopyTableLink={jest.fn()}
                 fetchAccountBalance={jest.fn()}
                 copyToClipboard={jest.fn()}
-                onCloseSideBar={jest.fn()}
-                onToggleSettings={jest.fn()}
                 handleLeaveTableClick={jest.fn()}
                 handleShareHand={jest.fn()}
             />

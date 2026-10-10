@@ -33,14 +33,6 @@ export interface PlayerSeatingProps {
 }
 
 /**
- * Props for TableSidebar component
- */
-export interface TableSidebarProps {
-    isOpen: boolean;
-    onToggle: () => void;
-}
-
-/**
  * Props for TableModals component
  */
 export interface TableModalsProps {

@@ -13,11 +13,8 @@ export type { MobileTableHeaderProps, TableStyleOption } from "./MobileTableHead
 export { TableBoard } from "./TableBoard";
 export type { TableBoardProps, TableTheme } from "./TableBoard";
 
-export { TableSidebar } from "./TableSidebar";
-export type { TableSidebarProps } from "./TableSidebar";
-
-export { TableSettingsSidebar } from "./TableSettingsSidebar";
-export type { TableSettingsSidebarProps } from "./TableSettingsSidebar";
+export { TablePanel } from "./TablePanel";
+export type { TablePanelProps, TablePanelTab } from "./TablePanel";
 
 export { TableModals } from "./TableModals";
 export type { TableModalsProps } from "./TableModals";

@@ -281,29 +281,16 @@
     position: absolute;
 }
 
-.action-log-overlay {
+/* Floating card panel (History + Settings tabs, ui#752). Always visible, inset
+   from the right edge so it reads as a card floating above the felt (rounded +
+   shadow on the inner element) rather than an edge-docked panel. */
+.table-panel {
     position: fixed;
     top: 100px;
-    right: 0;
-    transition: all 0.3s ease-in-out;
-    z-index: 1000;
-    height: calc(100dvh - 350px);
-}
-
-.action-log-open {
-    width: 250px;
-    opacity: 1;
-}
-
-.settings-panel-width {
+    right: 16px;
     width: 300px;
-}
-
-.action-log-closed {
-    width: 0;
-    opacity: 0;
-    overflow: hidden;
-    pointer-events: none;
+    height: calc(100dvh - 350px);
+    z-index: 1000;
 }
 
 .powered-by-block52 {
