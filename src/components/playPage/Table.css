@@ -281,29 +281,56 @@
     position: absolute;
 }
 
-.action-log-overlay {
+/* Floating card panel (History + Settings tabs, ui#752). Always visible, inset
+   from the right edge so it reads as a card floating above the felt (rounded +
+   shadow on the inner element) rather than an edge-docked panel. */
+.table-panel {
+    position: fixed;
+    top: 100px;
+    right: 16px;
+    width: 300px;
+    height: calc(100dvh - 350px);
+    z-index: 1000;
+}
+
+/* Phones: opened from the hamburger menu, so it can take most of the screen. */
+.table-panel--mobile {
+    top: calc(env(safe-area-inset-top) + 74px);
+    left: calc(env(safe-area-inset-left) + 8px);
+    right: calc(env(safe-area-inset-right) + 8px);
+    bottom: calc(env(safe-area-inset-bottom) + 8px);
+    width: auto;
+    height: auto;
+}
+
+/* Desktop: collapsed panel leaves a slim tab on the right edge to reopen it. */
+.table-panel-expand {
     position: fixed;
     top: 100px;
     right: 0;
-    transition: all 0.3s ease-in-out;
     z-index: 1000;
-    height: calc(100dvh - 350px);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 6px;
+    background: #1a2234;
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
 }
 
-.action-log-open {
-    width: 250px;
-    opacity: 1;
+.table-panel-expand:hover {
+    color: #fff;
 }
 
-.settings-panel-width {
-    width: 300px;
-}
-
-.action-log-closed {
-    width: 0;
-    opacity: 0;
-    overflow: hidden;
-    pointer-events: none;
+.table-panel-expand__label {
+    writing-mode: vertical-rl;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
 }
 
 .powered-by-block52 {

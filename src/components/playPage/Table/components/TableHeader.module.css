@@ -50,16 +50,6 @@
     background-color: color-mix(in srgb, var(--brand-primary) 10%, transparent);
 }
 
-.sidebarToggleOpen {
-    background-color: color-mix(in srgb, var(--brand-primary) 30%, transparent);
-    color: #ffffff;
-}
-
-.sidebarToggleClosed {
-    background-color: transparent;
-    color: var(--brand-primary);
-}
-
 .leaveTableButton {
     color: var(--ui-text-secondary);
 }

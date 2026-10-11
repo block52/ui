@@ -10,8 +10,6 @@
 
 import React, { useState } from "react";
 import { FaCopy, FaShare, FaQrcode } from "react-icons/fa";
-import { IoSettingsOutline } from "react-icons/io5";
-import { LuPanelLeftOpen, LuPanelLeftClose } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
@@ -64,20 +62,12 @@ export interface TableHeaderProps {
     // Current user state
     currentPlayerData: PlayerDTO | null;
 
-    // Sidebar state
-    openSidebar: boolean;
-
-    // Settings sidebar state
-    openSettings: boolean;
-
     // Handlers
     handleLobbyClick: () => void;
     handleCopyTableLink: () => void;
     handleDepositClick: () => void;
     fetchAccountBalance: () => void;
     copyToClipboard: (text: string) => void;
-    onCloseSideBar: () => void;
-    onToggleSettings: () => void;
     handleLeaveTableClick: () => void;
     handleShareHand: () => void;
 }
@@ -98,15 +88,11 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     actionCount,
     nextToAct,
     currentPlayerData,
-    openSidebar,
-    openSettings,
     handleLobbyClick,
     handleCopyTableLink,
     handleDepositClick,
     fetchAccountBalance,
     copyToClipboard,
-    onCloseSideBar,
-    onToggleSettings,
     handleLeaveTableClick,
     handleShareHand,
 }) => {
@@ -307,21 +293,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
 
                 {/* Right Section */}
                 <div className="flex items-center z-10 mr-1 sm:mr-3">
-                    {/* Settings gear icon */}
-                    <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 mr-1 sm:mr-2 ${openSettings ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
-                        onClick={onToggleSettings}
-                        title="Toggle Settings"
-                    >
-                        <IoSettingsOutline size={14} />
-                    </span>
-                    <span
-                        className={`cursor-pointer transition-colors duration-200 px-1 sm:px-2 py-0.5 sm:py-1 rounded hover:opacity-80 ${openSidebar ? styles.sidebarToggleOpen : styles.sidebarToggleClosed}`}
-                        onClick={onCloseSideBar}
-                        title="Toggle Action Log"
-                    >
-                        {openSidebar ? <LuPanelLeftOpen size={14} /> : <LuPanelLeftClose size={14} />}
-                    </span>
+                    {/* Panel tab controls removed — the floating panel's own tab bar
+                        (History / Settings) switches tabs now (ui#752). */}
                     {/* Only show Leave Table button if user is seated — and never
                         for SNG, where the roster is frozen once play starts
                         (poker-vm#2343) and leave/claim is handled by the SNG

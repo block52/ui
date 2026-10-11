@@ -3,9 +3,8 @@
  *
  * The rows are the expensive part: `formatAmount` runs ethers formatting PER
  * ROW, across the whole hand's action log. `previousActions` is a fresh array on
- * every WS frame, so the rows used to be rebuilt several times a second — and
- * because TableSidebar hides the panel with a CSS class rather than unmounting
- * it, that happened even while nobody could see it.
+ * every WS frame, so without the fingerprint memo the rows would be rebuilt
+ * several times a second while the History tab is open.
  */
 import { render, screen } from "@testing-library/react";
 import ActionsLog from "./ActionsLog";
