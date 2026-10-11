@@ -11,7 +11,7 @@
  */
 
 import React from "react";
-import { FaTimes } from "react-icons/fa";
+import { FaChevronRight, FaTimes } from "react-icons/fa";
 import ActionsLog from "../../../ActionsLog";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 
@@ -104,6 +104,8 @@ export interface TablePanelProps {
     /** Phones only: the panel opens from the hamburger menu and covers the felt,
      * so it needs its own close control. Omitted on desktop (always visible). */
     onClose?: () => void;
+    /** Desktop only: tuck the panel away so it doesn't cover seats on the right. */
+    onCollapse?: () => void;
 }
 
 const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void }> = ({ label, active, onClick }) => (
@@ -119,7 +121,15 @@ const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void 
     </button>
 );
 
-export const TablePanel: React.FC<TablePanelProps> = ({ activeTab, onSelectTab, onClose }) => {
+/** Desktop: the slim tab shown on the right edge while the panel is collapsed. */
+export const TablePanelExpandTab: React.FC<{ onExpand: () => void }> = ({ onExpand }) => (
+    <button onClick={onExpand} className="table-panel-expand" aria-label="Show history and settings panel" title="Show panel">
+        <FaChevronRight size={12} className="rotate-180" />
+        <span className="table-panel-expand__label">History</span>
+    </button>
+);
+
+export const TablePanel: React.FC<TablePanelProps> = ({ activeTab, onSelectTab, onClose, onCollapse }) => {
     return (
         <div className={onClose ? "table-panel table-panel--mobile" : "table-panel"}>
             <div className="h-full bg-[#1a2234] rounded-xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
@@ -127,6 +137,16 @@ export const TablePanel: React.FC<TablePanelProps> = ({ activeTab, onSelectTab, 
                 <div role="tablist" className="flex items-center border-b border-white/10 flex-shrink-0">
                     <TabButton label="History" active={activeTab === "history"} onClick={() => onSelectTab("history")} />
                     <TabButton label="Settings" active={activeTab === "settings"} onClick={() => onSelectTab("settings")} />
+                    {onCollapse && !onClose && (
+                        <button
+                            onClick={onCollapse}
+                            className="w-11 h-11 flex-shrink-0 flex items-center justify-center text-gray-400 hover:text-white"
+                            aria-label="Collapse panel"
+                            title="Collapse panel"
+                        >
+                            <FaChevronRight size={12} />
+                        </button>
+                    )}
                     {onClose && (
                         <button
                             onClick={onClose}

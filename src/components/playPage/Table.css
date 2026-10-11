@@ -303,6 +303,36 @@
     height: auto;
 }
 
+/* Desktop: collapsed panel leaves a slim tab on the right edge to reopen it. */
+.table-panel-expand {
+    position: fixed;
+    top: 100px;
+    right: 0;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 6px;
+    background: #1a2234;
+    color: #9ca3af;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-right: none;
+    border-radius: 12px 0 0 12px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+}
+
+.table-panel-expand:hover {
+    color: #fff;
+}
+
+.table-panel-expand__label {
+    writing-mode: vertical-rl;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+}
+
 .powered-by-block52 {
     position: fixed;
     bottom: 1rem;

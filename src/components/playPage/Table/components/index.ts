@@ -13,7 +13,7 @@ export type { MobileTableHeaderProps, TableStyleOption } from "./MobileTableHead
 export { TableBoard } from "./TableBoard";
 export type { TableBoardProps, TableTheme } from "./TableBoard";
 
-export { TablePanel } from "./TablePanel";
+export { TablePanel, TablePanelExpandTab } from "./TablePanel";
 export type { TablePanelProps, TablePanelTab } from "./TablePanel";
 
 export { TableModals } from "./TableModals";
