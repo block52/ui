@@ -1,6 +1,6 @@
 # Frontend UI Dockerfile
 # Build stage
-FROM node:22.13.0-alpine AS build
+FROM node:24.13.0-alpine AS build
 
 WORKDIR /app
 
@@ -13,7 +13,7 @@ COPY . .
 RUN yarn build
 
 # Production stage
-FROM node:22.13.0-alpine
+FROM node:24.13.0-alpine
 
 RUN npm install -g serve
 
