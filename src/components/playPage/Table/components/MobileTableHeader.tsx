@@ -4,7 +4,7 @@
  * Portrait-phone replacement for TableHeader: a single 44px row (table name,
  * USDC balance, hamburger) plus a text-only status strip (blinds, hand number,
  * next to act). Everything else — network selector, share/copy/QR, wallet
- * address, avatar, settings, action log, top-up, table style, seat orientation,
+ * address, avatar, hand history, settings, top-up, table style, seat orientation,
  * leave table —
  * lives in the hamburger drawer, each row a ≥44px tap target. Leave Table sits
  * at the bottom of the drawer styled as destructive, never as a bare tap
@@ -13,6 +13,8 @@
 
 import React, { useState } from "react";
 import { FaBars, FaCopy, FaQrcode, FaShare, FaTimes } from "react-icons/fa";
+import { IoSettingsOutline } from "react-icons/io5";
+import { LuHistory } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
@@ -28,6 +30,7 @@ import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
 import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
+import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
@@ -69,6 +72,9 @@ export interface MobileTableHeaderProps {
     // Table style (the fixed bottom-left selector is hidden on mobile)
     tableStyle: TableStyleOption;
     onCycleTableStyle: () => void;
+
+    // Opens the History / Settings panel, which is hidden on phones until asked for
+    onOpenPanel: (tab: TablePanelTab) => void;
 
     // Handlers
     handleLobbyClick: () => void;
@@ -112,6 +118,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     walletBalance,
     tableStyle,
     onCycleTableStyle,
+    onOpenPanel,
     handleLobbyClick,
     handleCopyTableLink,
     fetchAccountBalance,
@@ -300,8 +307,17 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <span>Share on X</span>
                         </a>
 
-                        {/* Panel entries removed — the floating panel's own tab bar
-                            (History / Settings) switches tabs now (ui#752). */}
+                        {/* History / Settings panel. On phones the floating panel would
+                            cover the felt, so it stays closed until opened here and
+                            carries its own close button (ui#752 follow-up). */}
+                        <button className={menuRowClass} onClick={closeMenuAnd(() => onOpenPanel("history"))}>
+                            <LuHistory size={16} />
+                            <span>Hand history</span>
+                        </button>
+                        <button className={menuRowClass} onClick={closeMenuAnd(() => onOpenPanel("settings"))}>
+                            <IoSettingsOutline size={16} />
+                            <span>Settings</span>
+                        </button>
 
                         {/* Top-up — disabled while in the current hand, same rule as the
                             desktop button (#597): enablement comes from the TOP_UP legal action. */}

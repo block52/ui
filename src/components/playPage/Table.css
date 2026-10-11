@@ -293,6 +293,16 @@
     z-index: 1000;
 }
 
+/* Phones: opened from the hamburger menu, so it can take most of the screen. */
+.table-panel--mobile {
+    top: calc(env(safe-area-inset-top) + 74px);
+    left: calc(env(safe-area-inset-left) + 8px);
+    right: calc(env(safe-area-inset-right) + 8px);
+    bottom: calc(env(safe-area-inset-bottom) + 8px);
+    width: auto;
+    height: auto;
+}
+
 .powered-by-block52 {
     position: fixed;
     bottom: 1rem;

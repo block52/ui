@@ -11,6 +11,7 @@
  */
 
 import React from "react";
+import { FaTimes } from "react-icons/fa";
 import ActionsLog from "../../../ActionsLog";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 
@@ -100,6 +101,9 @@ const SettingsTab: React.FC = () => {
 export interface TablePanelProps {
     activeTab: TablePanelTab;
     onSelectTab: (tab: TablePanelTab) => void;
+    /** Phones only: the panel opens from the hamburger menu and covers the felt,
+     * so it needs its own close control. Omitted on desktop (always visible). */
+    onClose?: () => void;
 }
 
 const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void }> = ({ label, active, onClick }) => (
@@ -115,14 +119,23 @@ const TabButton: React.FC<{ label: string; active: boolean; onClick: () => void 
     </button>
 );
 
-export const TablePanel: React.FC<TablePanelProps> = ({ activeTab, onSelectTab }) => {
+export const TablePanel: React.FC<TablePanelProps> = ({ activeTab, onSelectTab, onClose }) => {
     return (
-        <div className="table-panel">
+        <div className={onClose ? "table-panel table-panel--mobile" : "table-panel"}>
             <div className="h-full bg-[#1a2234] rounded-xl border border-white/10 shadow-2xl flex flex-col overflow-hidden">
                 {/* Tab bar — carries the panel label; History first, then Settings. */}
                 <div role="tablist" className="flex items-center border-b border-white/10 flex-shrink-0">
                     <TabButton label="History" active={activeTab === "history"} onClick={() => onSelectTab("history")} />
                     <TabButton label="Settings" active={activeTab === "settings"} onClick={() => onSelectTab("settings")} />
+                    {onClose && (
+                        <button
+                            onClick={onClose}
+                            className="w-11 h-11 flex-shrink-0 flex items-center justify-center text-gray-400 hover:text-white"
+                            aria-label="Close panel"
+                        >
+                            <FaTimes size={14} />
+                        </button>
+                    )}
                 </div>
 
                 {/* Inactive tab content is unmounted, not hidden. */}

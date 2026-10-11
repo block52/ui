@@ -14,6 +14,7 @@ import { SitOutIntentProvider } from "../../../../context/SitOutIntentContext";
 
 const mockSubmit = jest.fn();
 const mockToggleSeatAtBottom = jest.fn();
+const mockOpenPanel = jest.fn();
 
 jest.mock("../../../../context/ActionSubmitContext", () => ({
     useActionSubmit: () => ({ submit: mockSubmit, loadingAction: null, isBusy: false, lastError: null })
@@ -64,6 +65,7 @@ function renderHeader(over: { seated?: boolean; legalActions?: LegalActionDTO[] 
                 walletBalance="0"
                 tableStyle="modern"
                 onCycleTableStyle={jest.fn()}
+                onOpenPanel={mockOpenPanel}
                 handleLobbyClick={jest.fn()}
                 handleCopyTableLink={jest.fn()}
                 fetchAccountBalance={jest.fn()}
@@ -86,6 +88,17 @@ describe("MobileTableHeader drawer (ui#684)", () => {
         const row = screen.getByRole("switch", { name: /Seat me at 6/ });
         fireEvent.click(row);
         expect(mockToggleSeatAtBottom).toHaveBeenCalledTimes(1);
+    });
+
+    it("opens the History / Settings panel from the drawer and closes the drawer", () => {
+        renderHeader();
+        openMenu();
+        fireEvent.click(screen.getByText("Hand history"));
+        expect(mockOpenPanel).toHaveBeenLastCalledWith("history");
+        expect(screen.queryByText("Table menu")).not.toBeInTheDocument();
+        openMenu();
+        fireEvent.click(screen.getByText("Settings"));
+        expect(mockOpenPanel).toHaveBeenLastCalledWith("settings");
     });
 
     it("shows the spectate hint while unseated", () => {
