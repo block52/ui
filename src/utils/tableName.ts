@@ -51,3 +51,11 @@ export function validateTableName(raw: string): string | null {
     }
     return null;
 }
+
+/**
+ * Shown wherever a creator is about to pay for a table name (pokerchain#375,
+ * decided 24 Sep 2026): a paid name belongs to that table permanently — it is
+ * never released when the table closes, and cannot be renamed or reused.
+ */
+export const TABLE_NAME_PERMANENCE_NOTE =
+    "Names are permanent: this name stays with this table forever and can't be reused, even after the table closes.";
