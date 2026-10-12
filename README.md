@@ -132,8 +132,7 @@ Notes:
 yarn dev          # Start development server
 yarn build        # Build for production
 yarn preview      # Preview production build
-yarn lint         # Run ESLint
-yarn lint:fix     # Auto-fix lint errors
+yarn lint         # Unavailable — see issue #601 (TypeScript 7 vs typescript-eslint)
 yarn test         # Run tests
 yarn test:watch   # Run tests in watch mode
 ```
