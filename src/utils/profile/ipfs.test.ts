@@ -1,4 +1,4 @@
-import { parseIpfsRef, ipfsGatewayUrl, IPFS_GATEWAYS, normalizeIpfsUri, toCanonicalAvatarRef, isAllowedAvatarUrl } from "./ipfs";
+import { parseIpfsRef, ipfsGatewayUrl, ipfsCandidateUrls, IPFS_GATEWAYS, normalizeIpfsUri, toCanonicalAvatarRef, isAllowedAvatarUrl } from "./ipfs";
 
 const CID = "QmcvgYozTdNmVskxdMzoXvGQuCCejnLRiExampleExampleCid";
 
@@ -106,3 +106,45 @@ describe("isAllowedAvatarUrl", () => {
         expect(isAllowedAvatarUrl(`ipfs://${CID}`)).toBe(false);
     });
 });
+
+describe("bare CIDs and candidate URLs (ui#774)", () => {
+    const V0 = "QmcvgYozTdNmVskxdMzoXvGQuCCejnLRiRjZyjRixdwxus"; // a real CIDv0 (the test CID above is not base58)
+    const V1 = "bafybeigdyrzt5sfp7udm7hu76uh7y26nf3efuylqabf3oclgtqy55fbzdi";
+
+    it("parses a bare CIDv0 with and without a path", () => {
+        expect(parseIpfsRef(`${V0}/390`)).toEqual({ cid: V0, path: "390" });
+        expect(parseIpfsRef(V0)).toEqual({ cid: V0, path: "" });
+    });
+
+    it("parses a bare base32 CIDv1", () => {
+        expect(parseIpfsRef(V1)).toEqual({ cid: V1, path: "" });
+    });
+
+    it("does not mistake an ordinary string for a CID", () => {
+        expect(parseIpfsRef("avatar.png")).toBeNull();
+        expect(parseIpfsRef("Qmshort/390")).toBeNull();
+    });
+
+    it("yields one URL per gateway for every IPFS form", () => {
+        for (const input of [`ipfs://${V0}/390`, `ipfs://ipfs/${V0}/390`, `${V0}/390`, `https://dweb.link/ipfs/${V0}/390`]) {
+            expect(ipfsCandidateUrls(input)).toEqual(IPFS_GATEWAYS.map(gw => `${gw}/ipfs/${V0}/390`));
+        }
+    });
+
+    it("passes ar://, https and data: through as a single candidate", () => {
+        expect(ipfsCandidateUrls("ar://abc123")).toEqual(["https://arweave.net/abc123"]);
+        expect(ipfsCandidateUrls("https://cdn.example/a.png")).toEqual(["https://cdn.example/a.png"]);
+        expect(ipfsCandidateUrls("data:image/png;base64,AAA")).toEqual(["data:image/png;base64,AAA"]);
+    });
+
+    it("yields nothing for empty input", () => {
+        expect(ipfsCandidateUrls("")).toEqual([]);
+        expect(ipfsCandidateUrls(undefined)).toEqual([]);
+        expect(ipfsCandidateUrls(null)).toEqual([]);
+    });
+
+    it("no longer lists the shut-down cloudflare-ipfs.com gateway", () => {
+        expect(IPFS_GATEWAYS.some(gw => gw.includes("cloudflare-ipfs.com"))).toBe(false);
+    });
+});
+

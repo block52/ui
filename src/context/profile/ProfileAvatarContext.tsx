@@ -64,6 +64,8 @@ const ProfileAvatarContext = createContext<ProfileAvatarContextType | null>(null
 
 const AVATAR_CACHE_KEY = "b52_nft_avatar";
 const AVATAR_CLEARED_KEY = "b52_nft_avatar_cleared";
+// A failed lookup of another player's avatar is retried after this long (ui#774).
+const AVATAR_RETRY_MS = 5 * 60 * 1000;
 
 function isAvatarExplicitlyCleared(cosmosAddr: string): boolean {
     return localStorage.getItem(AVATAR_CLEARED_KEY) === cosmosAddr.toLowerCase();
@@ -317,14 +319,33 @@ export const ProfileAvatarProvider: React.FC<{ children: React.ReactNode }> = ({
                 pendingQueriesRef.current.add(normalized);
 
                 const { restEndpoint } = getCosmosUrls(currentNetwork);
-                queryNftAvatar(restEndpoint, targetAddress).then(async result => {
-                    const imageUrl = result ? await resolveNftImageUrl(result.contractAddress, result.tokenId) : null;
-                    setChainAvatarCache(prev => {
-                        const next = new Map(prev);
-                        next.set(normalized, imageUrl);
-                        return next;
+                queryNftAvatar(restEndpoint, targetAddress)
+                    .then(result => (result ? resolveNftImageUrl(result.contractAddress, result.tokenId) : null))
+                    .catch(err => {
+                        // The seat renders without an avatar; never let this reject.
+                        console.error("[ProfileAvatar] avatar lookup failed for", targetAddress, err);
+                        return null;
+                    })
+                    .then(imageUrl => {
+                        setChainAvatarCache(prev => {
+                            const next = new Map(prev);
+                            next.set(normalized, imageUrl);
+                            return next;
+                        });
+                        if (!imageUrl) {
+                            // Retry a failed lookup later rather than never (ui#774):
+                            // public gateways recover, and the resolver caches
+                            // its own failures for the same window.
+                            setTimeout(() => {
+                                pendingQueriesRef.current.delete(normalized);
+                                setChainAvatarCache(prev => {
+                                    const next = new Map(prev);
+                                    next.delete(normalized);
+                                    return next;
+                                });
+                            }, AVATAR_RETRY_MS);
+                        }
                     });
-                });
             }
 
             return null;
