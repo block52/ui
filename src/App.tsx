@@ -1,5 +1,4 @@
 import { BrowserRouter as Router, Route, Routes, useLocation } from "react-router-dom";
-import Table from "./components/playPage/Table";
 import { createAppKit } from "@reown/appkit/react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -7,29 +6,37 @@ import { projectId, metadata, networks, wagmiAdapter } from "./config";
 import { base } from "@reown/appkit/networks";
 import { ToastContainer } from "react-toastify";
 import Dashboard from "./pages/Dashboard";
-import CosmosWalletPage from "./components/CosmosWalletPage";
-import BlocksPage from "./pages/explorer/BlocksPage";
-import BlockDetailPage from "./pages/explorer/BlockDetailPage";
-import TransactionPage from "./pages/explorer/TransactionPage";
-import AddressPage from "./pages/explorer/AddressPage";
-import AllAccountsPage from "./pages/explorer/AllAccountsPage";
-import DistributionPage from "./pages/explorer/DistributionPage";
-import HandReplayPage from "./pages/explorer/HandReplayPage";
-import HandPage from "./pages/explorer/HandPage";
-import TestSigningPage from "./pages/TestSigningPage";
-import ManualBridgeTrigger from "./pages/ManualBridgeTrigger";
-import BridgeAdminDashboard from "./pages/BridgeAdminDashboard";
-import WithdrawalDashboard from "./pages/WithdrawalDashboard";
-import TableAdminPage from "./pages/TableAdminPage";
-import GenesisState from "./pages/GenesisState";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import NodeStatusPage from "./pages/NodeStatusPage";
-import NodesPage from "./pages/NodesPage";
-import PlayersPage from "./pages/PlayersPage";
-import MyHandsPage from "./pages/MyHandsPage";
-import PlayerProfilePage from "./pages/PlayerProfilePage";
-import TechNotesPage from "./pages/tech-notes/TechNotesPage";
-import { TestSdk } from "./test-sdk";
+
+// ui#779: route-level code splitting. Every page below is lazy-loaded so the
+// initial bundle ships only the shell + the landing route (Dashboard). The heavy
+// explorer/admin/table pages download on demand when their route is visited.
+// Dashboard stays eager because it is the "/" landing route — eager-loading it
+// avoids a Suspense flash on the most common entry point.
+const Table = lazy(() => import("./components/playPage/Table"));
+const CosmosWalletPage = lazy(() => import("./components/CosmosWalletPage"));
+const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
+const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
+const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
+const AddressPage = lazy(() => import("./pages/explorer/AddressPage"));
+const AllAccountsPage = lazy(() => import("./pages/explorer/AllAccountsPage"));
+const DistributionPage = lazy(() => import("./pages/explorer/DistributionPage"));
+const HandReplayPage = lazy(() => import("./pages/explorer/HandReplayPage"));
+const HandPage = lazy(() => import("./pages/explorer/HandPage"));
+const TestSigningPage = lazy(() => import("./pages/TestSigningPage"));
+const ManualBridgeTrigger = lazy(() => import("./pages/ManualBridgeTrigger"));
+const BridgeAdminDashboard = lazy(() => import("./pages/BridgeAdminDashboard"));
+const WithdrawalDashboard = lazy(() => import("./pages/WithdrawalDashboard"));
+const TableAdminPage = lazy(() => import("./pages/TableAdminPage"));
+const GenesisState = lazy(() => import("./pages/GenesisState"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const NodeStatusPage = lazy(() => import("./pages/NodeStatusPage"));
+const NodesPage = lazy(() => import("./pages/NodesPage"));
+const PlayersPage = lazy(() => import("./pages/PlayersPage"));
+const MyHandsPage = lazy(() => import("./pages/MyHandsPage"));
+const PlayerProfilePage = lazy(() => import("./pages/PlayerProfilePage"));
+const TechNotesPage = lazy(() => import("./pages/tech-notes/TechNotesPage"));
+// test-sdk only has a named export; re-shape it to a default for React.lazy.
+const TestSdk = lazy(() => import("./test-sdk").then(m => ({ default: m.TestSdk })));
 import { GameStateProvider } from "./context/GameStateContext";
 import { GameSettingsProvider } from "./context/GameSettingsContext";
 import { generateCSSVariables } from "./utils/colorConfig";
@@ -64,6 +71,15 @@ createAppKit({
     defaultNetwork: base,
     allWallets: "SHOW"
 });
+
+// ui#779: shown while a lazy route chunk is downloading.
+function RouteFallback() {
+    return (
+        <div className="flex items-center justify-center min-h-[60vh] text-white/70">
+            <div className="animate-pulse text-sm">Loading…</div>
+        </div>
+    );
+}
 
 // Main App content to be wrapped with providers
 function AppContent() {
@@ -101,6 +117,8 @@ function AppContent() {
             {/* poker-vm#2097: a throw inside a page shows an error page, not a white
                 screen; keyed by path so navigating away resets it. */}
             <ErrorBoundary key={location.pathname} showDetails={import.meta.env.DEV}>
+            {/* ui#779: lazy routes need a Suspense boundary for their load state. */}
+            <Suspense fallback={<RouteFallback />}>
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<Table />} />
@@ -138,6 +156,7 @@ function AppContent() {
                 <Route path="/tech-notes" element={<TechNotesPage />} />
                 <Route path="/" element={<Dashboard />} />
             </Routes>
+            </Suspense>
             </ErrorBoundary>
             <ToastContainer
                 position="top-right"
