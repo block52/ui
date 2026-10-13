@@ -21,7 +21,7 @@ A modern, customizable React-based poker interface for online poker rooms. Built
 
 ### Prerequisites
 
-- Node.js 22.13+ (see `.nvmrc`)
+- Node.js 24.13+ (see `.nvmrc`)
 - Yarn package manager
 
 ### Installation
@@ -254,6 +254,7 @@ This project is licensed under the MIT License.
 
 - **Website**: [block52.xyz](https://block52.xyz)
 - **GitHub**: [github.com/block52](https://github.com/block52)
+- **Test Telegram group**: [t.me/+_ZQs6juRQ9ZjMWE1](https://t.me/+_ZQs6juRQ9ZjMWE1)
 
 ---
 

@@ -161,11 +161,17 @@
   transition: all 0.3s ease;
 }
 
-.btn-pot:hover {
+.btn-pot:hover:not(:disabled) {
   background: linear-gradient(to right, var(--ui-bg-dark), var(--ui-bg-medium));
   border-color: var(--brand-primary);
   box-shadow: 0 0 10px color-mix(in srgb, var(--brand-primary) 30%, transparent);
   transform: scale(1.05);
+}
+
+/* A preset that can't be used (e.g. below the minimum bet) is greyed out. */
+.btn-pot:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
 }
 
 /* All-in button */

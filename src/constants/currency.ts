@@ -19,6 +19,17 @@ export const USDC_TO_MICRO = 1_000_000;
 /** Conversion factor as bigint for precise calculations */
 export const USDC_TO_MICRO_BIGINT = 1_000_000n;
 
+/** Micro-units in one cent (10^4) */
+export const MICRO_PER_CENT = USDC_TO_MICRO_BIGINT / 100n;
+
+/**
+ * Round a micro-USDC amount to the nearest cent, halves up.
+ * e.g. 11_456_000n ($11.456) → 11_460_000n ($11.46)
+ */
+export function roundMicroToCent(microAmount: bigint): bigint {
+    return ((microAmount + MICRO_PER_CENT / 2n) / MICRO_PER_CENT) * MICRO_PER_CENT;
+}
+
 /** Conversion factor: 1 micro-USDC = 0.000001 USDC */
 export const MICRO_TO_USDC = 1 / 1_000_000;
 

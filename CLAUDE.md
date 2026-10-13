@@ -288,22 +288,30 @@ describe("HTTPClient", () => {
 - **@block52/poker-vm-sdk** - Blockchain integration
 - **@reown/appkit** - Wallet connection (Ethereum)
 
-### Node Version (pinned — do NOT bump above 22.13)
+### Node Version (pinned to 24.13.0)
 
-Node is pinned to **22.13.0** and must stay aligned across three places, with
+Node is pinned to **24.13.0** and must stay aligned across four places, with
 `.nvmrc` as the single source of truth:
 
 | Where | Value |
 |-------|-------|
-| `.nvmrc` | `22.13.0` (source of truth) |
-| `Dockerfile` (both stages) | `node:22.13.0-alpine` |
+| `.nvmrc` | `24.13.0` (source of truth) |
+| `Dockerfile` (both stages) | `node:24.13.0-alpine` |
 | `.github/workflows/ci.yml` | `node-version-file: ".nvmrc"` (never hardcode a version) |
-| `package.json` engines | `"node": "22.x"` (compat range) |
+| `package.json` engines | `"node": "24.x"` (compat range) |
 
-> ⚠️ **Do not upgrade beyond 22.13.x** — the Cosmos SDK breaks on newer Node.
-> Worth revisiting later once the SDK supports it. If you bump the version, change
-> it in `.nvmrc` only; the Dockerfile must be updated to match, and CI follows
-> `.nvmrc` automatically.
+> **DigitalOcean reads `engines`, not `.nvmrc`.** The App Platform static-site
+> build (`app.yaml`) takes its Node version from `package.json` `engines`, so
+> that field decides what production builds with. App Platform supports
+> Node 24.0.0–24.15.0.
+
+> The old "Cosmos SDK breaks on newer Node" warning could not be reproduced
+> (ui#753): `yarn build` and the full jest suite pass on Node 24.13.0, and
+> `@cosmjs/*` declares no `engines` ceiling. If a real break is found, record
+> the failing issue/PR here instead of an unsourced warning.
+
+When bumping, change `.nvmrc`, the Dockerfile and `engines` together; CI follows
+`.nvmrc` automatically.
 
 **GitHub Actions runtime note:** the Node the *actions themselves* run on is
 separate from the build node. Keep actions on Node-24-targeting majors

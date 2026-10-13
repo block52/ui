@@ -6,7 +6,7 @@
  * Converting to bigint afterwards cannot restore a digit already lost. 1.2% of
  * ordinary cent amounts were short by one micro-unit.
  */
-import { parseUsdcToMicro, usdcToMicroBigInt, USDC_TO_MICRO } from "./currency";
+import { parseUsdcToMicro, usdcToMicroBigInt, USDC_TO_MICRO, MICRO_PER_CENT, roundMicroToCent } from "./currency";
 
 /** The exact values the review reported, plus the ones found while verifying. */
 const KNOWN_BAD: [string, bigint][] = [
@@ -122,5 +122,22 @@ describe("usdcToMicroBigInt (number input)", () => {
 describe("the constant that made this easy to get wrong", () => {
     it("USDC_TO_MICRO is 10^6", () => {
         expect(USDC_TO_MICRO).toBe(1_000_000);
+    });
+});
+
+describe("roundMicroToCent", () => {
+    it("one cent is 10,000 micro-units", () => {
+        expect(MICRO_PER_CENT).toBe(10_000n);
+    });
+
+    it.each([
+        [11_456_000n, 11_460_000n], // $11.456 → $11.46
+        [11_454_999n, 11_450_000n], // just under half a cent rounds down
+        [11_455_000n, 11_460_000n], // exactly half rounds up
+        [1_995_000n, 2_000_000n], // $1.995 → $2.00
+        [2_000_000n, 2_000_000n], // already whole cents
+        [0n, 0n]
+    ])("rounds %s to %s", (input, expected) => {
+        expect(roundMicroToCent(input)).toBe(expected);
     });
 });

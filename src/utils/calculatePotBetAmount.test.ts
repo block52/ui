@@ -1,5 +1,5 @@
 import { PlayerActionType, ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { calculatePotBetAmount, calculatePotBetWithVariation, getPotBetVariations } from "./calculatePotBetAmount";
+import { calculatePotBetAmount, calculatePotBetWithVariation, toPotFraction, getPotBetVariations } from "./calculatePotBetAmount";
 
 describe("calculatePotBetAmount", () => {
     // Cosmos bech32 addresses (b52 prefix for Block52 chain)
@@ -312,9 +312,8 @@ describe("calculatePotBetAmount", () => {
 
         it("should calculate 1/3 pot correctly", () => {
             const result = calculatePotBetWithVariation(baseParams, "1/3");
-            // 50 + (1/3) × 150 = 50 + 50 = 100M
-            // Due to BigInt rounding: 150M × 333333333 / 1000000000 = 49999999 (off by 1)
-            expect(result).toBe(99_999_999n);
+            // 50 + (1/3) × 150 = 50 + 50 = 100M — exact, no float rounding
+            expect(result).toBe(100_000_000n);
         });
 
         it("should calculate 2/3 pot correctly", () => {
@@ -401,65 +400,69 @@ describe("calculatePotBetAmount", () => {
 
             // potentialPot = 1T + 2T = 3T
             // 2/3 pot = 1T + (2/3) × 3T = 1T + 2T = 3T
-            // Due to BigInt rounding with large numbers, slight variance is expected
+            // Exact fractions: no variance even at large amounts
             const result = calculatePotBetWithVariation(largeParams, "2/3");
-            expect(result).toBe(3_000_000_001_000n);
+            expect(result).toBe(3_000_000_000_000n);
         });
     });
 
-    describe("big-blind floor for opening bets (#692)", () => {
-        // Blinds $0.01 / $0.02, pot $0.04 (SB + BB). First to act on a later
-        // street, quarter pot = $0.01 — below the $0.02 big blind.
-        const bigBlind = 20_000n; // $0.02 in micro-units
-
-        it("floors an opening 1/4-pot bet at the big blind when the fraction is below it", () => {
-            // pot $0.04, 1/4 = $0.01 (10_000n) < BB $0.02 → clamp up to BB.
-            const result = calculatePotBetWithVariation(
-                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 40_000n },
-                "1/4",
-                { bigBlind }
-            );
-            expect(result).toBe(20_000n); // $0.02
+    describe("toPotFraction (exact ratios, no float or precision constant)", () => {
+        it.each([
+            ["1/4", 1n, 4n],
+            ["1/3", 1n, 3n],
+            ["1/2", 1n, 2n],
+            ["2/3", 2n, 3n],
+            ["3/4", 3n, 4n],
+            ["1", 1n, 1n]
+        ] as const)("maps %s to %s/%s", (variation, numerator, denominator) => {
+            expect(toPotFraction(variation)).toEqual({ numerator, denominator });
         });
 
-        it("leaves an opening bet unchanged when the fraction equals the big blind", () => {
-            // pot $0.08, 1/4 = $0.02 == BB.
-            const result = calculatePotBetWithVariation(
-                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 80_000n },
-                "1/4",
-                { bigBlind }
-            );
-            expect(result).toBe(20_000n);
+        it.each([
+            [1.5, 15n, 10n],
+            [0.33, 33n, 100n],
+            [0.1, 1n, 10n],
+            [2, 2n, 1n]
+        ])("reads custom multiplier %s from its digits as %s/%s", (variation, numerator, denominator) => {
+            expect(toPotFraction(variation)).toEqual({ numerator, denominator });
         });
 
-        it("leaves an opening bet unchanged when the fraction is above the big blind", () => {
-            // pot $1.00, 1/4 = $0.25 > BB.
-            const result = calculatePotBetWithVariation(
-                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 1_000_000n },
-                "1/4",
-                { bigBlind }
-            );
-            expect(result).toBe(250_000n); // $0.25, not floored
+        it.each([-0.5, Number.NaN, Number.POSITIVE_INFINITY, 1e-7])("rejects unsupported multiplier %s", variation => {
+            expect(() => toPotFraction(variation)).toThrow();
+        });
+    });
+
+    describe("facing a bet: CALL + fraction × (CALL + POT)", () => {
+        // $1/$2: opponent bets $5 into $10, so pot $15, call $5.
+        const params = { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 5_000_000n, pot: 15_000_000n };
+
+        it("pot raise adds call + (pot after call): 5 + 20 = $25 (raise to 3×bet + pot before)", () => {
+            expect(calculatePotBetWithVariation(params, "1")).toBe(25_000_000n);
         });
 
-        it("does NOT apply the big-blind floor when facing a bet (raise uses legal min)", () => {
-            // Facing a $0.02 bet, pot $0.06. 1/4 = call + 1/4×(call+pot)
-            // = 20_000 + (80_000/4) = 20_000 + 20_000 = 40_000. BB floor must not
-            // alter this — a RAISE TO's floor is the game-provided legal minimum.
-            const result = calculatePotBetWithVariation(
-                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 20_000n, pot: 60_000n },
-                "1/4",
-                { bigBlind }
-            );
-            expect(result).toBe(40_000n);
+        it("half-pot raise adds 5 + 10 = $15", () => {
+            expect(calculatePotBetWithVariation(params, "1/2")).toBe(15_000_000n);
         });
+    });
 
-        it("is a no-op without a bigBlind option (backwards compatible)", () => {
-            const withoutOpt = calculatePotBetWithVariation(
-                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 40_000n },
+    describe("opening bets return the true pot fraction (no big-blind floor)", () => {
+        // Presets below the minimum are disabled in PotSizedBetButtons rather than
+        // resized here, so the util reports the real fraction.
+        it("returns a quarter of a small pot even when it is below the big blind", () => {
+            // Blinds $1/$2, flop pot $4 → 1/4 = $1, below the $2 big blind.
+            const result = calculatePotBetWithVariation(
+                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 4_000_000n },
                 "1/4"
             );
-            expect(withoutOpt).toBe(10_000n); // $0.01, unfloored
+            expect(result).toBe(1_000_000n);
+        });
+
+        it("returns half of the same pot, which meets the big blind", () => {
+            const result = calculatePotBetWithVariation(
+                { currentRound: TexasHoldemRound.FLOP, previousActions: [], callAmount: 0n, pot: 4_000_000n },
+                "1/2"
+            );
+            expect(result).toBe(2_000_000n);
         });
     });
 
@@ -508,7 +511,7 @@ describe("calculatePotBetAmount", () => {
             // 1/2 pot = 30 + 0.5 × 90 = 30 + 45 = 75M
             // 2/3 pot = 30 + (2/3) × 90 = 30 + 60 = 90M
             // Full pot = 30 + 1 × 90 = 120M
-            expect(result[0].amount).toBe(59_999_999n);  // 1/3 pot (BigInt rounding)
+            expect(result[0].amount).toBe(60_000_000n);  // 1/3 pot — exact
             expect(result[1].amount).toBe(75_000_000n);  // 1/2 pot
             expect(result[2].amount).toBe(90_000_000n);  // 2/3 pot
             expect(result[3].amount).toBe(120_000_000n); // Full pot
