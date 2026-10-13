@@ -7,7 +7,9 @@ import {
     PlayerDTO,
     TexasHoldemRound,
     PokerSolver,
-    Deck
+    Deck,
+    GameVariant,
+    holeCardsPerPlayer
 } from "@block52/poker-vm-sdk";
 import { hasFoldedOrMucked } from "../../utils/playerStatus";
 
@@ -17,6 +19,13 @@ import { hasFoldedOrMucked } from "../../utils/playerStatus";
  * directly into main-thread time.
  */
 const EQUITY_ITERATIONS = 5000;
+
+/**
+ * Omaha scores 60 two-plus-three candidates per hand where Hold'em scores 21,
+ * so it runs fewer iterations to keep the main-thread cost about the same
+ * (ui#769). 2000 still puts the estimate within a couple of points.
+ */
+const OMAHA_EQUITY_ITERATIONS = 2000;
 
 /**
  * How many distinct (hands, board) results to retain across all hook instances.
@@ -87,7 +96,7 @@ interface AllInEquityResult {
  *   B) Showdown reveal (issue #313): round is SHOWDOWN/END and 2+ players have visible cards.
  */
 export function useAllInEquity(): AllInEquityResult {
-    const { gameState } = useGameStateContext();
+    const { gameState, gameVariant } = useGameStateContext();
     const { showingBySeat } = useShowingCardsByAddress();
 
     const [equities, setEquities] = useState<Map<number, number>>(new Map());
@@ -130,19 +139,21 @@ export function useAllInEquity(): AllInEquityResult {
      */
     const playersWithVisibleCards = useMemo(() => {
         if (!gameState?.players) return [];
+        // Two for Hold'em, four for Omaha (ui#769).
+        const holeCount = holeCardsPerPlayer(gameVariant);
 
         const visible: Array<{ seat: number; cards: string[] }> = [];
 
         for (const player of activePlayers) {
             // Check if player is showing cards
             const showingPlayer = showingBySeat.get(player.seat);
-            if (showingPlayer?.holeCards && showingPlayer.holeCards.length === 2) {
+            if (showingPlayer?.holeCards && showingPlayer.holeCards.length === holeCount) {
                 visible.push({ seat: player.seat, cards: showingPlayer.holeCards });
                 continue;
             }
 
             // Check if player's hole cards are visible in game state
-            if (player.holeCards && player.holeCards.length === 2) {
+            if (player.holeCards && player.holeCards.length === holeCount) {
                 // Only count if cards are actual cards, not hidden/masked
                 const hasRealCards = player.holeCards.every(
                     (c: string) => c && c !== "??" && c !== "XX" && c.length >= 2
@@ -154,7 +165,7 @@ export function useAllInEquity(): AllInEquityResult {
         }
 
         return visible;
-    }, [activePlayers, showingBySeat, gameState?.players]);
+    }, [activePlayers, showingBySeat, gameState?.players, gameVariant]);
 
     /**
      * Seats that have visible cards — membership test for the all-in gate
@@ -213,10 +224,11 @@ export function useAllInEquity(): AllInEquityResult {
             return "";
         }
         return JSON.stringify({
+            variant: gameVariant ?? "",
             hands: playersWithVisibleCards.map(p => p.cards),
             board: communityCards
         });
-    }, [shouldShow, playersWithVisibleCards, communityCards]);
+    }, [shouldShow, playersWithVisibleCards, communityCards, gameVariant]);
 
     /**
      * Calculate equity client-side via SDK Monte Carlo.
@@ -248,10 +260,12 @@ export function useAllInEquity(): AllInEquityResult {
             );
             const boardAsCards = communityCards.map(c => Deck.fromString(c));
 
+            const isOmaha = gameVariant === GameVariant.OMAHA;
             const { winPercentages } = PokerSolver.calculateMultiPlayerEquity(
                 handsAsCards,
                 boardAsCards,
-                EQUITY_ITERATIONS
+                isOmaha ? OMAHA_EQUITY_ITERATIONS : EQUITY_ITERATIONS,
+                gameVariant
             );
 
             const newEquities = new Map<number, number>();
