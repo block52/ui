@@ -47,8 +47,20 @@ function showdownState(board: string[]) {
     };
 }
 
-function withState(state: unknown) {
-    mockedContext.mockReturnValue({ gameState: state, isLoading: false, error: null } as any);
+function withState(state: unknown, gameVariant?: string) {
+    mockedContext.mockReturnValue({ gameState: state, gameVariant, isLoading: false, error: null } as any);
+}
+
+/** Two revealed four-card Omaha hands at showdown (ui#769). */
+function omahaShowdownState(board: string[]) {
+    return {
+        round: "showdown",
+        communityCards: board,
+        players: [
+            { seat: 1, address: "0xa", status: "active", holeCards: ["AH", "KH", "QH", "JH"] },
+            { seat: 2, address: "0xb", status: "active", holeCards: ["9S", "9D", "5C", "6C"] }
+        ]
+    };
 }
 
 describe("useAllInEquity simulation sharing", () => {
@@ -137,5 +149,59 @@ describe("useAllInEquity simulation sharing", () => {
 
         expect(result.current.shouldShow).toBe(false);
         expect(result.current.equities.size).toBe(0);
+    });
+});
+
+describe("useAllInEquity at Omaha (ui#769)", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        mockedShowing.mockReturnValue({ showingPlayers: [], showingBySeat: new Map() } as any);
+        mockedEquity.mockClear();
+        resetEquityCache();
+    });
+    afterEach(() => {
+        jest.clearAllTimers();
+        jest.useRealTimers();
+    });
+
+    it("simulates four-card hands with the Omaha rule and a lighter iteration count", () => {
+        withState(omahaShowdownState(["2H", "3H", "9C"]), "omaha");
+        const { result } = renderHook(() => useAllInEquity());
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+
+        expect(mockedEquity).toHaveBeenCalledTimes(1);
+        const [hands, board, iterations, variant] = mockedEquity.mock.calls[0];
+        expect(hands).toEqual([
+            ["AH", "KH", "QH", "JH"],
+            ["9S", "9D", "5C", "6C"]
+        ]);
+        expect(board).toEqual(["2H", "3H", "9C"]);
+        expect(iterations).toBe(2000);
+        expect(variant).toBe("omaha");
+        expect(result.current.equities.get(1)).toBe(60);
+    });
+
+    it("keeps Hold'em on 5000 iterations with no Omaha rule", () => {
+        withState(showdownState(["2H", "7D", "9S"]), "texas-holdem");
+        renderHook(() => useAllInEquity());
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+
+        const [, , iterations, variant] = mockedEquity.mock.calls[0];
+        expect(iterations).toBe(5000);
+        expect(variant).toBe("texas-holdem");
+    });
+
+    it("does not simulate four-card hands as Hold'em", () => {
+        withState(omahaShowdownState(["2H", "3H", "9C"]), "texas-holdem");
+        renderHook(() => useAllInEquity());
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+
+        expect(mockedEquity).not.toHaveBeenCalled();
     });
 });
