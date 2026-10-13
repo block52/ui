@@ -7,7 +7,6 @@ import "react-toastify/dist/ReactToastify.css";
 import App from "./App";
 import { Profiler } from "react";
 import { NetworkProvider } from "./context/NetworkContext";
-import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { getCosmosMnemonic, setCosmosMnemonic, setCosmosAddress } from "./utils/cosmos/storage";
 
 
@@ -23,6 +22,11 @@ if (!projectId) {
 // effect would already have read null by the time generation finished.
 if (!getCosmosMnemonic()) {
     try {
+        // ui#779: import cosmjs proto-signing only on first visit (when there is
+        // no stored mnemonic). Returning users — the common case — never pull
+        // this heavy chunk into the entry bundle. The await still gates
+        // root.render below, so the #377 ordering guarantee is preserved.
+        const { DirectSecp256k1HdWallet } = await import("@cosmjs/proto-signing");
         const wallet = await DirectSecp256k1HdWallet.generate(24, { prefix: "b52" });
         const [account] = await wallet.getAccounts();
         setCosmosMnemonic(wallet.mnemonic);
