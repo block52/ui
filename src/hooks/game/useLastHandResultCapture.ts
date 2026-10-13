@@ -19,18 +19,18 @@ import { hasElements } from "../../utils/guards";
 
 export const useLastHandResultCapture = (tableId: string | undefined): void => {
     // Rendered track on purpose: it is what the user saw, and END is held on it.
-    const { gameState } = useGameStateContext();
+    const { gameState, gameVariant } = useGameStateContext();
     const { winnerInfo } = useWinnerInfo();
 
     useEffect(() => {
         if (!tableId || !gameState) return;
         if (!shouldShowWinnerSummary(gameState, winnerInfo)) return;
 
-        const lines = getShowdownSummaryLines(gameState, winnerInfo);
+        const lines = getShowdownSummaryLines(gameState, winnerInfo, gameVariant);
         if (hasElements(lines)) {
             // The store drops identical re-captures, so per-frame effect runs
             // during the END hold cost nothing.
             setLastHandResult({ tableId, handNumber: gameState.handNumber, lines });
         }
-    }, [tableId, gameState, winnerInfo]);
+    }, [tableId, gameState, winnerInfo, gameVariant]);
 };

@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { GameFormat, GameVariant, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameFormat, GameVariant, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
@@ -25,6 +25,8 @@ export interface SNGOptions {
 // Type for creating new table options
 export interface CreateTableOptions {
     format: GameFormat;
+    variant: GameVariant;       // Texas Hold'em or Omaha (ui#768)
+    bettingLimit: BettingLimit; // no-limit or pot-limit; independent of the variant (poker-vm#2652)
     minBuyIn: number;
     maxBuyIn: number;
     minPlayers: number;
@@ -110,8 +112,7 @@ export const useNewTable = (): UseNewTableReturn => {
 
             // Game format is already in kebab-case from GameFormat enum
             const gameFormat = gameOptions.format;
-            // Default to Texas Hold'em for now (only variant currently supported)
-            const gameVariant = GameVariant.TEXAS_HOLDEM;
+            const gameVariant = gameOptions.variant;
 
             // Timeout in seconds from centralised timer config
             const timeoutSeconds = DEFAULT_TIMEOUT_SECONDS;
@@ -135,7 +136,8 @@ export const useNewTable = (): UseNewTableReturn => {
                 timeoutSeconds,
                 rakeConfig,
                 sngConfig,
-                gameName
+                gameName,
+                gameOptions.bettingLimit
             );
 
             if (txHash) {

@@ -11,6 +11,7 @@ import {
     getTotalPotMicro,
     getUserPlayer,
     isCappedAllInCall,
+    isMaxAllIn,
     isShortShoveRaise,
     shouldShowShowdownBar,
     validRaiseAmount
@@ -323,6 +324,12 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const stackMicro = useMemo(() => parseMicroToBigInt(userPlayer?.stack), [userPlayer?.stack]);
     const shortShoveRaise = useMemo(() => isShortShoveRaise(legalActions, stackMicro), [legalActions, stackMicro]);
     const callIsAllIn = useMemo(() => isCappedAllInCall(legalActions, stackMicro), [legalActions, stackMicro]);
+    // Pot-limit (ui#768): the engine caps the bet/raise max at the pot, so for a
+    // deep stack the max is a pot-sized bet, not an all-in.
+    const maxIsAllIn = useMemo(
+        () => isMaxAllIn(hasBetAction ? maxBetMicro : maxRaiseMicro, stackMicro),
+        [hasBetAction, maxBetMicro, maxRaiseMicro, stackMicro]
+    );
     const formattedAllInAmount = useMemo(() => formatDisplayAmount(toDisplay(stackMicro), isTournament), [toDisplay, stackMicro, isTournament]);
     const formattedMaxBetAmount = useMemo(
         () => getFormattedMaxBetAmount(hasBetAction, maxBet, maxRaise, isTournament),
@@ -439,14 +446,15 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
         if (!hasContent(tableId)) return;
         const amountMicro = fromDisplay(maxAmount);
-        if (playerActionSounds) {
+        // A pot-limit max short of the stack is a normal bet/raise: let the
+        // controller play its usual sound rather than announcing an all-in.
+        if (playerActionSounds && maxIsAllIn) {
             playActionSound("all-in");
         }
-        // Sound already played above; skip the controller's default sound.
         submitAction(
             hasRaiseAction ? "raise" : "bet",
             () => (hasRaiseAction ? raiseHand(tableId, amountMicro, network) : betHand(tableId, amountMicro, network)),
-            false
+            !maxIsAllIn
         );
     };
 
@@ -586,7 +594,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     isRaiseAmountInvalid={isRaiseAmountInvalid}
                                     playerStatus={userPlayer?.status || PlayerStatus.SEATED}
                                     loading={loadingAction}
-                                    isAllIn={raiseAmount >= (hasBetAction ? maxBet : maxRaise)}
+                                    isAllIn={maxIsAllIn && raiseAmount >= (hasBetAction ? maxBet : maxRaise)}
                                     isMobileLandscape={isMobileLandscape}
                                     currentRound={gameState?.round || TexasHoldemRound.ANTE}
                                     previousActions={gameState?.previousActions || []}
@@ -634,6 +642,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                         onIncrement={handleRaiseIncrement}
                                         onDecrement={handleRaiseDecrement}
                                         onAllIn={handleAllInAction}
+                                        maxIsAllIn={maxIsAllIn}
                                     />
                                 )}
                             </>

@@ -20,7 +20,7 @@ import { AnimatedBackground } from "../components/common";
 
 // Game wallet and SDK imports
 // ...existing code...
-import { GameFormat, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameFormat, GameVariant, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
 import { validateTableName, tableNameCharCount, normalizeTableName } from "../utils/tableName";
 
 // Hook imports from barrel file
@@ -29,7 +29,7 @@ import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import t
 
 // Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
-import { isTournamentFormat, toGameFormat } from "../utils/gameFormatUtils";
+import { defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 
 // Password protection utils
@@ -79,6 +79,10 @@ const Dashboard: React.FC = () => {
     // Modal game options
     const [modalGameFormat, setModalGameFormat] = useState<GameFormat>(GameFormat.SIT_AND_GO);
     const [modalTableName, setModalTableName] = useState(""); // Optional paid table name (poker-vm#337)
+    // Variant and betting limit are independent (ui#768); picking a variant
+    // resets the limit to that variant's usual one (PLO, NLHE).
+    const [modalGameVariant, setModalGameVariant] = useState<GameVariant>(GameVariant.TEXAS_HOLDEM);
+    const [modalBettingLimit, setModalBettingLimit] = useState<BettingLimit>(defaultBettingLimitFor(GameVariant.TEXAS_HOLDEM));
     const [modalSitAndGoBuyIn, setModalSitAndGoBuyIn] = useState(1); // Single buy-in for Sit & Go
     const [modalPlayerCount, setModalPlayerCount] = useState(4);
     // For Cash Game: min/max players
@@ -182,6 +186,8 @@ const Dashboard: React.FC = () => {
 
             const gameOptions: CreateTableOptions = {
                 format: modalGameFormat,
+                variant: modalGameVariant,
+                bettingLimit: modalBettingLimit,
                 minBuyIn: isTournament ? modalSitAndGoBuyIn : calculatedMinBuyIn,
                 maxBuyIn: isTournament ? modalSitAndGoBuyIn : calculatedMaxBuyIn,
                 minPlayers: modalGameFormat === GameFormat.CASH ? modalMinPlayers : modalPlayerCount,
@@ -767,6 +773,40 @@ const Dashboard: React.FC = () => {
                                             <option value={GameFormat.CASH}>Cash Game</option>
                                             <option value={GameFormat.TOURNAMENT}>Tournament</option>
                                         </select>
+                                    </div>
+
+                                    {/* Variant and betting limit (ui#768) */}
+                                    <div className="flex gap-2">
+                                        <div className="flex-1">
+                                            <label className="block text-white text-sm mb-1">Game</label>
+                                            <select
+                                                value={modalGameVariant}
+                                                onChange={e => {
+                                                    const variant = toGameVariant(e.target.value);
+                                                    if (!variant) return;
+                                                    setModalGameVariant(variant);
+                                                    setModalBettingLimit(defaultBettingLimitFor(variant));
+                                                }}
+                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            >
+                                                <option value={GameVariant.TEXAS_HOLDEM}>Texas Hold&apos;em</option>
+                                                <option value={GameVariant.OMAHA}>Omaha</option>
+                                            </select>
+                                        </div>
+                                        <div className="flex-1">
+                                            <label className="block text-white text-sm mb-1">Limit</label>
+                                            <select
+                                                value={modalBettingLimit}
+                                                onChange={e => {
+                                                    const limit = toCreatableBettingLimit(e.target.value);
+                                                    if (limit) setModalBettingLimit(limit);
+                                                }}
+                                                className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            >
+                                                <option value={BettingLimit.NO_LIMIT}>No-Limit</option>
+                                                <option value={BettingLimit.POT_LIMIT}>Pot-Limit</option>
+                                            </select>
+                                        </div>
                                     </div>
 
                                     {/* Optional paid table name (poker-vm#337): $0.10/char, live preview */}

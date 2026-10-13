@@ -172,6 +172,8 @@ export interface RaiseBetControlsProps {
     onIncrement: () => void;
     onDecrement: () => void;
     onAllIn: () => void;
+    /** Whether the max commits the whole stack; false at pot-limit when the pot caps it (ui#768). */
+    maxIsAllIn: boolean;
 }
 
 /**
@@ -207,4 +209,6 @@ export interface PotSizedBetButtonsProps {
     disabled: boolean;
     onAmountSelect: (amount: number) => void;
     onAllIn: () => void;
+    /** Whether the max commits the whole stack; false at pot-limit when the pot caps it (ui#768). */
+    maxIsAllIn: boolean;
 }

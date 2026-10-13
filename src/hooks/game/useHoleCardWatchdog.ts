@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { PlayerStatus, TexasHoldemRound, holeCardsPerPlayer } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
@@ -34,7 +34,7 @@ const MAX_ATTEMPTS_PER_HAND = 2;
 const GRACE_PERIOD_MS = 1500;
 
 export const useHoleCardWatchdog = (tableId: string | undefined): void => {
-    const { gameState, subscribeToTable, unsubscribeFromTable, isReplayMode } = useGameStateContext();
+    const { gameState, gameVariant, subscribeToTable, unsubscribeFromTable, isReplayMode } = useGameStateContext();
 
     // Per-hand attempt counter — reset when handNumber advances.
     const attemptRef = useRef<{ handNumber: number; count: number }>({ handNumber: -1, count: 0 });
@@ -54,7 +54,8 @@ export const useHoleCardWatchdog = (tableId: string | undefined): void => {
         const isUnhealthy = !!me
             && !!me.status
             && STATUSES_WITH_HOLE_CARDS.has(me.status)
-            && (me.holeCards?.length ?? 0) !== 2;
+            // Two for Hold'em, four for Omaha (ui#768).
+            && (me.holeCards?.length ?? 0) !== holeCardsPerPlayer(gameVariant);
 
         // Healthy (or not applicable): cancel any pending recovery and bail.
         if (!isUnhealthy) {
@@ -89,6 +90,7 @@ export const useHoleCardWatchdog = (tableId: string | undefined): void => {
     }, [
         tableId,
         gameState,
+        gameVariant,
         isReplayMode,
         subscribeToTable,
         unsubscribeFromTable

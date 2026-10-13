@@ -11,6 +11,8 @@ import { useGameStateContext } from "../../../context/GameStateContext";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import CustomDealer from "../../../assets/CustomDealer.svg";
 import { getCardImageUrl } from "../../../utils/cardImages";
+import { winnerCardHighlight } from "../../../utils/holeCardLayout";
+import { HoleCardRow } from "./HoleCardRow";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
@@ -109,35 +111,22 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
             return winnerBySeat.get(index)?.description ?? null;
         }, [winnerBySeat, index]);
 
-        // 5) render hole cards
+        // 5) render hole cards — two for Hold'em, four for Omaha (ui#768)
         const renderCards = useCallback(() => {
-            if (!holeCards || holeCards.length !== 2) {
+            if (!hasElements(holeCards)) {
                 return <div className="w-[120px] h-[80px]"></div>;
             }
 
-            const hasWinningCards = winnerCards.size > 0;
-            const liftCard0 = isWinner && hasWinningCards && winnerCards.has(holeCards[0]);
-            const liftCard1 = isWinner && hasWinningCards && winnerCards.has(holeCards[1]);
-            const muteCard0 = isWinner && hasWinningCards && !winnerCards.has(holeCards[0]);
-            const muteCard1 = isWinner && hasWinningCards && !winnerCards.has(holeCards[1]);
-
             return (
-                <>
-                    <img
-                        src={getCardImageUrl(holeCards[0])}
-                        width={60}
-                        height={80}
-                        className={`mb-[11px]${liftCard0 ? " animate-win-card" : ""}${muteCard0 ? " opacity-40" : ""}`}
-                        onError={_e => console.error(`❌ Player ${index} card1 failed to load:`, getCardImageUrl(holeCards[0]))}
-                    />
-                    <img
-                        src={getCardImageUrl(holeCards[1])}
-                        width={60}
-                        height={80}
-                        className={`mb-[11px]${liftCard1 ? " animate-win-card" : ""}${muteCard1 ? " opacity-40" : ""}`}
-                        onError={_e => console.error(`❌ Player ${index} card2 failed to load:`, getCardImageUrl(holeCards[1]))}
-                    />
-                </>
+                <HoleCardRow
+                    cards={holeCards.map((card, i) => ({
+                        key: `${i}-${card}`,
+                        src: getCardImageUrl(card),
+                        alt: `Card ${i + 1}`,
+                        highlight: winnerCardHighlight(card, isWinner, winnerCards),
+                        onError: () => console.error(`❌ Player ${index} card${i + 1} failed to load:`, getCardImageUrl(card))
+                    }))}
+                />
             );
         }, [holeCards, index, isWinner, winnerCards]);
 

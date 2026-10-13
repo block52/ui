@@ -16,6 +16,10 @@ import { PokerSolver } from "@block52/poker-vm-sdk";
 
 jest.mock("./usePlayerData");
 jest.mock("../game/useTableData");
+// Hold'em table: Omaha's two-plus-three path is covered in utils/handEvaluation.test.ts.
+jest.mock("../../context/gameState/GameMetaContext", () => ({
+    useGameMeta: () => ({ gameVariant: "texas-holdem" })
+}));
 jest.mock("@block52/poker-vm-sdk", () => {
     const actual = jest.requireActual("@block52/poker-vm-sdk");
     return {

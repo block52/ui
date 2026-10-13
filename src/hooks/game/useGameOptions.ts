@@ -50,6 +50,8 @@ export const useGameOptions = (): GameOptionsReturn => {
                 startingStack: options.startingStack,
                 blindLevelDuration: options.blindLevelDuration,
                 entryFee: options.entryFee,
+                // Absent = no-limit (poker-vm#2652); pot-limit tables carry it (ui#768).
+                bettingLimit: options.bettingLimit,
                 otherOptions: options.otherOptions || {}
             } as Required<GameOptionsDTO>;
         } catch (err) {

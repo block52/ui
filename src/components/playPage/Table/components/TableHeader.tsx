@@ -15,9 +15,9 @@ import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
-import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { formatGameFormatDisplay, formatTableGameDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
-import { GameFormat, GameOptionsDTO, PlayerDTO } from "@block52/poker-vm-sdk";
+import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import styles from "./TableHeader.module.css";
 
@@ -40,6 +40,7 @@ export interface TableHeaderProps {
 
     // Game data
     gameFormat: GameFormat | null;
+    gameVariant: GameVariant | undefined;
     gameOptions: GameOptionsDTO | null;
     tableActivePlayers: PlayerDTO[];
 
@@ -77,6 +78,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     tableName,
     isMobileLandscape,
     gameFormat,
+    gameVariant,
     gameOptions,
     tableActivePlayers,
     publicKey,
@@ -159,7 +161,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <div className={`hidden md:flex items-center ml-4 px-3 py-1 rounded-lg ${styles.gameFormatContainer}`}>
                             <span className={`text-sm font-semibold ${styles.brandText}`}>
                                 {gameFormat ? `${formatGameFormatDisplay(gameFormat)} • ` : ""}
-                                Texas Hold'em
+                                {formatTableGameDisplay(gameVariant, gameOptions.bettingLimit)}
                                 {gameOptions.minPlayers && gameOptions.maxPlayers && (
                                     <span className={`ml-1 ${styles.secondaryText}`}>
                                         ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)

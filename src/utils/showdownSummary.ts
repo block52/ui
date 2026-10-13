@@ -12,32 +12,21 @@
  * same SDK solver the live hand-strength display uses.
  */
 
-import { Deck, PlayerStatus, PokerGameIntegration, PokerSolver, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { GameVariant, PlayerStatus, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { WinnerInfo } from "../types/index";
 import { hasElements } from "./guards";
-
-interface EvaluatedHand {
-    description: string;
-    /** SDK hand-type rank — higher is a stronger hand class. */
-    score: number;
-}
+import { EvaluatedHand, evaluateHand } from "./handEvaluation";
 
 /**
  * Evaluate revealed hole cards + board into a human description, or null when
- * the cards are missing or masked ("X" placeholders don't parse).
+ * the cards are missing or masked ("X" placeholders don't parse). Omaha tables
+ * use the two-plus-three rule (ui#768).
  */
-export const describeShownHand = (holeCards: string[] | undefined, communityCards: string[]): EvaluatedHand | null => {
-    if (!holeCards || holeCards.length < 2) return null;
-    try {
-        const allCards = [...holeCards, ...communityCards];
-        const cardObjects = allCards.map(cardStr => Deck.fromString(cardStr));
-        const evaluation = PokerSolver.evaluatePartialHand(cardObjects);
-        const description = allCards.length === 2 ? evaluation.description : PokerGameIntegration.formatHandDescription(evaluation);
-        return { description, score: evaluation.handType };
-    } catch {
-        return null;
-    }
-};
+export const describeShownHand = (
+    holeCards: string[] | undefined,
+    communityCards: string[],
+    variant?: GameVariant
+): EvaluatedHand | null => evaluateHand(holeCards, communityCards, variant);
 
 /**
  * The strongest REVEALED losing hand at showdown — the "over …" clause.
@@ -48,7 +37,8 @@ export const describeShownHand = (holeCards: string[] | undefined, communityCard
  */
 export const getBeatenHandDescription = (
     gameState: TexasHoldemStateDTO | null | undefined,
-    winners: WinnerInfo[] | null | undefined
+    winners: WinnerInfo[] | null | undefined,
+    variant?: GameVariant
 ): string | null => {
     if (!gameState || !hasElements(winners)) return null;
 
@@ -59,7 +49,7 @@ export const getBeatenHandDescription = (
     for (const player of gameState.players ?? []) {
         if (winnerAddresses.has(player.address?.toLowerCase())) continue;
         if (player.status !== PlayerStatus.SHOWING && player.status !== PlayerStatus.ALL_IN) continue;
-        const hand = describeShownHand(player.holeCards, board);
+        const hand = describeShownHand(player.holeCards, board, variant);
         if (hand && (!best || hand.score > best.score)) {
             best = hand;
         }
@@ -75,11 +65,12 @@ export const getBeatenHandDescription = (
  */
 export const getShowdownSummaryLines = (
     gameState: TexasHoldemStateDTO | null | undefined,
-    winners: WinnerInfo[] | null | undefined
+    winners: WinnerInfo[] | null | undefined,
+    variant?: GameVariant
 ): string[] => {
     if (!hasElements(winners)) return [];
 
-    const beaten = getBeatenHandDescription(gameState, winners);
+    const beaten = getBeatenHandDescription(gameState, winners, variant);
 
     return (winners ?? []).map(w => {
         if (w.winType === "showdown" && w.description) {

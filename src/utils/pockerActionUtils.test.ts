@@ -1,5 +1,5 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, isCappedAllInCall, isShortShoveRaise, shouldShowShowdownBar, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -166,6 +166,21 @@ describe("pockerActionUtils", () => {
     // equals the stack: an all-in-only RAISE (short shove) or a capped CALL.
     const legal = (...entries: Array<[PlayerActionType, string, string]>): LegalActionDTO[] =>
         entries.map(([action, min, max], index) => ({ action, min, max, index }));
+
+    describe("isMaxAllIn (ui#768)", () => {
+        it("is true at no-limit, where the max is the stack", () => {
+            expect(isMaxAllIn(5_000_000n, 5_000_000n)).toBe(true);
+        });
+        it("is false at pot-limit when the pot caps the max below the stack", () => {
+            expect(isMaxAllIn(700_000n, 5_000_000n)).toBe(false);
+        });
+        it("is true at pot-limit when the stack is inside the cap", () => {
+            expect(isMaxAllIn(700_000n, 700_000n)).toBe(true);
+        });
+        it("is false with no stack", () => {
+            expect(isMaxAllIn(0n, 0n)).toBe(false);
+        });
+    });
 
     describe("isShortShoveRaise", () => {
         it("true for an all-in-only RAISE (min === max === stack)", () => {

@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { ShowingCardsByAddressReturn, ShowingCardData } from "../../types/index";
+import { isRevealedHand } from "../../bus/deriveEvents";
 
 /**
  * Custom hook to get hole cards of players who have shown their cards
@@ -33,9 +34,8 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
     try {
       return gameState.players
         .filter((player: PlayerDTO) => 
-          player.status === PlayerStatus.SHOWING && 
-          player.holeCards && 
-          player.holeCards.length === 2
+          // Any count of real cards: two for Hold'em, four for Omaha (ui#768).
+          player.status === PlayerStatus.SHOWING && isRevealedHand(player.holeCards)
         )
         .map((player: PlayerDTO) => ({
           address: player.address,

@@ -1,4 +1,4 @@
-import { GameFormat, GameVariant, GameOptionsDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameFormat, GameVariant, GameOptionsDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import {
     validateGameState,
     extractGameDataFromMessage,
@@ -10,6 +10,9 @@ import {
     getBlindsForDisplay,
     getGameTypeMnemonic,
     toGameFormat,
+    toCreatableBettingLimit,
+    defaultBettingLimitFor,
+    formatTableGameDisplay,
     toGameVariant
 } from "./gameFormatUtils";
 
@@ -587,5 +590,35 @@ describe("gameFormatUtils", () => {
             expect(toGameVariant("")).toBeUndefined();
             expect(toGameVariant("not-a-variant")).toBeUndefined();
         });
+    });
+});
+
+describe("table-creation betting limit (ui#768)", () => {
+    it("accepts no-limit and pot-limit", () => {
+        expect(toCreatableBettingLimit("no-limit")).toBe(BettingLimit.NO_LIMIT);
+        expect(toCreatableBettingLimit("pot-limit")).toBe(BettingLimit.POT_LIMIT);
+    });
+
+    it("refuses fixed-limit, which the chain does not create yet, and junk", () => {
+        expect(toCreatableBettingLimit("fixed-limit")).toBeUndefined();
+        expect(toCreatableBettingLimit("")).toBeUndefined();
+        expect(toCreatableBettingLimit(undefined)).toBeUndefined();
+    });
+
+    it("defaults Omaha to pot-limit and Hold'em to no-limit", () => {
+        expect(defaultBettingLimitFor(GameVariant.OMAHA)).toBe(BettingLimit.POT_LIMIT);
+        expect(defaultBettingLimitFor(GameVariant.TEXAS_HOLDEM)).toBe(BettingLimit.NO_LIMIT);
+    });
+});
+
+describe("formatTableGameDisplay (ui#768)", () => {
+    it("keeps the plain name for no-limit Hold'em", () => {
+        expect(formatTableGameDisplay(GameVariant.TEXAS_HOLDEM, undefined)).toBe("Texas Hold'em");
+        expect(formatTableGameDisplay(GameVariant.TEXAS_HOLDEM, BettingLimit.NO_LIMIT)).toBe("Texas Hold'em");
+    });
+
+    it("spells out the limit otherwise", () => {
+        expect(formatTableGameDisplay(GameVariant.OMAHA, BettingLimit.POT_LIMIT)).toBe("Pot-Limit Omaha");
+        expect(formatTableGameDisplay(GameVariant.TEXAS_HOLDEM, BettingLimit.POT_LIMIT)).toBe("Pot-Limit Texas Hold'em");
     });
 });

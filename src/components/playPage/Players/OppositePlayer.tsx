@@ -26,6 +26,8 @@ import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import { hasElements } from "../../../utils/guards";
+import { winnerCardHighlight } from "../../../utils/holeCardLayout";
+import { HoleCardRow } from "./HoleCardRow";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
@@ -122,19 +124,28 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                     </div>
                 )}
                 <div className="flex justify-center gap-1">
-                    {holeCards && holeCards.length === 2 && !isFolded? (
-                        isShowingCards && showingCards ? (
+                    {hasElements(holeCards) && !isFolded ? (
+                        isShowingCards && hasElements(showingCards) ? (
                             // Show the actual cards if player is showing
-                            <>
-                                <img src={getCardImageUrl(showingCards[0])} alt="Player Card 1" width={60} height={80} className={`mb-[11px]${isWinner && winnerCards.size > 0 && winnerCards.has(showingCards[0]) ? " animate-win-card" : ""}${isWinner && winnerCards.size > 0 && !winnerCards.has(showingCards[0]) ? " opacity-40" : ""}`} />
-                                <img src={getCardImageUrl(showingCards[1])} alt="Player Card 2" width={60} height={80} className={`mb-[11px]${isWinner && winnerCards.size > 0 && winnerCards.has(showingCards[1]) ? " animate-win-card" : ""}${isWinner && winnerCards.size > 0 && !winnerCards.has(showingCards[1]) ? " opacity-40" : ""}`} />
-                            </>
+                            <HoleCardRow
+                                cards={showingCards.map((card, i) => ({
+                                    key: `${i}-${card}`,
+                                    src: getCardImageUrl(card),
+                                    alt: `Player Card ${i + 1}`,
+                                    highlight: winnerCardHighlight(card, isWinner, winnerCards)
+                                }))}
+                            />
                         ) : (
-                            // Show card backs for opponents (they shouldn't see actual cards)
-                            <>
-                                <img src={getCardBackUrl(cardBackStyle)} alt="Opposite Player Card" width={60} height={80} className="mb-[11px] rounded-[5px]" />
-                                <img src={getCardBackUrl(cardBackStyle)} alt="Opposite Player Card" width={60} height={80} className="mb-[11px] rounded-[5px]" />
-                            </>
+                            // Show card backs for opponents (they shouldn't see actual cards);
+                            // one back per dealt card — two for Hold'em, four for Omaha (ui#768)
+                            <HoleCardRow
+                                cards={holeCards.map((_card, i) => ({
+                                    key: `back-${i}`,
+                                    src: getCardBackUrl(cardBackStyle),
+                                    alt: "Opposite Player Card",
+                                    className: "rounded-[5px]"
+                                }))}
+                            />
                         )
                     ) : (
                         <div className="w-[120px] h-[80px]"></div>

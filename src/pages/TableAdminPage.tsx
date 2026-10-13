@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from "react";
-import { GameFormat, CosmosClient, getDefaultCosmosConfig, PlayerDTO, computeGameNameFee } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameFormat, GameVariant, CosmosClient, getDefaultCosmosConfig, PlayerDTO, computeGameNameFee } from "@block52/poker-vm-sdk";
 import { Link, useNavigate } from "react-router-dom";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { isValidPlayerAddress } from "../utils/addressUtils";
@@ -15,7 +15,7 @@ import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX } from "../constants/blindLevels";
-import { isTournamentFormat, getGameFormat, toGameFormat } from "../utils/gameFormatUtils";
+import { defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
 import type { AdvancedSngParams } from "../utils/sngAdvancedParams";
@@ -54,6 +54,10 @@ export default function TableAdminPage() {
     // Default table settings for Cash Game, 9 players, Texas Hold'em
     const [gameFormat, setGameFormat] = useState<GameFormat>(GameFormat.CASH);
     const [tableName, setTableName] = useState(""); // Optional paid table name (poker-vm#337)
+    // Variant and betting limit are independent (ui#768); picking a variant
+    // resets the limit to that variant's usual one (PLO, NLHE).
+    const [gameVariant, setGameVariant] = useState<GameVariant>(GameVariant.TEXAS_HOLDEM);
+    const [bettingLimit, setBettingLimit] = useState<BettingLimit>(defaultBettingLimitFor(GameVariant.TEXAS_HOLDEM));
     const [minPlayers] = useState(2);
     const [maxPlayers, setMaxPlayers] = useState(9);
     
@@ -235,6 +239,8 @@ export default function TableAdminPage() {
 
             const result = await createTable({
                 format: gameFormat,
+                variant: gameVariant,
+                bettingLimit,
                 minBuyIn: finalMinBuyIn,
                 maxBuyIn: finalMaxBuyIn,
                 minPlayers: finalMinPlayers,
@@ -460,6 +466,36 @@ export default function TableAdminPage() {
                                 <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
                                 <option value={GameFormat.TOURNAMENT}>Tournament</option>
                                 <option value={GameFormat.CASH}>Cash Game</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-gray-300 text-xs mb-1 block">Game</label>
+                            <select
+                                value={gameVariant}
+                                onChange={e => {
+                                    const variant = toGameVariant(e.target.value);
+                                    if (!variant) return;
+                                    setGameVariant(variant);
+                                    setBettingLimit(defaultBettingLimitFor(variant));
+                                }}
+                                className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                            >
+                                <option value={GameVariant.TEXAS_HOLDEM}>Texas Hold&apos;em</option>
+                                <option value={GameVariant.OMAHA}>Omaha</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-gray-300 text-xs mb-1 block">Limit</label>
+                            <select
+                                value={bettingLimit}
+                                onChange={e => {
+                                    const limit = toCreatableBettingLimit(e.target.value);
+                                    if (limit) setBettingLimit(limit);
+                                }}
+                                className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                            >
+                                <option value={BettingLimit.NO_LIMIT}>No-Limit</option>
+                                <option value={BettingLimit.POT_LIMIT}>Pot-Limit</option>
                             </select>
                         </div>
                         <div>

@@ -16,7 +16,8 @@ const baseProps: PotSizedBetButtonsProps = {
     previousActions: [],
     disabled: false,
     onAmountSelect: jest.fn(),
-    onAllIn: jest.fn()
+    onAllIn: jest.fn(),
+    maxIsAllIn: true
 };
 
 const renderButtons = (overrides: Partial<PotSizedBetButtonsProps> = {}) => {
@@ -120,6 +121,15 @@ describe("PotSizedBetButtons — presets below the minimum bet are greyed out", 
         fireEvent.click(screen.getByText("ALL-IN"));
         expect(onAllIn).toHaveBeenCalledTimes(1);
         expect(onAmountSelect).not.toHaveBeenCalled();
+    });
+
+    // ui#768: at pot-limit the engine caps the max at the pot, so a deep
+    // stack's max is not an all-in and must not be labelled one.
+    it("labels the max button MAX when the pot-limit caps it below the stack", () => {
+        const { onAllIn } = renderButtons({ maxIsAllIn: false });
+        expect(screen.queryByText("ALL-IN")).toBeNull();
+        fireEvent.click(screen.getByText("MAX"));
+        expect(onAllIn).toHaveBeenCalledTimes(1);
     });
 
     describe("cent rounding at the minimum boundary", () => {

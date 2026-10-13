@@ -19,7 +19,7 @@ export {
     parseGameVariant
 } from "@block52/poker-vm-sdk";
 
-import { GameFormat, GameVariant, GameOptionsDTO, TexasHoldemStateDTO, COSMOS_CONSTANTS, isTournamentFormat as isTournamentFormatFn, parseGameFormat as parseGameFormatFn, parseGameVariant as parseGameVariantFn } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameFormat, GameVariant, GameOptionsDTO, TexasHoldemStateDTO, COSMOS_CONSTANTS, isTournamentFormat as isTournamentFormatFn, parseGameFormat as parseGameFormatFn, parseGameVariant as parseGameVariantFn } from "@block52/poker-vm-sdk";
 import { isBlank, isNullish, hasElements } from "./guards";
 
 /**
@@ -33,6 +33,36 @@ export const toGameFormat = (value: string | undefined): GameFormat | undefined 
     const parsed = parseGameFormatFn(value);
     return parsed === "unknown" ? undefined : parsed;
 };
+
+/**
+ * Coerce a raw betting-limit string into a BettingLimit a table can be CREATED
+ * with, returning undefined for anything else. Fixed-limit is excluded: the
+ * engine doesn't play it yet and the chain refuses it (poker-vm#2654).
+ */
+export const toCreatableBettingLimit = (value: string | undefined): BettingLimit | undefined => {
+    if (value === BettingLimit.NO_LIMIT) return BettingLimit.NO_LIMIT;
+    if (value === BettingLimit.POT_LIMIT) return BettingLimit.POT_LIMIT;
+    return undefined;
+};
+
+/**
+ * The game as the table header names it (ui#768): "Texas Hold'em" for a
+ * no-limit Hold'em table, as before, and the limit spelled out otherwise —
+ * "Pot-Limit Omaha", "Pot-Limit Texas Hold'em".
+ */
+export const formatTableGameDisplay = (variant: GameVariant | undefined, bettingLimit: BettingLimit | undefined): string => {
+    const game = variant === GameVariant.OMAHA ? "Omaha" : "Texas Hold'em";
+    if (bettingLimit === BettingLimit.POT_LIMIT) return `Pot-Limit ${game}`;
+    if (bettingLimit === BettingLimit.FIXED_LIMIT) return `Fixed-Limit ${game}`;
+    return game;
+};
+
+/**
+ * The betting limit a new table of this variant starts with: pot-limit for
+ * Omaha (PLO), no-limit for Hold'em — the same defaults the chain applies.
+ */
+export const defaultBettingLimitFor = (variant: GameVariant): BettingLimit =>
+    variant === GameVariant.OMAHA ? BettingLimit.POT_LIMIT : BettingLimit.NO_LIMIT;
 
 /**
  * Coerce a raw variant string into a GameVariant, returning undefined for

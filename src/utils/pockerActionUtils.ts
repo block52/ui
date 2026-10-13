@@ -56,6 +56,14 @@ export const isShortShoveRaise = (legalActions: LegalActionDTO[], stackMicro: bi
 };
 
 /**
+ * Whether the largest legal bet/raise commits the whole stack. Always true at
+ * no-limit, where the engine's `max` is the stack. At pot-limit (ui#768) the
+ * engine caps `max` at the pot, so a deep stack's max is a pot-sized bet, not
+ * an all-in, and must not be labelled or announced as one.
+ */
+export const isMaxAllIn = (maxMicro: bigint, stackMicro: bigint): boolean => stackMicro > 0n && maxMicro >= stackMicro;
+
+/**
  * Whether the CALL is a capped all-in call — CALL is the whole stack because the
  * player faces a bet >= their stack, and there is no RAISE (poker-vm#2205/#2353).
  * The normal CALL button already dispatches this (it commits the whole stack);
