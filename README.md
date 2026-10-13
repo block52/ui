@@ -254,6 +254,7 @@ This project is licensed under the MIT License.
 
 - **Website**: [block52.xyz](https://block52.xyz)
 - **GitHub**: [github.com/block52](https://github.com/block52)
+- **Test Telegram group**: [t.me/+_ZQs6juRQ9ZjMWE1](https://t.me/+_ZQs6juRQ9ZjMWE1)
 
 ---
 
