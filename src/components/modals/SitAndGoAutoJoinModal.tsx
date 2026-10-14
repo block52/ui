@@ -19,7 +19,8 @@ import { microToUsdc } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
-import { isEmpty, hasElements, isBlank } from "../../utils/guards";
+import { isEmpty, hasElements, isBlank, hasValue } from "../../utils/guards";
+import { formatStartsAt, scheduledSngPhase } from "../../utils/scheduledSng";
 
 import type { SitAndGoAutoJoinModalProps } from "./types";
 
@@ -37,6 +38,16 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
     // Get the game state context to force refresh after joining
     const { subscribeToTable, gameState } = useGameStateContext();
+
+    // Scheduled start (poker-vm#2680): say when it starts, and refuse a seat at
+    // a cancelled table (the chain refuses the join too).
+    const scheduledPhase = scheduledSngPhase({
+        scheduledStartTime: gameOptions?.scheduledStartTime,
+        minPlayers: gameOptions?.minPlayers ?? 2,
+        registered: gameState?.players?.length ?? 0,
+        nowMs: Date.now()
+    });
+    const isCancelled = scheduledPhase === "cancelled";
 
     // Get Cosmos address once
     const publicKey = useMemo(() => localStorage.getItem(STORAGE_KEYS.cosmosAddress) || undefined, []);
@@ -269,6 +280,18 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
 
                     <h2 className={`font-bold text-white text-center text-shadow ${isCompact ? "text-base mb-1" : "text-2xl mb-2"}`}>Sit & Go Tournament</h2>
                     {!isCompact && <p className="text-gray-300 text-center mb-6 text-sm">Join this exciting {playerCountLabel} tournament!</p>}
+                    {isCancelled ? (
+                        <p className="text-red-300 text-center mb-4 text-sm" data-testid="scheduled-cancelled">
+                            Cancelled: not enough players registered by the start time.
+                        </p>
+                    ) : (
+                        scheduledPhase !== "unscheduled" &&
+                        hasValue(gameOptions?.scheduledStartTime) && (
+                            <p className="text-blue-300 text-center mb-4 text-sm" data-testid="scheduled-start-info">
+                                Starts {formatStartsAt(gameOptions.scheduledStartTime)} with at least {gameOptions.minPlayers} players, or earlier when full
+                            </p>
+                        )
+                    )}
 
                     {/* Game Options Display */}
                     {isCompact ? (
@@ -405,9 +428,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                     {/* Take Seat Button */}
                     <button
                         onClick={handleTakeSeat}
-                        disabled={isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)}
+                        disabled={isCancelled || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)}
                         className={`w-full px-4 rounded-lg font-semibold text-white transition-all duration-300 ${isCompact ? "py-2 text-sm" : "py-3"} ${
-                            isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)
+                            isCancelled || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)
                                 ? "bg-gray-600 cursor-not-allowed"
                                 : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105"
                         }`}

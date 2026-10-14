@@ -476,6 +476,13 @@ gh pr list --repo block52/ui --search "<keywords>" --state all
   have a home, and link related issues in other block52 repos
   (`poker-vm`, `pokerchain`) when the change spans them.
 
+**Every PR with a visible change includes screenshots.** Put before/after
+screenshots (or a short recording) of the affected screen in the PR
+description — the lobby row, the modal, the panel, whatever changed. Capture
+them against the PVM stub (`packages/e2e`: inject a state frame, then
+`page.screenshot()`), so reviewers see the real rendering, not a mock. A PR
+with no visible change says so explicitly in its description instead.
+
 **Resolve review comments on PRs.** Every review comment gets one of three
 outcomes before the PR is re-requested for review or merged:
 

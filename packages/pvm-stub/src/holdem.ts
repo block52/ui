@@ -14,6 +14,9 @@
 
 export const CASH_GAME_ID =
   "0x00000000000000000000000000000000000000000000000000000000cafe0001";
+/** A scheduled sit-and-go (poker-vm#2680): 6 seats, min 2, starts 10 min after reset. */
+export const SNG_GAME_ID =
+  "0x00000000000000000000000000000000000000000000000000000000cafe0002";
 
 const CREATOR = "b521s8aug28r6vned2xm767xhgrkg90wfef2hfg4mg";
 const BOT_ADDRESS = "b521stubbot00000000000000000000000000000bot";
@@ -33,6 +36,31 @@ const OPTIONS = {
   startingStack: "0",
   blindLevelDuration: 0,
 };
+
+const SNG_OPTIONS_BASE = {
+  minBuyIn: "1000000",
+  maxBuyIn: "1000000",
+  minPlayers: 2,
+  maxPlayers: 6,
+  smallBlind: "25",
+  bigBlind: "50",
+  timeout: 30,
+  startingStack: "1500",
+  blindLevelDuration: 10,
+  blindLevel: 0,
+  nextSmallBlind: "50",
+  nextBigBlind: "100",
+};
+
+interface TableMeta {
+  format: "cash" | "sit-and-go";
+  options: Record<string, unknown>;
+}
+const meta = new Map<string, TableMeta>();
+
+function sngMeta(): TableMeta {
+  return { format: "sit-and-go", options: { ...SNG_OPTIONS_BASE, scheduledStartTime: Date.now() + 10 * 60 * 1000 } };
+}
 
 type Round = "ante" | "preflop" | "flop" | "turn" | "river" | "showdown" | "end";
 
@@ -123,16 +151,37 @@ function freshTable(gameId: string): Table {
     winners: [],
   };
 }
-store.set(CASH_GAME_ID, freshTable(CASH_GAME_ID));
+function freshSngTable(gameId: string): Table {
+  const t = freshTable(gameId);
+  t.handNumber = 1;
+  // One registered bot, not yet dealt in: the table is "registering".
+  const bot = makeSeat(3, BOT_ADDRESS, 1500n, true);
+  bot.status = "seated";
+  t.seats.push(bot);
+  return t;
+}
+
+function seedTables(): void {
+  store.clear();
+  meta.clear();
+  store.set(CASH_GAME_ID, freshTable(CASH_GAME_ID));
+  meta.set(CASH_GAME_ID, { format: "cash", options: OPTIONS });
+  store.set(SNG_GAME_ID, freshSngTable(SNG_GAME_ID));
+  meta.set(SNG_GAME_ID, sngMeta());
+}
+seedTables();
 
 function table(gameId: string): Table | undefined {
   return store.get(gameId);
 }
 
-/** Reset all tables to their fresh, empty state (test isolation between runs). */
+function tableMeta(gameId: string): TableMeta {
+  return meta.get(gameId) ?? { format: "cash", options: OPTIONS };
+}
+
+/** Reset all tables to their fresh state (test isolation between runs). */
 export function resetTables(): void {
-  store.clear();
-  store.set(CASH_GAME_ID, freshTable(CASH_GAME_ID));
+  seedTables();
   resetConfig();
 }
 
@@ -170,6 +219,16 @@ function join(t: Table, action: Action): void {
   const address = action.address ?? "unknown";
   const seatNum = parseSeat(action.data) ?? nextFreeSeat(t);
   const buyIn = BigInt(action.amount ?? "0");
+  if (tableMeta(t.gameId).format === "sit-and-go") {
+    // A sit-and-go registers the player (starting stack, not the buy-in) and
+    // waits: it starts when full or on START (poker-vm#2680). No bot, no deal.
+    if (!seatOf(t, seatNum)) {
+      const s = makeSeat(seatNum, address, BigInt(String(tableMeta(t.gameId).options.startingStack ?? "1500")), false);
+      s.status = "seated";
+      t.seats.push(s);
+    }
+    return;
+  }
   if (!seatOf(t, seatNum)) {
     t.seats.push(makeSeat(seatNum, address, buyIn, false));
   }
@@ -271,6 +330,24 @@ export function applyAction(gameId: string, action: Action, onStep?: () => void)
     // Deal the next hand from the END state (carries stacks forward). The UI
     // reaches here via useAutoNewHand / the manual "START NEW HAND" button.
     if (t.round === "end") startHand(t);
+    step();
+    return;
+  }
+  if (action.action === "start") {
+    // Scheduled sit-and-go (poker-vm#2680): a registered player starts it with
+    // whoever registered. Everyone is dealt in; START is recorded so the UI's
+    // hasTournamentStarted() reads the field as frozen.
+    for (const s of t.seats) s.status = "active";
+    t.actionCount += 1;
+    t.previousActions.push({
+      playerId: action.address ?? "",
+      seat: t.seats.find((s) => s.address === action.address)?.seat ?? 0,
+      action: "start",
+      amount: "0",
+      round: t.round,
+      index: t.actionCount,
+      timestamp: Date.now(),
+    });
     step();
     return;
   }
@@ -481,10 +558,11 @@ function playerDTO(t: Table, s: Seat) {
 function texasHoldemStateDTO(t: Table) {
   const occupied = new Set(t.seats.map((s) => s.seat));
   const availableSeats: number[] = [];
-  for (let i = 1; i <= 9; i++) if (!occupied.has(i)) availableSeats.push(i);
+  const maxSeats = Number(tableMeta(t.gameId).options.maxPlayers ?? 9);
+  for (let i = 1; i <= maxSeats; i++) if (!occupied.has(i)) availableSeats.push(i);
   const nextSeat = seatOf(t, t.nextToAct);
   return {
-    gameOptions: OPTIONS,
+    gameOptions: tableMeta(t.gameId).options,
     smallBlindPosition: t.dealer,
     bigBlindPosition: bot(t)?.seat ?? 0,
     dealer: t.dealer,
@@ -513,7 +591,7 @@ export function getGameStateResponse(gameId: string) {
   return {
     gameId,
     creator: CREATOR,
-    format: "cash",
+    format: tableMeta(gameId).format,
     variant: "texas-holdem",
     gameState: texasHoldemStateDTO(t),
   };
@@ -526,9 +604,9 @@ export function listGamesResponse() {
     return {
       gameId,
       creator: CREATOR,
-      format: "cash",
+      format: tableMeta(gameId).format,
       variant: "texas-holdem",
-      gameOptions: OPTIONS,
+      gameOptions: tableMeta(gameId).options,
       currentPlayers: t.seats.length,
       createdAt: "2026-07-11T00:00:00Z",
       updatedAt: "2026-07-11T00:00:00Z",

@@ -52,6 +52,13 @@ app.get("/cosmos/bank/v1beta1/balances/:address", (c) =>
   })
 );
 
+// Single-denom balance (the Sit & Go join modal reads this one): standard
+// Cosmos shape, { balance: { denom, amount } }.
+app.get("/cosmos/bank/v1beta1/balances/:address/by_denom", (c) => {
+  const denom = c.req.query("denom") ?? "usdc";
+  return c.json({ balance: { denom, amount: denom === "usdc" ? USDC_MICRO : STAKE } });
+});
+
 // ---- lobby + game state -------------------------------------------------
 // `games` is a JSON-encoded STRING here (verified against live node1).
 app.get("/block52/pokerchain/poker/v1/list_games", (c) => c.json(listGamesResponse()));

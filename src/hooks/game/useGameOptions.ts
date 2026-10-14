@@ -52,6 +52,8 @@ export const useGameOptions = (): GameOptionsReturn => {
                 entryFee: options.entryFee,
                 // Absent = no-limit (poker-vm#2652); pot-limit tables carry it (ui#768).
                 bettingLimit: options.bettingLimit,
+                // Absent = the sit-and-go starts only when full (poker-vm#2680).
+                scheduledStartTime: options.scheduledStartTime,
                 otherOptions: options.otherOptions || {}
             } as Required<GameOptionsDTO>;
         } catch (err) {

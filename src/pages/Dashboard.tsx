@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
+import { localDateTimeToUnixSeconds } from "../utils/scheduledSng";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
 
 import "./Dashboard.css"; // Import the CSS file with animations
@@ -45,6 +46,9 @@ import { colors, hexToRgba } from "../utils/colorConfig";
 
 // Bech32 address regex: "b52" prefix + "1" separator + valid bech32 data characters
 const B52_ADDRESS_REGEX = /^b521[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38,}$/;
+
+/** Every single-table field the engine can pay out (poker-vm#2667). */
+const SNG_SEAT_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9];
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -98,6 +102,12 @@ const Dashboard: React.FC = () => {
     // "sit-and-go games require an sngConfig"). Same presets as /admin/tables.
     const [modalStartingStack, setModalStartingStack] = useState(1500);
     const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(10);
+    // Scheduled start (poker-vm#2680): the sit-and-go starts when full OR at
+    // the start time with at least modalSngMinPlayers registered. Off = the
+    // table starts only when full, as before.
+    const [modalScheduled, setModalScheduled] = useState(false);
+    const [modalScheduledStart, setModalScheduledStart] = useState(""); // datetime-local value
+    const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
     const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(1); // 25 / 50
 
     // Cash blinds are dollars (BLIND_LEVELS); Sit & Go blinds are chips (SNG_BLINDS).
@@ -182,7 +192,20 @@ const Dashboard: React.FC = () => {
             // For Sit & Go/Tournament, use the same value for min and max buy-in
             const isTournament = isTournamentFormat(modalGameFormat);
 
-            // Log the modal values before creating game options
+            // A scheduled sit-and-go needs a start time in the future and a
+            // minimum no larger than the table (the chain refuses both).
+            const scheduled = isTournament && modalScheduled;
+            const startTime = scheduled ? localDateTimeToUnixSeconds(modalScheduledStart) : undefined;
+            if (scheduled) {
+                if (!Number.isFinite(startTime) || (startTime as number) <= Math.floor(Date.now() / 1000)) {
+                    setCreateGameError("Pick a start time in the future for a scheduled tournament.");
+                    return;
+                }
+                if (modalSngMinPlayers < 2 || modalSngMinPlayers > modalPlayerCount) {
+                    setCreateGameError(`Minimum players must be between 2 and ${modalPlayerCount}.`);
+                    return;
+                }
+            }
 
             const gameOptions: CreateTableOptions = {
                 format: modalGameFormat,
@@ -190,12 +213,14 @@ const Dashboard: React.FC = () => {
                 bettingLimit: modalBettingLimit,
                 minBuyIn: isTournament ? modalSitAndGoBuyIn : calculatedMinBuyIn,
                 maxBuyIn: isTournament ? modalSitAndGoBuyIn : calculatedMaxBuyIn,
-                minPlayers: modalGameFormat === GameFormat.CASH ? modalMinPlayers : modalPlayerCount,
+                minPlayers: modalGameFormat === GameFormat.CASH ? modalMinPlayers : scheduled ? modalSngMinPlayers : modalPlayerCount,
                 maxPlayers: modalGameFormat === GameFormat.CASH ? modalMaxPlayers : modalPlayerCount,
                 smallBlind: modalSmallBlind,
                 bigBlind: modalBigBlind,
                 name: normalizedTableName || undefined,
-                ...(isTournament && { sng: { startingStack: modalStartingStack, blindLevelDuration: modalBlindLevelDuration } })
+                ...(isTournament && {
+                    sng: { startingStack: modalStartingStack, blindLevelDuration: modalBlindLevelDuration, ...(scheduled && { startTime }) }
+                })
             };
 
             // Use the createTable function from the hook (Cosmos SDK)
@@ -873,11 +898,54 @@ const Dashboard: React.FC = () => {
                                                 onChange={e => setModalPlayerCount(Number(e.target.value))}
                                                 className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
                                             >
-                                                <option value={2}>2 Players (Heads-Up)</option>
-                                                <option value={4}>4 Players (Sit & Go)</option>
-                                                <option value={6}>6 Players (Sit & Go)</option>
-                                                <option value={9}>9 Players (Full Ring)</option>
+                                                {SNG_SEAT_OPTIONS.map(n => (
+                                                    <option key={n} value={n}>
+                                                        {n} Players{n === 2 ? " (Heads-Up)" : n === 9 ? " (Full Ring)" : ""}
+                                                    </option>
+                                                ))}
                                             </select>
+
+                                            {/* Scheduled start (poker-vm#2680) */}
+                                            <label className="flex items-center gap-2 text-white text-sm mt-3 cursor-pointer" data-testid="scheduled-start-toggle">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={modalScheduled}
+                                                    onChange={e => setModalScheduled(e.target.checked)}
+                                                    className="accent-blue-500"
+                                                />
+                                                Scheduled start
+                                                <span className="text-gray-400 text-xs">— starts at a set time with whoever has registered</span>
+                                            </label>
+                                            {modalScheduled && (
+                                                <div className="grid grid-cols-2 gap-3 mt-2">
+                                                    <div>
+                                                        <label className="block text-gray-300 text-xs mb-1">Start time</label>
+                                                        <input
+                                                            type="datetime-local"
+                                                            value={modalScheduledStart}
+                                                            onChange={e => setModalScheduledStart(e.target.value)}
+                                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-gray-300 text-xs mb-1">Minimum players</label>
+                                                        <select
+                                                            value={Math.min(modalSngMinPlayers, modalPlayerCount)}
+                                                            onChange={e => setModalSngMinPlayers(Number(e.target.value))}
+                                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none text-sm"
+                                                        >
+                                                            {SNG_SEAT_OPTIONS.filter(n => n <= modalPlayerCount).map(n => (
+                                                                <option key={n} value={n}>
+                                                                    {n}
+                                                                </option>
+                                                            ))}
+                                                        </select>
+                                                    </div>
+                                                    <p className="col-span-2 text-gray-400 text-xs">
+                                                        Starts when the table fills, or at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     )}
 

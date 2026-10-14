@@ -20,6 +20,7 @@ export interface SNGOptions {
     startingStack: number;       // Starting chips for each player (in chips, not dollars)
     blindLevelDuration?: number; // Minutes per blind level (default: 10)
     entryFee?: number;           // Flat entry fee in USDC dollars (2dp), skimmed to the creator; omitted/0 = no fee (poker-vm#2118)
+    startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): starts when full OR then with >= minPlayers; omitted = starts only when full
 }
 
 // Type for creating new table options
@@ -106,7 +107,10 @@ export const useNewTable = (): UseNewTableReturn => {
                     blindLevelDuration: gameOptions.sng.blindLevelDuration ?? 0,
                     // Entry fee is quoted in USDC dollars (like the buy-in) and
                     // converted to micro-units for the chain. Omitted/0 = no fee.
-                    entryFee: hasValue(gameOptions.sng.entryFee) ? usdcToMicroBigInt(gameOptions.sng.entryFee) : 0n
+                    entryFee: hasValue(gameOptions.sng.entryFee) ? usdcToMicroBigInt(gameOptions.sng.entryFee) : 0n,
+                    // Scheduled start (poker-vm#2680). Omitted = unscheduled; the SDK
+                    // then leaves the field out of the tx.
+                    ...(hasValue(gameOptions.sng.startTime) && { startTime: gameOptions.sng.startTime })
                 };
             }
 

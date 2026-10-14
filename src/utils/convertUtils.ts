@@ -27,6 +27,8 @@ export interface GameWithFormat {
     entryFee?: string;
     /** Protocol fee rate in basis points (1000 = 10%); absent/0 = none (poker-vm#2592). */
     protocolFeeBps?: number;
+    /** Scheduled start, epoch ms (poker-vm#2680); absent = the sit-and-go starts only when full. */
+    scheduledStartTime?: number;
 }
 
 /**
@@ -60,6 +62,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         timeout: opts.timeout,
         createdAt: game.createdAt,
         updatedAt: game.updatedAt,
+        scheduledStartTime: opts.scheduledStartTime,
         entryFee: opts.entryFee,
         protocolFeeBps: opts.protocolFeeBps
     };

@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
+import { formatStartsAt, scheduledSngPhase, type ScheduledSngPhase } from "../utils/scheduledSng";
 import { truncateMiddle } from "../utils/stringUtils";
 import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
@@ -53,6 +54,19 @@ const formatBuyIn = (game: GameWithFormat) => {
 interface TableListProps {
     onCreateTable?: () => void;
 }
+
+/** A scheduled sit-and-go's phase at render time (poker-vm#2680). */
+const scheduledPhase = (game: GameWithFormat): ScheduledSngPhase =>
+    scheduledSngPhase({ scheduledStartTime: game.scheduledStartTime, minPlayers: game.minPlayers, registered: game.currentPlayers, nowMs: Date.now() });
+
+/** "Starts 20:30 · min 4" for a scheduled sit-and-go; "" otherwise. */
+const scheduledLabel = (game: GameWithFormat): string => {
+    const phase = scheduledPhase(game);
+    if (phase === "unscheduled" || game.scheduledStartTime === undefined) return "";
+    if (phase === "cancelled") return "Cancelled: not enough players";
+    if (phase === "ready") return "Starting";
+    return `Starts ${formatStartsAt(game.scheduledStartTime)} · min ${game.minPlayers}`;
+};
 
 const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
     const { games: rawGames, isLoading, error, refetch } = useFindGames();
@@ -436,6 +450,11 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                             <span className="text-white font-semibold">
                                                 {game.currentPlayers}/{game.maxPlayers}
                                             </span>
+                                            {scheduledLabel(game) && (
+                                                <span className="block text-xs text-blue-300 mt-1" data-testid="scheduled-start-label">
+                                                    {scheduledLabel(game)}
+                                                </span>
+                                            )}
                                         </td>
                                         <td className="px-2 sm:px-4 py-4 text-center">
                                             <span className="block truncate text-gray-300 font-mono text-sm" title={formatBuyIn(game)}>
@@ -450,7 +469,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                                 aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
                                                 className={`inline-block px-3 sm:px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
                                             >
-                                                {game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
+                                                {scheduledPhase(game) === "cancelled" ? "Cancelled" : game.currentPlayers === game.maxPlayers ? "Full" : "Join"}
                                             </a>
                                         </td>
                                         <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">

@@ -4,22 +4,74 @@
  * Displays a modal for players who have joined a Sit & Go tournament
  * and are waiting for more players to fill the table before the game starts.
  */
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import { hasValue, isNullish } from "../../utils/guards";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
+import { useGameStateContext } from "../../context/GameStateContext";
+import { useNetwork } from "../../context/NetworkContext";
+import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
+import { startTournament } from "../../hooks/playerActions/startTournament";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { formatSitAndGoStackString } from "../../utils/numberUtils";
+import { formatCountdown, formatStartsAt, isScheduledSng, scheduledSngPhase } from "../../utils/scheduledSng";
 import styles from "./SitAndGoWaitingModal.module.css";
 
 interface SitAndGoWaitingModalProps {
+    tableId?: string;
     onLeaveConfirm?: () => Promise<void>;
     playerStack?: string;
 }
 
-const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConfirm, playerStack }) => {
+const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, onLeaveConfirm, playerStack }) => {
     const { gameOptions } = useGameOptions();
     const { emptySeatIndexes } = useVacantSeatData();
+    const { gameState } = useGameStateContext();
+    const { currentNetwork } = useNetwork();
+    const { legalActions } = usePlayerLegalActions();
+
+    // Scheduled start (poker-vm#2680): a clock for the countdown, the phase,
+    // and START once the engine offers it. Any registered client sends START
+    // automatically the moment it is legal; the button is the manual backup.
+    // The first START in a block wins and the rest are refused as already
+    // started, which is harmless.
+    const scheduled = isScheduledSng(gameOptions);
+    const [nowMs, setNowMs] = useState(() => Date.now());
+    useEffect(() => {
+        if (!scheduled) return;
+        const id = setInterval(() => setNowMs(Date.now()), 1000);
+        return () => clearInterval(id);
+    }, [scheduled]);
+    const registered = gameState?.players?.length ?? 0;
+    const phase = scheduledSngPhase({
+        scheduledStartTime: gameOptions?.scheduledStartTime,
+        minPlayers: gameOptions?.minPlayers ?? 2,
+        registered,
+        nowMs
+    });
+    const startOffered = legalActions.some(a => a.action === NonPlayerActionType.START);
+    const [isStarting, setIsStarting] = useState(false);
+    const [startError, setStartError] = useState<string | null>(null);
+    const autoStartFired = useRef(false);
+    const sendStart = useCallback(async () => {
+        if (!tableId) return;
+        setIsStarting(true);
+        setStartError(null);
+        try {
+            await startTournament(tableId, currentNetwork);
+        } catch (err) {
+            console.error("Error starting the tournament:", err);
+            setStartError(err instanceof Error ? err.message : "Failed to start. Please try again.");
+            setIsStarting(false);
+        }
+    }, [tableId, currentNetwork]);
+    useEffect(() => {
+        if (startOffered && !autoStartFired.current) {
+            autoStartFired.current = true;
+            void sendStart();
+        }
+    }, [startOffered, sendStart]);
 
     const [isConfirming, setIsConfirming] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
@@ -60,7 +112,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
 
     const maxPlayers = gameOptions?.maxPlayers;
 
-    const playerCountLabel = getGameTypeMnemonic(gameOptions?.minPlayers);
+    const playerCountLabel = getGameTypeMnemonic(scheduled ? gameOptions?.maxPlayers : gameOptions?.minPlayers);
 
     // Don't render until game options are loaded
     if (isNullish(maxPlayers)) {
@@ -95,10 +147,53 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
                         </div>
                     </div>
 
-                    <h2 className="text-2xl font-bold text-white text-center mb-2 text-shadow">Waiting for Players</h2>
+                    <h2 className="text-2xl font-bold text-white text-center mb-2 text-shadow">
+                        {phase === "cancelled" ? "Tournament Cancelled" : phase === "ready" ? "Starting" : "Waiting for Players"}
+                    </h2>
                     <p className="text-gray-300 text-center mb-6 text-sm">
-                        {playerCountLabel} tournament is filling up...
+                        {phase === "cancelled"
+                            ? "Not enough players registered by the start time. Leave to get your buy-in back."
+                            : `${playerCountLabel} tournament is filling up...`}
                     </p>
+
+                    {/* Scheduled start (poker-vm#2680) */}
+                    {scheduled && hasValue(gameOptions?.scheduledStartTime) && phase !== "cancelled" && (
+                        <div className="mb-4 bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30 text-center" data-testid="scheduled-start-panel">
+                            {phase === "registering" ? (
+                                <>
+                                    <div className="text-xs text-blue-300 font-semibold">STARTS IN</div>
+                                    <div className="text-2xl text-white font-mono font-bold">{formatCountdown(gameOptions.scheduledStartTime, nowMs)}</div>
+                                    <div className="text-xs text-gray-400">
+                                        {formatStartsAt(gameOptions.scheduledStartTime, nowMs)} · needs {gameOptions.minPlayers} of {maxPlayers}, or starts early when full
+                                    </div>
+                                </>
+                            ) : phase === "short" ? (
+                                <>
+                                    <div className="text-xs text-yellow-300 font-semibold">START TIME PASSED</div>
+                                    <div className="text-sm text-gray-200">
+                                        Waiting for {Math.max(0, (gameOptions.minPlayers ?? 2) - registered)} more to reach the minimum of {gameOptions.minPlayers}
+                                    </div>
+                                    <div className="text-xs text-gray-400">
+                                        Cancelled with refunds at {formatStartsAt(gameOptions.scheduledStartTime + 15 * 60 * 1000, nowMs)} if still short
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="text-xs text-green-300 font-semibold">READY TO START</div>
+                                    <button
+                                        type="button"
+                                        onClick={() => void sendStart()}
+                                        disabled={!startOffered || isStarting}
+                                        className="mt-2 w-full py-2 px-4 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
+                                        data-testid="start-tournament-button"
+                                    >
+                                        {isStarting ? "Starting…" : "Start now"}
+                                    </button>
+                                    {startError && <div className="text-xs text-red-300 mt-2">{startError}</div>}
+                                </>
+                            )}
+                        </div>
+                    )}
 
                     {/* Players Progress Display */}
                     <div className="mb-6">
@@ -196,7 +291,11 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ onLeaveConf
                     )}
 
                     <div className="text-center">
-                        <p className="text-xs text-gray-400">Tournament starts automatically when all players are seated</p>
+                        <p className="text-xs text-gray-400">
+                            {scheduled
+                                ? "Starts when the table is full, or at the start time with at least the minimum"
+                                : "Tournament starts automatically when all players are seated"}
+                        </p>
                         <div className="flex items-center justify-center gap-1 mt-2">
                             <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
                             <span className="text-xs text-gray-400">Powered by Block52</span>
