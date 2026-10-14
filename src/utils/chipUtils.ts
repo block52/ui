@@ -150,7 +150,7 @@ export const currentRoundContribution = (
  * True when checking would be free for `address` right now — i.e. no other
  * player has committed more chips than they have in the current betting round.
  *
- * Used to decide whether the pre-select "Check" control (ui#388) should be
+ * Used to decide whether the pre-select "Check/Fold" control (ui#388) should be
  * offered before it is the player's turn. Correctly handles the preflop big
  * blind (their posted BB counts, so they stay "check-free" until someone raises)
  * and non-blind preflop seats (facing the BB → not free).
@@ -168,4 +168,56 @@ export const isCheckFreeForPlayer = (
         return c > max ? c : max;
     }, BigInt(0));
     return mine >= highest;
+};
+
+/** Voluntary chip commitments (not blinds) — after any of these, if action returns it is via a raise. */
+const VOLUNTARY_COMMIT_ACTIONS: string[] = [
+    PlayerActionType.BET,
+    PlayerActionType.CALL,
+    PlayerActionType.RAISE,
+    PlayerActionType.ALL_IN,
+];
+
+/**
+ * True when the player has voluntarily committed chips (bet / call / raise / all-in,
+ * not a blind) in the current round. Once they have, they can no longer *check* when
+ * action returns to them — it only returns via a raise they must respond to — so the
+ * pre-action bar must offer Fold/Call, never Check (ui#388).
+ */
+export const hasVoluntarilyCommittedThisRound = (
+    playerAddress: string,
+    currentRound: string,
+    previousActions: ActionDTO[]
+): boolean => {
+    const isPreflop = currentRound === TexasHoldemRound.ANTE || currentRound === TexasHoldemRound.PREFLOP;
+    return previousActions.some(a =>
+        a.playerId === playerAddress &&
+        (isPreflop
+            ? a.round === TexasHoldemRound.ANTE || a.round === TexasHoldemRound.PREFLOP
+            : a.round === currentRound) &&
+        VOLUNTARY_COMMIT_ACTIONS.includes(a.action) &&
+        hasContent(a.amount) &&
+        a.amount !== "0"
+    );
+};
+
+/**
+ * The chips the player must put in to call right now: the highest contribution this
+ * round minus their own (0 when they are even — e.g. the aggressor waiting on a raise).
+ * Computed from the round's committed chips, so it is available before it is the
+ * player's turn (when no CALL legal action exists yet). See ui#388.
+ */
+export const amountToCallMicroForPlayer = (
+    players: PlayerDTO[] | null,
+    address: string | null | undefined,
+    currentRound: string | undefined,
+    previousActions: ActionDTO[]
+): bigint => {
+    if (!players || !address || !currentRound) return BigInt(0);
+    const mine = currentRoundContribution(address, currentRound, previousActions);
+    const highest = players.reduce((max, p) => {
+        const c = currentRoundContribution(p.address, currentRound, previousActions);
+        return c > max ? c : max;
+    }, BigInt(0));
+    return highest > mine ? highest - mine : BigInt(0);
 };
