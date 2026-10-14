@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNetwork, NETWORK_PRESETS } from "./NetworkContext";
-import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import type { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { createAuthPayload } from "../utils/cosmos/signing";
 import { setLatestGameState } from "../hooks/playerActions/transportAction";
 import { ClassifiedMessage } from "../bus/ingest";
