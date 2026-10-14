@@ -392,12 +392,34 @@ yarn lint:fix
 yarn lint:warn
 ```
 
-### Reuse `utils/` Helpers
+### Guards and `utils/`, Not Functions in Components
 
-Prefer existing helpers in `src/utils/` over re-implementing common checks
-inline. Before writing a null/empty/length check or a conversion by hand, look
-for a helper — and if one is missing, add a tested helper rather than inlining
-the logic.
+Logic lives in `src/utils/` (or a hook when it needs React state), **never as
+helper functions declared inside a component body or module**. A component
+should render and wire up hooks; anything that computes, parses, formats,
+compares or validates belongs in a named, exported, unit-tested helper.
+
+```typescript
+// ❌ WRONG - logic defined inside the component file
+const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-8)}`;
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = shortAddress(player.address);
+    if (player.holeCards && player.holeCards.length > 0) { ... }
+};
+
+// ✅ CORRECT - import tested helpers and guards
+import { truncateHash } from "../utils/formatUtils";
+import { hasElements } from "../utils/guards";
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = truncateHash(player.address);
+    if (hasElements(player.holeCards)) { ... }
+};
+```
+
+Before writing a null/empty/length check or a conversion by hand, look for an
+existing helper. If one is missing, add it to `src/utils/` **with a colocated
+`*.test.ts`** rather than inlining the logic. Reuse beats re-implementation:
+grep `src/utils/` first.
 
 Most common: `src/utils/guards.ts` for null/empty checks.
 
@@ -413,8 +435,59 @@ if (hasValue(value)) { ... }
 ```
 
 Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
-`isEmpty` (array length), `hasContent` / `isBlank` (strings). For type
+`isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings). For type
 conversions, see Commandment 12 (`utils/typeConversions`).
+
+### New Features Must Be Unit Tested
+
+A new feature is not done until it has unit tests. This already happens for
+much of the codebase (utils, bus decorators, hooks); it is the rule, not the
+exception, for anything new.
+
+- **Utils / guards / conversions:** colocated `src/utils/<name>.test.ts`
+  covering the happy path and the edge cases (null, empty, boundary values).
+- **Bus decorators and pure stream logic:** a test per decorator file in
+  `src/bus/`, exercised in isolation with hand-built `prev`/`next` snapshots.
+- **API classes / HTTP:** `src/tests/`, mocking axios at module level, one
+  describe block per method, success **and** error paths (Architecture
+  Commandment 7).
+- **Hooks:** `@testing-library/react` `renderHook` tests next to the hook.
+- **Components:** test the extracted logic (above), not the JSX. If a component
+  has behavior worth testing, the behavior belongs in a util or hook.
+
+Run `yarn test` before opening a PR. A PR that adds a feature without tests
+should say so explicitly and why; "will add tests later" is not acceptable.
+
+### Issues and Pull Requests
+
+**Check the issue tracker before doing any work, and before filing a new issue.**
+Someone may already have reported it, started it, or closed it as won't-fix.
+
+```bash
+gh issue list --repo block52/ui --search "<keywords>" --state all
+gh pr list --repo block52/ui --search "<keywords>" --state all
+```
+
+- Search open **and closed** issues and PRs for the symptom, the component name
+  and the related SDK/chain issue number before starting.
+- If an issue exists, work against it (`Closes #NNN` in the PR body) and
+  comment on it rather than opening a duplicate.
+- If none exists, file one **before** the PR so the discussion and the decision
+  have a home, and link related issues in other block52 repos
+  (`poker-vm`, `pokerchain`) when the change spans them.
+
+**Resolve review comments on PRs.** Every review comment gets one of three
+outcomes before the PR is re-requested for review or merged:
+
+1. **Fixed** - push the change and reply naming the commit.
+2. **Declined** - reply explaining why, and let the reviewer resolve it.
+3. **Out of scope** - reply with the follow-up issue number you filed.
+
+Never leave a comment unanswered, never resolve a reviewer's thread without
+replying, and never force-push over a branch that has unresolved review
+threads (it detaches the comments from the diff). Use
+`gh pr view <N> --comments` and `gh api graphql` review-thread queries to list
+what is still open.
 
 ## Hooks Architecture
 
@@ -763,12 +836,16 @@ VITE_WALLETCONNECT_PROJECT_ID=your_project_id
 
 When making changes:
 
-1. Follow code style (double quotes, semicolons)
-2. Run linting before commit: `yarn lint:fix`
-3. Add JSDoc comments to new hooks
-4. Update relevant documentation
-5. Test changes thoroughly
+1. Check existing issues and PRs first; work against an issue (see
+   "Issues and Pull Requests")
+2. Follow code style (double quotes, semicolons)
+3. Put logic in `src/utils/` guards and helpers, not in components
+4. Add unit tests for every new feature; run `yarn test`
+5. Run linting before commit: `yarn lint:fix`
+6. Add JSDoc comments to new hooks
+7. Update relevant documentation
+8. Resolve every review comment before re-requesting review or merging
 
 ---
 
-Last Updated: 2026-07-14
+Last Updated: 2026-10-14
