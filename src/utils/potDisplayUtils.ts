@@ -5,6 +5,9 @@ import { hasElements } from "./guards";
 export interface PotDisplayValues {
     totalPot: string;
     mainPot: string;
+    /** Raw pot sizes (micro-USDC for cash, chips for tournaments) — drive the chip stacks in the pot pill. */
+    totalPotRaw: bigint;
+    mainPotRaw: bigint;
     isTournamentStyle: boolean;
     isPreflop: boolean;
     /** False while the pot is empty (new-hand setup, before blinds are in) — "Total Pot: 0" is noise (#639). */
@@ -54,6 +57,8 @@ export function formatPotDisplay(
     return {
         totalPot: totalPotFormatted,
         mainPot: mainPotFormatted,
+        totalPotRaw,
+        mainPotRaw,
         isTournamentStyle,
         isPreflop,
         showTotalPot: totalPotRaw > 0n,

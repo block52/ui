@@ -129,3 +129,16 @@ describe("pot row visibility (#639)", () => {
         expect(formatPotDisplay(["600"], "900", GameFormat.SIT_AND_GO, TexasHoldemRound.PREFLOP).showMainPot).toBe(false);
     });
 });
+
+describe("raw pot amounts (drive the pot pill's chip stacks)", () => {
+    it("exposes the raw total and main pot", () => {
+        const result = formatPotDisplay(["600000000"], "900000000", GameFormat.CASH, TexasHoldemRound.FLOP);
+        expect(result.totalPotRaw).toBe(900_000_000n);
+        expect(result.mainPotRaw).toBe(600_000_000n);
+    });
+
+    it("falls back the raw total to the main pot when totalPot is undefined", () => {
+        const result = formatPotDisplay(["40000"], undefined, GameFormat.CASH, TexasHoldemRound.PREFLOP);
+        expect(result.totalPotRaw).toBe(40_000n);
+    });
+});

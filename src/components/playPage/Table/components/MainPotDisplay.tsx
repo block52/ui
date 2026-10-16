@@ -1,15 +1,15 @@
 import React from "react";
-import { formatPotLabel } from "../../../../utils/potTextUtils";
+import { PotPill } from "./PotPill";
 
 interface MainPotDisplayProps {
-    amount: string;
+    amount: bigint;
     isTournamentStyle: boolean;
 }
 
 export const MainPotDisplay: React.FC<MainPotDisplayProps> = ({ amount, isTournamentStyle }) => {
     return (
         <div className="pot-display-secondary">
-            {formatPotLabel("Main Pot", amount, isTournamentStyle)}
+            <PotPill amount={amount} label="Main Pot" isTournament={isTournamentStyle} />
         </div>
     );
 };

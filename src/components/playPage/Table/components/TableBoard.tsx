@@ -116,11 +116,15 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                 {!isSitAndGoWaitingForPlayers && (
                     <>
                         {potDisplayValues.showTotalPot && (
-                            <TotalPotDisplay amount={potDisplayValues.totalPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                            <TotalPotDisplay
+                                amount={potDisplayValues.totalPotRaw}
+                                isTournamentStyle={potDisplayValues.isTournamentStyle}
+                                hasMainPot={potDisplayValues.showMainPot}
+                            />
                         )}
                         {/* Main Pot only post-flop, and only when it differs from Total Pot (#639) */}
                         {potDisplayValues.showMainPot && (
-                            <MainPotDisplay amount={potDisplayValues.mainPot} isTournamentStyle={potDisplayValues.isTournamentStyle} />
+                            <MainPotDisplay amount={potDisplayValues.mainPotRaw} isTournamentStyle={potDisplayValues.isTournamentStyle} />
                         )}
                     </>
                 )}
