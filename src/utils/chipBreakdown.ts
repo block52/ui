@@ -71,13 +71,13 @@ import { CHIP_DENOMINATIONS, MAX_STACKS_PER_GROUP, MAX_CHIPS_PER_STACK } from ".
  * Represents one vertical stack of same-colored chips.
  *
  * Example: For $312, one entry might be:
- *   { value: 100, file: "100chip.svg", color: "black", count: 3, visibleCount: 3 }
+ *   { value: 100, file: "marble/100chip.webp", color: "black", count: 3, visibleCount: 3 }
  *   This means "3 black ($100) chips stacked vertically"
  */
 export interface ChipStackEntry {
     /** Dollar value of this denomination (e.g. 25) */
     value: number;
-    /** SVG filename (e.g. "25chip.svg") — used as /cards/{file} */
+    /** Image path under the CDN chips folder (e.g. "marble/25chip.webp") */
     file: string;
     /** Visual color label for debugging and tests */
     color: string;

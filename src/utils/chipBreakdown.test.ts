@@ -90,18 +90,18 @@ describe("decomposeAmount", () => {
     // =====================================================================
     describe("exact single denomination", () => {
         it.each([
-            [1, "white", "1chip.svg"],
-            [5, "red", "5chip.svg"],
-            [25, "green", "25chip.svg"],
-            [100, "black", "100chip.svg"],
-            [500, "purple", "500chip.svg"],
-            [1000, "yellow", "1000chip.svg"],
-            [5000, "orange", "5000chip.svg"],
-            [25000, "blue", "25000chip.svg"],
-            [100000, "pink", "100000chip.svg"],
-            [250000, "striped blue/orange", "250000chip.svg"],
-            [1000000, "gold", "1000000chip.svg"],
-            [5000000, "platinum", "5000000chip.svg"],
+            [1, "white", "marble/1chip.webp"],
+            [5, "red", "marble/5chip.webp"],
+            [25, "green", "marble/25chip.webp"],
+            [100, "black", "marble/100chip.webp"],
+            [500, "purple", "marble/500chip.webp"],
+            [1000, "yellow", "marble/1000chip.webp"],
+            [5000, "orange", "marble/5000chip.webp"],
+            [25000, "blue", "marble/25000chip.webp"],
+            [100000, "pink", "marble/100000chip.webp"],
+            [250000, "striped blue/orange", "marble/250000chip.webp"],
+            [1000000, "gold", "marble/1000000chip.webp"],
+            [5000000, "platinum", "marble/5000000chip.webp"],
         ])("$%i → 1 %s chip (%s)", (amount, color, file) => {
             const result = decomposeAmount(amount);
             expect(result).toHaveLength(1);
@@ -536,16 +536,16 @@ describe("decomposeAmount", () => {
     });
 
     // =====================================================================
-    // FILE REFERENCES (ensure correct SVG mapping)
+    // FILE REFERENCES (ensure correct image mapping)
     // =====================================================================
-    describe("SVG file mapping", () => {
-        it("all results reference valid chip SVG files", () => {
+    describe("chip image file mapping", () => {
+        it("all results reference valid marble chip image files", () => {
             const validFiles = [
-                "1chip.svg", "5chip.svg", "25chip.svg", "100chip.svg",
-                "500chip.svg", "1000chip.svg", "5000chip.svg",
-                "25000chip.svg", "100000chip.svg", "250000chip.svg",
-                "1000000chip.svg", "5000000chip.svg",
-                "1cent.svg", "5cent.svg", "10cent.svg", "25cent.svg", "50cent.svg",
+                "marble/1chip.webp", "marble/5chip.webp", "marble/25chip.webp", "marble/100chip.webp",
+                "marble/500chip.webp", "marble/1000chip.webp", "marble/5000chip.webp",
+                "marble/25000chip.webp", "marble/100000chip.webp", "marble/250000chip.webp",
+                "marble/1000000chip.webp", "marble/5000000chip.webp",
+                "marble/1cent.webp", "marble/5cent.webp", "marble/10cent.webp", "marble/25cent.webp", "marble/50cent.webp",
             ];
 
             // Test a range of amounts

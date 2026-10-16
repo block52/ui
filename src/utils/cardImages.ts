@@ -88,7 +88,7 @@ const CARD_IMAGES: Record<string, string> = {
 export type CardBackStyle = "default" | "block52" | "custom" | string;
 
 /**
- * Get the URL for a chip image by filename (e.g. "25chip.svg", "1cent.svg")
+ * Get the URL for a chip image by path under chips/ (e.g. "marble/25chip.webp", "chip.svg")
  */
 export function getChipImageUrl(file: string): string {
     return `${CDN_BASE}/chips/${file}`;

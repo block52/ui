@@ -1,11 +1,12 @@
 /**
- * Poker chip denominations and their associated SVG assets.
+ * Poker chip denominations and their associated chip images.
  *
  * Each entry maps a dollar value threshold to the chip image file.
+ * Images are the marble set on the cards CDN (chips/marble/*.webp, rendered in Blender; see ui#776).
  * Sorted descending so the first match ≥ threshold wins.
  * The $1 chip also covers any amount less than $1.
  *
- * Visual colors (for reference — actual colours come from the SVGs):
+ * Visual colors (for reference — actual colours come from the images):
  *   $1      = white
  *   $5      = red
  *   $25     = green
@@ -27,28 +28,28 @@ export interface ChipDenomination {
 }
 
 export const CHIP_DENOMINATIONS: ChipDenomination[] = [
-    { value: 5000000, file: "5000000chip.svg", color: "platinum" },
-    { value: 1000000, file: "1000000chip.svg", color: "gold" },
-    { value: 250000, file: "250000chip.svg", color: "striped blue/orange" },
-    { value: 100000, file: "100000chip.svg", color: "pink" },
-    { value: 25000,  file: "25000chip.svg",  color: "blue" },
-    { value: 5000,   file: "5000chip.svg",   color: "orange" },
-    { value: 1000,   file: "1000chip.svg",   color: "yellow" },
-    { value: 500,    file: "500chip.svg",     color: "purple" },
-    { value: 100,    file: "100chip.svg",     color: "black" },
-    { value: 25,     file: "25chip.svg",      color: "green" },
-    { value: 5,      file: "5chip.svg",       color: "red" },
-    { value: 1,      file: "1chip.svg",       color: "white" },
+    { value: 5000000, file: "marble/5000000chip.webp", color: "platinum" },
+    { value: 1000000, file: "marble/1000000chip.webp", color: "gold" },
+    { value: 250000, file: "marble/250000chip.webp", color: "striped blue/orange" },
+    { value: 100000, file: "marble/100000chip.webp", color: "pink" },
+    { value: 25000,  file: "marble/25000chip.webp",  color: "blue" },
+    { value: 5000,   file: "marble/5000chip.webp",   color: "orange" },
+    { value: 1000,   file: "marble/1000chip.webp",   color: "yellow" },
+    { value: 500,    file: "marble/500chip.webp",     color: "purple" },
+    { value: 100,    file: "marble/100chip.webp",     color: "black" },
+    { value: 25,     file: "marble/25chip.webp",      color: "green" },
+    { value: 5,      file: "marble/5chip.webp",       color: "red" },
+    { value: 1,      file: "marble/1chip.webp",       color: "white" },
     // Cent denominations (values in dollars)
-    { value: 0.5,    file: "50cent.svg",      color: "purple" },
-    { value: 0.25,   file: "25cent.svg",      color: "green" },
-    { value: 0.1,    file: "10cent.svg",      color: "yellow" },
-    { value: 0.05,   file: "5cent.svg",       color: "blue" },
-    { value: 0.01,   file: "1cent.svg",       color: "red" },
+    { value: 0.5,    file: "marble/50cent.webp",      color: "purple" },
+    { value: 0.25,   file: "marble/25cent.webp",      color: "green" },
+    { value: 0.1,    file: "marble/10cent.webp",      color: "yellow" },
+    { value: 0.05,   file: "marble/5cent.webp",       color: "blue" },
+    { value: 0.01,   file: "marble/1cent.webp",       color: "red" },
 ];
 
 /** Fallback chip used for amounts < $1 */
-export const DEFAULT_CHIP_FILE = "1chip.svg";
+export const DEFAULT_CHIP_FILE = "marble/1chip.webp";
 
 /** Maximum number of action groups (side-by-side chip placements) to display */
 export const MAX_ACTION_GROUPS = 5;
