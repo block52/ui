@@ -796,7 +796,6 @@ const Dashboard: React.FC = () => {
                                         >
                                             <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
                                             <option value={GameFormat.CASH}>Cash Game</option>
-                                            <option value={GameFormat.TOURNAMENT}>Tournament</option>
                                         </select>
                                     </div>
 
