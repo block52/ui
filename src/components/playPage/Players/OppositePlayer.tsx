@@ -19,7 +19,6 @@ import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { useShowingCardsByAddress } from "../../../hooks/player/useShowingCardsByAddress";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
-import CustomDealer from "../../../assets/CustomDealer.svg";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/cardImages";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";

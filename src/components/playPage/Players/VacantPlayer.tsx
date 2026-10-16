@@ -23,7 +23,6 @@ import type { VacantPlayerProps } from "../../../types/index";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { joinTable } from "../../../hooks/playerActions/joinTable";
 import { useGameOptions } from "../../../hooks/game/useGameOptions";
-import CustomDealer from "../../../assets/CustomDealer.svg";
 import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "../../../utils/numberUtils";
 import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";

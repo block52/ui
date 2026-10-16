@@ -78,7 +78,7 @@ import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
-import { CardBackStyle } from "../../utils/cardImages";
+import { CardBackStyle, getDealerImageUrl } from "../../utils/cardImages";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -148,7 +148,6 @@ import {
     PLAYER_UI_PADDING,
     type TableSize
 } from "../../config/stageGeometry";
-import CustomDealer from "../../assets/CustomDealer.svg";
 import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
 // Turn Notification
@@ -1540,7 +1539,7 @@ const Table = React.memo(() => {
                             if (!dPos) return null;
                             return (
                                 <div className="absolute w-12 h-12 z-[25]" style={{ left: dPos.left, top: dPos.top, transform: "translate(-50%, -50%)" }}>
-                                    <img src={CustomDealer} alt="Dealer Button" className="w-full h-full" />
+                                    <img src={getDealerImageUrl()} alt="Dealer Button" className="w-full h-full" />
                                 </div>
                             );
                         })()}

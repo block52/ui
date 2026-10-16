@@ -43,7 +43,7 @@ describe("cardImages", () => {
 
     describe("getDealerImageUrl", () => {
         it("should return correct dealer image URL", () => {
-            expect(getDealerImageUrl()).toBe(`${CDN_BASE}/dealer.svg`);
+            expect(getDealerImageUrl()).toBe(`${CDN_BASE}/chips/marble/dealer.webp`);
         });
     });
 

@@ -9,7 +9,6 @@ import { useParams } from "react-router-dom";
 import type { PlayerProps } from "../../../types/index";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
-import CustomDealer from "../../../assets/CustomDealer.svg";
 import { getCardImageUrl } from "../../../utils/cardImages";
 import { winnerCardHighlight } from "../../../utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";

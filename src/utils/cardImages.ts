@@ -109,10 +109,10 @@ export function getSoundUrl(file: string): string {
 }
 
 /**
- * Get the URL for the dealer button image
+ * Get the URL for the dealer button image (marble set, matches the chips — see ui#776)
  */
 export function getDealerImageUrl(): string {
-    return `${CDN_BASE}/dealer.svg`;
+    return `${CDN_BASE}/chips/marble/dealer.webp`;
 }
 
 /**
