@@ -104,6 +104,26 @@ const AdminDashboard: React.FC = () => {
                 </div>
             </div>
 
+            {/* Operator / Club Admin Section (ui#795) */}
+            <div className="mb-10">
+                <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
+                    <svg className={`w-5 h-5 ${styles.brandIcon}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z" />
+                    </svg>
+                    Club / Operator
+                </h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <MenuCard
+                        item={{
+                            path: "/admin/club",
+                            label: "Club Admin",
+                            description: "Operator back office — players & KYC, hand review, agents, games, finance.",
+                            icon: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
+                        }}
+                    />
+                </div>
+            </div>
+
             {/* Bridge Management Section */}
             <div className="mb-10">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">

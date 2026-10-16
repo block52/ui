@@ -29,6 +29,13 @@ const WithdrawalDashboard = lazy(() => import("./pages/WithdrawalDashboard"));
 const TableAdminPage = lazy(() => import("./pages/TableAdminPage"));
 const GenesisState = lazy(() => import("./pages/GenesisState"));
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+// Operator / club admin back office (ui#795)
+const ClubAdminDashboard = lazy(() => import("./pages/admin/club/ClubAdminDashboard"));
+const ClubPlayersKyc = lazy(() => import("./pages/admin/club/ClubPlayersKyc"));
+const ClubHandReview = lazy(() => import("./pages/admin/club/ClubHandReview"));
+const ClubAgents = lazy(() => import("./pages/admin/club/ClubAgents"));
+const ClubGames = lazy(() => import("./pages/admin/club/ClubGames"));
+const ClubFinance = lazy(() => import("./pages/admin/club/ClubFinance"));
 const NodeStatusPage = lazy(() => import("./pages/NodeStatusPage"));
 const NodesPage = lazy(() => import("./pages/NodesPage"));
 const PlayersPage = lazy(() => import("./pages/PlayersPage"));
@@ -133,6 +140,13 @@ function AppContent() {
                 <Route path="/admin/bridge" element={<BridgeAdminDashboard />} />
                 <Route path="/admin/bridge-manual" element={<ManualBridgeTrigger />} />
                 <Route path="/admin/tables" element={<TableAdminPage />} />
+                {/* Operator / club admin back office (ui#795) */}
+                <Route path="/admin/club" element={<ClubAdminDashboard />} />
+                <Route path="/admin/club/players" element={<ClubPlayersKyc />} />
+                <Route path="/admin/club/hands" element={<ClubHandReview />} />
+                <Route path="/admin/club/agents" element={<ClubAgents />} />
+                <Route path="/admin/club/games" element={<ClubGames />} />
+                <Route path="/admin/club/finance" element={<ClubFinance />} />
                 <Route path="/admin/test-signing" element={<TestSigningPage />} />
                 {/* Legacy routes - redirect to new admin paths */}
                 <Route path="/test-signing" element={<TestSigningPage />} />
