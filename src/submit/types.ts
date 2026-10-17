@@ -46,6 +46,13 @@ export interface SubmitActionRequest {
      * a failure, and re-submitting on it risks a duplicate.
      */
     onFailure?: (error: SubmitError) => void;
+    /**
+     * A background action the user did not take (ui#819: an observer calling
+     * the clock on a stalled opponent). Its outcome goes to `onSuccess` /
+     * `onFailure` only — the controller does not toast a failure or an
+     * `unknown` for it, because there is nothing for the user to do about it.
+     */
+    quiet?: boolean;
 }
 
 /**

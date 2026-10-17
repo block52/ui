@@ -53,11 +53,13 @@ const SettingsTab: React.FC = () => {
         turnNotificationSound,
         playerActionSounds,
         autoMuck,
+        callClock,
         sitInOptions,
         preSelectCheck,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
+        toggleCallClock,
         toggleSitInOptions,
         togglePreSelectCheck
     } = useGameSettings();
@@ -81,6 +83,12 @@ const SettingsTab: React.FC = () => {
                 description="Automatically muck losing cards at showdown without prompting."
                 checked={autoMuck}
                 onToggle={toggleAutoMuck}
+            />
+            <ToggleRow
+                label="Call the Clock"
+                description="When another player's clock runs out and they don't act, call the clock on them so the table isn't stuck waiting. The chain checks their time really is up before folding them."
+                checked={callClock}
+                onToggle={toggleCallClock}
             />
             <ToggleRow
                 label="Sit-In Options"
