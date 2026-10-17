@@ -264,6 +264,7 @@ export class ActionSubmitController {
         switch (evidence.kind) {
             case "matched":
             case "handAdvanced":
+            case "turnAdvanced":
                 if (meta.optimistic) {
                     this.acceptJob(job);
                 } else {
@@ -361,7 +362,7 @@ export class ActionSubmitController {
                         this.getLocalAddress(),
                         this.getState()
                     ).get(job.id);
-                    if (evidence && (evidence.kind === "matched" || evidence.kind === "handAdvanced")) {
+                    if (evidence && (evidence.kind === "matched" || evidence.kind === "handAdvanced" || evidence.kind === "turnAdvanced")) {
                         this.applyJobEvidence(job, evidence, this.lastMeta); // it landed — do NOT re-broadcast
                         return;
                     }

@@ -31,6 +31,9 @@ import { useAutoDeal } from "../../hooks/playerActions/useAutoDeal";
 import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
+import { useCallClock } from "../../hooks/playerActions/useCallClock";
+import { clockCallDueAtMs } from "../../utils/turnClock";
+import { toast } from "react-toastify";
 import { usePreAction } from "../../hooks/playerActions/usePreAction";
 import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
 import { useAutoShowCards } from "../../hooks/playerActions/useAutoShowCards";
@@ -123,6 +126,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         autoNewHand: autoNewHandEnabled,
         autoFold: autoFoldEnabled,
         autoMuck: autoMuckEnabled,
+        callClock: callClockEnabled,
         playerActionSounds,
         preSelectCheck
     } = useGameSettings();
@@ -234,6 +238,23 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         handleAutoActionSubmitted,
         autoFoldEnabled
     );
+
+    // Call the clock (ui#819): the observer's side of the action clock. When the
+    // player to act is someone else and their deadline (plus the chain's
+    // inclusion grace, plus this seat's place in the line of observers from the
+    // button) has passed, submit the chain's `timeout` action; the engine
+    // verifies the deadline and plays their forced default for them. Keeps a
+    // dropped connection from locking the table. Setting / ?callclock=false.
+    const clockCallDueAt = useMemo(() => clockCallDueAtMs(gameState, userAddress), [gameState, userAddress]);
+    const stalledSeat = gameState?.nextToAct;
+    const handleClockCalled = useCallback(
+        (txHash: string) => {
+            toast.info(`Called the clock on seat ${stalledSeat}`);
+            onTransactionSubmitted?.(txHash);
+        },
+        [stalledSeat, onTransactionSubmitted]
+    );
+    useCallClock(tableId, network, clockCallDueAt, submit, isSubmitBusy, handleClockCalled, callClockEnabled);
 
     // Pre-select "Check/Fold" (ui#388): before it's the player's turn, if checking
     // would be free, offer a box that checks when action reaches them, or folds if

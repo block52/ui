@@ -53,6 +53,14 @@ export type Evidence =
     | { kind: "matched"; action: ActionDTO }
     /** `new-hand` only: the hand number moved past the baseline (new-hand is not itself recorded as a turn). */
     | { kind: "handAdvanced" }
+    /**
+     * `timeout` only (ui#819): the stalled turn was resolved — something was
+     * recorded at/after the baseline, or the hand moved on. A `timeout` is never
+     * recorded under OUR address (the engine records the forced action as the
+     * expired player's own turn), and whether the chain applied our call or the
+     * player acted first, the table is unstuck, which is all the call was for.
+     */
+    | { kind: "turnAdvanced" }
     /** A DIFFERENT action of ours is recorded at/after the baseline, and ours is not — ours can no longer land. */
     | { kind: "superseded"; action: ActionDTO }
     | { kind: "none" };
@@ -108,6 +116,13 @@ export function attributeEvidence(
         }
         if (job.actionName === "new-hand" && snapshot.handNumber > job.baseline.handNumber) {
             result.set(job.id, { kind: "handAdvanced" });
+            continue;
+        }
+        if (
+            job.actionName === NonPlayerActionType.TIMEOUT &&
+            (snapshot.handNumber > job.baseline.handNumber || snapshot.previousActions.some(action => action.index >= job.baseline.actionIndex))
+        ) {
+            result.set(job.id, { kind: "turnAdvanced" });
             continue;
         }
         const unclaimed = own.filter(action => !claimed.has(action.index) && action.index >= job.baseline.actionIndex);

@@ -9,13 +9,14 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
-import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled } from "../utils/urlParams";
+import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled, getCallClockEnabled } from "../utils/urlParams";
 
 const LS_KEY_AUTO_DEAL = "setting_autodeal";
 const LS_KEY_AUTO_POST_BLINDS = "setting_autoblinds";
 const LS_KEY_AUTO_NEW_HAND = "setting_autonewhand";
 const LS_KEY_AUTO_FOLD = "setting_autofold";
 const LS_KEY_AUTO_MUCK = "setting_automuck";
+const LS_KEY_CALL_CLOCK = "setting_callclock";
 const LS_KEY_TURN_SOUND = "setting_turnsound";
 const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
 const LS_KEY_SEAT_AT_BOTTOM = "setting_seatatbottom";
@@ -34,6 +35,11 @@ export interface GameSettings {
     autoNewHand: boolean;
     autoFold: boolean;
     autoMuck: boolean;
+    // When ON (default), this client calls the clock on an opponent whose turn
+    // clock has run out and who has not acted (ui#819): it submits the chain's
+    // `timeout` action, which the engine verifies before folding them. Observers
+    // take turns from the dealer button, so one call lands per stalled turn.
+    callClock: boolean;
     turnNotificationSound: boolean;
     playerActionSounds: boolean;
     seatAtBottom: boolean;
@@ -53,6 +59,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleAutoNewHand: () => void;
     toggleAutoFold: () => void;
     toggleAutoMuck: () => void;
+    toggleCallClock: () => void;
     toggleTurnNotificationSound: () => void;
     togglePlayerActionSounds: () => void;
     toggleSeatAtBottom: () => void;
@@ -77,6 +84,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     const [autoMuck, setAutoMuck] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_AUTO_MUCK, false)
+    );
+    const [callClock, setCallClock] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_CALL_CLOCK, getCallClockEnabled())
     );
     const [turnNotificationSound, setTurnNotificationSound] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_TURN_SOUND, true)
@@ -134,6 +144,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleCallClock = useCallback(() => {
+        setCallClock(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_CALL_CLOCK, String(next));
+            return next;
+        });
+    }, []);
+
     const toggleTurnNotificationSound = useCallback(() => {
         setTurnNotificationSound(prev => {
             const next = !prev;
@@ -181,6 +199,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             autoNewHand,
             autoFold,
             autoMuck,
+            callClock,
             turnNotificationSound,
             playerActionSounds,
             seatAtBottom,
@@ -191,6 +210,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleAutoNewHand,
             toggleAutoFold,
             toggleAutoMuck,
+            toggleCallClock,
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
             toggleSeatAtBottom,
@@ -203,6 +223,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             autoNewHand,
             autoFold,
             autoMuck,
+            callClock,
             turnNotificationSound,
             playerActionSounds,
             seatAtBottom,

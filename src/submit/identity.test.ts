@@ -93,6 +93,19 @@ describe("attributeEvidence", () => {
         expect(attributeEvidence([job(1, "new-hand")], ME, snap([], 1)).get(1)).toEqual({ kind: "none" });
     });
 
+    it("confirms a timeout structurally when ANY action lands at/after the baseline, or the hand moves on (ui#819)", () => {
+        const timeout = NonPlayerActionType.TIMEOUT;
+        // The stalled player's forced fold is recorded under THEIR address.
+        const forced = action(6, { playerId: OTHER, action: PlayerActionType.FOLD });
+        expect(attributeEvidence([job(1, timeout)], ME, snap([forced])).get(1)).toEqual({ kind: "turnAdvanced" });
+        // ...or they acted themselves before our call landed: the table is unstuck either way.
+        expect(attributeEvidence([job(1, timeout)], ME, snap([action(6, { playerId: OTHER })])).get(1)).toEqual({ kind: "turnAdvanced" });
+        // The fold ended the hand and a new one started.
+        expect(attributeEvidence([job(1, timeout)], ME, snap([], 2)).get(1)).toEqual({ kind: "turnAdvanced" });
+        // Nothing since the baseline: no evidence yet.
+        expect(attributeEvidence([job(1, timeout)], ME, snap([action(5, { playerId: OTHER })])).get(1)).toEqual({ kind: "none" });
+    });
+
     it("lets two open jobs claim distinct recorded actions, oldest job first", () => {
         const frame = snap([action(6, { action: PlayerActionType.CALL }), action(8, { action: PlayerActionType.CHECK })]);
         const evidence = attributeEvidence([job(2, "check"), job(1, "call")], ME, frame);

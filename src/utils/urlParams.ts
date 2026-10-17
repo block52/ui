@@ -83,3 +83,24 @@ export const getAutoFoldEnabled = (): boolean => {
     // Default to true if param is missing or any value other than "false"
     return autofold !== "false";
 };
+
+/**
+ * Check if calling the clock on a stalled opponent (ui#819) is enabled via
+ * query string parameter.
+ *
+ * Call-the-clock is ENABLED by default. It can only be disabled by explicitly
+ * setting ?callclock=false in the URL.
+ *
+ * @returns true if call-the-clock is enabled, false if explicitly disabled
+ *
+ * @example
+ * // URL: /table/123 -> returns true (default)
+ * // URL: /table/123?callclock=true -> returns true
+ * // URL: /table/123?callclock=false -> returns false
+ */
+export const getCallClockEnabled = (): boolean => {
+    const params = new URLSearchParams(window.location.search);
+    const callclock = params.get("callclock");
+    // Default to true if param is missing or any value other than "false"
+    return callclock !== "false";
+};
