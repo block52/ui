@@ -8,7 +8,17 @@ import {
     TexasHoldemRound,
     TexasHoldemStateDTO
 } from "@block52/poker-vm-sdk";
-import { CLOCK_CALLER_STAGGER_MS, TIMEOUT_INCLUSION_GRACE_MS, clockCallDueAtMs, clockCallerRank, turnDeadlineMs } from "./turnClock";
+import {
+    CLOCK_CALLER_STAGGER_MS,
+    TIMEOUT_BLOCK_TIME_MARGIN_MS,
+    TIMEOUT_INCLUSION_GRACE_MS,
+    clockCallDueAtMs,
+    clockCallOpportunity,
+    clockCallerRank,
+    turnDeadlineMs
+} from "./turnClock";
+
+const WAIT = TIMEOUT_INCLUSION_GRACE_MS + TIMEOUT_BLOCK_TIME_MARGIN_MS;
 
 const P1 = "b521seat1";
 const P2 = "b521seat2";
@@ -158,11 +168,11 @@ describe("clockCallerRank — the line of observers, clockwise from the button",
         expect(clockCallerRank(state(), P3.toUpperCase())).toBe(1);
     });
 
-    it("orders from seat 1 when the snapshot carries no button", () => {
+    it("nobody is in the line when the snapshot carries no button (no invented order)", () => {
         const s = state({ dealer: undefined, nextToAct: 3 });
-        expect(clockCallerRank(s, P1)).toBe(0);
-        expect(clockCallerRank(s, P2)).toBe(1);
-        expect(clockCallerRank(s, P5)).toBe(2);
+        expect(clockCallerRank(s, P1)).toBeNull();
+        expect(clockCallerRank(s, P2)).toBeNull();
+        expect(clockCallerRank(s, P5)).toBeNull();
     });
 
     it("is null without a snapshot or players", () => {
@@ -171,14 +181,14 @@ describe("clockCallerRank — the line of observers, clockwise from the button",
     });
 });
 
-describe("clockCallDueAtMs — deadline + inclusion grace + the caller's place in line", () => {
-    it("the first in line fires right after the grace", () => {
-        expect(clockCallDueAtMs(state(), P1)).toBe(T0 + 30_000 + TIMEOUT_INCLUSION_GRACE_MS);
+describe("clockCallDueAtMs — deadline + inclusion grace + block-time margin + the caller's place in line", () => {
+    it("the first in line fires one block interval after the grace", () => {
+        expect(clockCallDueAtMs(state(), P1)).toBe(T0 + 30_000 + WAIT);
     });
 
     it("each further observer waits one more stagger", () => {
-        expect(clockCallDueAtMs(state(), P3)).toBe(T0 + 30_000 + TIMEOUT_INCLUSION_GRACE_MS + CLOCK_CALLER_STAGGER_MS);
-        expect(clockCallDueAtMs(state(), P5)).toBe(T0 + 30_000 + TIMEOUT_INCLUSION_GRACE_MS + 2 * CLOCK_CALLER_STAGGER_MS);
+        expect(clockCallDueAtMs(state(), P3)).toBe(T0 + 30_000 + WAIT + CLOCK_CALLER_STAGGER_MS);
+        expect(clockCallDueAtMs(state(), P5)).toBe(T0 + 30_000 + WAIT + 2 * CLOCK_CALLER_STAGGER_MS);
     });
 
     it("is null for the player on the clock, a stranger, or when no turn is on the clock", () => {
@@ -186,5 +196,31 @@ describe("clockCallDueAtMs — deadline + inclusion grace + the caller's place i
         expect(clockCallDueAtMs(state(), STRANGER)).toBeNull();
         expect(clockCallDueAtMs(state({ round: TexasHoldemRound.END }), P1)).toBeNull();
         expect(clockCallDueAtMs(state({ previousActions: [] }), P1)).toBeNull();
+    });
+});
+
+describe("clockCallOpportunity — the turn to call, keyed on the turn rather than the due time", () => {
+    it("carries the turn key, the seat on the clock and the due time", () => {
+        expect(clockCallOpportunity(state(), P1)).toEqual({ key: "1:2:2", seat: 2, dueAtMs: T0 + 30_000 + WAIT });
+    });
+
+    it("keeps its key when the anchoring action is re-stamped (same turn, later due time)", () => {
+        const before = clockCallOpportunity(state(), P1);
+        const after = clockCallOpportunity(state({ previousActions: [action(1, T0 - 5000), action(2, T0 + 1000)] }), P1);
+        expect(after?.key).toBe(before?.key);
+        expect(after?.dueAtMs).toBe((before?.dueAtMs ?? 0) + 1000);
+    });
+
+    it("changes its key when the turn moves on, and across hands", () => {
+        const base = clockCallOpportunity(state(), P1)?.key;
+        expect(clockCallOpportunity(state({ nextToAct: 3 }), P1)?.key).not.toBe(base);
+        expect(clockCallOpportunity(state({ previousActions: [action(1, T0 - 5000), action(2, T0), action(3, T0, { seat: 2, playerId: P2 })] }), P1)?.key).not.toBe(base);
+        expect(clockCallOpportunity(state({ handNumber: 2 }), P1)?.key).not.toBe(base);
+    });
+
+    it("is null whenever there is no due time", () => {
+        expect(clockCallOpportunity(state(), P2)).toBeNull();
+        expect(clockCallOpportunity(state({ round: TexasHoldemRound.END }), P1)).toBeNull();
+        expect(clockCallOpportunity(undefined, P1)).toBeNull();
     });
 });

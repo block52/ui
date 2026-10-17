@@ -32,7 +32,9 @@ import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
 import { useCallClock } from "../../hooks/playerActions/useCallClock";
-import { clockCallDueAtMs } from "../../utils/turnClock";
+import { clockCallOpportunity } from "../../utils/turnClock";
+import { getLatestGameState } from "../../hooks/playerActions/transportAction";
+import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { toast } from "react-toastify";
 import { usePreAction } from "../../hooks/playerActions/usePreAction";
 import { usePlayerTimer } from "../../hooks/player/usePlayerTimer";
@@ -241,20 +243,26 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
 
     // Call the clock (ui#819): the observer's side of the action clock. When the
     // player to act is someone else and their deadline (plus the chain's
-    // inclusion grace, plus this seat's place in the line of observers from the
-    // button) has passed, submit the chain's `timeout` action; the engine
-    // verifies the deadline and plays their forced default for them. Keeps a
-    // dropped connection from locking the table. Setting / ?callclock=false.
-    const clockCallDueAt = useMemo(() => clockCallDueAtMs(gameState, userAddress), [gameState, userAddress]);
-    const stalledSeat = gameState?.nextToAct;
-    const handleClockCalled = useCallback(
-        (txHash: string) => {
-            toast.info(`Called the clock on seat ${stalledSeat}`);
-            onTransactionSubmitted?.(txHash);
-        },
-        [stalledSeat, onTransactionSubmitted]
-    );
-    useCallClock(tableId, network, clockCallDueAt, submit, isSubmitBusy, handleClockCalled, callClockEnabled);
+    // inclusion grace and block-time margin, plus this seat's place in the line
+    // of observers from the button) has passed, submit the chain's `timeout`
+    // action; the engine verifies the deadline and plays their forced default
+    // for them. Keeps a dropped connection from locking the table. Setting /
+    // ?callclock=false.
+    //
+    // A submission decision, so it reads the LOGICAL track (getLatestGameState),
+    // never the paced rendered one: a showdown hold or a backlog would anchor
+    // the deadline on an older action and fire early. `latestItem` is only the
+    // tick that says a new frame arrived.
+    const { latestItem } = useGameEventsContext();
+    const clockCall = useMemo(() => {
+        void latestItem;
+        return clockCallOpportunity(getLatestGameState(), userAddress);
+    }, [latestItem, userAddress]);
+    const stalledSeat = clockCall?.seat;
+    // Only a toast: no balance changed and the player did nothing, so the
+    // transaction popup and balance refetch (onTransactionSubmitted) stay quiet.
+    const handleClockCalled = useCallback(() => toast.info(`Called the clock on seat ${stalledSeat}`), [stalledSeat]);
+    useCallClock(tableId, network, clockCall, submit, isSubmitBusy, isConnectionLive(connection), handleClockCalled, callClockEnabled);
 
     // Pre-select "Check/Fold" (ui#388): before it's the player's turn, if checking
     // would be free, offer a box that checks when action reaches them, or folds if

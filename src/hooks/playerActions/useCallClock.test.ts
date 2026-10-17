@@ -2,10 +2,12 @@
  * Tests for useCallClock (ui#819): the observer's side of the turn clock.
  *
  *   1. It submits the `timeout` action once the due time passes, not before,
- *      and exactly once per due time however often the caller re-renders.
- *   2. It submits through the ActionSubmitController and STANDS DOWN while that
- *      queue is busy, re-arming when it clears (#635).
- *   3. A new due time (the next stalled turn) is a new opportunity.
+ *      and exactly once per TURN however often the caller re-renders — a
+ *      re-stamped due time for the same turn only moves the timer.
+ *   2. It submits through the ActionSubmitController, quietly, and STANDS DOWN
+ *      while that queue is busy or the socket is not live, re-arming when
+ *      either clears (#635, #613).
+ *   3. A new turn is a new opportunity.
  *   4. A failure that proves nothing was sent re-arms once; a chain rejection
  *      does not (#655).
  *   5. `enabled` is reactive.
@@ -17,6 +19,7 @@ import { callClock } from "./callClock";
 import { makeTestSubmit } from "./testSubmit";
 import { AUTO_ACTION_DELAY_MS } from "./useLatchedDelay";
 import type { SubmitActionRequest } from "../../submit/types";
+import type { ClockCallOpportunity } from "../../utils/turnClock";
 
 jest.mock("./callClock");
 
@@ -27,10 +30,14 @@ const NETWORK = {} as never;
 const START = 1_700_000_000_000;
 
 interface Props {
-    dueAtMs?: number | null;
+    opportunity?: ClockCallOpportunity | null;
     isBusy?: boolean;
+    isLive?: boolean;
     enabled?: boolean;
 }
+
+const at = (dueAtMs: number, key = "1:2:4"): ClockCallOpportunity => ({ key, seat: 2, dueAtMs });
+const DEFAULT = at(START + 10_000);
 
 async function advance(ms: number): Promise<void> {
     await act(async () => {
@@ -46,8 +53,8 @@ describe("useCallClock", () => {
 
     const render = (initial: Props = {}) =>
         renderHook(
-            ({ dueAtMs = START + 10_000, isBusy = false, enabled = true }: Props) =>
-                useCallClock(TABLE_ID, NETWORK, dueAtMs, harness.submit, isBusy, onCalled, enabled),
+            ({ opportunity = DEFAULT, isBusy = false, isLive = true, enabled = true }: Props) =>
+                useCallClock(TABLE_ID, NETWORK, opportunity, harness.submit, isBusy, isLive, onCalled, enabled),
             { initialProps: initial }
         );
 
@@ -77,23 +84,34 @@ describe("useCallClock", () => {
         });
 
         it("calls at once (after the settle) when the due time is already in the past", async () => {
-            render({ dueAtMs: START - 60_000 });
+            render({ opportunity: at(START - 60_000) });
             await advance(AUTO_ACTION_DELAY_MS);
             expect(harness.requests).toHaveLength(1);
         });
 
-        it("never calls with no due time", async () => {
-            render({ dueAtMs: null });
+        it("never calls with no opportunity", async () => {
+            render({ opportunity: null });
             await advance(60_000);
             expect(harness.requests).toHaveLength(0);
         });
 
-        it("drops a pending call when the due time goes away (the turn moved on)", async () => {
+        it("drops a pending call when the opportunity goes away (the turn moved on)", async () => {
             const { rerender } = render();
             await advance(9_000);
-            rerender({ dueAtMs: null });
+            rerender({ opportunity: null });
             await advance(60_000);
             expect(harness.requests).toHaveLength(0);
+        });
+
+        it("a re-stamped due time for the same turn moves the timer, not the latch", async () => {
+            const { rerender } = render();
+            await advance(9_000);
+            // The anchoring action's timestamp moved 1 s later (same turn).
+            rerender({ opportunity: at(START + 11_000) });
+            await advance(1_000 + AUTO_ACTION_DELAY_MS);
+            expect(harness.requests).toHaveLength(0);
+            await advance(1_000);
+            expect(harness.requests).toHaveLength(1);
         });
     });
 
@@ -116,13 +134,23 @@ describe("useCallClock", () => {
             expect(harness.requests).toHaveLength(1);
         });
 
-        it("a new due time is a new opportunity", async () => {
+        it("a re-stamped due time for an already-called turn is NOT a second opportunity", async () => {
+            const { rerender } = render();
+            await advance(10_000 + AUTO_ACTION_DELAY_MS);
+            expect(harness.requests).toHaveLength(1);
+
+            rerender({ opportunity: at(START + 11_000) });
+            await advance(60_000);
+            expect(harness.requests).toHaveLength(1);
+        });
+
+        it("a new turn is a new opportunity", async () => {
             const { rerender } = render();
             await advance(10_000 + AUTO_ACTION_DELAY_MS);
             expect(harness.requests).toHaveLength(1);
 
             // The next turn stalls too.
-            rerender({ dueAtMs: START + 40_000 });
+            rerender({ opportunity: at(START + 40_000, "1:3:5") });
             await advance(30_000 + AUTO_ACTION_DELAY_MS);
             expect(harness.requests).toHaveLength(2);
         });
@@ -131,10 +159,16 @@ describe("useCallClock", () => {
     describe("through the submit controller (#635)", () => {
         it("submits rather than broadcasting: nothing runs until the controller runs it", async () => {
             const requests: SubmitActionRequest[] = [];
-            renderHook(() => useCallClock(TABLE_ID, NETWORK, START - 1, request => requests.push(request), false, undefined, true));
+            renderHook(() => useCallClock(TABLE_ID, NETWORK, at(START - 1), request => requests.push(request), false, true, undefined, true));
             await advance(AUTO_ACTION_DELAY_MS);
             expect(requests.map(r => r.actionName)).toEqual([NonPlayerActionType.TIMEOUT]);
             expect(mockCallClock).not.toHaveBeenCalled();
+        });
+
+        it("submits a QUIET job: the user did nothing, so a failure is not theirs to hear about", async () => {
+            render({ opportunity: at(START - 1) });
+            await advance(AUTO_ACTION_DELAY_MS);
+            expect(harness.requests[0].quiet).toBe(true);
         });
 
         it("stands down while the player's own action is in flight, then calls when the queue clears", async () => {
@@ -156,6 +190,30 @@ describe("useCallClock", () => {
         });
     });
 
+    describe("while the socket is not live (#613)", () => {
+        it("stands down, then calls once the connection is back", async () => {
+            const { rerender } = render({ isLive: false });
+            await advance(10_000 + AUTO_ACTION_DELAY_MS);
+            expect(harness.requests).toHaveLength(0);
+
+            rerender({ isLive: true });
+            await advance(AUTO_ACTION_DELAY_MS);
+            expect(harness.requests).toHaveLength(1);
+        });
+
+        it("a drop INSIDE the settle window holds the call until the socket is live again", async () => {
+            const { rerender } = render();
+            await advance(10_000 + 200);
+            rerender({ isLive: false });
+            await advance(60_000);
+            expect(harness.requests).toHaveLength(0);
+
+            rerender({ isLive: true });
+            await advance(AUTO_ACTION_DELAY_MS);
+            expect(harness.requests).toHaveLength(1);
+        });
+    });
+
     describe("re-arming after a failure (#655)", () => {
         const failWith = (kind: "transport" | "rejected") => {
             let failed = false;
@@ -172,7 +230,7 @@ describe("useCallClock", () => {
 
         it("re-arms once after a transport failure (nothing was sent)", async () => {
             const { submit, requests } = failWith("transport");
-            renderHook(() => useCallClock(TABLE_ID, NETWORK, START - 1, submit, false, undefined, true));
+            renderHook(() => useCallClock(TABLE_ID, NETWORK, at(START - 1), submit, false, true, undefined, true));
             await advance(AUTO_ACTION_DELAY_MS);
             expect(requests).toHaveLength(1);
             await advance(AUTO_ACTION_DELAY_MS);
@@ -183,7 +241,7 @@ describe("useCallClock", () => {
 
         it("does not re-arm after the chain rejected the call", async () => {
             const { submit, requests } = failWith("rejected");
-            renderHook(() => useCallClock(TABLE_ID, NETWORK, START - 1, submit, false, undefined, true));
+            renderHook(() => useCallClock(TABLE_ID, NETWORK, at(START - 1), submit, false, true, undefined, true));
             await advance(AUTO_ACTION_DELAY_MS);
             expect(requests).toHaveLength(1);
             await advance(60_000);

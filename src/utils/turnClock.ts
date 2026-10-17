@@ -15,22 +15,37 @@
  * without React and so every observer at the table computes the same answer.
  */
 import { NonPlayerActionType, TexasHoldemRound, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { normalizeTimestamp } from "./timerUtils";
-import { hasElements } from "./guards";
+import { makeTurnId, normalizeTimestamp } from "./timerUtils";
+import { hasElements, isNullish } from "./guards";
 
 /**
  * The chain applies a `timeout` only once block time is strictly past
- * deadline + this grace (pokerchain `TurnTimeoutGraceMs`): a player's action
- * broadcast just before the deadline still has to be included in a block. A
- * call submitted inside the grace is rejected, so an observer waits it out.
+ * deadline + this grace (pokerchain `TurnTimeoutGraceMs`, turn_timeout.go): a
+ * player's action broadcast just before the deadline still has to be included
+ * in a block. A call submitted inside the grace is rejected, so an observer
+ * waits it out.
+ *
+ * Mirrors the chain's constant by hand — the SDK does not carry it. If the
+ * chain changes its grace, change this with it, or every first call is
+ * rejected until someone does.
  */
 export const TIMEOUT_INCLUSION_GRACE_MS = 10_000;
 
 /**
+ * The chain compares the grace against the time of the block that INCLUDES
+ * the call, and CometBFT block time trails wall-clock time by up to one block
+ * interval (`timeout_commit = 5s` on pokerchain): a call broadcast at wall
+ * time W lands in a block stamped anywhere in [W − 5 s, W]. Waiting one
+ * interval past the grace keeps the first call from being refused for a
+ * clock the chain has not caught up to yet.
+ */
+export const TIMEOUT_BLOCK_TIME_MARGIN_MS = 5_000;
+
+/**
  * Observers take turns calling the clock rather than all firing at once: the
- * first in line fires at deadline + grace, the next this much later, and so on.
- * One tx per stalled turn in the normal case; a second caller only steps in
- * when the first is itself gone.
+ * first in line fires at deadline + grace + margin, the next this much later,
+ * and so on. One tx per stalled turn in the normal case; a second caller only
+ * steps in when the first is itself gone.
  */
 export const CLOCK_CALLER_STAGGER_MS = 5_000;
 
@@ -88,7 +103,9 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
 /**
  * Where the local player stands in the line of observers who may call the
  * clock on the current turn, or `null` when they may not: not seated at this
- * table, or the one on the clock.
+ * table, the one on the clock, or no dealer button in the snapshot (the chain
+ * sets one for every running hand; without it there is no agreed order, so
+ * nobody calls rather than everybody).
  *
  * The line runs clockwise from the dealer button, so the button calls first
  * (rank 0). When the button is the stalled player, the next seat after it is
@@ -96,7 +113,7 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
  * seat lines up behind, so the table never deadlocks on who should call.
  */
 export const clockCallerRank = (gameState: TexasHoldemStateDTO | null | undefined, myAddress: string | null | undefined): number | null => {
-    if (!gameState || !myAddress || !hasElements(gameState.players)) {
+    if (!gameState || !myAddress || !hasElements(gameState.players) || isNullish(gameState.dealer)) {
         return null;
     }
     const me = myAddress.toLowerCase();
@@ -109,8 +126,8 @@ export const clockCallerRank = (gameState: TexasHoldemStateDTO | null | undefine
     // highest seat number, so seat (button + 1) is always distance 1 and the
     // seat just before the button is the furthest away.
     const seats = gameState.players.map(player => player.seat);
-    const button = gameState.dealer ?? 1;
-    const ring = Math.max(gameState.gameOptions?.maxPlayers ?? 0, button, ...seats);
+    const button = gameState.dealer;
+    const ring = Math.max(gameState.gameOptions.maxPlayers, button, ...seats);
     const distance = (seat: number): number => (((seat - button) % ring) + ring) % ring;
 
     const line = gameState.players.filter(player => player.seat !== gameState.nextToAct).sort((a, b) => distance(a.seat) - distance(b.seat));
@@ -122,7 +139,7 @@ export const clockCallerRank = (gameState: TexasHoldemStateDTO | null | undefine
  * `null` when it should not: no turn on the clock, or the local player is not
  * in the line (see {@link clockCallerRank}).
  *
- *   deadline + inclusion grace + rank × stagger
+ *   deadline + inclusion grace + block-time margin + rank × stagger
  */
 export const clockCallDueAtMs = (gameState: TexasHoldemStateDTO | null | undefined, myAddress: string | null | undefined): number | null => {
     const deadline = turnDeadlineMs(gameState);
@@ -133,5 +150,37 @@ export const clockCallDueAtMs = (gameState: TexasHoldemStateDTO | null | undefin
     if (rank === null) {
         return null;
     }
-    return deadline + TIMEOUT_INCLUSION_GRACE_MS + rank * CLOCK_CALLER_STAGGER_MS;
+    return deadline + TIMEOUT_INCLUSION_GRACE_MS + TIMEOUT_BLOCK_TIME_MARGIN_MS + rank * CLOCK_CALLER_STAGGER_MS;
+};
+
+/**
+ * One chance to call the clock: a turn this client may call, and when.
+ *
+ * `key` identifies the TURN (hand, seat to act, actions so far), not the due
+ * time. The due time is derived from action timestamps, which a later frame
+ * of the same turn may re-stamp (the #561 class; a projection replaced by the
+ * committed record). Latching on the key keeps that from reading as a second
+ * opportunity: the hook calls once per turn, however the due time moves.
+ */
+export interface ClockCallOpportunity {
+    key: string;
+    /** The seat on the clock. */
+    seat: number;
+    dueAtMs: number;
+}
+
+/**
+ * The current opportunity for the local player, or `null` when there is none
+ * (see {@link clockCallDueAtMs}).
+ */
+export const clockCallOpportunity = (gameState: TexasHoldemStateDTO | null | undefined, myAddress: string | null | undefined): ClockCallOpportunity | null => {
+    const dueAtMs = clockCallDueAtMs(gameState, myAddress);
+    if (dueAtMs === null || !gameState) {
+        return null;
+    }
+    return {
+        key: `${gameState.handNumber}:${makeTurnId(gameState.nextToAct, gameState.previousActions.length)}`,
+        seat: gameState.nextToAct,
+        dueAtMs
+    };
 };

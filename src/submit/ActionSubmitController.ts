@@ -170,7 +170,7 @@ export class ActionSubmitController {
                 actionName: request.actionName
             };
             this.lastError = error;
-            this.onError(error);
+            this.tell(request, error);
             this.emit();
             return;
         }
@@ -417,12 +417,14 @@ export class ActionSubmitController {
         }
         job.status = "unknown";
         console.warn(`[submit] no evidence within ${this.config.confirmTimeoutMs}ms for "${job.request.actionName}"; releasing busy as unknown.`);
-        this.onNotice({
-            kind: "unknown",
-            message: `Couldn't confirm your ${job.request.actionName} yet — check the table before acting again.`,
-            actionName: job.request.actionName,
-            hash: job.hash
-        });
+        if (!job.request.quiet) {
+            this.onNotice({
+                kind: "unknown",
+                message: `Couldn't confirm your ${job.request.actionName} yet — check the table before acting again.`,
+                actionName: job.request.actionName,
+                hash: job.hash
+            });
+        }
         this.releaseBusy(job);
     }
 
@@ -451,9 +453,18 @@ export class ActionSubmitController {
         job.status = "failed";
         job.error = error;
         this.lastError = error;
-        this.onError(error);
+        this.tell(job.request, error);
         job.request.onFailure?.(error);
         this.finalize(job);
+    }
+
+    /** Surface a failure to the user — unless the submitter asked for a quiet job (ui#819). */
+    private tell(request: SubmitActionRequest, error: SubmitError): void {
+        if (request.quiet) {
+            console.warn(`[submit] quiet "${request.actionName}" failed (${error.kind}): ${error.message}`);
+            return;
+        }
+        this.onError(error);
     }
 
     /**
@@ -535,7 +546,7 @@ export class ActionSubmitController {
         job.error = error;
         this.lastError = error;
         this.lastSettledAt.set(job.dedupeKey, this.now());
-        this.onError(error);
+        this.tell(job.request, error);
         job.request.onFailure?.(error);
     }
 
