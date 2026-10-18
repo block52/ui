@@ -1,4 +1,4 @@
-import { GameFormat, GameVariant, GameListItem } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameFormat, GameVariant, GameListItem } from "@block52/poker-vm-sdk";
 import { convertGameListItemToGameWithFormat, convertGameList } from "./convertUtils";
 
 describe("convertUtils", () => {
@@ -23,6 +23,12 @@ describe("convertUtils", () => {
     });
 
     describe("convertGameListItemToGameWithFormat", () => {
+        it("carries the betting limit through (ui#824) and leaves it absent for a legacy table", () => {
+            const plo = makeGameListItem({ variant: GameVariant.OMAHA, gameOptions: { ...makeGameListItem().gameOptions, bettingLimit: BettingLimit.POT_LIMIT } });
+            expect(convertGameListItemToGameWithFormat(plo).bettingLimit).toBe(BettingLimit.POT_LIMIT);
+            expect(convertGameListItemToGameWithFormat(makeGameListItem()).bettingLimit).toBeUndefined();
+        });
+
         it("should convert a complete GameListItem", () => {
             const game = makeGameListItem();
             const result = convertGameListItemToGameWithFormat(game);

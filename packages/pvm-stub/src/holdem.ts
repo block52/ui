@@ -15,6 +15,8 @@
 export const CASH_GAME_ID =
   "0x00000000000000000000000000000000000000000000000000000000cafe0001";
 /** A scheduled sit-and-go (poker-vm#2680): 6 seats, min 2, starts 10 min after reset. */
+/** A pot-limit Omaha cash table (ui#824): exists so the lobby row can be asserted/screenshotted. */
+export const PLO_GAME_ID = "0x00000000000000000000000000000000000000000000000000000000cafe0003";
 export const SNG_GAME_ID =
   "0x00000000000000000000000000000000000000000000000000000000cafe0002";
 
@@ -54,12 +56,14 @@ const SNG_OPTIONS_BASE = {
 
 interface TableMeta {
   format: "cash" | "sit-and-go";
+  /** Game variant as the chain reports it; the stub only plays Hold'em, the PLO table is for the lobby. */
+  variant: "texas-holdem" | "omaha";
   options: Record<string, unknown>;
 }
 const meta = new Map<string, TableMeta>();
 
 function sngMeta(): TableMeta {
-  return { format: "sit-and-go", options: { ...SNG_OPTIONS_BASE, scheduledStartTime: Date.now() + 10 * 60 * 1000 } };
+  return { format: "sit-and-go", variant: "texas-holdem", options: { ...SNG_OPTIONS_BASE, scheduledStartTime: Date.now() + 10 * 60 * 1000 } };
 }
 
 type Round = "ante" | "preflop" | "flop" | "turn" | "river" | "showdown" | "end";
@@ -165,9 +169,11 @@ function seedTables(): void {
   store.clear();
   meta.clear();
   store.set(CASH_GAME_ID, freshTable(CASH_GAME_ID));
-  meta.set(CASH_GAME_ID, { format: "cash", options: OPTIONS });
+  meta.set(CASH_GAME_ID, { format: "cash", variant: "texas-holdem", options: OPTIONS });
   store.set(SNG_GAME_ID, freshSngTable(SNG_GAME_ID));
   meta.set(SNG_GAME_ID, sngMeta());
+  store.set(PLO_GAME_ID, freshTable(PLO_GAME_ID));
+  meta.set(PLO_GAME_ID, { format: "cash", variant: "omaha", options: { ...OPTIONS, maxPlayers: 6, bettingLimit: "pot-limit" } });
 }
 seedTables();
 
@@ -176,7 +182,7 @@ function table(gameId: string): Table | undefined {
 }
 
 function tableMeta(gameId: string): TableMeta {
-  return meta.get(gameId) ?? { format: "cash", options: OPTIONS };
+  return meta.get(gameId) ?? { format: "cash", variant: "texas-holdem", options: OPTIONS };
 }
 
 /** Reset all tables to their fresh state (test isolation between runs). */
@@ -592,7 +598,7 @@ export function getGameStateResponse(gameId: string) {
     gameId,
     creator: CREATOR,
     format: tableMeta(gameId).format,
-    variant: "texas-holdem",
+    variant: tableMeta(gameId).variant,
     gameState: texasHoldemStateDTO(t),
   };
 }
@@ -605,7 +611,7 @@ export function listGamesResponse() {
       gameId,
       creator: CREATOR,
       format: tableMeta(gameId).format,
-      variant: "texas-holdem",
+      variant: tableMeta(gameId).variant,
       gameOptions: tableMeta(gameId).options,
       currentPlayers: t.seats.length,
       createdAt: "2026-07-11T00:00:00Z",

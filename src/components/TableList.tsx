@@ -8,7 +8,7 @@ import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { formatMicroAsUsdc } from "../constants/currency";
 import { computeSngEntryBreakdown } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
-import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatGameVariantDisplay } from "../utils/gameFormatUtils";
+import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatTableGameDisplay, toGameVariant } from "../utils/gameFormatUtils";
 import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
@@ -344,7 +344,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                             <th className="hidden md:table-cell md:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
                                 <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
                             </th>
-                            <th className="hidden sm:table-cell sm:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Variant</th>
+                            <th className="hidden sm:table-cell sm:w-[160px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Game</th>
                             <th className="w-[18%] sm:w-[100px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
                                 <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
                             </th>
@@ -443,8 +443,12 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                         <td className="hidden md:table-cell px-2 sm:px-4 py-4 text-center">
                                             <span className="text-white capitalize">{formatGameFormatDisplay(game.gameFormat)}</span>
                                         </td>
+                                        {/* The game as the table header names it (ui#824): the limit spelled out
+                                            when it is not no-limit — "Pot-Limit Omaha", not just "Omaha". */}
                                         <td className="hidden sm:table-cell px-2 sm:px-4 py-4 text-center">
-                                            <span className="text-white capitalize">{formatGameVariantDisplay(game.gameVariant)}</span>
+                                            <span className="text-white" data-testid="lobby-game">
+                                                {formatTableGameDisplay(toGameVariant(game.gameVariant), game.bettingLimit)}
+                                            </span>
                                         </td>
                                         <td className="px-2 sm:px-4 py-4 text-center">
                                             <span className="text-white font-semibold">
