@@ -2,7 +2,10 @@
  * PlayerSeating Component
  *
  * Handles the rendering and positioning of all players around the poker table.
- * Contains the complex table rotation logic that keeps the current user at the bottom.
+ * Which seat is drawn at which slot — the rotation that keeps the current user
+ * at the bottom, and the compact ring that drops empty seats once a
+ * tournament has started (ui#818) — comes from the `seatRing`
+ * (`utils/seatRing.ts`), shared with the chips and the dealer button.
  *
  * Key Features:
  * - Dynamic player positioning based on table rotation
@@ -22,6 +25,8 @@ import VacantPlayer from "../../Players/VacantPlayer";
 import TurnAnimation from "../../Animations/TurnAnimation";
 import WinAnimation from "../../Animations/WinAnimation";
 import { CardBackStyle } from "../../../../utils/cardImages";
+import { getSeatColors } from "../../../../config/stageGeometry";
+import { seatAtSlot, type SeatRing } from "../../../../utils/seatRing";
 
 // Memoize TurnAnimation
 const MemoizedTurnAnimation = React.memo(TurnAnimation);
@@ -29,8 +34,8 @@ const MemoizedTurnAnimation = React.memo(TurnAnimation);
 export interface PlayerSeatingProps {
     // Table configuration
     tableLayout: UseTableLayoutReturn;
-    tableSize: number;
-    startIndex: number;
+    /** Slot → seat (utils/seatRing.ts). `null` slots draw nothing. */
+    seatRing: SeatRing;
 
     // Player data
     tableActivePlayers: PlayerDTO[];
@@ -52,8 +57,7 @@ export interface PlayerSeatingProps {
 
 export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     tableLayout,
-    tableSize,
-    startIndex,
+    seatRing,
     tableActivePlayers,
     tableDataPlayers,
     userWalletAddress,
@@ -87,46 +91,33 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     }, [winnerInfo]);
 
     // Seat colour is bound to the SEAT NUMBER, not the physical UI position.
-    // The layout config lists colours in seat order (index i → seat i+1), so we
-    // map them once here and look up by seatNumber below. Previously the render
-    // read `position.color` (the colour of the physical slot), which meant a
-    // player's colour changed whenever the table rotated (6 o'clock toggle). Now
-    // seat 3 is always its colour, wherever it renders on screen.
+    // The geometry lists colours in seat order for the TABLE's size (index i →
+    // seat i+1), so we map them once here and look up by seatNumber below.
+    // Previously the render read `position.color` (the colour of the physical
+    // slot), which meant a player's colour changed whenever the table rotated
+    // (6 o'clock toggle) — and on a compact ring (ui#818) the slots belong to a
+    // smaller ring than the table, so the slot's colour is not the seat's.
     const seatColorByNumber = React.useMemo(() => {
         const bySeat = new Map<number, string>();
-        tableLayout.positions.players.forEach((pos, i) => {
-            if (pos.color) bySeat.set(i + 1, pos.color);
-        });
+        getSeatColors(seatRing.full).forEach((color, i) => bySeat.set(i + 1, color));
         return bySeat;
-    }, [tableLayout.positions.players]);
+    }, [seatRing.full]);
 
     // ================================================================
-    // CRITICAL ROTATION LOGIC - THIS IS WHERE THE ROTATION HAPPENS
+    // WHICH SEAT IS DRAWN AT THIS SLOT
     // ================================================================
     //
-    // This function determines which component to render at each UI position
-    // and handles the table rotation logic to keep the current user at the bottom
+    // The seat ring answers it (utils/seatRing.ts). On the full ring that is the
+    // rotation formula ((slot − startIndex + size) % size) + 1, which keeps the
+    // current user at the bottom; on the compact ring (a started tournament,
+    // ui#818) only the seated players have slots and the rest are `null`.
     //
     const getComponentToRender = useCallback(
         (position: PositionArray, positionIndex: number) => {
-            // ROTATION FORMULA:
-            // seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1
-            //
-            // STEP BY STEP BREAKDOWN:
-            // 1. positionIndex - startIndex: Subtracts the rotation offset (for clockwise rotation)
-            // 2. + tableSize: Ensures no negative numbers before modulo
-            // 3. % tableSize: Wraps around if we exceed table size
-            // 4. + 1: Converts from 0-based index to 1-based seat numbers
-            //
-            // VISUAL EXAMPLE (4 players, startIndex = 1):
-            // - UI Pos 0: (0 - 1 + 4) % 4 + 1 = 4 → Seat 4 appears at bottom
-            // - UI Pos 1: (1 - 1 + 4) % 4 + 1 = 1 → Seat 1 appears at left
-            // - UI Pos 2: (2 - 1 + 4) % 4 + 1 = 2 → Seat 2 appears at top
-            // - UI Pos 3: (3 - 1 + 4) % 4 + 1 = 3 → Seat 3 appears at right
-            //
-            // The subtraction creates a CLOCKWISE rotation:
-            // As startIndex increases, lower numbered seats move clockwise to new positions
-            const seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
+            const seatNumber = seatAtSlot(seatRing, positionIndex);
+            if (seatNumber === null) {
+                return null;
+            }
 
             // Find if a player is seated at this position
             const playerAtThisSeat = activePlayerBySeat.get(seatNumber);
@@ -168,7 +159,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
+        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, seatRing, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
     );
 
     // Render all player positions
@@ -195,9 +186,12 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 - etc.
             */}
             {tableLayout.positions.players.map((position, positionIndex) => {
-                // Calculate seat number for animations (turn indicator, winner effects)
-                // This uses the SAME formula as getComponentToRender to stay in sync
-                const seatNum = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
+                // The seat at this slot, for the animations too (turn indicator,
+                // winner effects) — the SAME lookup as getComponentToRender.
+                const seatNum = seatAtSlot(seatRing, positionIndex);
+                if (seatNum === null) {
+                    return null;
+                }
                 const isWinnerSeat = winnerSeats.has(seatNum);
 
                 // Get the actual component to render (Player, OppositePlayer, or VacantPlayer)

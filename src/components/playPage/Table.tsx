@@ -117,6 +117,7 @@ import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalA
 import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { hasTournamentStarted } from "../../utils/scheduledSng";
+import { buildSeatRing, seatAtSlot, slotOfSeat } from "../../utils/seatRing";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
@@ -884,14 +885,45 @@ const Table = React.memo(() => {
     const tableContainerRef = useRef<HTMLDivElement>(null);
     const tableDivRef = useRef<HTMLDivElement>(null);
 
-    // StageGeometry layout system — supports 2/4/6/9 tables, auto-fit to any viewport.
+    // Memoize table active players
+    const tableActivePlayers = useMemo(() => {
+        const activePlayers = tableDataValues.tableDataPlayers?.filter((player: PlayerDTO) => isValidPlayerAddress(player.address)) ?? [];
+
+        return activePlayers;
+    }, [tableDataValues.tableDataPlayers]);
+
+    const [seat] = useState<number>(0);
+    const [startIndex, setStartIndex] = useState<number>(0); // Controls table rotation (0 = no rotation)
+
+    // The seat ring (ui#818): which seat is drawn at which slot. The full ring
+    // — every seat, rotated so the hero is at the bottom — until a
+    // tournament-style table STARTS; from then on its roster is frozen, so the
+    // empty seats are dropped and the players are spread over the smallest spec
+    // ring that fits them. Cash games keep every seat (people can still join).
+    // Chips, the dealer button and PlayerSeating all read this one ring.
+    const seatRing = useMemo(
+        () =>
+            buildSeatRing({
+                // The loading placeholder (0) is never painted (#466) but the hook
+                // chain below still runs, and the geometry has no ring 0.
+                size: (tableSize || 9) as 2 | 4 | 6 | 9,
+                startIndex,
+                seatedSeats: tableActivePlayers.map((player: PlayerDTO) => player.seat),
+                heroSeat: currentUserSeat,
+                seatAtBottom,
+                frozen: (isTournamentFormat(gameFormat) || isSitAndGoFormat(gameFormat)) && hasTournamentStarted(gameState)
+            }),
+        [tableSize, startIndex, tableActivePlayers, currentUserSeat, seatAtBottom, gameFormat, gameState]
+    );
+
+    // StageGeometry layout system — supports 2/4/6/9 rings, auto-fit to any viewport.
     // This hook runs on EVERY render, including while loading (hooks can't be
-    // conditional), and getSeatPositions() indexes SEAT_COORDS[tableSize] — which
-    // is undefined for the loading placeholder 0 and throws. So feed it a valid
-    // fallback (9) while loading; the loading guard below still prevents any
-    // fabricated board from being PAINTED until tableSize is real (#466), so this
-    // computed-but-unrendered layout causes no flash.
-    const tableLayout = useTableLayout((tableSize || 9) as 2 | 4 | 6 | 9, tableContainerRef);
+    // conditional), and getSeatPositions() indexes SEAT_COORDS[size] — which
+    // is undefined for the loading placeholder 0 and throws. So the ring above
+    // substitutes a valid fallback (9) while loading; the loading guard below
+    // still prevents any fabricated board from being PAINTED until tableSize is
+    // real (#466), so this computed-but-unrendered layout causes no flash.
+    const tableLayout = useTableLayout(seatRing.size, tableContainerRef);
     const { dealerSeat } = useDealerPosition();
 
     // Portrait phones get a decluttered UI + the vertical portrait stage —
@@ -1006,9 +1038,6 @@ const Table = React.memo(() => {
     // IMPORTANT: Rotation happens ONLY ONCE in getComponentToRender()
     // We don't pre-rotate arrays to avoid double rotation
 
-    const [seat] = useState<number>(0);
-    const [startIndex, setStartIndex] = useState<number>(0); // Controls table rotation (0 = no rotation)
-
     const [currentIndex, setCurrentIndex] = useState<number>(1);
 
     // Chip positions now come from tableLayout.positions.chips (stageGeometry)
@@ -1023,13 +1052,6 @@ const Table = React.memo(() => {
 
     // Use Cosmos utility function for formatted address
     const formattedAddress = getFormattedCosmosAddress();
-
-    // Memoize table active players
-    const tableActivePlayers = useMemo(() => {
-        const activePlayers = tableDataValues.tableDataPlayers?.filter((player: PlayerDTO) => isValidPlayerAddress(player.address)) ?? [];
-
-        return activePlayers;
-    }, [tableDataValues.tableDataPlayers]);
 
     // Check if any player is ACTIVE or ALL_IN (mirrors PVM's checkBootstrap logic)
     const hasActivePlayers = useMemo(() => {
@@ -1373,7 +1395,7 @@ const Table = React.memo(() => {
                 containerWidth={tableLayout.containerWidth}
                 containerHeight={tableLayout.containerHeight}
                 zoom={tableLayout.zoom}
-                tableSize={tableSize}
+                tableSize={seatRing.size}
             />
 
             {/*//! HEADER - CASINO STYLE — phones (both orientations) get the
@@ -1520,7 +1542,8 @@ const Table = React.memo(() => {
                             {/* Chips — per-seat memoized leaf; only the affected seat re-renders on WS update (#424) */}
                             {!isSitAndGoWaitingForPlayers &&
                                 tableLayout.positions.chips.map((position, positionIndex) => {
-                                    const seatNumber = ((positionIndex - startIndex + tableSize) % tableSize) + 1;
+                                    const seatNumber = seatAtSlot(seatRing, positionIndex);
+                                    if (seatNumber === null) return null;
                                     return (
                                         <PlayerChipDisplay
                                             key={`chip-${positionIndex}`}
@@ -1533,9 +1556,9 @@ const Table = React.memo(() => {
                                 })}
                         </div>
 
-                        {/* Dealer Button — convert seat number to rotated screen position */}
+                        {/* Dealer Button — the dealer seat's slot on the ring */}
                         {(() => {
-                            const dIdx = dealerSeat != null && dealerSeat > 0 ? (dealerSeat - 1 + startIndex) % tableSize : -1;
+                            const dIdx = dealerSeat != null && dealerSeat > 0 ? slotOfSeat(seatRing, dealerSeat) : -1;
                             const dPos = dIdx >= 0 ? tableLayout.positions.dealers[dIdx] : null;
                             if (!dPos) return null;
                             return (
@@ -1548,8 +1571,7 @@ const Table = React.memo(() => {
                         {/* Player seats */}
                         <PlayerSeating
                             tableLayout={tableLayout}
-                            tableSize={tableSize}
-                            startIndex={startIndex}
+                            seatRing={seatRing}
                             tableActivePlayers={tableActivePlayers}
                             tableDataPlayers={tableDataValues.tableDataPlayers}
                             userWalletAddress={userWalletAddress}
@@ -1564,7 +1586,7 @@ const Table = React.memo(() => {
                         {/* DEBUG overlays */}
                         <PositionDebugMarkers positions={tableLayout.positions} />
                         <GeometryDebugOverlay
-                            tableSize={tableSize}
+                            tableSize={seatRing.size}
                             containerWidth={tableLayout.containerWidth}
                             containerHeight={tableLayout.containerHeight}
                             zoom={tableLayout.zoom}

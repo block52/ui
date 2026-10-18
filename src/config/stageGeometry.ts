@@ -343,6 +343,15 @@ function applySpread(sx: number, sy: number): [number, number] {
     return [sx + (dx / dist) * SEAT_SPREAD, sy + (dy / dist) * SEAT_SPREAD];
 }
 
+/**
+ * Seat colours in seat order (index i → seat i+1) for a table of this size.
+ * Colours belong to the SEAT, so they key on the table's own size even when
+ * the seats are drawn on a smaller ring (ui#818).
+ */
+export function getSeatColors(tableSize: TableSize): string[] {
+    return SEAT_COLORS[tableSize];
+}
+
 /** Get player seat positions for a given table size (with SEAT_SPREAD applied) */
 export function getSeatPositions(tableSize: TableSize): Position[] {
     const coords = getSeatCoords(tableSize);
