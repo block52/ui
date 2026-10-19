@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useMemo } from "react";
+import type { KnownHoleCards } from "../../utils/replayCards";
 
 /**
  * GameActionsContext — stable function references for table I/O.
@@ -14,7 +15,7 @@ export interface GameActionsContextValue {
     /** actionIndex null = the hand's final state (showdown or last action). */
     loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
     /** One step of a hand replay (ui#816): the public state at a block height. */
-    loadHistoricalStateAtHeight: (tableId: string, handNumber: number, height: number, step: number | null) => Promise<void>;
+    loadHistoricalStateAtHeight: (tableId: string, handNumber: number, height: number, step: number | null, known?: KnownHoleCards) => Promise<void>;
 }
 
 const GameActionsContext = createContext<GameActionsContextValue | null>(null);

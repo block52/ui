@@ -88,6 +88,8 @@ export class CometRpcApi extends HTTPClient {
     /** ABCI query of a gRPC method path with hex-encoded protobuf `data`, at `height` (0 = latest). */
     public abciQuery = (path: string, dataHex: string, height: number) =>
         this.get(`abci_query?path=${encodeURIComponent(`"${path}"`)}&data=${dataHex}&height=${height}`);
+    /** The block at `height` (its header carries the block time signed queries must match). */
+    public block = (height: number) => this.get(`block?height=${height}`);
 }
 
 export class IndexerApi extends HTTPClient {
