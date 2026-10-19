@@ -9,6 +9,7 @@ import { formatMicroAsUsdc } from "../constants/currency";
 import { computeSngEntryBreakdown } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatTableGameDisplay, toGameVariant } from "../utils/gameFormatUtils";
+import { displayGameFormat } from "../utils/createGameType";
 import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
@@ -441,7 +442,10 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                             </td>
                                         )}
                                         <td className="hidden md:table-cell px-2 sm:px-4 py-4 text-center">
-                                            <span className="text-white capitalize">{formatGameFormatDisplay(game.gameFormat)}</span>
+                                            {/* A scheduled sit-and-go is a Tournament (ui#823), as the create form calls it. */}
+                                            <span className="text-white capitalize" data-testid="lobby-format">
+                                                {displayGameFormat(game.gameFormat, game.scheduledStartTime, formatGameFormatDisplay)}
+                                            </span>
                                         </td>
                                         {/* The game as the table header names it (ui#824): the limit spelled out
                                             when it is not no-limit — "Pot-Limit Omaha", not just "Omaha". */}
@@ -470,7 +474,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                                 href={`/table/${game.gameId}`}
                                                 target="_blank"
                                                 rel="noopener noreferrer"
-                                                aria-label={`Join ${formatGameFormatDisplay(game.gameFormat)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
+                                                aria-label={`Join ${displayGameFormat(game.gameFormat, game.scheduledStartTime, formatGameFormatDisplay)} table with ${game.currentPlayers} of ${game.maxPlayers} players, blinds $${formatMicroAsUsdc(game.smallBlind, 2)}/$${formatMicroAsUsdc(game.bigBlind, 2)}`}
                                                 className={`inline-block px-3 sm:px-4 py-2 text-white text-sm font-semibold rounded-lg transition-all hover:opacity-90 ${styles.actionButton}`}
                                             >
                                                 {scheduledPhase(game) === "cancelled" ? "Cancelled" : game.currentPlayers === game.maxPlayers ? "Full" : "Join"}

@@ -22,6 +22,7 @@ import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { TopUpModal } from "../../../modals";
 import { formatGameFormatDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
@@ -257,7 +258,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         {gameOptions && (
                             <div className="px-4 py-2 border-b border-white/10">
                                 <span className={`text-xs font-semibold ${styles.brandText}`}>
-                                    {gameFormat ? `${formatGameFormatDisplay(gameFormat)} • ` : ""}
+                                    {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
                                     Texas Hold'em
                                     <span className={`ml-1 ${styles.secondaryText}`}>
                                         ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
