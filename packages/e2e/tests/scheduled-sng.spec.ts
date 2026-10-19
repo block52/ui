@@ -98,19 +98,15 @@ test("table: register → countdown → ready → START → cancelled", async ({
     });
     const panel = page.getByTestId("scheduled-start-panel");
     await expect(panel).toContainText("READY TO START", { timeout: 10_000 });
-    await expect(page.getByTestId("start-tournament-button")).toBeDisabled(); // not offered yet
+    // Enabled on the start time + minimum alone (ui#830): the stored legal
+    // actions date from the last transaction and never carry START while
+    // everyone waits, so the button must not depend on them.
+    await expect(page.getByTestId("start-tournament-button")).toBeEnabled();
     await page.screenshot({ path: `${SHOTS}scheduled-sng-ready.png` });
   });
 
-  await test.step("START is offered: the client sends it and the field starts", async () => {
-    await inject({
-      ...base,
-      gameOptions: { ...options, scheduledStartTime: Date.now() - 5_000 },
-      players: [
-        player("b521stubbot00000000000000000000000000000bot", botSeat),
-        player(TEST_ADDRESS, mySeat, [{ action: "start", min: "0", max: "0", index: 1 }]),
-      ],
-    });
+  await test.step("any registered player presses Start now: START is sent and the field starts", async () => {
+    await page.getByTestId("start-tournament-button").click();
     // The waiting modal leaves once the stub records START and deals everyone in.
     await expect(page.getByTestId("scheduled-start-panel")).toBeHidden({ timeout: 20_000 });
     const after = (await stubState()).gameState as Json;
