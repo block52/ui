@@ -30,15 +30,21 @@ export interface ReplayTransport {
  * @param stepCount - Number of steps in the timeline (0 while loading)
  */
 export function useReplayTransport(stepCount: number): ReplayTransport {
-    const [position, setPosition] = useState<number>(0);
+    const [position, setPosition] = useState<number>(() => clampStep(stepCount - 1, stepCount));
     const [isPlaying, setIsPlaying] = useState<boolean>(false);
     const [speed, setSpeedState] = useState<number>(1);
 
-    // A new timeline: rest at its final state, paused.
-    useEffect(() => {
+    // A new timeline: rest at its final state, paused. Adjusted during render
+    // (not in an effect) so the render that first sees the new timeline already
+    // carries the resting position — an effect would let one render through
+    // with the stale position, and a step loader keyed on it would fetch the
+    // deal while the arrival state (the hand's end) is on screen.
+    const [seenStepCount, setSeenStepCount] = useState<number>(stepCount);
+    if (seenStepCount !== stepCount) {
+        setSeenStepCount(stepCount);
         setPosition(clampStep(stepCount - 1, stepCount));
         setIsPlaying(false);
-    }, [stepCount]);
+    }
 
     const last = Math.max(0, stepCount - 1);
     const atStart = position <= 0;

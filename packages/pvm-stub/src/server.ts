@@ -94,6 +94,9 @@ app.get("/tx_search", async (c) =>
     })) as object
   )
 );
+app.get("/block", async (c) =>
+  c.json((await handleCometRpc({ id: 1, method: "block", params: { height: c.req.query("height") ?? "0" } })) as object)
+);
 app.get("/abci_query", async (c) =>
   c.json(
     (await handleCometRpc({
