@@ -885,40 +885,25 @@ const Table = React.memo(() => {
     const tableContainerRef = useRef<HTMLDivElement>(null);
     const tableDivRef = useRef<HTMLDivElement>(null);
 
-    // Memoize table active players
-    const tableActivePlayers = useMemo(() => {
-        const activePlayers = tableDataValues.tableDataPlayers?.filter((player: PlayerDTO) => isValidPlayerAddress(player.address)) ?? [];
-
-        return activePlayers;
-    }, [tableDataValues.tableDataPlayers]);
-
     const [seat] = useState<number>(0);
     const [startIndex, setStartIndex] = useState<number>(0); // Controls table rotation (0 = no rotation)
 
-    // The seat ring (ui#818): which seat is drawn at which slot. The full ring
-    // — every seat, rotated so the hero is at the bottom — until a
-    // tournament-style table STARTS; from then on its roster is frozen, so the
-    // empty seats are dropped and the players are spread over the smallest spec
-    // ring that fits them. Cash games keep every seat (people can still join).
-    // Chips, the dealer button and PlayerSeating all read this one ring.
+    // The seat ring (ui#818): which seat is drawn at which slot — every seat of
+    // the table, rotated so the hero is at the bottom. Empty seats stay drawn
+    // on a started tournament too (late registration / sit-in later need no
+    // layout change). Chips, the dealer button and PlayerSeating all read this
+    // one ring instead of each inlining the rotation formula.
     const seatRing = useMemo(
         () =>
-            buildSeatRing({
-                // The loading placeholder (0) is never painted (#466) but the hook
-                // chain below still runs, and the geometry has no ring 0.
-                size: (tableSize || 9) as 2 | 4 | 6 | 9,
-                startIndex,
-                seatedSeats: tableActivePlayers.map((player: PlayerDTO) => player.seat),
-                heroSeat: currentUserSeat,
-                seatAtBottom,
-                frozen: (isTournamentFormat(gameFormat) || isSitAndGoFormat(gameFormat)) && hasTournamentStarted(gameState)
-            }),
-        [tableSize, startIndex, tableActivePlayers, currentUserSeat, seatAtBottom, gameFormat, gameState]
+            // The loading placeholder (0) is never painted (#466) but the hook
+            // chain below still runs, and the geometry has no ring 0.
+            buildSeatRing((tableSize || 9) as 2 | 4 | 6 | 9, startIndex),
+        [tableSize, startIndex]
     );
 
-    // StageGeometry layout system — supports 2/4/6/9 rings, auto-fit to any viewport.
+    // StageGeometry layout system — supports 2/4/6/9 tables, auto-fit to any viewport.
     // This hook runs on EVERY render, including while loading (hooks can't be
-    // conditional), and getSeatPositions() indexes SEAT_COORDS[size] — which
+    // conditional), and getSeatPositions() indexes SEAT_COORDS[tableSize] — which
     // is undefined for the loading placeholder 0 and throws. So the ring above
     // substitutes a valid fallback (9) while loading; the loading guard below
     // still prevents any fabricated board from being PAINTED until tableSize is
@@ -1052,6 +1037,13 @@ const Table = React.memo(() => {
 
     // Use Cosmos utility function for formatted address
     const formattedAddress = getFormattedCosmosAddress();
+
+    // Memoize table active players
+    const tableActivePlayers = useMemo(() => {
+        const activePlayers = tableDataValues.tableDataPlayers?.filter((player: PlayerDTO) => isValidPlayerAddress(player.address)) ?? [];
+
+        return activePlayers;
+    }, [tableDataValues.tableDataPlayers]);
 
     // Check if any player is ACTIVE or ALL_IN (mirrors PVM's checkBootstrap logic)
     const hasActivePlayers = useMemo(() => {

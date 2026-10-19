@@ -3,9 +3,8 @@
  *
  * Handles the rendering and positioning of all players around the poker table.
  * Which seat is drawn at which slot — the rotation that keeps the current user
- * at the bottom, and the compact ring that drops empty seats once a
- * tournament has started (ui#818) — comes from the `seatRing`
- * (`utils/seatRing.ts`), shared with the chips and the dealer button.
+ * at the bottom — comes from the `seatRing` (`utils/seatRing.ts`, ui#818),
+ * shared with the chips and the dealer button. Empty seats are always drawn.
  *
  * Key Features:
  * - Dynamic player positioning based on table rotation
@@ -91,26 +90,23 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     }, [winnerInfo]);
 
     // Seat colour is bound to the SEAT NUMBER, not the physical UI position.
-    // The geometry lists colours in seat order for the TABLE's size (index i →
-    // seat i+1), so we map them once here and look up by seatNumber below.
-    // Previously the render read `position.color` (the colour of the physical
-    // slot), which meant a player's colour changed whenever the table rotated
-    // (6 o'clock toggle) — and on a compact ring (ui#818) the slots belong to a
-    // smaller ring than the table, so the slot's colour is not the seat's.
+    // The geometry lists colours in seat order (index i → seat i+1), so we map
+    // them once here and look up by seatNumber below. Previously the render
+    // read `position.color` (the colour of the physical slot), which meant a
+    // player's colour changed whenever the table rotated (6 o'clock toggle).
     const seatColorByNumber = React.useMemo(() => {
         const bySeat = new Map<number, string>();
-        getSeatColors(seatRing.full).forEach((color, i) => bySeat.set(i + 1, color));
+        getSeatColors(seatRing.size).forEach((color, i) => bySeat.set(i + 1, color));
         return bySeat;
-    }, [seatRing.full]);
+    }, [seatRing.size]);
 
     // ================================================================
     // WHICH SEAT IS DRAWN AT THIS SLOT
     // ================================================================
     //
-    // The seat ring answers it (utils/seatRing.ts). On the full ring that is the
-    // rotation formula ((slot − startIndex + size) % size) + 1, which keeps the
-    // current user at the bottom; on the compact ring (a started tournament,
-    // ui#818) only the seated players have slots and the rest are `null`.
+    // The seat ring answers it (utils/seatRing.ts): the rotation formula
+    // ((slot − startIndex + size) % size) + 1, which keeps the current user at
+    // the bottom. A `null` slot draws nothing.
     //
     const getComponentToRender = useCallback(
         (position: PositionArray, positionIndex: number) => {
