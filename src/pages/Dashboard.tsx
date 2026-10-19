@@ -30,7 +30,8 @@ import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import t
 
 // Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
-import { defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
+import { defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 
 // Password protection utils
@@ -81,7 +82,10 @@ const Dashboard: React.FC = () => {
     const [createGameError, setCreateGameError] = useState("");
 
     // Modal game options
-    const [modalGameFormat, setModalGameFormat] = useState<GameFormat>(GameFormat.SIT_AND_GO);
+    // What the player is creating (ui#823). The chain format follows from it:
+    // a Tournament is a sit-and-go with a scheduled start (poker-vm#2680).
+    const [modalGameType, setModalGameType] = useState<CreateGameType>("sit-and-go");
+    const modalGameFormat = createGameTypeFormat(modalGameType);
     const [modalTableName, setModalTableName] = useState(""); // Optional paid table name (poker-vm#337)
     // Variant and betting limit are independent (ui#768); picking a variant
     // resets the limit to that variant's usual one (PLO, NLHE).
@@ -102,10 +106,8 @@ const Dashboard: React.FC = () => {
     // "sit-and-go games require an sngConfig"). Same presets as /admin/tables.
     const [modalStartingStack, setModalStartingStack] = useState(1500);
     const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(10);
-    // Scheduled start (poker-vm#2680): the sit-and-go starts when full OR at
-    // the start time with at least modalSngMinPlayers registered. Off = the
-    // table starts only when full, as before.
-    const [modalScheduled, setModalScheduled] = useState(false);
+    // Tournament start (poker-vm#2680): starts at the start time with at least
+    // modalSngMinPlayers registered, or earlier when full.
     const [modalScheduledStart, setModalScheduledStart] = useState(""); // datetime-local value
     const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
     const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(1); // 25 / 50
@@ -194,7 +196,7 @@ const Dashboard: React.FC = () => {
 
             // A scheduled sit-and-go needs a start time in the future and a
             // minimum no larger than the table (the chain refuses both).
-            const scheduled = isTournament && modalScheduled;
+            const scheduled = isScheduledCreateType(modalGameType);
             const startTime = scheduled ? localDateTimeToUnixSeconds(modalScheduledStart) : undefined;
             if (scheduled) {
                 if (!Number.isFinite(startTime) || (startTime as number) <= Math.floor(Date.now() / 1000)) {
@@ -787,15 +789,19 @@ const Dashboard: React.FC = () => {
                                     <div>
                                         <label className="block text-white text-sm mb-1">Game Type</label>
                                         <select
-                                            value={modalGameFormat}
+                                            value={modalGameType}
                                             onChange={e => {
-                                                const format = toGameFormat(e.target.value);
-                                                if (format) setModalGameFormat(format);
+                                                const type = toCreateGameType(e.target.value);
+                                                if (type) setModalGameType(type);
                                             }}
                                             className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
+                                            data-testid="create-game-type"
                                         >
-                                            <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
-                                            <option value={GameFormat.CASH}>Cash Game</option>
+                                            {CREATE_GAME_TYPES.map(type => (
+                                                <option key={type} value={type}>
+                                                    {createGameTypeLabel(type)}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
 
@@ -904,19 +910,9 @@ const Dashboard: React.FC = () => {
                                                 ))}
                                             </select>
 
-                                            {/* Scheduled start (poker-vm#2680) */}
-                                            <label className="flex items-center gap-2 text-white text-sm mt-3 cursor-pointer" data-testid="scheduled-start-toggle">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={modalScheduled}
-                                                    onChange={e => setModalScheduled(e.target.checked)}
-                                                    className="accent-blue-500"
-                                                />
-                                                Scheduled start
-                                                <span className="text-gray-400 text-xs">— starts at a set time with whoever has registered</span>
-                                            </label>
-                                            {modalScheduled && (
-                                                <div className="grid grid-cols-2 gap-3 mt-2">
+                                            {/* Tournament start (poker-vm#2680, ui#823): a Tournament always has one. */}
+                                            {isScheduledCreateType(modalGameType) && (
+                                                <div className="grid grid-cols-2 gap-3 mt-3" data-testid="tournament-start">
                                                     <div>
                                                         <label className="block text-gray-300 text-xs mb-1">Start time</label>
                                                         <input

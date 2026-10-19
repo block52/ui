@@ -16,6 +16,7 @@ import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay, formatTableGameDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
@@ -160,7 +161,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     {gameOptions && (
                         <div className={`hidden md:flex items-center ml-4 px-3 py-1 rounded-lg ${styles.gameFormatContainer}`}>
                             <span className={`text-sm font-semibold ${styles.brandText}`}>
-                                {gameFormat ? `${formatGameFormatDisplay(gameFormat)} • ` : ""}
+                                {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
                                 {formatTableGameDisplay(gameVariant, gameOptions.bettingLimit)}
                                 {gameOptions.minPlayers && gameOptions.maxPlayers && (
                                     <span className={`ml-1 ${styles.secondaryText}`}>
