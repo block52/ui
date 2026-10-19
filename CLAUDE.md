@@ -503,6 +503,12 @@ be an engine issue, a chain feature, or code that already exists.
   (`poker-vm`, `pokerchain`) when the change spans them.
 - A big idea is one issue, not an epic plus a dozen sub-tickets. Split only
   when someone is about to build a piece.
+- **Label every issue.** One type label (`bug`, `enhancement`, `feature`,
+  `tech debt`, `dev-ops`, `documentation`) plus the area labels that apply
+  (`UI`, `ux`, `sit-and-go`, `table-layout`, `mobile`, `admin`, `chat`,
+  `visual`, `animation`, `lobby`, `deposit`, …). Use `gh label list` to see
+  what exists; don't invent names. An unlabelled issue is invisible to the
+  boards and filters that drive triage.
 
 **Every PR with a visible change includes screenshots.** Put before/after
 screenshots (or a short recording) of the affected screen in the PR
