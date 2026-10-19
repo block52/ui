@@ -5,7 +5,7 @@ import { QueryAccountRequest, QueryAccountResponse } from "cosmjs-types/cosmos/a
 import { Any } from "cosmjs-types/google/protobuf/any.js";
 import { applyAction, getFrameDelayMs, cosmosStateMessage } from "./state.js";
 import { broadcast, broadcastRaw } from "./chain-ws.js";
-import type { Action } from "./holdem.js";
+import { historyFor, stateJsonAt, type Action } from "./holdem.js";
 
 /**
  * Minimal CometBFT JSON-RPC emulator (the chain-direct half of the stub).
@@ -213,8 +213,38 @@ function txResult(hashParam: string): unknown {
 /**
  * CosmJS polls for inclusion via `tx_search` with query `tx.hash='<HEX>'`.
  * We committed the tx synchronously in broadcast_tx_sync, so report it found.
+ *
+ * The UI's hand replay (ui#816) searches by event instead —
+ * `hand_started|action_performed|hand_ended.game_id='…' AND ….hand_number='N'` —
+ * and reads the heights off the result; those come from the engine's history.
  */
-function txSearchResult(query: string): unknown {
+function txSearchResult(query: string, perPage: number, orderBy: string): unknown {
+    const event = /^(hand_started|action_performed|hand_ended)\.game_id='([0-9A-Za-z]+)' AND \1\.hand_number='(\d+)'$/.exec(query);
+    if (event) {
+        const [, type, gameId, hand] = event;
+        let entries = historyFor(gameId, type, Number(hand));
+        if (orderBy === "desc") entries = [...entries].reverse();
+        const page = entries.slice(0, Math.max(1, perPage));
+        return {
+            txs: page.map((e) => ({
+                hash: createHash("sha256").update(`${gameId}:${e.height}`).digest("hex").toUpperCase(),
+                height: String(e.height),
+                index: 0,
+                tx_result: {
+                    code: 0,
+                    data: "",
+                    log: "",
+                    info: "",
+                    gas_wanted: "200000",
+                    gas_used: "100000",
+                    events: [{ type, attributes: [{ key: "game_id", value: gameId }, { key: "hand_number", value: hand }, { key: "block_height", value: String(e.height) }] }],
+                    codespace: ""
+                },
+                tx: ""
+            })),
+            total_count: String(entries.length)
+        };
+    }
     const match = /tx\.hash='([0-9A-Fa-f]+)'/.exec(query);
     const hashHex = match ? match[1].toUpperCase() : "";
     const found = hashHex !== "" && committedTxs.has(hashHex);
@@ -222,6 +252,40 @@ function txSearchResult(query: string): unknown {
         txs: found ? [oneTx(hashHex)] : [],
         total_count: found ? "1" : "0"
     };
+}
+
+/** Protobuf `{ string field1 = 1 }` ↔ bytes, as the UI's abciQuery.ts encodes it. */
+function decodeStringField1(bytes: Uint8Array): string {
+    if (bytes.length === 0 || bytes[0] !== 0x0a) return "";
+    let i = 1;
+    let len = 0;
+    let shift = 0;
+    while (i < bytes.length) {
+        const b = bytes[i++];
+        len |= (b & 0x7f) << shift;
+        if ((b & 0x80) === 0) break;
+        shift += 7;
+    }
+    return Buffer.from(bytes.subarray(i, i + len)).toString("utf8");
+}
+function encodeStringField1(value: string): string {
+    const bytes = Buffer.from(value, "utf8");
+    const len: number[] = [];
+    let v = bytes.length;
+    while (v > 0x7f) {
+        len.push((v & 0x7f) | 0x80);
+        v >>>= 7;
+    }
+    len.push(v);
+    return Buffer.concat([Buffer.from([0x0a, ...len]), bytes]).toString("base64");
+}
+
+/** GameStatePublic at a height (ui#816 replay): the engine's history entry at or before it. */
+function gameStatePublicResult(dataHex: string, height: number): unknown {
+    const gameId = decodeStringField1(hexToBytes(dataHex));
+    const json = stateJsonAt(gameId, height);
+    if (!json) return { response: { code: 1, log: `version does not exist for height ${height}: no state for ${gameId}`, value: null, height: String(height) } };
+    return { response: { code: 0, log: "", value: encodeStringField1(json), height: String(height || FIXED_HEIGHT) } };
 }
 
 /**
@@ -245,6 +309,7 @@ export async function handleCometRpc(body: { id?: unknown; method?: string; para
         case "abci_query": {
             const path = String(params.path ?? "");
             if (path.endsWith("Query/Account")) return envelope(accountResult(String(params.data ?? "")));
+            if (path.endsWith("Query/GameStatePublic")) return envelope(gameStatePublicResult(String(params.data ?? ""), Number(params.height ?? 0)));
             // Any other ABCI query: benign empty ok response.
             return envelope({ response: { code: 0, value: null, height: FIXED_HEIGHT } });
         }
@@ -254,7 +319,7 @@ export async function handleCometRpc(body: { id?: unknown; method?: string; para
         case "tx":
             return envelope(txResult(String(params.hash ?? "")));
         case "tx_search":
-            return envelope(txSearchResult(String(params.query ?? "")));
+            return envelope(txSearchResult(String(params.query ?? ""), Number(params.per_page ?? 1), String(params.order_by ?? "desc")));
         default:
             console.warn(`[pvm-stub] UNHANDLED CometBFT method=${body.method} params=${JSON.stringify(params)}`);
             return envelope({});

@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from "react";
-import { FaCopy, FaShare, FaQrcode } from "react-icons/fa";
+import { FaCopy, FaShare, FaQrcode, FaRedo } from "react-icons/fa";
 import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
@@ -72,6 +72,10 @@ export interface TableHeaderProps {
     copyToClipboard: (text: string) => void;
     handleLeaveTableClick: () => void;
     handleShareHand: () => void;
+    /** Opens the latest completed hand's replay in a new tab (ui#816); absent in replay mode. */
+    handleOpenReplay?: () => void;
+    /** The hand the replay button opens; null before the first hand completes. */
+    replayHand?: number | null;
 }
 
 export const TableHeader: React.FC<TableHeaderProps> = ({
@@ -98,6 +102,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     copyToClipboard,
     handleLeaveTableClick,
     handleShareHand,
+    handleOpenReplay,
+    replayHand = null,
 }) => {
     // Owned here rather than passed down from Table. The hook ticks once a
     // second to drive the blind countdown, and TableHeader is its only consumer
@@ -157,6 +163,19 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <FaQrcode size={12} />
                         <span className="hidden sm:inline">Share via QR Code</span>
                     </button>
+                    {/* Replay (ui#816): the previous hand, in a new tab, with media controls */}
+                    {handleOpenReplay && (
+                        <button
+                            onClick={handleOpenReplay}
+                            disabled={replayHand === null}
+                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border disabled:opacity-40 disabled:cursor-not-allowed ${styles.copyTableButton}`}
+                            title={replayHand === null ? "No completed hand to replay yet" : `Replay hand #${replayHand} in a new tab`}
+                            data-testid="open-replay"
+                        >
+                            <FaRedo size={12} />
+                            <span className="hidden sm:inline">Replay</span>
+                        </button>
+                    )}
                     {/* Game Format & Variant Display - Desktop Only */}
                     {gameOptions && (
                         <div className={`hidden md:flex items-center ml-4 px-3 py-1 rounded-lg ${styles.gameFormatContainer}`}>

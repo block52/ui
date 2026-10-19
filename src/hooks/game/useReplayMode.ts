@@ -7,6 +7,8 @@ interface UseReplayModeReturn {
     handNumber: number | null;
     actionIndex: number | null;
     clearReplayParams: () => void;
+    /** Move the replay to another hand of the same table (ui#816): `?hand=N`, no index. */
+    setReplayHand: (handNumber: number) => void;
 }
 
 /**
@@ -46,10 +48,18 @@ export const useReplayMode = (): UseReplayModeReturn => {
         setSearchParams(newParams, { replace: true });
     };
 
+    const setReplayHand = (next: number) => {
+        const newParams = new URLSearchParams(searchParams);
+        newParams.set("hand", String(next));
+        newParams.delete("index");
+        setSearchParams(newParams);
+    };
+
     return {
         isReplayMode,
         handNumber,
         actionIndex,
-        clearReplayParams
+        clearReplayParams,
+        setReplayHand
     };
 };

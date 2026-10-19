@@ -12,7 +12,7 @@
  */
 
 import React, { useState } from "react";
-import { FaBars, FaCopy, FaQrcode, FaShare, FaTimes } from "react-icons/fa";
+import { FaBars, FaCopy, FaQrcode, FaRedo, FaShare, FaTimes } from "react-icons/fa";
 import { IoSettingsOutline } from "react-icons/io5";
 import { LuHistory } from "react-icons/lu";
 import { RxExit } from "react-icons/rx";
@@ -80,6 +80,9 @@ export interface MobileTableHeaderProps {
     // Handlers
     handleLobbyClick: () => void;
     handleCopyTableLink: () => void;
+    /** Opens the latest completed hand's replay in a new tab (ui#816); absent in replay mode. */
+    handleOpenReplay?: () => void;
+    replayHand?: number | null;
     fetchAccountBalance: () => void;
     copyToClipboard: (text: string) => void;
     handleLeaveTableClick: () => void;
@@ -122,6 +125,8 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     onOpenPanel,
     handleLobbyClick,
     handleCopyTableLink,
+    handleOpenReplay,
+    replayHand = null,
     fetchAccountBalance,
     copyToClipboard,
     handleLeaveTableClick,
@@ -292,6 +297,12 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <FaQrcode size={14} />
                             <span>Share via QR Code</span>
                         </button>
+                        {handleOpenReplay && (
+                            <button className={menuRowClass} onClick={closeMenuAnd(handleOpenReplay)} disabled={replayHand === null} data-testid="open-replay">
+                                <FaRedo size={14} />
+                                <span>{replayHand === null ? "Replay (no completed hand yet)" : `Replay hand #${replayHand}`}</span>
+                            </button>
+                        )}
                         <button className={menuRowClass} onClick={closeMenuAnd(handleShareHand)}>
                             <FaShare size={14} />
                             <span>Share this hand</span>

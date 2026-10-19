@@ -188,7 +188,59 @@ function tableMeta(gameId: string): TableMeta {
 /** Reset all tables to their fresh state (test isolation between runs). */
 export function resetTables(): void {
   seedTables();
+  history.clear();
+  nextHeight = FIRST_HISTORY_HEIGHT;
   resetConfig();
+}
+
+// ---- history (ui#816 replay) -----------------------------------------------
+//
+// The chain keeps every block's state and emits `hand_started`, `action_performed`
+// and `hand_ended` events with the block height, which the UI's replay reads back
+// through tx_search + abci_query. The stub records one entry per engine step with
+// a synthetic height, so the same queries work against it.
+
+export interface HistoryEntry {
+  height: number;
+  handNumber: number;
+  /** The CometBFT event types this "block" carries. */
+  events: string[];
+  /** The GameStateResponseDTO JSON at this height. */
+  json: string;
+}
+
+const FIRST_HISTORY_HEIGHT = 1000;
+let nextHeight = FIRST_HISTORY_HEIGHT;
+const history = new Map<string, HistoryEntry[]>();
+
+function recordHistory(gameId: string): void {
+  const t = table(gameId);
+  const response = getGameStateResponse(gameId);
+  if (!t || !response) return;
+  const entries = history.get(gameId) ?? [];
+  const prev = entries[entries.length - 1];
+  const events: string[] = [];
+  if (!prev || prev.handNumber !== t.handNumber) events.push("hand_started");
+  else events.push("action_performed");
+  if (t.round === "end" && (!prev || prev.handNumber !== t.handNumber || !prev.json.includes('"round":"end"'))) events.push("hand_ended");
+  entries.push({ height: nextHeight++, handNumber: t.handNumber, events, json: JSON.stringify(response) });
+  history.set(gameId, entries);
+}
+
+/** History entries of a game carrying `event` for `handNumber`, ascending. */
+export function historyFor(gameId: string, event: string, handNumber: number): HistoryEntry[] {
+  return (history.get(gameId) ?? []).filter((e) => e.handNumber === handNumber && e.events.includes(event));
+}
+
+/** The game's state JSON as of `height` (the latest entry at or before it); `0` = now. */
+export function stateJsonAt(gameId: string, height: number): string | undefined {
+  if (height <= 0) {
+    const now = getGameStateResponse(gameId);
+    return now ? JSON.stringify(now) : undefined;
+  }
+  const entries = history.get(gameId) ?? [];
+  for (let i = entries.length - 1; i >= 0; i--) if (entries[i].height <= height) return entries[i].json;
+  return undefined;
 }
 
 // ---- deck ----------------------------------------------------------------
@@ -325,7 +377,11 @@ function postBlind(t: Table, s: Seat, amount: bigint): void {
 export function applyAction(gameId: string, action: Action, onStep?: () => void): void {
   const t = table(gameId);
   if (!t) return;
-  const step = onStep ?? (() => {});
+  // Every engine step is one "block" of history (ui#816 replay), then the caller's frame hook.
+  const step = () => {
+    recordHistory(gameId);
+    onStep?.();
+  };
 
   if (action.action === "join") {
     join(t, action);

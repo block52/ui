@@ -117,6 +117,9 @@ import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalA
 import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { hasTournamentStarted } from "../../utils/scheduledSng";
+import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimeline";
+import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
+import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
@@ -701,12 +704,23 @@ const GeometryToggleButton: React.FC = () => {
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
     // Game state context and subscription
-    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, replayActionIndex, connection } =
+    const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
     const { currentNetwork } = useNetwork();
 
     // Replay mode — read hand/index query params from the readonly share link.
-    const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams } = useReplayMode();
+    const { isReplayMode: hasReplayParams, handNumber: replayHandParam, actionIndex: replayActionParam, clearReplayParams, setReplayHand } = useReplayMode();
+
+    // Replay (ui#816). Live table: the circle-arrow button opens the latest
+    // completed hand's replay in a NEW tab (the live table stays as it is).
+    // Replay tab: the timeline + transport drive loadHistoricalStateAtHeight.
+    const replayHand = useMemo(() => latestCompletedHand(gameState), [gameState]);
+    const handleOpenReplay = useCallback(() => {
+        if (!id || replayHand === null) return;
+        window.open(buildHandShareUrl(window.location.origin, id, replayHand), "_blank", "noopener");
+    }, [id, replayHand]);
+    const replay = useReplayTimeline({ tableId: id, handNumber: replayHandNumber, active: isReplayMode });
+    const replayStepLabel = useMemo(() => describeReplayStep(gameState), [gameState]);
     const indexerApi = useIndexerApi();
 
     // No-wallet detection: must be declared before the subscribeToTable useEffect that depends on it.
@@ -1321,26 +1335,27 @@ const Table = React.memo(() => {
                     }}
                 />
             )}
-            {/* Replay mode banner */}
+            {/* Replay transport (ui#816): hand selector, play / pause / step / scrub, Go Live */}
             {isReplayMode && replayHandNumber != null && (
-                <div
-                    // Bottom pill: the table header (also z-[100], later in the DOM) covered
-                    // a top banner, and replay mode has no action panel down here.
-                    className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[150] flex items-center justify-center gap-4 py-2 px-4 text-sm rounded-full shadow-lg"
-                    style={{ background: "rgba(214, 60, 94, 0.95)", color: "#fff" }}
-                >
-                    <span>
-                        Viewing hand #{replayHandNumber}
-                        {replayActionIndex != null ? ` at action ${replayActionIndex}` : " · final state (read-only)"}
-                    </span>
-                    <button
-                        onClick={clearReplayParams}
-                        className="px-3 py-1 rounded text-xs font-bold transition-opacity hover:opacity-80"
-                        style={{ background: "rgba(255,255,255,0.2)", color: "#fff" }}
-                    >
-                        Go Live
-                    </button>
-                </div>
+                <ReplayTransport
+                    handNumber={replayHandNumber}
+                    latestHand={replay.latestHand}
+                    stepCount={replay.steps.length}
+                    position={replay.transport.position}
+                    isPlaying={replay.transport.isPlaying}
+                    speed={replay.transport.speed}
+                    stepLabel={replayStepLabel}
+                    isLoading={replay.isLoading}
+                    error={replay.error}
+                    onTogglePlay={replay.transport.togglePlay}
+                    onStepBack={replay.transport.stepBack}
+                    onStepForward={replay.transport.stepForward}
+                    onSeek={replay.transport.seek}
+                    onSpeed={replay.transport.setSpeed}
+                    onPrevHand={() => setReplayHand(replayHandNumber - 1)}
+                    onNextHand={() => setReplayHand(replayHandNumber + 1)}
+                    onGoLive={clearReplayParams}
+                />
             )}
             {/* DEBUG OVERLAY: Press D/C/B/S/G to toggle debug tools */}
             <LayoutDebugOverlay />
@@ -1382,6 +1397,8 @@ const Table = React.memo(() => {
                 <MobileTableHeader
                     tableId={id || ""}
                     tableName={gameName}
+                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                    replayHand={replayHand}
                     currentNetwork={currentNetwork}
                     gameFormat={gameFormat || null}
                     gameOptions={gameOptions}
@@ -1417,6 +1434,8 @@ const Table = React.memo(() => {
                 <TableHeader
                     tableId={id || ""}
                     tableName={gameName}
+                    handleOpenReplay={isReplayMode ? undefined : handleOpenReplay}
+                    replayHand={replayHand}
                     isMobileLandscape={isMobileLandscape}
                     gameFormat={gameFormat || null}
                     gameVariant={gameVariant}
