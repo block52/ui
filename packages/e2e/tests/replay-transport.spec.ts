@@ -1,4 +1,5 @@
 import { test, expect, CASH_GAME_ID } from "./fixtures.js";
+import type { Page } from "@playwright/test";
 
 /**
  * In-table replay (ui#816): play a hand to showdown, press the circle-arrow
@@ -10,6 +11,12 @@ import { test, expect, CASH_GAME_ID } from "./fixtures.js";
  * same navigation the new tab makes.
  */
 const SHOTS = new URL("../../../screenshots/", import.meta.url).pathname;
+
+/** Our own seat renders face cards as `Card N`; an opponent's shown cards as `Player Card N`. */
+const heroCard = (page: Page) => page.locator('img[alt="Card 1"]');
+const opponentShownCard = (page: Page) => page.locator('img[alt="Player Card 1"]');
+const opponentCardBack = (page: Page) => page.locator('img[alt="Opposite Player Card"]');
+const CARD_BACK = /CardBack/;
 
 test("replay button opens the previous hand with working transport controls", async ({ page }) => {
   const errors: string[] = [];
@@ -75,6 +82,13 @@ test("replay button opens the previous hand with working transport controls", as
     await page.getByTestId("replay-step-back").click();
     await page.getByTestId("replay-step-back").click();
     await expect(stepLabel).toContainText(`Step ${total - 2} / ${total}`, { timeout: 10_000 });
+    // Our cards were shown at showdown, so the replay knows them on every
+    // step: face up here, before the showdown. The bot mucked (never
+    // "showing"), so its cards stay backs.
+    await expect(heroCard(page)).toHaveAttribute("src", /./, { timeout: 10_000 });
+    await expect(heroCard(page)).not.toHaveAttribute("src", CARD_BACK);
+    await expect(opponentCardBack(page).first()).toBeVisible();
+    await expect(opponentShownCard(page)).toHaveCount(0);
     await page.waitForTimeout(1200); // let the cards finish dropping in before the picture
     await page.screenshot({ path: `${SHOTS}replay-transport-stepped-back.png` });
 
@@ -88,6 +102,7 @@ test("replay button opens the previous hand with working transport controls", as
     await page.getByTestId("replay-seek").fill("0");
     await expect(page.getByTestId("replay-step")).toContainText(/Step 1 \//, { timeout: 10_000 });
     await expect(page.getByTestId("replay-step")).toContainText("Cards dealt");
+    await expect(heroCard(page)).not.toHaveAttribute("src", CARD_BACK);
     await page.waitForTimeout(1200);
     await page.screenshot({ path: `${SHOTS}replay-transport-deal.png` });
   });
@@ -95,6 +110,56 @@ test("replay button opens the previous hand with working transport controls", as
   await test.step("hand navigation: no earlier hand, no later hand yet", async () => {
     await expect(page.getByTestId("replay-prev-hand")).toBeDisabled();
     await expect(page.getByTestId("replay-next-hand")).toBeDisabled();
+  });
+
+  expect(errors, `page errors: ${errors.join(" | ")}`).toHaveLength(0);
+});
+
+test("a folded hand replays with our own cards (signed query) and the winner's shown cards", async ({ page }) => {
+  const errors: string[] = [];
+  page.on("pageerror", (e) => errors.push(e.message));
+
+  const SEAT = 5;
+  await test.step(`sit down at seat ${SEAT} and fold preflop`, async () => {
+    await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false`);
+    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });
+    await expect(confirm).toBeVisible();
+    await confirm.click();
+    await expect(page.locator(".btn-fold")).toBeVisible({ timeout: 15_000 });
+    await page.locator(".btn-fold").click();
+    await expect(page.locator(".seat-banner-text", { hasText: "WINS" })).toBeVisible({ timeout: 15_000 });
+  });
+
+  let replayUrl = "";
+  await test.step("open hand #1's replay", async () => {
+    const button = page.getByTestId("open-replay");
+    await expect(button).toBeEnabled({ timeout: 10_000 });
+    await page.evaluate(() => {
+      (window as unknown as { __opened: string[] }).__opened = [];
+      window.open = ((url: string, target: string) => {
+        (window as unknown as { __opened: string[] }).__opened.push(`${target} ${url}`);
+        return null;
+      }) as typeof window.open;
+    });
+    await button.click();
+    replayUrl = (await page.evaluate(() => (window as unknown as { __opened: string[] }).__opened))[0].split(" ")[1];
+    await page.goto(replayUrl);
+    await expect(page.getByTestId("replay-transport")).toBeVisible({ timeout: 15_000 });
+  });
+
+  await test.step("at the deal: our folded cards are face up (own), the bot's too (shown as winner)", async () => {
+    await page.getByTestId("replay-seek").fill("0");
+    await expect(page.getByTestId("replay-step")).toContainText("Cards dealt", { timeout: 10_000 });
+    // The public state masks a folded player's cards for good; only the signed
+    // GameState query (our key, the block's own timestamp) can show them to us.
+    await expect(heroCard(page)).toHaveAttribute("src", /./, { timeout: 10_000 });
+    await expect(heroCard(page)).not.toHaveAttribute("src", CARD_BACK);
+    await expect(opponentShownCard(page)).toHaveAttribute("src", /./, { timeout: 10_000 });
+    await expect(opponentShownCard(page)).not.toHaveAttribute("src", CARD_BACK);
+    await page.waitForTimeout(1200);
+    await page.screenshot({ path: `${SHOTS}replay-known-cards-folded.png` });
   });
 
   expect(errors, `page errors: ${errors.join(" | ")}`).toHaveLength(0);

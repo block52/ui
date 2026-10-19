@@ -15,6 +15,7 @@ import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
 import { GAME_STATE_PUBLIC_PATH, handEndedQuery, handStartedQuery, historyNetworks, parseGameRecordResponse, parseGameStateJson, parseTxSearchHeight, snapshotHeights, type ParsedGameState } from "../utils/handReplay";
 import { encodeStringField1, parseAbciStringResponse } from "../utils/abciQuery";
+import { NO_KNOWN_CARDS, overlayKnownHoleCards, type KnownHoleCards } from "../utils/replayCards";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { GameDataProvider, useGameData } from "./gameState/GameDataContext";
 import { GameMetaProvider, useGameMeta } from "./gameState/GameMetaContext";
@@ -66,7 +67,7 @@ export interface GameStateContextType {
     /** actionIndex null = the hand's final state (showdown or last action). */
     loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
     /** One step of a hand replay (ui#816): the public state at a block height. */
-    loadHistoricalStateAtHeight: (tableId: string, handNumber: number, height: number, step: number | null) => Promise<void>;
+    loadHistoricalStateAtHeight: (tableId: string, handNumber: number, height: number, step: number | null, known?: KnownHoleCards) => Promise<void>;
 }
 
 interface GameStateProviderProps {
@@ -663,10 +664,12 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
      * state at that block — hole cards as revealed by then). Keeps the socket
      * closed and the bus quiet like loadHistoricalState, but does NOT raise
      * isLoading: the previous step stays on screen until the next one lands,
-     * so playback never flashes the loading board between steps.
+     * so playback never flashes the loading board between steps. `known` holds
+     * the hole cards the viewer is entitled to see across the whole hand (shown
+     * at showdown, or their own): they replace the step's masked hands.
      */
     const loadHistoricalStateAtHeight = useCallback(
-        async (tableId: string, handNumber: number, height: number, step: number | null): Promise<void> => {
+        async (tableId: string, handNumber: number, height: number, step: number | null, known: KnownHoleCards = NO_KNOWN_CARDS): Promise<void> => {
             closeSocket(true);
             isReplayModeRef.current = true;
             reconnectAttemptRef.current = 0;
@@ -686,7 +689,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 try {
                     const rpc = cometRpcApiFactory(network.rpc);
                     const snap = parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, request, height)));
-                    setGameState(snap.state);
+                    setGameState(overlayKnownHoleCards(snap.state, known));
                     // Format/variant/name never change for a table: keep what the
                     // hand's first load set unless this snapshot carries them.
                     if (snap.format) setGameFormat(toGameFormat(snap.format));
