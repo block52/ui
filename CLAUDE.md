@@ -460,21 +460,49 @@ should say so explicitly and why; "will add tests later" is not acceptable.
 
 ### Issues and Pull Requests
 
-**Check the issue tracker before doing any work, and before filing a new issue.**
-Someone may already have reported it, started it, or closed it as won't-fix.
+**Check all three repos before doing any work, and before filing a new issue.**
+Someone may already have reported it, designed it, started it, built it, or
+closed it as won't-fix — and often in a *different* repo from the one you are
+in. Block52 is one product split across `block52/ui`, `block52/poker-vm`
+(SDK + Go engine) and `block52/pokerchain` (chain), so a UI request may already
+be an engine issue, a chain feature, or code that already exists.
 
-```bash
-gh issue list --repo block52/ui --search "<keywords>" --state all
-gh pr list --repo block52/ui --search "<keywords>" --state all
-```
+**Never create a GitHub issue until both passes below are done.**
 
-- Search open **and closed** issues and PRs for the symptom, the component name
-  and the related SDK/chain issue number before starting.
+1. **Issue pass — all three repos, open and closed.** Search by the symptom,
+   the feature name, the component or hook name, and any synonyms
+   ("blinds tab" / "blind structure" / "blind level"):
+
+   ```bash
+   for r in ui poker-vm pokerchain; do
+     gh issue list --repo block52/$r --search "<keywords>" --state all --limit 50
+     gh pr list    --repo block52/$r --search "<keywords>" --state all --limit 50
+   done
+   ```
+
+   The TypeScript engine's issues live in `block52/ts-engine`; divergence
+   records go there too.
+
+2. **Code pass — all three repos.** Grep the code for the behaviour before
+   claiming it is missing. The UI already wires more than it shows (dev-only
+   pages, feature flags, hooks with no caller), and the engine or chain may
+   already expose the data or action the request needs:
+
+   ```bash
+   grep -rn -i "<feature>" ../ui/src ../poker-vm/pvm/go/engine ../poker-vm/sdk/src ../pokerchain/x --include=*.ts --include=*.tsx --include=*.go
+   ```
+
+   Then say in the issue what exists today and where (file paths), so the
+   issue is about the gap, not a restatement of the feature.
+
 - If an issue exists, work against it (`Closes #NNN` in the PR body) and
-  comment on it rather than opening a duplicate.
+  comment on it rather than opening a duplicate. If it exists in another
+  repo, file the UI slice only when there is UI work, and link it.
 - If none exists, file one **before** the PR so the discussion and the decision
   have a home, and link related issues in other block52 repos
   (`poker-vm`, `pokerchain`) when the change spans them.
+- A big idea is one issue, not an epic plus a dozen sub-tickets. Split only
+  when someone is about to build a piece.
 
 **Every PR with a visible change includes screenshots.** Put before/after
 screenshots (or a short recording) of the affected screen in the PR
@@ -855,4 +883,4 @@ When making changes:
 
 ---
 
-Last Updated: 2026-10-14
+Last Updated: 2026-10-19
