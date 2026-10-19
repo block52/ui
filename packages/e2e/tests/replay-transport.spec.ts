@@ -43,6 +43,7 @@ test("replay button opens the previous hand with working transport controls", as
     const button = page.getByTestId("open-replay");
     await expect(button).toBeEnabled({ timeout: 10_000 });
     await expect(button).toHaveAttribute("title", /Replay hand #1/);
+    await page.screenshot({ path: `${SHOTS}replay-button-header.png`, clip: { x: 0, y: 0, width: 1280, height: 100 } });
     await page.evaluate(() => {
       (window as unknown as { __opened: string[] }).__opened = [];
       window.open = ((url: string, target: string) => {
