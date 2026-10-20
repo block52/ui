@@ -12,6 +12,8 @@ import {
     formatShortHash,
     formatGameId,
     getDisplayableActionAmount,
+    getMessageSigner,
+    netUsdcTransferFor,
     sumUsdcTransferEvents,
     type TransferEvent
 } from "../utils/transactionUtils";
@@ -59,6 +61,8 @@ interface CosmosTxMessage {
     game_id?: string;
     buy_in?: string;
     from_address?: string;
+    creator?: string;
+    player?: string;
 }
 
 /** The decoded transaction body, as returned in the parallel `txs` array. */
@@ -151,6 +155,22 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                 let transferDirection: "sent" | "received" | undefined;
 
                 const msg = tx.tx?.body?.messages?.[0];
+                const signer = msg ? getMessageSigner(msg) : undefined;
+                if (signer && signer !== address) {
+                    // Someone else's tx that pays this address (e.g. a fee share of another
+                    // player's buy-in): show only what this address received, not their action.
+                    const net = tx.events ? netUsdcTransferFor(tx.events, address) : undefined;
+                    return {
+                        txhash: tx.txhash,
+                        height: tx.height,
+                        timestamp: tx.timestamp,
+                        code: tx.code,
+                        messageType: "Received",
+                        gameId: msg?.game_id,
+                        transferAmount: net?.amount,
+                        transferDirection: net?.direction
+                    };
+                }
                 if (msg) {
                     const msgType = msg["@type"] || "";
                     // Extract the last part of the type URL

@@ -7,7 +7,9 @@ import {
     formatShortHash,
     formatGameId,
     getDisplayableActionAmount,
-    sumUsdcTransferEvents
+    sumUsdcTransferEvents,
+    getMessageSigner,
+    netUsdcTransferFor
 } from "./transactionUtils";
 
 describe("transactionUtils", () => {
@@ -174,6 +176,65 @@ describe("transactionUtils", () => {
 
         it("returns no amount when no USDC transfer event exists", () => {
             expect(sumUsdcTransferEvents([{ type: "message", attributes: [{ key: "amount", value: "25" }] }])).toBeUndefined();
+        });
+    });
+    describe("getMessageSigner", () => {
+        it("reads creator, player and from_address by message type", () => {
+            expect(getMessageSigner({ creator: "b521a" })).toBe("b521a");
+            expect(getMessageSigner({ player: "b521b" })).toBe("b521b");
+            expect(getMessageSigner({ from_address: "b521c" })).toBe("b521c");
+        });
+
+        it("returns undefined for a message with no signer field", () => {
+            expect(getMessageSigner({})).toBeUndefined();
+        });
+    });
+
+    describe("netUsdcTransferFor (ui#855)", () => {
+        const me = "b521me";
+        const transfer = (sender: string, recipient: string, amount: string) => ({
+            type: "transfer",
+            attributes: [
+                { key: "recipient", value: recipient },
+                { key: "sender", value: sender },
+                { key: "amount", value: amount }
+            ]
+        });
+
+        // Another player's 1 USDC buy-in, split into fee shares; one share pays `me`.
+        const foreignJoin = [
+            transfer("b521player", "b521escrow", "1000000usdc"),
+            transfer("b521escrow", "b521x", "25064usdc"),
+            transfer("b521escrow", me, "25062usdc"),
+            transfer("b521escrow", "b521y", "25062usdc")
+        ];
+
+        it("counts only the share paid to the address, not the tx total", () => {
+            expect(netUsdcTransferFor(foreignJoin, me)).toEqual({ amount: "25062", direction: "received" });
+            expect(sumUsdcTransferEvents(foreignJoin)).toBe("1075188");
+        });
+
+        it("reports a debit when the address only sends", () => {
+            expect(netUsdcTransferFor(foreignJoin, "b521player")).toEqual({ amount: "1000000", direction: "sent" });
+        });
+
+        it("nets credits against debits for the same address", () => {
+            const events = [transfer(me, "b521escrow", "1000000usdc"), transfer("b521escrow", me, "400000usdc")];
+            expect(netUsdcTransferFor(events, me)).toEqual({ amount: "600000", direction: "sent" });
+        });
+
+        it("returns undefined when the address is not party to a transfer or the net is zero", () => {
+            expect(netUsdcTransferFor(foreignJoin, "b521nobody")).toBeUndefined();
+            expect(netUsdcTransferFor([transfer(me, "b521a", "5usdc"), transfer("b521a", me, "5usdc")], me)).toBeUndefined();
+            expect(netUsdcTransferFor([], me)).toBeUndefined();
+        });
+
+        it("ignores non-USDC and non-transfer events", () => {
+            const events = [
+                transfer("b521a", me, "100stake"),
+                { type: "coin_received", attributes: [{ key: "receiver", value: me }, { key: "amount", value: "9usdc" }] }
+            ];
+            expect(netUsdcTransferFor(events, me)).toBeUndefined();
         });
     });
 });
