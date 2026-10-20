@@ -152,6 +152,7 @@ import {
     type TableSize
 } from "../../config/stageGeometry";
 import CustomDealer from "../../assets/CustomDealer.svg";
+import TableChatBox from "./Chat/TableChatBox";
 import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
 // Turn Notification
@@ -1551,6 +1552,9 @@ const Table = React.memo(() => {
                                     );
                                 })}
                         </div>
+
+                        {/* Table chat box (block52-chat#1) */}
+                        <TableChatBox />
 
                         {/* Dealer Button — convert seat number to rotated screen position */}
                         {(() => {

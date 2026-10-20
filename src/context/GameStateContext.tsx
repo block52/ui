@@ -25,6 +25,8 @@ import { GameActionsProvider, useGameActions } from "./gameState/GameActionsCont
 import { GameEventsProvider } from "./gameState/GameEventsContext";
 import { IDLE_CONNECTION, type ConnectionState } from "./gameState/connection";
 import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
+import { registerChatSender, pushChatMessage } from "../chat/chatBus";
+import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
 const ENABLE_REST_FALLBACK = false;
@@ -121,6 +123,20 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     if (busRef.current === null) {
         busRef.current = new GameMessageBus({ setLatestGameState });
     }
+
+    // Table chat (block52-chat#1) sends on the SAME socket the game uses — register
+    // a sender that puts a {type:"chat"} frame on the current wire. Reads the refs
+    // at call time so it stays valid across reconnects/table switches.
+    useEffect(() => {
+        registerChatSender(text => {
+            const ws = wsRef.current;
+            const gameId = currentTableIdRef.current;
+            if (ws && ws.readyState === WebSocket.OPEN && gameId) {
+                ws.send(JSON.stringify({ type: "chat", gameId, message: text, from: getCosmosAddressSync() || undefined, ts: Date.now() }));
+            }
+        });
+        return () => registerChatSender(null);
+    }, []);
 
     // Stable bridge from the render layer to the bus's animation-ack API (Phase 5).
     // Exposed via GameEventsContext so animating hooks can report choreography
@@ -364,6 +380,15 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                 // logical track at ingest, and drives the render track through
                 // committed items (applyRenderTrack, wired via subscribe).
                 for (const message of messages) {
+                    // Table chat (block52-chat#1) rides this same socket but is NOT
+                    // game state — divert it to the chat bus and never let it reach
+                    // the game pipeline. (The ws-server broadcast of these is
+                    // block52-chat#6; until then only your own echoed messages show.)
+                    const m = message as { type?: string; from?: string; message?: string; ts?: number };
+                    if (m?.type === "chat" && typeof m.message === "string") {
+                        pushChatMessage({ from: m.from, text: m.message, ts: m.ts ?? Date.now(), mine: false });
+                        continue;
+                    }
                     busRef.current?.ingest(message, tableId);
                 }
             };
