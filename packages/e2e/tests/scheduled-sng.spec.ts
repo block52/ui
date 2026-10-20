@@ -40,7 +40,7 @@ const player = (address: string, seat: number, legalActions: Json[] = []): Json 
   legalActions,
 });
 
-test("lobby: a scheduled sit-and-go shows its start time and minimum; the create form offers a scheduled start", async ({ page }) => {
+test("lobby: a scheduled sit-and-go is a Tournament with its start time and minimum; the create form offers the Tournament type", async ({ page }) => {
   // The dashboard opens its "Upcoming Sit & Go Tournaments" promo on load and
   // it covers the list; it honours the "seen" flag, so set it before loading.
   await page.addInitScript(() => localStorage.setItem("seen_upcoming_sng_modal", "true"));
@@ -48,21 +48,23 @@ test("lobby: a scheduled sit-and-go shows its start time and minimum; the create
   const label = page.getByTestId("scheduled-start-label").first();
   await expect(label).toBeVisible({ timeout: 15_000 });
   await expect(label).toContainText(/Starts .* · min 2/);
+  // The lobby calls a scheduled sit-and-go a Tournament (ui#823).
+  await expect(page.locator("tr", { has: label }).getByTestId("lobby-format")).toHaveText("Tournament");
   await page.locator("table", { has: label }).screenshot({ path: `${SHOTS}scheduled-sng-lobby-row.png` });
 
-  // Tables are created on /admin/tables; the Sit & Go form gains a scheduled start.
+  // Tables are created on /admin/tables; the Tournament type carries the start time (ui#823).
   await page.goto("/admin/tables");
-  await page
-    .locator("select")
-    .filter({ has: page.locator('option[value="sit-and-go"]') })
-    .first()
-    .selectOption("sit-and-go");
-  const toggle = page.getByTestId("scheduled-start-toggle");
-  await expect(toggle).toBeVisible({ timeout: 15_000 });
-  await toggle.getByRole("checkbox").check();
+  const gameType = page.getByTestId("create-game-type");
+  await expect(gameType).toBeVisible({ timeout: 15_000 });
+  await expect(gameType.locator("option")).toHaveText(["Sit & Go", "Cash Game", "Tournament"]);
+  await gameType.selectOption("sit-and-go");
+  await expect(page.getByTestId("tournament-start")).toHaveCount(0); // a Sit & Go has no start time
+  await gameType.selectOption("tournament");
+  const block = page.getByTestId("tournament-start");
+  await expect(block).toBeVisible();
   await expect(page.getByText("Minimum players")).toBeVisible();
-  // The whole "Create New Table" form, scheduled block included.
-  const form = page.locator("div", { has: page.getByText("Create New Table") }).filter({ has: toggle }).last();
+  // The whole "Create New Table" form, tournament block included.
+  const form = page.locator("div", { has: page.getByText("Create New Table") }).filter({ has: block }).last();
   await form.scrollIntoViewIfNeeded();
   await form.screenshot({ path: `${SHOTS}scheduled-sng-create-form.png` });
 });
@@ -96,19 +98,15 @@ test("table: register → countdown → ready → START → cancelled", async ({
     });
     const panel = page.getByTestId("scheduled-start-panel");
     await expect(panel).toContainText("READY TO START", { timeout: 10_000 });
-    await expect(page.getByTestId("start-tournament-button")).toBeDisabled(); // not offered yet
+    // Enabled on the start time + minimum alone (ui#830): the stored legal
+    // actions date from the last transaction and never carry START while
+    // everyone waits, so the button must not depend on them.
+    await expect(page.getByTestId("start-tournament-button")).toBeEnabled();
     await page.screenshot({ path: `${SHOTS}scheduled-sng-ready.png` });
   });
 
-  await test.step("START is offered: the client sends it and the field starts", async () => {
-    await inject({
-      ...base,
-      gameOptions: { ...options, scheduledStartTime: Date.now() - 5_000 },
-      players: [
-        player("b521stubbot00000000000000000000000000000bot", botSeat),
-        player(TEST_ADDRESS, mySeat, [{ action: "start", min: "0", max: "0", index: 1 }]),
-      ],
-    });
+  await test.step("any registered player presses Start now: START is sent and the field starts", async () => {
+    await page.getByTestId("start-tournament-button").click();
     // The waiting modal leaves once the stub records START and deals everyone in.
     await expect(page.getByTestId("scheduled-start-panel")).toBeHidden({ timeout: 20_000 });
     const after = (await stubState()).gameState as Json;

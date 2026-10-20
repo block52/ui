@@ -544,3 +544,54 @@ describe("ActionSubmitController per-request failure signal (ui#655)", () => {
         expect(onError).toHaveBeenCalledTimes(1);
     });
 });
+
+describe("ActionSubmitController quiet jobs (ui#819)", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+    });
+    afterEach(() => {
+        jest.useRealTimers();
+    });
+
+    it("a quiet job's failure reaches onFailure but is not told to the user", async () => {
+        const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+        const { controller, onError } = makeController();
+        const onFailure = jest.fn<void, [SubmitError]>();
+        controller.submit({ actionName: "timeout", quiet: true, run: jest.fn().mockRejectedValue(new Error("timeout grace has not elapsed")), onFailure });
+        await flush();
+
+        expect(onFailure).toHaveBeenCalledWith(expect.objectContaining({ kind: "terminal", actionName: "timeout" }));
+        expect(onError).not.toHaveBeenCalled();
+        expect(controller.getSnapshot().status).toBe("idle");
+        warn.mockRestore();
+    });
+
+    it("a quiet job that times out unconfirmed releases busy without the unknown notice", async () => {
+        const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+        const { controller, onNotice, tick } = makeController();
+        controller.submit({ actionName: "timeout", quiet: true, run: jest.fn().mockResolvedValue(ok("0xclock")) });
+        await flush();
+        expect(controller.getSnapshot().status).toBe("busy");
+
+        await tick(8000);
+        expect(controller.getSnapshot().status).toBe("idle");
+        expect(onNotice).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("a quiet job refused offline is not told to the user either", () => {
+        const onError = jest.fn<void, [SubmitError]>();
+        const controller = new ActionSubmitController({
+            getState: () => BASE,
+            getLocalAddress: () => ME,
+            onError,
+            clearSigningCache: jest.fn(),
+            isConnected: () => false,
+            config: { gateSettleMs: 0, backoffMs: 0 }
+        });
+        const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+        controller.submit({ actionName: "timeout", quiet: true, run: jest.fn() });
+        expect(onError).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+});

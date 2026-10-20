@@ -68,6 +68,12 @@ app.get("/block52/pokerchain/poker/v1/game_state/:gameId", (c) => {
   return state ? c.json(state) : c.json({ error: "unknown gameId" }, 404);
 });
 
+// The Game record: `{ game: "<GameStateResponseDTO JSON>" }` (replay reads format/variant from it).
+app.get("/block52/pokerchain/poker/v1/game/:gameId", (c) => {
+  const state = getGameState(c.req.param("gameId"));
+  return state ? c.json({ game: JSON.stringify(state) }) : c.json({ error: "unknown gameId" }, 404);
+});
+
 // ---- chain-direct action submission (CometBFT JSON-RPC over POST /) ------
 // The UI's SDK signing client broadcasts poker Msgs here; the emulator decodes
 // them, drives holdem.applyAction, and pushes the resulting frame over /ws.
@@ -75,6 +81,31 @@ app.post("/", async (c) => {
   const body = (await c.req.json().catch(() => ({}))) as { id?: unknown; method?: string; params?: Record<string, unknown> };
   return c.json((await handleCometRpc(body)) as object);
 });
+
+// CometBFT's URI form of the same RPC (GET /tx_search?query="…", GET /abci_query?…),
+// which the UI's hand replay uses (CometRpcApi, ui#816). String params arrive quoted.
+const unquote = (v: string | undefined): string => (v ?? "").replace(/^"(.*)"$/, "$1");
+app.get("/tx_search", async (c) =>
+  c.json(
+    (await handleCometRpc({
+      id: 1,
+      method: "tx_search",
+      params: { query: unquote(c.req.query("query")), per_page: c.req.query("per_page") ?? "1", order_by: unquote(c.req.query("order_by")) || "desc" },
+    })) as object
+  )
+);
+app.get("/block", async (c) =>
+  c.json((await handleCometRpc({ id: 1, method: "block", params: { height: c.req.query("height") ?? "0" } })) as object)
+);
+app.get("/abci_query", async (c) =>
+  c.json(
+    (await handleCometRpc({
+      id: 1,
+      method: "abci_query",
+      params: { path: unquote(c.req.query("path")), data: c.req.query("data") ?? "", height: c.req.query("height") ?? "0" },
+    })) as object
+  )
+);
 
 // ---- cosmetic reads the UI polls (benign shapes, stop the {} noise) ------
 // Auth account over REST. From SDK 1.4.1 gameplay txs are signed UNORDERED

@@ -56,6 +56,16 @@ export const useCardAnimations = (_tableId?: string): CardAnimationsReturn => {
         timersRef.current = [];
     };
 
+    // No stream item means no bus: a hand replay (ui#816) steps through
+    // historical snapshots, so the board follows the snapshot directly — dealt
+    // slots shown, the rest hidden — with no stagger and nothing to ack.
+    useEffect(() => {
+        if (latestItem) return;
+        clearTimers();
+        animatingRef.current = new Set();
+        setRevealedSlots(Array.from({ length: BOARD_SLOTS }, (_, i) => i < cardCount));
+    }, [latestItem, cardCount]);
+
     useEffect(() => {
         if (!latestItem) return;
 

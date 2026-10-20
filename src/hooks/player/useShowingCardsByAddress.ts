@@ -15,7 +15,7 @@ import { isRevealedHand } from "../../bus/deriveEvents";
  */
 export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
   // Get game state directly from Context - real-time data via WebSocket
-  const { gameState, isLoading, error } = useGameStateContext();
+  const { gameState, isLoading, error, isReplayMode } = useGameStateContext();
   
   // Check if round is showdown or end
   const isShowdown = useMemo((): boolean => {
@@ -35,7 +35,10 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
       return gameState.players
         .filter((player: PlayerDTO) => 
           // Any count of real cards: two for Hold'em, four for Omaha (ui#768).
-          player.status === PlayerStatus.SHOWING && isRevealedHand(player.holeCards)
+          // In a replay the only real cards in state are ones the viewer is
+          // entitled to see (shown at showdown, or their own — ui#816), on
+          // every step of the hand, whatever the player's status was then.
+          (player.status === PlayerStatus.SHOWING || isReplayMode) && isRevealedHand(player.holeCards)
         )
         .map((player: PlayerDTO) => ({
           address: player.address,
@@ -46,7 +49,7 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
       console.error("Error filtering showing players:", err);
       return [];
     }
-  }, [showingFingerprint]);
+  }, [showingFingerprint, isReplayMode]);
 
   const showingBySeat = useMemo(() => {
     const bySeat = new Map<number, ShowingCardData>();

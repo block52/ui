@@ -15,6 +15,8 @@
 export const CASH_GAME_ID =
   "0x00000000000000000000000000000000000000000000000000000000cafe0001";
 /** A scheduled sit-and-go (poker-vm#2680): 6 seats, min 2, starts 10 min after reset. */
+/** A pot-limit Omaha cash table (ui#824): exists so the lobby row can be asserted/screenshotted. */
+export const PLO_GAME_ID = "0x00000000000000000000000000000000000000000000000000000000cafe0003";
 export const SNG_GAME_ID =
   "0x00000000000000000000000000000000000000000000000000000000cafe0002";
 
@@ -54,12 +56,14 @@ const SNG_OPTIONS_BASE = {
 
 interface TableMeta {
   format: "cash" | "sit-and-go";
+  /** Game variant as the chain reports it; the stub only plays Hold'em, the PLO table is for the lobby. */
+  variant: "texas-holdem" | "omaha";
   options: Record<string, unknown>;
 }
 const meta = new Map<string, TableMeta>();
 
 function sngMeta(): TableMeta {
-  return { format: "sit-and-go", options: { ...SNG_OPTIONS_BASE, scheduledStartTime: Date.now() + 10 * 60 * 1000 } };
+  return { format: "sit-and-go", variant: "texas-holdem", options: { ...SNG_OPTIONS_BASE, scheduledStartTime: Date.now() + 10 * 60 * 1000 } };
 }
 
 type Round = "ante" | "preflop" | "flop" | "turn" | "river" | "showdown" | "end";
@@ -165,9 +169,11 @@ function seedTables(): void {
   store.clear();
   meta.clear();
   store.set(CASH_GAME_ID, freshTable(CASH_GAME_ID));
-  meta.set(CASH_GAME_ID, { format: "cash", options: OPTIONS });
+  meta.set(CASH_GAME_ID, { format: "cash", variant: "texas-holdem", options: OPTIONS });
   store.set(SNG_GAME_ID, freshSngTable(SNG_GAME_ID));
   meta.set(SNG_GAME_ID, sngMeta());
+  store.set(PLO_GAME_ID, freshTable(PLO_GAME_ID));
+  meta.set(PLO_GAME_ID, { format: "cash", variant: "omaha", options: { ...OPTIONS, maxPlayers: 6, bettingLimit: "pot-limit" } });
 }
 seedTables();
 
@@ -176,13 +182,65 @@ function table(gameId: string): Table | undefined {
 }
 
 function tableMeta(gameId: string): TableMeta {
-  return meta.get(gameId) ?? { format: "cash", options: OPTIONS };
+  return meta.get(gameId) ?? { format: "cash", variant: "texas-holdem", options: OPTIONS };
 }
 
 /** Reset all tables to their fresh state (test isolation between runs). */
 export function resetTables(): void {
   seedTables();
+  history.clear();
+  nextHeight = FIRST_HISTORY_HEIGHT;
   resetConfig();
+}
+
+// ---- history (ui#816 replay) -----------------------------------------------
+//
+// The chain keeps every block's state and emits `hand_started`, `action_performed`
+// and `hand_ended` events with the block height, which the UI's replay reads back
+// through tx_search + abci_query. The stub records one entry per engine step with
+// a synthetic height, so the same queries work against it.
+
+export interface HistoryEntry {
+  height: number;
+  handNumber: number;
+  /** The CometBFT event types this "block" carries. */
+  events: string[];
+  /** The GameStateResponseDTO JSON at this height. */
+  json: string;
+}
+
+const FIRST_HISTORY_HEIGHT = 1000;
+let nextHeight = FIRST_HISTORY_HEIGHT;
+const history = new Map<string, HistoryEntry[]>();
+
+function recordHistory(gameId: string): void {
+  const t = table(gameId);
+  const response = getGameStateResponse(gameId);
+  if (!t || !response) return;
+  const entries = history.get(gameId) ?? [];
+  const prev = entries[entries.length - 1];
+  const events: string[] = [];
+  if (!prev || prev.handNumber !== t.handNumber) events.push("hand_started");
+  else events.push("action_performed");
+  if (t.round === "end" && (!prev || prev.handNumber !== t.handNumber || !prev.json.includes('"round":"end"'))) events.push("hand_ended");
+  entries.push({ height: nextHeight++, handNumber: t.handNumber, events, json: JSON.stringify(response) });
+  history.set(gameId, entries);
+}
+
+/** History entries of a game carrying `event` for `handNumber`, ascending. */
+export function historyFor(gameId: string, event: string, handNumber: number): HistoryEntry[] {
+  return (history.get(gameId) ?? []).filter((e) => e.handNumber === handNumber && e.events.includes(event));
+}
+
+/** The game's state JSON as of `height` (the latest entry at or before it); `0` = now. */
+export function stateJsonAt(gameId: string, height: number): string | undefined {
+  if (height <= 0) {
+    const now = getGameStateResponse(gameId);
+    return now ? JSON.stringify(now) : undefined;
+  }
+  const entries = history.get(gameId) ?? [];
+  for (let i = entries.length - 1; i >= 0; i--) if (entries[i].height <= height) return entries[i].json;
+  return undefined;
 }
 
 // ---- deck ----------------------------------------------------------------
@@ -319,7 +377,11 @@ function postBlind(t: Table, s: Seat, amount: bigint): void {
 export function applyAction(gameId: string, action: Action, onStep?: () => void): void {
   const t = table(gameId);
   if (!t) return;
-  const step = onStep ?? (() => {});
+  // Every engine step is one "block" of history (ui#816 replay), then the caller's frame hook.
+  const step = () => {
+    recordHistory(gameId);
+    onStep?.();
+  };
 
   if (action.action === "join") {
     join(t, action);
@@ -592,7 +654,7 @@ export function getGameStateResponse(gameId: string) {
     gameId,
     creator: CREATOR,
     format: tableMeta(gameId).format,
-    variant: "texas-holdem",
+    variant: tableMeta(gameId).variant,
     gameState: texasHoldemStateDTO(t),
   };
 }
@@ -605,7 +667,7 @@ export function listGamesResponse() {
       gameId,
       creator: CREATOR,
       format: tableMeta(gameId).format,
-      variant: "texas-holdem",
+      variant: tableMeta(gameId).variant,
       gameOptions: tableMeta(gameId).options,
       currentPlayers: t.seats.length,
       createdAt: "2026-07-11T00:00:00Z",

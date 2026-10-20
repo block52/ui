@@ -16,7 +16,8 @@ import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX } from "../constants/blindLevels";
-import { defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
+import { defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
 import type { AdvancedSngParams } from "../utils/sngAdvancedParams";
@@ -53,7 +54,10 @@ export default function TableAdminPage() {
     const { games: fetchedGames, isLoading, error: gamesError, refetch } = useFindGames();
 
     // Default table settings for Cash Game, 9 players, Texas Hold'em
-    const [gameFormat, setGameFormat] = useState<GameFormat>(GameFormat.CASH);
+    // What is being created (ui#823). The chain format follows from it: a
+    // Tournament is a sit-and-go with a scheduled start (poker-vm#2680).
+    const [gameType, setGameType] = useState<CreateGameType>("cash");
+    const gameFormat = createGameTypeFormat(gameType);
     const [tableName, setTableName] = useState(""); // Optional paid table name (poker-vm#337)
     // Variant and betting limit are independent (ui#768); picking a variant
     // resets the limit to that variant's usual one (PLO, NLHE).
@@ -61,10 +65,9 @@ export default function TableAdminPage() {
     const [bettingLimit, setBettingLimit] = useState<BettingLimit>(defaultBettingLimitFor(GameVariant.TEXAS_HOLDEM));
     const [minPlayers] = useState(2);
     const [maxPlayers, setMaxPlayers] = useState(9);
-    // Scheduled start (poker-vm#2680): the sit-and-go starts when full OR at
-    // the start time with at least sngMinPlayers registered. Off = starts only
-    // when full, as before.
-    const [scheduled, setScheduled] = useState(false);
+    // Tournament start (poker-vm#2680): starts at the start time with at least
+    // sngMinPlayers registered, or earlier when full.
+    const scheduled = isScheduledCreateType(gameType);
     const [scheduledStart, setScheduledStart] = useState(""); // datetime-local value
     const [sngMinPlayers, setSngMinPlayers] = useState(2);
     
@@ -90,10 +93,10 @@ export default function TableAdminPage() {
         return BLIND_LEVELS[selectedBlindLevel].bigBlind.toString();
     }, [gameFormat, sngBigBlind, selectedBlindLevel]);
 
-    const handleGameFormatChange = (newType: GameFormat) => {
-        setGameFormat(newType);
+    const handleGameFormatChange = (newType: CreateGameType) => {
+        setGameType(newType);
         // A single table seats 2..9 (every field has a payout curve, poker-vm#2667).
-        if (isTournamentFormat(newType)) {
+        if (isTournamentFormat(createGameTypeFormat(newType))) {
             setMaxPlayers(Math.min(9, Math.max(2, maxPlayers)));
         }
     };
@@ -473,16 +476,19 @@ export default function TableAdminPage() {
                         <div>
                             <label className="text-gray-300 text-xs mb-1 block">Game Type</label>
                             <select
-                                value={gameFormat}
+                                value={gameType}
                                 onChange={e => {
-                                    const format = toGameFormat(e.target.value);
-                                    if (format) handleGameFormatChange(format);
+                                    const type = toCreateGameType(e.target.value);
+                                    if (type) handleGameFormatChange(type);
                                 }}
                                 className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                                data-testid="create-game-type"
                             >
-                                <option value={GameFormat.SIT_AND_GO}>Sit & Go</option>
-                                <option value={GameFormat.TOURNAMENT}>Tournament</option>
-                                <option value={GameFormat.CASH}>Cash Game</option>
+                                {CREATE_GAME_TYPES.map(type => (
+                                    <option key={type} value={type}>
+                                        {createGameTypeLabel(type)}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div>
@@ -532,16 +538,11 @@ export default function TableAdminPage() {
                         </div>
                     </div>
 
-                    {/* Scheduled start — Sit & Go / Tournament only (poker-vm#2680) */}
-                    {isTournamentFormat(gameFormat) && (
-                        <div className="mb-3">
-                            <label className="flex items-center gap-2 text-gray-300 text-xs cursor-pointer" data-testid="scheduled-start-toggle">
-                                <input type="checkbox" checked={scheduled} onChange={e => setScheduled(e.target.checked)} className="accent-blue-500" />
-                                Scheduled start
-                                <span className="text-gray-500">— starts at a set time with whoever has registered</span>
-                            </label>
-                            {scheduled && (
-                                <div className="grid grid-cols-2 gap-3 mt-2">
+                    {/* Tournament start — a scheduled sit-and-go on chain (poker-vm#2680, ui#823) */}
+                    {scheduled && (
+                        <div className="mb-3" data-testid="tournament-start">
+                            {
+                                <div className="grid grid-cols-2 gap-3">
                                     <div>
                                         <label className="text-gray-300 text-xs mb-1 block">Start time</label>
                                         <input
@@ -569,7 +570,7 @@ export default function TableAdminPage() {
                                         Starts when the table fills, or at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
                                     </p>
                                 </div>
-                            )}
+                            }
                         </div>
                     )}
 

@@ -1,4 +1,4 @@
-import { GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { getGameFormat, getGameVariant } from "./gameFormatUtils";
 
 /**
@@ -16,6 +16,8 @@ export interface GameWithFormat {
     currentPlayers: number;
     gameFormat: GameFormat | "unknown";
     gameVariant: GameVariant | "unknown";
+    /** Betting limit (ui#824); absent for legacy tables created before the field existed = no-limit. */
+    bettingLimit?: BettingLimit;
     smallBlind: string;
     bigBlind: string;
     status: string;
@@ -55,6 +57,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         currentPlayers: game.currentPlayers ? game.currentPlayers : 0,
         gameFormat: getGameFormat(game.format),
         gameVariant: getGameVariant(game.variant),
+        bettingLimit: opts.bettingLimit,
         smallBlind: opts.smallBlind,
         bigBlind: opts.bigBlind,
         status: "waiting",

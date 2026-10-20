@@ -31,11 +31,16 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
     const { currentNetwork } = useNetwork();
     const { legalActions } = usePlayerLegalActions();
 
-    // Scheduled start (poker-vm#2680): a clock for the countdown, the phase,
-    // and START once the engine offers it. Any registered client sends START
-    // automatically the moment it is legal; the button is the manual backup.
-    // The first START in a block wins and the rest are refused as already
-    // started, which is harmless.
+    // Scheduled start (poker-vm#2680): a clock for the countdown and the phase.
+    // Once the start time has passed with the minimum registered ("ready"),
+    // ANY registered player may press "Start now" (ui#830): the chain checks
+    // the block time and the field when the action lands, and a refusal shows
+    // under the button. The button is NOT gated on the engine offering START
+    // in legalActions — the chain stores the legal actions as of the last
+    // transaction, so while everyone waits they never include START. If a
+    // refresh does carry the offer, the client sends START by itself. The
+    // first START in a block wins; the rest are refused as already started,
+    // which is harmless.
     const scheduled = isScheduledSng(gameOptions);
     const [nowMs, setNowMs] = useState(() => Date.now());
     useEffect(() => {
@@ -183,7 +188,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
                                     <button
                                         type="button"
                                         onClick={() => void sendStart()}
-                                        disabled={!startOffered || isStarting}
+                                        disabled={isStarting}
                                         className="mt-2 w-full py-2 px-4 rounded-lg bg-gradient-to-r from-green-500 to-emerald-600 text-white text-sm font-semibold hover:opacity-90 transition-opacity disabled:opacity-60 disabled:cursor-not-allowed"
                                         data-testid="start-tournament-button"
                                     >

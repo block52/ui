@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useNetwork, NETWORK_PRESETS } from "./NetworkContext";
-import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import type { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { createAuthPayload } from "../utils/cosmos/signing";
 import { setLatestGameState } from "../hooks/playerActions/transportAction";
 import { ClassifiedMessage } from "../bus/ingest";
@@ -15,6 +15,7 @@ import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
 import { GAME_STATE_PUBLIC_PATH, handEndedQuery, handStartedQuery, historyNetworks, parseGameRecordResponse, parseGameStateJson, parseTxSearchHeight, snapshotHeights, type ParsedGameState } from "../utils/handReplay";
 import { encodeStringField1, parseAbciStringResponse } from "../utils/abciQuery";
+import { NO_KNOWN_CARDS, overlayKnownHoleCards, type KnownHoleCards } from "../utils/replayCards";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { GameDataProvider, useGameData } from "./gameState/GameDataContext";
 import { GameMetaProvider, useGameMeta } from "./gameState/GameMetaContext";
@@ -65,6 +66,8 @@ export interface GameStateContextType {
     sendAction: (action: string, amount?: string) => Promise<void>;
     /** actionIndex null = the hand's final state (showdown or last action). */
     loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
+    /** One step of a hand replay (ui#816): the public state at a block height. */
+    loadHistoricalStateAtHeight: (tableId: string, handNumber: number, height: number, step: number | null, known?: KnownHoleCards) => Promise<void>;
 }
 
 interface GameStateProviderProps {
@@ -655,6 +658,55 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         [currentNetwork, cometRpcApiFactory]
     );
 
+    /**
+     * One step of a hand replay (ui#816): the table as it stood at `height`,
+     * read like `?hand=N` reads the final state (abci_query of the public game
+     * state at that block — hole cards as revealed by then). Keeps the socket
+     * closed and the bus quiet like loadHistoricalState, but does NOT raise
+     * isLoading: the previous step stays on screen until the next one lands,
+     * so playback never flashes the loading board between steps. `known` holds
+     * the hole cards the viewer is entitled to see across the whole hand (shown
+     * at showdown, or their own): they replace the step's masked hands.
+     */
+    const loadHistoricalStateAtHeight = useCallback(
+        async (tableId: string, handNumber: number, height: number, step: number | null, known: KnownHoleCards = NO_KNOWN_CARDS): Promise<void> => {
+            closeSocket(true);
+            isReplayModeRef.current = true;
+            reconnectAttemptRef.current = 0;
+            setConnection(IDLE_CONNECTION);
+            busRef.current?.reset();
+            setLatestStreamItem(null);
+            setError(null);
+            setValidationError(null);
+            setIsReplayMode(true);
+            setReplayHandNumber(handNumber);
+            setReplayActionIndex(step);
+            currentTableIdRef.current = tableId;
+
+            const request = encodeStringField1(tableId);
+            const failures: string[] = [];
+            for (const network of historyNetworks(currentNetwork, NETWORK_PRESETS)) {
+                try {
+                    const rpc = cometRpcApiFactory(network.rpc);
+                    const snap = parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, request, height)));
+                    setGameState(overlayKnownHoleCards(snap.state, known));
+                    // Format/variant/name never change for a table: keep what the
+                    // hand's first load set unless this snapshot carries them.
+                    if (snap.format) setGameFormat(toGameFormat(snap.format));
+                    if (snap.variant) setGameVariant(toGameVariant(snap.variant));
+                    if (snap.name) setGameName(snap.name);
+                    setPendingAction(null);
+                    return;
+                } catch (err) {
+                    failures.push(`${network.name}: ${err instanceof Error ? err.message : String(err)}`);
+                }
+            }
+            console.error("[GameStateContext] Hand replay step failed:", failures);
+            setError(new Error(`Hand #${handNumber}: block ${height} couldn't be loaded. It may be older than the history the nodes keep.`));
+        },
+        [currentNetwork, cometRpcApiFactory]
+    );
+
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -677,6 +729,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             unsubscribeFromTable={unsubscribeFromTable}
             sendAction={sendAction}
             loadHistoricalState={loadHistoricalState}
+            loadHistoricalStateAtHeight={loadHistoricalStateAtHeight}
         >
             <GameMetaProvider gameFormat={gameFormat} gameVariant={gameVariant} gameName={gameName}>
                 <ReplayProvider
@@ -715,7 +768,7 @@ export const useGameStateContext = (): GameStateContextType => {
     const { gameFormat, gameVariant, gameName } = useGameMeta();
     const { isLoading, error, validationError, pendingAction, connection } = useGameUI();
     const { isReplayMode, replayHandNumber, replayActionIndex } = useReplay();
-    const { subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState } = useGameActions();
+    const { subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState, loadHistoricalStateAtHeight } = useGameActions();
 
     return useMemo(
         () => ({
@@ -734,7 +787,8 @@ export const useGameStateContext = (): GameStateContextType => {
             subscribeToTable,
             unsubscribeFromTable,
             sendAction,
-            loadHistoricalState
+            loadHistoricalState,
+            loadHistoricalStateAtHeight
         }),
         [
             gameState,
@@ -752,7 +806,8 @@ export const useGameStateContext = (): GameStateContextType => {
             subscribeToTable,
             unsubscribeFromTable,
             sendAction,
-            loadHistoricalState
+            loadHistoricalState,
+            loadHistoricalStateAtHeight
         ]
     );
 };
