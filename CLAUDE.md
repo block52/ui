@@ -483,6 +483,15 @@ them against the PVM stub (`packages/e2e`: inject a state frame, then
 `page.screenshot()`), so reviewers see the real rendering, not a mock. A PR
 with no visible change says so explicitly in its description instead.
 
+**Never commit screenshots to the repo.** Screenshots (and recordings) exist
+to show reviewers what changed between before and after, so they belong in the
+PR description only — upload them there (drag-and-drop into the PR body or a
+comment). Do not `git add` PNG/JPG/GIF/video files, and delete or gitignore
+any that a Playwright run leaves behind. The one exception is an image a test
+genuinely needs as a fixture (e.g. a visual-regression baseline or a unit-test
+input); that file is committed deliberately, lives next to the test that uses
+it, and the PR says why.
+
 **Resolve review comments on PRs.** Every review comment gets one of three
 outcomes before the PR is re-requested for review or merged:
 
