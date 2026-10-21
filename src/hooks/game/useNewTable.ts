@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { BettingLimit, GameFormat, GameVariant, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
+import { BettingLimit, GameFormat, GameVariant, COSMOS_CONSTANTS, BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
@@ -19,6 +19,7 @@ export interface RakeOptions {
 export interface SNGOptions {
     startingStack: number;       // Starting chips for each player (in chips, not dollars)
     blindLevelDuration?: number; // Minutes per blind level (default: 10)
+    blindStructure?: BlindStructureDTO; // Blind structure (poker-vm#1734, ui#860): a preset or a custom structure; omitted = the blinds double every blindLevelDuration minutes
     entryFee?: number;           // Flat entry fee in USDC dollars (2dp), skimmed to the creator; omitted/0 = no fee (poker-vm#2118)
     startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): starts when full OR then with >= minPlayers; omitted = starts only when full
 }
@@ -105,6 +106,9 @@ export const useNewTable = (): UseNewTableReturn => {
                 sngConfig = {
                     startingStack: BigInt(gameOptions.sng.startingStack),
                     blindLevelDuration: gameOptions.sng.blindLevelDuration ?? 0,
+                    // Blind structure (ui#860): the engine derives every level from it;
+                    // omitted = doubling.
+                    ...(gameOptions.sng.blindStructure && { blindStructure: gameOptions.sng.blindStructure }),
                     // Entry fee is quoted in USDC dollars (like the buy-in) and
                     // converted to micro-units for the chain. Omitted/0 = no fee.
                     entryFee: hasValue(gameOptions.sng.entryFee) ? usdcToMicroBigInt(gameOptions.sng.entryFee) : 0n,
