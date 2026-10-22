@@ -1,6 +1,6 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { PotSizedBetButtons } from "./PotSizedBetButtons";
 import type { PotSizedBetButtonsProps } from "./types";
 
@@ -17,7 +17,8 @@ const baseProps: PotSizedBetButtonsProps = {
     disabled: false,
     onAmountSelect: jest.fn(),
     onAllIn: jest.fn(),
-    maxIsAllIn: true
+    maxIsAllIn: true,
+    allowBlindMultiples: true
 };
 
 const renderButtons = (overrides: Partial<PotSizedBetButtonsProps> = {}) => {
@@ -174,5 +175,90 @@ describe("PotSizedBetButtons — #692 values ($0.01/$0.02, $0.04 pot)", () => {
         const { onAmountSelect } = renderButtons(micro692);
         fireEvent.click(screen.getByText("1/2 Pot"));
         expect(onAmountSelect).toHaveBeenCalledWith(0.02);
+    });
+});
+
+// Pre-flop presets (ui#751): multiples of the current bet instead of pot fractions.
+describe("PotSizedBetButtons — pre-flop presets (0.01/0.02)", () => {
+    const act = (playerId: string, action: PlayerActionType, amount: string, round: TexasHoldemRound = TexasHoldemRound.PREFLOP): ActionDTO => ({
+        playerId,
+        seat: 1,
+        action,
+        amount,
+        round,
+        index: 0,
+        timestamp: 0
+    });
+    const blinds = [
+        act("sb", PlayerActionType.SMALL_BLIND, "10000", TexasHoldemRound.ANTE),
+        act("bb", PlayerActionType.BIG_BLIND, "20000", TexasHoldemRound.ANTE)
+    ];
+
+    // Small blind to act: $0.01 to call, $0.03 in the pot, min raise adds $0.03 (raise to $0.04).
+    const sbUnopened = {
+        currentRound: TexasHoldemRound.PREFLOP,
+        previousActions: blinds,
+        callAmountMicro: 10_000n,
+        totalPotMicro: 30_000n,
+        minAmount: 0.03,
+        maxAmount: 2
+    };
+
+    it("Omaha / pot-limit opens with pot fractions, never big-blind multiples", () => {
+        renderButtons({ ...sbUnopened, allowBlindMultiples: false });
+        for (const label of ["1/4 Pot", "1/2 Pot", "3/4 Pot", "Pot"]) {
+            expect(screen.getByText(label)).toBeInTheDocument();
+        }
+        for (const label of ["2x", "2.5x", "3x", "5x"]) {
+            expect(screen.queryByText(label)).not.toBeInTheDocument();
+        }
+    });
+
+    it("shows the four opening multiples 2x / 2.5x / 3x / 5x (no Pot) in an unopened pot", () => {
+        renderButtons(sbUnopened);
+        for (const label of ["2x", "2.5x", "3x", "5x", "ALL-IN"]) {
+            expect(screen.getByText(label)).toBeInTheDocument();
+        }
+        // The opening raise is four multiples + ALL-IN — no pot buttons.
+        expect(screen.queryByText("Pot")).not.toBeInTheDocument();
+        expect(screen.queryByText("1/4 Pot")).not.toBeInTheDocument();
+    });
+
+    it("2x / 2.5x / 3x / 5x add the chips to raise to $0.04 / $0.05 / $0.06 / $0.10 from the small blind", () => {
+        const { onAmountSelect } = renderButtons(sbUnopened);
+        fireEvent.click(screen.getByText("2x"));
+        fireEvent.click(screen.getByText("2.5x"));
+        fireEvent.click(screen.getByText("3x"));
+        fireEvent.click(screen.getByText("5x"));
+        // SB has $0.01 in, so added = raise-to − $0.01: 0.03 / 0.04 / 0.05 / 0.09.
+        expect(onAmountSelect.mock.calls.map(c => c[0])).toEqual([0.03, 0.04, 0.05, 0.09]);
+    });
+
+    it("facing a pre-flop raise, reverts to pot fractions (no multiples)", () => {
+        renderButtons({
+            ...sbUnopened,
+            previousActions: [...blinds, act("utg", PlayerActionType.RAISE, "60000")],
+            callAmountMicro: 60_000n,
+            totalPotMicro: 90_000n,
+            minAmount: 0.1
+        });
+        for (const label of ["1/4 Pot", "1/2 Pot", "3/4 Pot", "Pot", "ALL-IN"]) {
+            expect(screen.getByText(label)).toBeInTheDocument();
+        }
+        expect(screen.queryByText("2x")).not.toBeInTheDocument();
+        expect(screen.queryByText("5x")).not.toBeInTheDocument();
+    });
+
+    it("greys out an opening multiple below the minimum raise", () => {
+        // Min raise is $0.04 added: 2x (adds $0.03) is too small; 2.5x (adds $0.04) is fine.
+        renderButtons({ ...sbUnopened, minAmount: 0.04 });
+        expect(screen.getByText("2x")).toBeDisabled();
+        expect(screen.getByText("2.5x")).not.toBeDisabled();
+    });
+
+    it("keeps pot fractions on the flop", () => {
+        renderButtons({ ...sbUnopened, currentRound: TexasHoldemRound.FLOP, callAmountMicro: 0n, totalPotMicro: 40_000n, minAmount: 0.02 });
+        expect(screen.getByText("1/2 Pot")).toBeInTheDocument();
+        expect(screen.queryByText("2x")).not.toBeInTheDocument();
     });
 });

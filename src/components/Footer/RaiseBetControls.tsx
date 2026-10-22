@@ -22,7 +22,8 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     onIncrement,
     onDecrement,
     onAllIn,
-    maxIsAllIn
+    maxIsAllIn,
+    allowBlindMultiples
 }) => {
     return (
         <>
@@ -57,6 +58,7 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
                     onAmountSelect={onAmountChange}
                     onAllIn={onAllIn}
                     maxIsAllIn={maxIsAllIn}
+                    allowBlindMultiples={allowBlindMultiples}
                 />
             )}
         </>
