@@ -18,6 +18,7 @@ import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-
 import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import type { PendingAction } from "../context/gameState/GameUIContext";
+import { withWinnerDescriptions } from "../utils/winnerDescriptions";
 
 /**
  * Cosmos event names that carry a full game-state snapshot.
@@ -135,14 +136,17 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
             };
         }
 
-        const validation = validateGameState(rawFormat, rawVariant, gameStateData.gameOptions);
+        // The chain no longer carries the winning hand in words (poker-vm#2721);
+        // fill it in once here so both tracks see it.
+        const snapshot = withWinnerDescriptions(gameStateData);
+        const validation = validateGameState(rawFormat, rawVariant, snapshot.gameOptions);
 
         if (!validation.valid) {
             // Per Commandment 7: surface the validation error, but still commit
             // the snapshot so the table renders what it can.
             return {
                 kind: "state",
-                snapshot: gameStateData,
+                snapshot,
                 format: toGameFormat(rawFormat),
                 variant: toGameVariant(rawVariant),
                 name,
@@ -157,7 +161,7 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
 
         return {
             kind: "state",
-            snapshot: gameStateData,
+            snapshot,
             format: toGameFormat(rawFormat),
             variant: toGameVariant(rawVariant),
             name,

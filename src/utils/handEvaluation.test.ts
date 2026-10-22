@@ -39,4 +39,22 @@ describe("evaluateHand (ui#768)", () => {
         expect(evaluateHand(["X", "X", "X", "X"], [], GameVariant.OMAHA)).toBeNull();
         expect(evaluateHand(undefined, [], GameVariant.OMAHA)).toBeNull();
     });
+
+    describe("set vs trips (poker-vm#2721)", () => {
+        it("a pocket pair plus one on the board is a set", () => {
+            expect(evaluateHand(["7S", "7D"], ["7H", "KC", "9S", "2D", "4C"], GameVariant.TEXAS_HOLDEM)?.description).toBe("Set of Sevens");
+        });
+
+        it("one hole card plus a board pair is trips", () => {
+            expect(evaluateHand(["7S", "AD"], ["7H", "7C", "KC", "9S", "2D"], GameVariant.TEXAS_HOLDEM)?.description).toBe("Trip Sevens");
+        });
+
+        it("reads a set on the flop too", () => {
+            expect(evaluateHand(["7S", "7D"], ["7H", "KC", "9S"], GameVariant.TEXAS_HOLDEM)?.description).toBe("Set of Sevens");
+        });
+
+        it("an Omaha set uses the pocket pair from the four hole cards", () => {
+            expect(evaluateHand(["7S", "7D", "AC", "2H"], ["7H", "KC", "9S", "3D", "4C"], GameVariant.OMAHA)?.description).toBe("Set of Sevens");
+        });
+    });
 });

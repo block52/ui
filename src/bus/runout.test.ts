@@ -211,7 +211,8 @@ describe("all-in runout expansion", () => {
 
             // A projected frame's stale action indices would be rejected by the chain.
             expect(logical.every(s => s?.communityCards.length !== 3 && s?.communityCards.length !== 4)).toBe(true);
-            expect(bus.getLastSnapshot()).toBe(RESULT);
+            // Deep-equal, not identity: ingest returns the winner-described copy (poker-vm#2721).
+            expect(bus.getLastSnapshot()).toStrictEqual(RESULT);
         });
 
         it("updates the logical track immediately, before the board finishes dealing", () => {

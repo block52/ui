@@ -8,6 +8,7 @@ import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { isEmpty, hasElements, hasContent } from "../../utils/guards";
+import { parseGameStateJson } from "../../utils/handReplay";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../utils/handReplay";
 import styles from "./HandPage.module.css";
 
@@ -288,8 +289,7 @@ export default function HandPage() {
             const data = await cosmosApi.getPublicGameStateAtBlock(gameId, blockHeight) as { game_state?: string };
             if (!data.game_state) throw new Error("No game_state in response");
 
-            const parsed: TexasHoldemStateDTO = JSON.parse(data.game_state);
-            setGameState(parsed);
+            setGameState(parseGameStateJson(data.game_state).state);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to fetch game state");
             console.error("Error fetching game state:", err);
@@ -308,8 +308,7 @@ export default function HandPage() {
             const data = await cosmosApi.getPublicGameState(gameId) as { game_state?: string };
             if (!data.game_state) throw new Error("No game_state in response");
 
-            const parsed: TexasHoldemStateDTO = JSON.parse(data.game_state);
-            setGameState(parsed);
+            setGameState(parseGameStateJson(data.game_state).state);
         } catch (err: unknown) {
             setError(err instanceof Error ? err.message : "Failed to fetch game state");
         } finally {

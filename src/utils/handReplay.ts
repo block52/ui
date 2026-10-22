@@ -13,6 +13,7 @@
  */
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../context/NetworkContext";
+import { withWinnerDescriptions } from "./winnerDescriptions";
 
 /** gRPC method path of the public (masked) game state query, as abci_query expects it. */
 export const GAME_STATE_PUBLIC_PATH = "/pokerchain.poker.v1.Query/GameStatePublic";
@@ -72,7 +73,7 @@ export function parseGameStateJson(json: string): ParsedGameState {
         throw new Error("Game state has no handNumber");
     }
     const str = (v: unknown): string | undefined => (typeof v === "string" ? v : undefined);
-    return { state, format: str(parsed.format), variant: str(parsed.variant), name: str(parsed.name) };
+    return { state: withWinnerDescriptions(state), format: str(parsed.format), variant: str(parsed.variant), name: str(parsed.name) };
 }
 
 /** Parses the chain's `Game` query response (`{ game: "<GameStateResponseDTO JSON>" }`). */

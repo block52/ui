@@ -25,14 +25,19 @@ const combinations = <T>(items: T[], k: number): T[][] => {
     return [...combinations(rest, k - 1).map(c => [first, ...c]), ...combinations(rest, k)];
 };
 
-const toEvaluated = (evaluation: HandEvaluation, cardCount: number): EvaluatedHand => {
-    // Preflop (two cards) has its own short description; from the flop on the
-    // detailed "Two Pair, Kings and Sevens" form reads better.
-    const description = cardCount === 2 ? evaluation.description : PokerGameIntegration.formatHandDescription(evaluation);
+const toEvaluated = (evaluation: HandEvaluation, cardCount: number, board: string[]): EvaluatedHand => {
+    const hand = evaluation.bestHand.map(card => card.mnemonic || card.toString());
+    // Preflop (two cards) has its own short description ("Pocket Aces"). From
+    // the flop on, a five-card hand gets the same words as the winner on the
+    // seat (poker-vm#2721): the board tells "Set of Sevens" from "Trip Sevens".
+    let description: string;
+    if (cardCount === 2) description = evaluation.description;
+    else if (hand.length === 5) description = PokerGameIntegration.describeWinningHand(hand, board);
+    else description = PokerGameIntegration.formatHandDescription(evaluation);
     return {
         description,
         score: evaluation.handType,
-        hand: evaluation.bestHand.map(card => card.mnemonic || card.toString())
+        hand
     };
 };
 
@@ -57,7 +62,7 @@ const evaluateOmaha = (holeCards: string[], board: string[]): EvaluatedHand => {
         }
     }
     if (!best) throw new Error("no Omaha hand to evaluate");
-    return toEvaluated(best, bestCount);
+    return toEvaluated(best, bestCount, board);
 };
 
 /**
@@ -75,7 +80,7 @@ export const evaluateHandOrThrow = (
     }
     const allCards = [...holeCards, ...board];
     const evaluation = PokerSolver.evaluatePartialHand(allCards.map(c => Deck.fromString(c)));
-    return toEvaluated(evaluation, allCards.length);
+    return toEvaluated(evaluation, allCards.length, board);
 };
 
 /**
