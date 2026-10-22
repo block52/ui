@@ -233,7 +233,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
                             className="w-full py-3 px-4 mb-3 rounded-lg border border-green-500/40 bg-green-500/10 text-green-300 text-sm font-semibold hover:bg-green-500/20 hover:border-green-500/60 transition-colors duration-200 disabled:opacity-60 disabled:cursor-not-allowed"
                         >
                             {prizeClaim.kind === "claiming" && "Collecting…"}
-                            {prizeClaim.kind === "done" && "✓ Paid!"}
+                            {prizeClaim.kind === "done" && "Return to Table"}
                             {(prizeClaim.kind === "idle" || prizeClaim.kind === "error") && `Collect $${formatUSDCToSimpleDollars(payout)}`}
                         </button>
                     )}
