@@ -1,0 +1,7 @@
+# Code owners for block52/ui.
+#
+# main requires one approving review from a code owner before a PR can merge
+# (branch protection: "Require review from Code Owners"). With auto-merge
+# enabled on the repo, a PR set to auto-merge lands as soon as a code owner
+# approves and the required checks (Build, Test, E2E (stub)) pass.
+*       @bitcoinbrisbane
