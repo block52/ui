@@ -51,3 +51,39 @@ export function validateTableName(raw: string): string | null {
     }
     return null;
 }
+
+/** The inline message for a name someone already owns (ui#878). */
+export const tableNameTakenMessage = (name: string): string => `“${name}” is already taken — pick another name.`;
+
+/**
+ * Ask the chain whether a (normalized, valid) table name can still be claimed,
+ * via its `name_available` query (pokerchain GameNames). Resolves true / false, or
+ * null when the answer is unknown (network error, aborted, unexpected reply):
+ * an unknown answer must never block the form, the chain still refuses a taken
+ * name at create time.
+ */
+export async function fetchTableNameAvailable(restUrl: string, name: string, signal?: AbortSignal): Promise<boolean | null> {
+    try {
+        const res = await fetch(`${restUrl.replace(/\/$/, "")}/block52/pokerchain/poker/v1/name_available/${encodeURIComponent(name)}`, { signal });
+        if (!res.ok) return null;
+        const body: unknown = await res.json();
+        const available = (body as { available?: unknown } | null)?.available;
+        return typeof available === "boolean" ? available : null;
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Turn a create-table failure into one readable sentence (ui#878). The chain's
+ * refusal arrives wrapped as "transaction <hash> failed with code <n> — failed to
+ * execute message; message index: 0: <reason>"; the player only needs the reason.
+ */
+export function friendlyCreateTableError(message: string): string {
+    const taken = /table name "([^"]+)" is already taken/.exec(message);
+    if (taken) {
+        return tableNameTakenMessage(taken[1]);
+    }
+    const reason = /message index: \d+: (.+)$/s.exec(message);
+    return reason ? reason[1].trim() : message;
+}

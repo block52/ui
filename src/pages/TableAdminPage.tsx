@@ -10,7 +10,8 @@ import { useFindGames } from "../hooks/game/useFindGames";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
-import { validateTableName, normalizeTableName, tableNameCharCount } from "../utils/tableName";
+import { normalizeTableName, tableNameCharCount } from "../utils/tableName";
+import { useTableNameError } from "../hooks/game/useTableNameError";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
@@ -161,7 +162,8 @@ export default function TableAdminPage() {
     // Paid table name (poker-vm#337): normalize to the chain's canonical form so the
     // preview, fee, validation and submitted value all match the chain.
     const normalizedTableName = useMemo(() => normalizeTableName(tableName), [tableName]);
-    const tableNameError = useMemo(() => validateTableName(tableName), [tableName]);
+    // Format rules plus "already taken" on chain, checked as you type (ui#878).
+    const tableNameError = useTableNameError(tableName);
     const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
 
     // Table creation fee = 10 big blinds (pokerchain#378, ui#690), priced from the
@@ -289,9 +291,10 @@ export default function TableAdminPage() {
                 setTimeout(() => {
                     refetch();
                 }, 2000);
-            } else {
-                toast.error("Table creation failed - no transaction hash returned");
             }
+            // No result: useNewTable has already set `createError`, which the effect
+            // below toasts once. A second generic toast here used to stack on top
+            // of the real reason (ui#878).
         } catch (err: unknown) {
             console.error("❌ Failed to create table:", err);
             const error = err instanceof Error ? err : new Error("Unknown error");
@@ -1024,7 +1027,7 @@ export default function TableAdminPage() {
                             disabled={isCreating || !cosmosWallet.address || !hasEnoughUsdc || !!tableNameError || insufficientForName}
                             className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-sm"
                         >
-                            {isCreating ? "Creating..." : !hasEnoughUsdc ? "Insufficient USDC" : tableNameError ? "Invalid table name" : "Create Table"}
+                            {isCreating ? "Creating..." : !hasEnoughUsdc ? "Insufficient USDC" : tableNameError ? (tableNameError.includes("already taken") ? "Name taken" : "Invalid table name") : "Create Table"}
                         </button>
                         <button
                             onClick={refetch}
