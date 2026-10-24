@@ -32,8 +32,8 @@ test("create modal: Fixed-Limit is offered for Hold'em, not for Omaha", async ({
 
 test("action panel: a fixed-limit raise has one amount and no slider", async ({ page }) => {
   await page.goto(`/table/${CASH_GAME_ID}`);
-  await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
-  await page.getByText(`Seat ${HERO_SEAT}`, { exact: true }).click();
+  await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: `Sit in seat ${HERO_SEAT}` }).click();
   await page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${HERO_SEAT}`, "i") }).click();
   await expect(page.locator(".btn-call")).toBeVisible({ timeout: 15_000 });
 

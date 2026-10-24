@@ -13,12 +13,12 @@ test("fold preflop and the opponent wins the pot", async ({ page }) => {
 
   await test.step("open the seeded table", async () => {
     await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   const SEAT = 5;
   await test.step(`sit down at seat ${SEAT} (buy in)`, async () => {
-    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });
     await expect(confirm).toBeVisible();
     await confirm.click();

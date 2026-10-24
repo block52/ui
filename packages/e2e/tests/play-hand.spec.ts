@@ -15,14 +15,14 @@ test("play a full hand solo vs. the stub bot, to showdown", async ({ page }) => 
 
   await test.step("open the seeded table", async () => {
     await page.goto(`/table/${CASH_GAME_ID}`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   // Seat 5 is top-center and clear of the footer action panel (seats 1-2 sit
   // behind it). The engine seats the human wherever they click.
   const SEAT = 5;
   await test.step(`sit down at seat ${SEAT} (buy in)`, async () => {
-    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
     // Cash-game buy-in modal — the Confirm button uniquely confirms it opened
     // (the buy-in defaults to max, which our $1000 balance covers).
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });

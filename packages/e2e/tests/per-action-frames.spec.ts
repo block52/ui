@@ -37,12 +37,12 @@ test("per-action frames: one human action yields multiple ordered commits", asyn
 
   await test.step("open the seeded table", async () => {
     await page.goto(`/table/${CASH_GAME_ID}`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
   });
 
   const SEAT = 5;
   await test.step(`sit down at seat ${SEAT}`, async () => {
-    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });
     await expect(confirm).toBeVisible();
     await confirm.click();

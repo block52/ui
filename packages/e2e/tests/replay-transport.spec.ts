@@ -26,13 +26,13 @@ test("replay button opens the previous hand with working transport controls", as
     // `?autonewhand=false` freezes the END state so hand 2 is not dealt under us
     // (which would make it the table's latest hand and enable "next hand").
     await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
     await expect(page.getByTestId("open-replay")).toBeDisabled();
   });
 
   const SEAT = 5;
   await test.step(`sit down at seat ${SEAT} and play a hand to showdown`, async () => {
-    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });
     await expect(confirm).toBeVisible();
     await confirm.click();
@@ -122,8 +122,8 @@ test("a folded hand replays with our own cards (signed query) and the winner's s
   const SEAT = 5;
   await test.step(`sit down at seat ${SEAT} and fold preflop`, async () => {
     await page.goto(`/table/${CASH_GAME_ID}?autonewhand=false`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
-    await page.getByText(`Seat ${SEAT}`, { exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: `Sit in seat ${SEAT}` }).click();
     const confirm = page.getByRole("button", { name: new RegExp(`Confirm & Join Seat ${SEAT}`, "i") });
     await expect(confirm).toBeVisible();
     await confirm.click();

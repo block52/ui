@@ -119,6 +119,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
 
     // Top-up: never available in SNG games
     const isSNG = gameFormat === GameFormat.SIT_AND_GO;
+    const isTournamentStyleTable = isSNG || gameFormat === GameFormat.TOURNAMENT;
     const { topUp } = useTableTopUp(tableId || "", currentNetwork);
 
     const handleTopUp = async (amount: string) => {
@@ -219,7 +220,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
             // the hamburger drawer (MobileTableHeader) — they are a status line
             // and a persisted setting, neither worth permanent screen space on a
             // 393px-wide table. Taking a seat is unaffected: that is still done
-            // by tapping an open seat's "Click to Join".
+            // by tapping an open seat's + (ui#872).
             return null;
         }
         return (
@@ -231,11 +232,13 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                             <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
                             <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>You are spectating this table</span>
                         </div>
-                        {!isTableFull && (
+                        {/* Cash only: tournament seats can't be picked (they read EMPTY
+                            and fill as players register through the join flow), ui#872. */}
+                        {!isTableFull && !isTournamentStyleTable && (
                             <div className="flex items-center gap-2">
                                 <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
                                 <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>
-                                    To join the table, click on an available seat.
+                                    To join the table, click a + seat.
                                 </span>
                             </div>
                         )}

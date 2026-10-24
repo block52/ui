@@ -3,9 +3,14 @@
  *
  * Represents an empty seat at the poker table.
  *
- * Behavior:
- * - For users not yet seated: clicking opens the buy-in modal to join
- * - For users already seated: vacant seats are non-interactive (just visual)
+ * Look (ui#872): a clean, small marker instead of an avatar and "Seat N / Click
+ * to Join" text, so the felt stays uncluttered.
+ * - Cash games: a circle with a plus sign. Clicking it opens the buy-in modal.
+ *   While the viewer is already seated (or the seat can't be taken) the circle
+ *   shows without the plus and does nothing.
+ * - SNG / tournaments: a small shadowed circle reading "EMPTY". Not clickable —
+ *   tournament players are seated by the join flow (SitAndGoAutoJoinModal), not
+ *   by picking a seat — and it is replaced by the player once someone joins.
  *
  * Props:
  * - left/top: Position on the table
@@ -16,7 +21,6 @@ import * as React from "react";
 import { memo, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
-import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
 import type { VacantPlayerProps } from "../../../types/index";
@@ -28,6 +32,9 @@ import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
 import { hasElements } from "../../../utils/guards";
 import { useNetwork } from "../../../context/NetworkContext";
+import { isSitAndGoFormat, isTournamentFormat } from "@block52/poker-vm-sdk";
+import { useGameMeta } from "../../../context/gameState/GameMetaContext";
+import { viteEnv } from "../../../utils/viteEnv";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
 
@@ -38,6 +45,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         const { gameOptions } = useGameOptions();
         const cosmosWallet = useCosmosWallet();
         const { currentNetwork } = useNetwork();
+        const { gameFormat } = useGameMeta();
+        // Tournament seats can't be picked (ui#872): they show "EMPTY" and do nothing.
+        const isTournamentTable = !!gameFormat && (isTournamentFormat(gameFormat) || isSitAndGoFormat(gameFormat));
 
         const [showBuyInModal, setShowBuyInModal] = useState(false);
         const [isJoining, setIsJoining] = useState(false);
@@ -213,14 +223,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
             [left, top]
         );
 
-        // Memoize seat text
-        const seatText = useMemo(
-            () => ({
-                title: isUserAlreadyPlaying ? "Vacant Seat" : `Seat ${index}`,
-                subtitle: !isUserAlreadyPlaying ? (canJoinThisSeat ? "Click to Join" : "Seat Taken") : null
-            }),
-            [isUserAlreadyPlaying, canJoinThisSeat, index]
-        );
+        // Cash: the plus shows only where this viewer can actually sit (ui#872).
+        const canSitHere = !isTournamentTable && !isUserAlreadyPlaying && canJoinThisSeat;
 
         // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
         const handleDepositClick = useCallback(() => {
@@ -229,9 +233,14 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         }, []);
         return (
             <>
-                <div className="absolute cursor-pointer transform -translate-x-1/2 -translate-y-1/2" style={containerStyle} onClick={handleSeatClick}>
+                <div
+                    className={`absolute transform -translate-x-1/2 -translate-y-1/2 ${canSitHere ? "cursor-pointer" : ""}`}
+                    style={containerStyle}
+                    onClick={isTournamentTable ? undefined : handleSeatClick}
+                    data-testid={`vacant-seat-${index}`}
+                >
                     {/* Development Mode Debug Info */}
-                    {import.meta.env.VITE_NODE_ENV === "development" && (
+                    {viteEnv.VITE_NODE_ENV === "development" && (
                         <div className="absolute top-[-50px] left-1/2 transform -translate-x-1/2 bg-gray-600 bg-opacity-80 text-white px-2 py-1 rounded text-[10px] whitespace-nowrap z-50 border border-gray-400">
                             <div className="text-gray-300">UI Pos: {uiPosition ?? "N/A"}</div>
                             <div className="text-yellow-300">Vacant Seat: {index}</div>
@@ -240,13 +249,21 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                             </div>
                         </div>
                     )}
-                    <div className="flex justify-center mb-2">
-                        <img src={PokerProfile} className="w-12 h-12" alt="Vacant Seat" />
-                    </div>
-                    <div className={`text-center ${styles.seatText}`}>
-                        <div className="text-lg sm:text-sm mb-1 whitespace-nowrap font-medium">{seatText.title}</div>
-                        {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
-                    </div>
+                    {isTournamentTable ? (
+                        <div className={styles.emptySeat} aria-label={`Seat ${index} — empty`} title={`Seat ${index} — empty`}>
+                            EMPTY
+                        </div>
+                    ) : (
+                        <button
+                            type="button"
+                            className={`${styles.openSeat} ${canSitHere ? styles.openSeatJoinable : ""}`}
+                            aria-label={canSitHere ? `Sit in seat ${index}` : `Seat ${index} — open`}
+                            title={canSitHere ? `Seat ${index} — click to sit` : `Seat ${index} — open`}
+                            disabled={!canSitHere}
+                        >
+                            {canSitHere && <span className={styles.plus} aria-hidden="true" />}
+                        </button>
+                    )}
 
                     {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
                     {/* Dealer Button — rendered at table level using geometry positions */}

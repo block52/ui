@@ -24,7 +24,7 @@ test("seeded table page renders without crashing", async ({ page }) => {
   await page.goto(`/table/${CASH_GAME_ID}`);
 
   // Table shell mounted + at least one vacant seat from the seeded empty table.
-  // "Click to Join" is VacantPlayer's subtitle.
-  await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
+  // An open seat is VacantPlayer's "+" button, labelled "Sit in seat N" (ui#872).
+  await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
   expect(errors, `page errors: ${errors.join(" | ")}`).toHaveLength(0);
 });

@@ -19,8 +19,8 @@ type GameStateResponse = {
 test("an Omaha table shows four hole cards per seat", async ({ page }) => {
   await test.step("open the seeded table and sit down", async () => {
     await page.goto(`/table/${CASH_GAME_ID}`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
-    await page.getByText("Seat 5", { exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Sit in seat 5" }).click();
     const confirm = page.getByRole("button", { name: /Confirm & Join Seat 5/i });
     await expect(confirm).toBeVisible();
     await confirm.click();

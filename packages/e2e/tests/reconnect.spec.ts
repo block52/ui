@@ -32,8 +32,8 @@ test("recovers in place after a mid-hand WS drop: reconnects, re-snapshots, stay
 
   await test.step("open the seeded table and sit down (mid-hand)", async () => {
     await page.goto(`/table/${CASH_GAME_ID}`);
-    await expect(page.getByText("Click to Join").first()).toBeVisible({ timeout: 15_000 });
-    await page.getByText("Seat 5", { exact: true }).click();
+    await expect(page.getByRole("button", { name: /^Sit in seat / }).first()).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "Sit in seat 5" }).click();
     const confirm = page.getByRole("button", { name: /Confirm & Join Seat 5/i });
     await expect(confirm).toBeVisible();
     await confirm.click();

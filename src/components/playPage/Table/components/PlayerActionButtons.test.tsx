@@ -191,8 +191,19 @@ describe("PlayerActionButtons", () => {
             />
         );
         expect(screen.getByText("You are spectating this table")).toBeInTheDocument();
-        expect(screen.getByText("To join the table, click on an available seat.")).toBeInTheDocument();
+        expect(screen.getByText("To join the table, click a + seat.")).toBeInTheDocument();
     });
+
+    it.each([GameFormat.SIT_AND_GO, GameFormat.TOURNAMENT])(
+        "drops the click-a-seat hint on a %s table, where seats can't be picked (ui#872)",
+        format => {
+            mockGameStateContext.gameFormat = format;
+            render(<PlayerActionButtons {...baseProps} isCurrentUserSeated={false} isTableFull={false} />);
+            expect(screen.getByText("You are spectating this table")).toBeInTheDocument();
+            expect(screen.queryByText(/click a \+ seat/)).toBeNull();
+            mockGameStateContext.gameFormat = GameFormat.CASH;
+        }
+    );
 
     it("hides BuyChipsButton in SNG games even when TOP_UP is in legalActions", () => {
         mockGameStateContext.gameFormat = GameFormat.SIT_AND_GO;
