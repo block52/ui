@@ -1,3 +1,4 @@
+import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { LegalActionDTO, PlayerStatus } from "@block52/poker-vm-sdk";
 import { BaseHookReturn } from "../../types/index";
 
@@ -68,6 +69,12 @@ export interface FoldOptions {
 export interface JoinTableOptions {
     amount: string;
     seatNumber?: number;
+    /**
+     * The table's latest state (its logical track), used to pick an empty seat
+     * when no `seatNumber` is given. Passed by the caller so the seat is resolved
+     * from THIS table's state, not another mounted table's (ui#834).
+     */
+    gameState?: TexasHoldemStateDTO;
 }
 
 export interface LeaveTableOptions {

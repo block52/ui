@@ -5,6 +5,8 @@ import { GameStateProvider } from "./GameStateContext";
 import { useGameData } from "./gameState/GameDataContext";
 import { useGameUI } from "./gameState/GameUIContext";
 import { useGameActions } from "./gameState/GameActionsContext";
+import { useLogicalTrack } from "./gameState/LogicalTrackContext";
+import { getLatestGameState, type LogicalTrack } from "../hooks/playerActions/transportAction";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { TexasHoldemStateDTO, GameOptionsDTO } from "@block52/poker-vm-sdk";
 
@@ -480,5 +482,115 @@ describe("GameStateProvider reconnect (ui#613)", () => {
         });
         await waitFor(() => expect(conn()).toBe("live:0"));
         onLine.mockRestore();
+    });
+});
+
+// ui#834: with several tables mounted (multi-tabling, ui#55), each
+// GameStateProvider must own its logical track, so one table's submissions and
+// auto-actions never read another table's state.
+describe("GameStateProvider per-table logical track (ui#834)", () => {
+    let originalWebSocket: typeof WebSocket;
+
+    beforeEach(() => {
+        originalWebSocket = global.WebSocket;
+        // @ts-expect-error — assigning the hand-rolled mock over the DOM lib type.
+        global.WebSocket = MockWebSocket;
+        MockWebSocket.instances = [];
+        localStorage.clear();
+        localStorage.setItem(STORAGE_KEYS.cosmosAddress, "b521testaddress");
+    });
+
+    afterEach(() => {
+        global.WebSocket = originalWebSocket;
+        delete window.__B52_BUS__;
+    });
+
+    const TABLE_A = "0xaaaa0001";
+    const TABLE_B = "0xbbbb0002";
+    const tracks: Record<string, LogicalTrack> = {};
+
+    const TableProbe: React.FC<{ tableId: string }> = ({ tableId }) => {
+        const { subscribeToTable } = useGameActions();
+        const { gameState } = useGameData();
+        tracks[tableId] = useLogicalTrack();
+        useEffect(() => {
+            subscribeToTable(tableId);
+        }, [subscribeToTable, tableId]);
+        return <span data-testid={`hand-${tableId}`}>{gameState?.handNumber ?? "none"}</span>;
+    };
+
+    const frameFor = (gameId: string, handNumber: number) => ({
+        event: "state",
+        gameId,
+        data: { format: "cash", variant: "texas-holdem", gameState: makeSnapshot(handNumber) }
+    });
+
+    const socketFor = (gameId: string): MockWebSocket => {
+        // Each provider opens its own socket; its URL names the table.
+        const socket = MockWebSocket.instances.find(ws => ws.url.includes(`tableAddress=${gameId}`));
+        if (!socket) throw new Error(`no socket subscribed to ${gameId}`);
+        return socket;
+    };
+
+    it("gives each mounted table its own logical track, fed only by its own socket", async () => {
+        render(
+            <NetworkProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_A} />
+                </GameStateProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_B} />
+                </GameStateProvider>
+            </NetworkProvider>
+        );
+        expect(tracks[TABLE_A]).toBeDefined();
+        expect(tracks[TABLE_A]).not.toBe(tracks[TABLE_B]);
+
+        act(() => {
+            socketFor(TABLE_A).emit(frameFor(TABLE_A, 5));
+            socketFor(TABLE_B).emit(frameFor(TABLE_B, 9));
+        });
+        await waitFor(() => expect(screen.getByTestId(`hand-${TABLE_B}`).textContent).toBe("9"));
+
+        // Table B ingested last, yet table A's track still holds A's state.
+        expect(tracks[TABLE_A].get()?.handNumber).toBe(5);
+        expect(tracks[TABLE_B].get()?.handNumber).toBe(9);
+
+        // A later frame on A updates only A.
+        act(() => {
+            socketFor(TABLE_A).emit(frameFor(TABLE_A, 6));
+        });
+        await waitFor(() => expect(tracks[TABLE_A].get()?.handNumber).toBe(6));
+        expect(tracks[TABLE_B].get()?.handNumber).toBe(9);
+
+        // Nothing writes to the old shared (default) track any more.
+        expect(getLatestGameState()).toBeUndefined();
+    });
+
+    it("notifies a table's track subscribers only for that table's frames", async () => {
+        render(
+            <NetworkProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_A} />
+                </GameStateProvider>
+                <GameStateProvider>
+                    <TableProbe tableId={TABLE_B} />
+                </GameStateProvider>
+            </NetworkProvider>
+        );
+        const seenByA: number[] = [];
+        const unsubscribe = tracks[TABLE_A].subscribe(state => {
+            if (state) seenByA.push(state.handNumber);
+        });
+
+        act(() => {
+            socketFor(TABLE_B).emit(frameFor(TABLE_B, 3));
+            socketFor(TABLE_A).emit(frameFor(TABLE_A, 7));
+            socketFor(TABLE_B).emit(frameFor(TABLE_B, 4));
+        });
+        await waitFor(() => expect(seenByA).toContain(7));
+        unsubscribe();
+
+        expect(seenByA).toEqual([7]);
     });
 });
