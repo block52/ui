@@ -1,4 +1,4 @@
-import { getSeatPositions, getViewportMode, type TableSize } from "./stageGeometry";
+import { getSeatPositions, getViewportMode, layoutSizeFor, LAYOUT_SIZES, type TableSize } from "./stageGeometry";
 
 describe("getViewportMode", () => {
     const originalMatchMedia = window.matchMedia;
@@ -96,5 +96,19 @@ describe("getViewportMode", () => {
                 expect(Math.max(...xs) - Math.min(...xs)).toBeGreaterThan(Math.max(...ys) - Math.min(...ys));
             }
         });
+    });
+});
+
+describe("layoutSizeFor (ui#877)", () => {
+    it("uses the smallest layout with room for every seat", () => {
+        expect([2, 3, 4, 5, 6, 7, 8, 9].map(layoutSizeFor)).toEqual([2, 4, 4, 6, 6, 9, 9, 9]);
+    });
+
+    it("never returns a size the felt has no positions for", () => {
+        for (let n = 1; n <= 12; n++) {
+            const size = layoutSizeFor(n);
+            expect(LAYOUT_SIZES).toContain(size);
+            expect(getSeatPositions(size).length).toBe(size);
+        }
     });
 });

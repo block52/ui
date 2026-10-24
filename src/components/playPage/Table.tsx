@@ -151,7 +151,8 @@ import {
     getContentBounds,
     VIEWPORT_PARAMS,
     PLAYER_UI_PADDING,
-    type TableSize
+    type TableSize,
+    layoutSizeFor
 } from "../../config/stageGeometry";
 import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 
@@ -893,7 +894,10 @@ const Table = React.memo(() => {
     // tableSize is only valid once state has loaded — while isLoading it is a
     // placeholder (0) and must not drive layout, or the board flashes from a
     // fabricated seat count to the real one (#466).
-    const { tableSize, isLoading: isTableStateLoading } = useTableState();
+    const { tableSize: maxPlayers, isLoading: isTableStateLoading } = useTableState();
+    // The seat ring is drawn on the smallest layout that fits the table
+    // (3 → 4, 5 → 6, 7/8 → 9); 0 while loading, as before (ui#877).
+    const tableSize = maxPlayers > 0 ? layoutSizeFor(maxPlayers) : 0;
 
     // Container refs for geometry engine
     const tableContainerRef = useRef<HTMLDivElement>(null);
@@ -1577,6 +1581,7 @@ const Table = React.memo(() => {
                         <PlayerSeating
                             tableLayout={tableLayout}
                             tableSize={tableSize}
+                            maxPlayers={maxPlayers}
                             startIndex={startIndex}
                             tableActivePlayers={tableActivePlayers}
                             tableDataPlayers={tableDataValues.tableDataPlayers}

@@ -331,6 +331,20 @@ export function getDeckOrigin(): Position {
 
 export type TableSize = 2 | 4 | 6 | 9;
 
+/** The seat layouts the felt has positions for, smallest first. */
+export const LAYOUT_SIZES: readonly TableSize[] = [2, 4, 6, 9];
+
+/**
+ * The layout to draw a table of `maxPlayers` seats on: the smallest layout with
+ * room for every seat (3 → 4, 5 → 6, 7 or 8 → 9). The table-create forms offer
+ * every size from 2 to 9, but positions only exist for 2/4/6/9, so a 3-, 5-, 7-
+ * or 8-seat table used to crash the table page (ui#877). The spare positions are
+ * left empty (see PlayerSeating's maxPlayers).
+ */
+export function layoutSizeFor(maxPlayers: number): TableSize {
+    return LAYOUT_SIZES.find(size => size >= maxPlayers) ?? 9;
+}
+
 
 /** Push a seat position outward from table center by SEAT_SPREAD pixels */
 function applySpread(sx: number, sy: number): [number, number] {
