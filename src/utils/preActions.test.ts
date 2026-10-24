@@ -85,6 +85,41 @@ describe("resolvePreAction", () => {
     });
 });
 
+describe("resolvePreAction — Call {amount} only calls the amount it was armed at (ui#875)", () => {
+    const armedAt3 = (owedMicro: bigint) => ({ armedCallMicro: 3_000_000n, owedMicro });
+
+    it("calls when the bet is still the armed amount", () => {
+        expect(resolvePreAction("call-exact", facingBet, armedAt3(3_000_000n))).toBe("call");
+    });
+
+    it("stands down when a raise changed the amount (no call, the player gets their turn)", () => {
+        expect(resolvePreAction("call-exact", facingBet, armedAt3(9_000_000n))).toBeNull();
+    });
+
+    it("stands down rather than checking if the bet it was armed against is gone", () => {
+        expect(resolvePreAction("call-exact", canCheck, armedAt3(0n))).toBeNull();
+    });
+
+    it("Call Any still calls the raise", () => {
+        expect(resolvePreAction("call-any", facingBet, armedAt3(9_000_000n))).toBe("call");
+    });
+
+    it("All In still calls a raise: committing the stack costs the same", () => {
+        expect(resolvePreAction("all-in", facingBet, armedAt3(9_000_000n))).toBe("call");
+    });
+
+    it("leaves the other pre-actions alone", () => {
+        expect(resolvePreAction("check-fold", facingBet, armedAt3(9_000_000n))).toBe("fold");
+        expect(resolvePreAction("check", canCheck, armedAt3(9_000_000n))).toBe("check");
+        expect(resolvePreAction("fold", facingBet, armedAt3(9_000_000n))).toBe("fold");
+    });
+
+    it("with no armed amount recorded, behaves as before", () => {
+        expect(resolvePreAction("call-exact", facingBet, { armedCallMicro: null, owedMicro: 9_000_000n })).toBe("call");
+        expect(resolvePreAction("call-exact", facingBet)).toBe("call");
+    });
+});
+
 describe("shouldClearPreAction", () => {
     it("clears when the player leaves the hand", () => {
         expect(shouldClearPreAction({ action: "check-fold", isUsersTurn: false, playerStatus: PlayerStatus.FOLDED })).toBe(true);

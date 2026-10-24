@@ -1,4 +1,5 @@
 import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { isNullish } from "./guards";
 
 /**
  * The pre-action bar (ui#388), CoinPoker-style. While it is NOT the player's turn
@@ -79,10 +80,28 @@ export interface PreActionLegal {
 export type ResolvedPreAction = "check" | "fold" | "call";
 
 /**
+ * What an armed "Call {amount}" was armed at, and what the player owes now. A
+ * "Call {amount}" only ever calls THAT amount (ui#875): if the bet changed before
+ * the turn arrived (a raise), it stands down and the player gets their full turn.
+ * That is the difference from "Call Any", which calls whatever the bet is.
+ */
+export interface PreActionCallGuard {
+    /** The amount owed when "Call {amount}" was armed; null when nothing was armed at an amount. */
+    armedCallMicro: bigint | null;
+    /** The amount owed right now. */
+    owedMicro: bigint;
+}
+
+/**
  * What an armed pre-action submits when the player's turn arrives, or null to do
  * nothing (let the player take their turn normally).
+ *
+ * `callGuard` is checked at FIRE time, not just while waiting: when the raise is
+ * the action that hands the player the turn (the raiser sits directly before
+ * them, as always heads-up), the bet changes and the turn starts in the same
+ * update, so only a fire-time check catches it (ui#875).
  */
-export function resolvePreAction(action: PreAction, legal: PreActionLegal): ResolvedPreAction | null {
+export function resolvePreAction(action: PreAction, legal: PreActionLegal, callGuard?: PreActionCallGuard): ResolvedPreAction | null {
     if (action === "check-fold") {
         // Check if free; fold only when genuinely facing a bet (CALL is legal),
         // never on a blind-posting turn where FOLD alone is offered.
@@ -98,8 +117,20 @@ export function resolvePreAction(action: PreAction, legal: PreActionLegal): Reso
         // Fold to anything.
         return legal.hasFoldAction ? "fold" : null;
     }
-    // "call-exact", "call-any" and "all-in": call whatever the bet is (all-in is a
-    // call capped at the stack); if there is no bet, check (never fold).
+    // "Call {amount}" calls only the amount it was armed at (ui#875). A raise before
+    // the turn (or the bet vanishing) stands it down: no action, full turn.
+    if (
+        action === "call-exact" &&
+        !isNullish(callGuard) &&
+        !isNullish(callGuard.armedCallMicro) &&
+        callGuard.owedMicro !== callGuard.armedCallMicro
+    ) {
+        return null;
+    }
+    // "call-any" calls whatever the bet is. "all-in" was armed because calling
+    // commits the whole stack; a raise doesn't change that cost, so it still calls
+    // (capped at the stack). "call-exact" gets here only at its armed amount.
+    // With no bet to call, all three check (never fold).
     if (legal.hasCallAction) return "call";
     if (legal.hasCheckAction) return "check";
     return null;

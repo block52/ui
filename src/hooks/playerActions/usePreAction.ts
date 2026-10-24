@@ -3,7 +3,7 @@ import { checkHand } from "./checkHand";
 import { foldHand } from "./foldHand";
 import { callHand } from "./callHand";
 import { useLatchedDelay } from "./useLatchedDelay";
-import { resolvePreAction, PreAction, PreActionLegal } from "../../utils/preActions";
+import { resolvePreAction, PreAction, PreActionCallGuard, PreActionLegal } from "../../utils/preActions";
 import type { SubmitActionRequest } from "../../submit/types";
 
 /**
@@ -13,7 +13,9 @@ import type { SubmitActionRequest } from "../../submit/types";
  *
  *   - CHECK if checking is free;
  *   - FOLD only when genuinely facing a bet (Check/Fold);
- *   - CALL the current amount for the call pre-actions;
+ *   - CALL the current amount for Call Any / All In, and for Call {amount} only
+ *     while the bet is still the amount it was armed at (ui#875: a raise stands it
+ *     down, even one that arrives together with the turn);
  *   - otherwise resolve WITHOUT acting, so the player takes their normal turn.
  *
  * Fires on the RISING EDGE of the player's turn and re-reads the legal actions and
@@ -32,14 +34,15 @@ export function usePreAction(
     submit: (request: SubmitActionRequest) => void,
     isBusy: boolean,
     onSubmitted?: (txHash: string) => void,
-    onResolved?: () => void
+    onResolved?: () => void,
+    callGuard?: PreActionCallGuard
 ): void {
     useLatchedDelay(action != null && isUsersTurn, !isUsersTurn, () => {
         if (!tableId) {
             return false;
         }
         if (!isBusy && action != null) {
-            const resolved = resolvePreAction(action, legal);
+            const resolved = resolvePreAction(action, legal, callGuard);
             if (resolved === "check") {
                 submit({ actionName: "check", run: () => checkHand(tableId, network), onSuccess: onSubmitted });
             } else if (resolved === "fold") {

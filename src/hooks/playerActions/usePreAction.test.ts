@@ -10,7 +10,7 @@ import { checkHand } from "./checkHand";
 import { foldHand } from "./foldHand";
 import { callHand } from "./callHand";
 import { makeTestSubmit } from "./testSubmit";
-import { PreAction, PreActionLegal } from "../../utils/preActions";
+import { PreAction, PreActionCallGuard, PreActionLegal } from "../../utils/preActions";
 
 jest.mock("./checkHand");
 jest.mock("./foldHand");
@@ -38,6 +38,7 @@ interface Props {
     callMicro?: bigint;
     isUsersTurn?: boolean;
     isBusy?: boolean;
+    callGuard?: PreActionCallGuard;
 }
 const canCheck: PreActionLegal = { hasCheckAction: true, hasCallAction: false, hasFoldAction: true };
 const facingBet: PreActionLegal = { hasCheckAction: false, hasCallAction: true, hasFoldAction: true };
@@ -49,8 +50,8 @@ describe("usePreAction", () => {
 
     const render = (initial: Props = {}) =>
         renderHook(
-            ({ action = "check-fold", legal = canCheck, callMicro = CALL_MICRO, isUsersTurn = true, isBusy = false }: Props) =>
-                usePreAction(TABLE_ID, NETWORK, action, legal, callMicro, isUsersTurn, harness.submit, isBusy, onSubmitted, onResolved),
+            ({ action = "check-fold", legal = canCheck, callMicro = CALL_MICRO, isUsersTurn = true, isBusy = false, callGuard }: Props) =>
+                usePreAction(TABLE_ID, NETWORK, action, legal, callMicro, isUsersTurn, harness.submit, isBusy, onSubmitted, onResolved, callGuard),
             { initialProps: initial }
         );
 
@@ -127,6 +128,54 @@ describe("usePreAction", () => {
         rerender({ action: "call-any", legal: facingBet, callMicro: 9_000_000n });
         await settle();
         expect(mockCall).toHaveBeenCalledWith(TABLE_ID, 9_000_000n, NETWORK);
+    });
+
+    describe("Call {amount} only calls the amount it was armed at (ui#875)", () => {
+        const RAISED_MICRO = 9_000_000n;
+
+        it("calls when the bet is unchanged at the turn", async () => {
+            render({ action: "call-exact", legal: facingBet, callMicro: CALL_MICRO, callGuard: { armedCallMicro: CALL_MICRO, owedMicro: CALL_MICRO } });
+            await settle();
+            expect(mockCall).toHaveBeenCalledWith(TABLE_ID, CALL_MICRO, NETWORK);
+        });
+
+        it("the reported bug: the raise and the turn arrive together; no call, intent cleared, normal turn", async () => {
+            // Armed while waiting (not the user's turn) at 3.
+            const { rerender } = render({
+                action: "call-exact",
+                legal: facingBet,
+                isUsersTurn: false,
+                callGuard: { armedCallMicro: CALL_MICRO, owedMicro: CALL_MICRO }
+            });
+            await settle();
+            // One update: the raiser directly before us acts, so the bet is now 9 AND it is our turn.
+            rerender({
+                action: "call-exact",
+                legal: facingBet,
+                callMicro: RAISED_MICRO,
+                isUsersTurn: true,
+                callGuard: { armedCallMicro: CALL_MICRO, owedMicro: RAISED_MICRO }
+            });
+            await settle();
+            expect(mockCall).not.toHaveBeenCalled();
+            expect(harness.requests).toHaveLength(0);
+            expect(onResolved).toHaveBeenCalledTimes(1);
+        });
+
+        it("a raise landing during the short delay before firing also stands it down", async () => {
+            const { rerender } = render({ action: "call-exact", legal: facingBet, callGuard: { armedCallMicro: CALL_MICRO, owedMicro: CALL_MICRO } });
+            act(() => jest.advanceTimersByTime(200));
+            rerender({ action: "call-exact", legal: facingBet, callMicro: RAISED_MICRO, callGuard: { armedCallMicro: CALL_MICRO, owedMicro: RAISED_MICRO } });
+            await settle();
+            expect(mockCall).not.toHaveBeenCalled();
+            expect(onResolved).toHaveBeenCalledTimes(1);
+        });
+
+        it("Call Any in the same situation still calls the raise", async () => {
+            render({ action: "call-any", legal: facingBet, callMicro: RAISED_MICRO, callGuard: { armedCallMicro: null, owedMicro: RAISED_MICRO } });
+            await settle();
+            expect(mockCall).toHaveBeenCalledWith(TABLE_ID, RAISED_MICRO, NETWORK);
+        });
     });
 
     it("resolves WITHOUT acting when the player already acted by hand (queue busy)", async () => {

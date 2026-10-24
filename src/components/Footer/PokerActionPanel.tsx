@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements } from "../../utils/guards";
+import { hasContent, hasElements, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -387,7 +387,10 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // once it is their turn and the armed action resolves to a real move, usePreAction
     // submits it, so the action controls are suppressed (no flash of the betting bar).
     const preActionLegal = { hasCheckAction, hasCallAction, hasFoldAction };
-    const preActionFiring = isUsersTurn && preAction != null && resolvePreAction(preAction, preActionLegal) != null;
+    // "Call {amount}" fires only at the amount it was armed at (ui#875).
+    const preActionCallGuard = { armedCallMicro, owedMicro: preActionCallMicro };
+    const preActionFiring =
+        isUsersTurn && !isNullish(preAction) && !isNullish(resolvePreAction(preAction, preActionLegal, preActionCallGuard));
 
     const clearPreAction = useCallback(() => {
         setPreAction(null);
@@ -403,7 +406,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         submit,
         isSubmitBusy,
         onTransactionSubmitted,
-        clearPreAction
+        clearPreAction,
+        preActionCallGuard
     );
 
     // All-in as a FE label (poker-vm#2351/#2353). The engine never advertises an
