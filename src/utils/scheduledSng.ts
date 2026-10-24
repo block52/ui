@@ -1,4 +1,4 @@
-import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, lateRegistrationClosesAt, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, isTournamentFormat, lateRegistrationClosesAt, type ActionDTO, type GameFormat, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { hasValue, isNullish } from "./guards";
 
 /**
@@ -117,3 +117,28 @@ export const LATE_REGISTRATION_LEVEL_OPTIONS: readonly number[] = [0, 1, 2, 3, 4
 /** The create form's label for a late-registration choice. */
 export const lateRegistrationOptionLabel = (levels: number): string =>
     levels === 0 ? "Off: the field is fixed at the start" : `Open for the first ${levels} blind level${levels === 1 ? "" : "s"}`;
+
+/**
+ * Whether a newcomer may take an empty seat right now (ui#837): always at a
+ * cash table; at a sit-and-go before it starts (unless cancelled), and after
+ * the start only while late registration is open (poker-vm#2731). The chain
+ * refuses every other join, so a seat should not offer one.
+ */
+export const isSeatOpenToNewPlayers = (
+    gameFormat: GameFormat | undefined,
+    gameState: Pick<TexasHoldemStateDTO, "gameOptions" | "results" | "handNumber" | "previousActions" | "players"> | null | undefined,
+    nowMs: number
+): boolean => {
+    if (!isTournamentFormat(gameFormat)) return true;
+    if (isNullish(gameState)) return false;
+    if (!hasTournamentStarted(gameState)) {
+        const phase = scheduledSngPhase({
+            scheduledStartTime: gameState.gameOptions.scheduledStartTime,
+            minPlayers: gameState.gameOptions.minPlayers,
+            registered: gameState.players.length,
+            nowMs
+        });
+        return phase !== "cancelled";
+    }
+    return lateRegistrationPhase(gameState, nowMs) === "open";
+};

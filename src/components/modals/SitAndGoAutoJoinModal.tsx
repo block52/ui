@@ -30,6 +30,11 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const [buyInError, setBuyInError] = useState("");
     const [hasJoined, setHasJoined] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
+    // Dismissed = spectate: the player watches the table instead of joining
+    // (late to the tournament, insufficient balance, or just browsing). A
+    // floating pill lets them reopen the modal to join. Session-local on
+    // purpose — a fresh page load should offer the seat again. (ui#837)
+    const [isDismissed, setIsDismissed] = useState(false);
     const { currentNetwork } = useNetwork();
 
     // Get game options
@@ -141,6 +146,21 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             totalFormatted: formatUSDCToSimpleDollars(breakdown.total)
         };
     }, [gameOptions?.maxBuyIn, gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
+
+    const handleDismiss = useCallback(() => {
+        if (isJoining) return;
+        setIsDismissed(true);
+    }, [isJoining]);
+
+    // Escape closes the modal like the shared Modal component does
+    useEffect(() => {
+        if (isDismissed) return;
+        const onKeyDown = (event: KeyboardEvent) => {
+            if (event.key === "Escape") handleDismiss();
+        };
+        document.addEventListener("keydown", onKeyDown);
+        return () => document.removeEventListener("keydown", onKeyDown);
+    }, [isDismissed, handleDismiss]);
 
     // Fetch balance on mount
     useEffect(() => {
@@ -255,12 +275,43 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     // Compact mode for mobile landscape (short viewport)
     const isCompact = typeof window !== "undefined" && window.innerHeight <= 500;
 
+    // Spectating: keep the table watchable, offer a way back in
+    if (isDismissed) {
+        return (
+            <button
+                onClick={() => setIsDismissed(false)}
+                data-testid="sng-autojoin-reopen-btn"
+                className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 px-4 py-2 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 text-white text-sm font-semibold shadow-lg transition-all duration-300"
+            >
+                Join Tournament
+            </button>
+        );
+    }
+
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
+            data-testid="sng-autojoin-modal"
+            onClick={event => {
+                if (event.target === event.currentTarget) handleDismiss();
+            }}
+        >
             <div className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}>
                 {/* Web3 styled background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl"></div>
                 <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-blue-500 animate-pulse"></div>
+
+                <button
+                    onClick={handleDismiss}
+                    disabled={isJoining}
+                    aria-label="Close and watch the table"
+                    data-testid="sng-autojoin-close-btn"
+                    className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-white hover:bg-gray-700/80 transition-colors disabled:opacity-50"
+                >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
 
                 <div className="relative z-10">
                     {/* Logo + Icon — hidden on compact */}
@@ -471,6 +522,19 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         ) : (
                             "Take My Seat"
                         )}
+                    </button>
+
+                    {/* Always-available exit: late, broke, or table full, the
+                        player can still watch the game (ui#837) */}
+                    <button
+                        onClick={handleDismiss}
+                        disabled={isJoining}
+                        data-testid="sng-autojoin-spectate-btn"
+                        className={`w-full px-4 rounded-lg font-semibold text-gray-300 border border-gray-500/40 hover:text-white hover:border-gray-400/60 hover:bg-gray-700/40 transition-all duration-300 disabled:opacity-50 ${
+                            isCompact ? "mt-1.5 py-2 text-sm" : "mt-3 py-3"
+                        }`}
+                    >
+                        Watch as Spectator
                     </button>
 
                     {!isCompact && (

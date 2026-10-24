@@ -5,6 +5,7 @@ import { VacantSeatResponse } from "../../types/index";
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { isEmpty, isNullish, hasElements } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { isSeatOpenToNewPlayers } from "../../utils/scheduledSng";
 
 /**
  * Custom hook to manage data for vacant seats
@@ -13,7 +14,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
  */
 export const useVacantSeatData = (): VacantSeatResponse => {
     // Get game state directly from Context - no additional WebSocket connections
-    const { gameState, isLoading, error } = useGameStateContext();
+    const { gameState, gameFormat, isLoading, error } = useGameStateContext();
 
     const userAddress = React.useMemo(() => {
         // Use Cosmos address (b52...) instead of Ethereum address
@@ -66,14 +67,18 @@ export const useVacantSeatData = (): VacantSeatResponse => {
         return emptySeatNumbers;
     }, [players, maxPlayers]);
 
+    // Whether a newcomer may join at all right now: a started sit-and-go only
+    // takes players while late registration is open (ui#837, poker-vm#2731).
+    const registrationOpen = isSeatOpenToNewPlayers(gameFormat, gameState, Date.now());
+
     // Function to check if a user can join a specific seat
     const canJoinSeat = React.useCallback(
         (seatIndex: number) => {
             const vacant = isSeatVacant(seatIndex);
-            const canJoin = !isUserAlreadyPlaying && vacant;
+            const canJoin = !isUserAlreadyPlaying && vacant && registrationOpen;
             return canJoin;
         },
-        [isSeatVacant, isUserAlreadyPlaying]
+        [isSeatVacant, isUserAlreadyPlaying, registrationOpen]
     );
 
     // Get array of all empty seat indexes that the user can join
@@ -85,6 +90,7 @@ export const useVacantSeatData = (): VacantSeatResponse => {
         isUserAlreadyPlaying,
         isSeatVacant,
         canJoinSeat,
+        registrationOpen,
         emptySeatIndexes,        // NEW: Array of all empty seat numbers
         availableSeatIndexes,    // NEW: Array of seats user can actually join
         isLoading,

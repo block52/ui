@@ -13,7 +13,7 @@
  */
 
 import * as React from "react";
-import { memo, useState, useMemo, useCallback } from "react";
+import { memo, useState, useMemo, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useParams } from "react-router-dom";
 import PokerProfile from "../../../assets/PokerProfile.svg";
@@ -33,7 +33,7 @@ import { USDCDepositModal } from "../../modals";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
-        const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
+        const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat, registrationOpen } = useVacantSeatData();
         const { id: tableId } = useParams<{ id: string }>();
         const { gameOptions } = useGameOptions();
         const cosmosWallet = useCosmosWallet();
@@ -55,6 +55,15 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
 
         // Memoize seat status checks
         const canJoinThisSeat = useMemo(() => checkCanJoinSeat(index), [checkCanJoinSeat, index]);
+
+        // Close an open buy-in once its seat stops being joinable — someone took
+        // it, or a tournament's late registration closed (ui#837) — so the
+        // player is never offered a join the chain will refuse.
+        useEffect(() => {
+            if (showBuyInModal && !isJoining && !canJoinThisSeat) {
+                setShowBuyInModal(false);
+            }
+        }, [showBuyInModal, isJoining, canJoinThisSeat]);
 
         // Memoize handlers
         const handleJoinClick = useCallback(() => {
@@ -217,9 +226,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         const seatText = useMemo(
             () => ({
                 title: isUserAlreadyPlaying ? "Vacant Seat" : `Seat ${index}`,
-                subtitle: !isUserAlreadyPlaying ? (canJoinThisSeat ? "Click to Join" : "Seat Taken") : null
+                subtitle: !isUserAlreadyPlaying ? (canJoinThisSeat ? "Click to Join" : registrationOpen ? "Seat Taken" : "Registration closed") : null
             }),
-            [isUserAlreadyPlaying, canJoinThisSeat, index]
+            [isUserAlreadyPlaying, canJoinThisSeat, registrationOpen, index]
         );
 
         // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
