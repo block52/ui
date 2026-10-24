@@ -22,6 +22,7 @@ export interface SNGOptions {
     blindStructure?: BlindStructureDTO; // Blind structure (poker-vm#1734, ui#860): a preset or a custom structure; omitted = the blinds double every blindLevelDuration minutes
     entryFee?: number;           // Flat entry fee in USDC dollars (2dp), skimmed to the creator; omitted/0 = no fee (poker-vm#2118)
     startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): starts when full OR then with >= minPlayers; omitted = starts only when full
+    lateRegistrationLevels?: number; // Late registration (poker-vm#2731): joins stay open after the start for this many blind levels; needs startTime; omitted = the field is fixed at the start
 }
 
 // Type for creating new table options
@@ -114,7 +115,9 @@ export const useNewTable = (): UseNewTableReturn => {
                     entryFee: hasValue(gameOptions.sng.entryFee) ? usdcToMicroBigInt(gameOptions.sng.entryFee) : 0n,
                     // Scheduled start (poker-vm#2680). Omitted = unscheduled; the SDK
                     // then leaves the field out of the tx.
-                    ...(hasValue(gameOptions.sng.startTime) && { startTime: gameOptions.sng.startTime })
+                    ...(hasValue(gameOptions.sng.startTime) && { startTime: gameOptions.sng.startTime }),
+                    // Late registration (poker-vm#2731). Omitted = none.
+                    ...(hasValue(gameOptions.sng.lateRegistrationLevels) && { lateRegistrationLevels: gameOptions.sng.lateRegistrationLevels })
                 };
             }
 

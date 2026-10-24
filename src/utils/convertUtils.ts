@@ -31,6 +31,8 @@ export interface GameWithFormat {
     protocolFeeBps?: number;
     /** Scheduled start, epoch ms (poker-vm#2680); absent = the sit-and-go starts only when full. */
     scheduledStartTime?: number;
+    /** Late registration, in blind levels after the start (poker-vm#2731); absent = none. */
+    lateRegistrationLevels?: number;
 }
 
 /**
@@ -66,6 +68,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         createdAt: game.createdAt,
         updatedAt: game.updatedAt,
         scheduledStartTime: opts.scheduledStartTime,
+        lateRegistrationLevels: opts.lateRegistrationLevels,
         entryFee: opts.entryFee,
         protocolFeeBps: opts.protocolFeeBps
     };

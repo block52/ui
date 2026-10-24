@@ -1,4 +1,4 @@
-import { NonPlayerActionType, PlayerActionType, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, lateRegistrationClosesAt, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { hasValue, isNullish } from "./guards";
 
 /**
@@ -82,3 +82,30 @@ export const localDateTimeToUnixSeconds = (value: string): number => {
     const ms = new Date(value).getTime();
     return Number.isFinite(ms) ? Math.floor(ms / 1000) : NaN;
 };
+
+/**
+ * Late registration (poker-vm#2731): a scheduled sit-and-go may keep taking new
+ * players after it starts, while the blind level is below
+ * gameOptions.lateRegistrationLevels and nobody has finished in the money.
+ *
+ *   - "none":   no late registration, or the tournament has not started (the
+ *               normal registration rules apply);
+ *   - "open":   started, and a join would still be accepted;
+ *   - "closed": started, and the window has shut.
+ */
+export type LateRegistrationPhase = "none" | "open" | "closed";
+
+export const lateRegistrationPhase = (
+    gameState: Pick<TexasHoldemStateDTO, "gameOptions" | "results" | "handNumber" | "previousActions"> | null | undefined,
+    nowMs: number
+): LateRegistrationPhase => {
+    if (isNullish(gameState) || isNullish(gameState.gameOptions.lateRegistrationLevels) || !hasTournamentStarted(gameState)) return "none";
+    return isLateRegistrationOpen(gameState.gameOptions, gameState.results, nowMs) ? "open" : "closed";
+};
+
+/** When late registration closes (epoch ms), once the first hand is dealt. */
+export const lateRegistrationEndsAt = (options: GameOptionsDTO): number | undefined => lateRegistrationClosesAt(options);
+
+/** "Late reg: 3 levels" for a table with late registration; "" otherwise. */
+export const formatLateRegistration = (levels: number | undefined): string =>
+    hasValue(levels) && levels > 0 ? `Late reg: ${levels} level${levels === 1 ? "" : "s"}` : "";

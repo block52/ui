@@ -20,7 +20,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { isEmpty, hasElements, isBlank, hasValue } from "../../utils/guards";
-import { formatStartsAt, scheduledSngPhase } from "../../utils/scheduledSng";
+import { formatStartsAt, lateRegistrationEndsAt, lateRegistrationPhase, scheduledSngPhase } from "../../utils/scheduledSng";
 
 import type { SitAndGoAutoJoinModalProps } from "./types";
 
@@ -48,6 +48,13 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         nowMs: Date.now()
     });
     const isCancelled = scheduledPhase === "cancelled";
+
+    // Late registration (poker-vm#2731): a started tournament may still take
+    // new players for its first few blind levels; once that window shuts the
+    // chain refuses the join, so the seat button is disabled too.
+    const lateRegPhase = lateRegistrationPhase(gameState, Date.now());
+    const lateRegEndsAt = gameState ? lateRegistrationEndsAt(gameState.gameOptions) : undefined;
+    const isRegistrationClosed = isCancelled || lateRegPhase === "closed";
 
     // Get Cosmos address once
     const publicKey = useMemo(() => localStorage.getItem(STORAGE_KEYS.cosmosAddress) || undefined, []);
@@ -284,6 +291,14 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         <p className="text-red-300 text-center mb-4 text-sm" data-testid="scheduled-cancelled">
                             Cancelled: not enough players registered by the start time.
                         </p>
+                    ) : lateRegPhase === "closed" ? (
+                        <p className="text-red-300 text-center mb-4 text-sm" data-testid="late-registration-closed">
+                            Registration has closed: the tournament is under way.
+                        </p>
+                    ) : lateRegPhase === "open" ? (
+                        <p className="text-green-300 text-center mb-4 text-sm" data-testid="late-registration-open">
+                            Late registration open{hasValue(lateRegEndsAt) ? ` until ${formatStartsAt(lateRegEndsAt)}` : ""}: join with a full starting stack
+                        </p>
                     ) : (
                         scheduledPhase !== "unscheduled" &&
                         hasValue(gameOptions?.scheduledStartTime) && (
@@ -428,9 +443,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                     {/* Take Seat Button */}
                     <button
                         onClick={handleTakeSeat}
-                        disabled={isCancelled || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)}
+                        disabled={isRegistrationClosed || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)}
                         className={`w-full px-4 rounded-lg font-semibold text-white transition-all duration-300 ${isCompact ? "py-2 text-sm" : "py-3"} ${
-                            isCancelled || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)
+                            isRegistrationClosed || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)
                                 ? "bg-gray-600 cursor-not-allowed"
                                 : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105"
                         }`}

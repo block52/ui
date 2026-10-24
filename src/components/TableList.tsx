@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { formatStartsAt, scheduledSngPhase, type ScheduledSngPhase } from "../utils/scheduledSng";
+import { formatLateRegistration, formatStartsAt, scheduledSngPhase, type ScheduledSngPhase } from "../utils/scheduledSng";
 import { truncateMiddle } from "../utils/stringUtils";
 import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
@@ -14,7 +14,7 @@ import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
-import { isNullish, isEmpty } from "../utils/guards";
+import { hasContent, isNullish, isEmpty } from "../utils/guards";
 
 const PAGE_SIZE = 20;
 
@@ -66,7 +66,7 @@ const scheduledLabel = (game: GameWithFormat): string => {
     if (phase === "unscheduled" || game.scheduledStartTime === undefined) return "";
     if (phase === "cancelled") return "Cancelled: not enough players";
     if (phase === "ready") return "Starting";
-    return `Starts ${formatStartsAt(game.scheduledStartTime)} · min ${game.minPlayers}`;
+    return [`Starts ${formatStartsAt(game.scheduledStartTime)} · min ${game.minPlayers}`, formatLateRegistration(game.lateRegistrationLevels)].filter(hasContent).join(" · ");
 };
 
 const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
