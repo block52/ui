@@ -24,6 +24,13 @@ export const getFormattedMaxBetAmount = (hasBetAction: boolean, maxBet: number, 
     formatDisplayAmount(hasBetAction ? maxBet : maxRaise, isTournament);
 
 // Get the initial raise amount based on whether it's a bet or raise action and the minimum amounts
+/**
+ * Whether a BET/RAISE allows exactly one amount (min === max), as on a
+ * fixed-limit table (poker-vm#2730, ui#883): no slider or presets, just the
+ * button with that amount.
+ */
+export const hasSingleBetAmount = (minAmount: number, maxAmount: number): boolean => minAmount > 0 && minAmount === maxAmount;
+
 export const getInitialRaiseAmount = (hasBetAction: boolean, minBet: number, minRaise: number): number => {
     if (hasBetAction) return minBet > 0 ? minBet : 0;
     return minRaise > 0 ? minRaise : 0;

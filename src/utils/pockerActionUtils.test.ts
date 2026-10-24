@@ -1,5 +1,5 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -303,5 +303,16 @@ describe("pockerActionUtils", () => {
         it("hides the bar when neither SHOW nor MUCK is offered", () => {
             expect(shouldShowShowdownBar({ ...base, hasShowAction: false, hasMuckAction: false })).toBe(false);
         });
+    });
+});
+
+// ui#883: a fixed-limit BET/RAISE has exactly one amount.
+describe("hasSingleBetAmount", () => {
+    it("is true when min equals max", () => {
+        expect(hasSingleBetAmount(200, 200)).toBe(true);
+    });
+    it("is false for a range, or no amount", () => {
+        expect(hasSingleBetAmount(100, 1500)).toBe(false);
+        expect(hasSingleBetAmount(0, 0)).toBe(false);
     });
 });

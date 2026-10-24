@@ -11,6 +11,8 @@ import {
     getGameTypeMnemonic,
     toGameFormat,
     toCreatableBettingLimit,
+    creatableBettingLimits,
+    bettingLimitLabel,
     defaultBettingLimitFor,
     formatTableGameDisplay,
     toGameVariant
@@ -594,15 +596,30 @@ describe("gameFormatUtils", () => {
 });
 
 describe("table-creation betting limit (ui#768)", () => {
-    it("accepts no-limit and pot-limit", () => {
-        expect(toCreatableBettingLimit("no-limit")).toBe(BettingLimit.NO_LIMIT);
-        expect(toCreatableBettingLimit("pot-limit")).toBe(BettingLimit.POT_LIMIT);
+    it("accepts no-limit and pot-limit for either variant", () => {
+        for (const variant of [GameVariant.TEXAS_HOLDEM, GameVariant.OMAHA]) {
+            expect(toCreatableBettingLimit("no-limit", variant)).toBe(BettingLimit.NO_LIMIT);
+            expect(toCreatableBettingLimit("pot-limit", variant)).toBe(BettingLimit.POT_LIMIT);
+        }
     });
 
-    it("refuses fixed-limit, which the chain does not create yet, and junk", () => {
-        expect(toCreatableBettingLimit("fixed-limit")).toBeUndefined();
-        expect(toCreatableBettingLimit("")).toBeUndefined();
-        expect(toCreatableBettingLimit(undefined)).toBeUndefined();
+    it("accepts fixed-limit for Hold'em only (ui#883, block52/pokerchain#439)", () => {
+        expect(toCreatableBettingLimit("fixed-limit", GameVariant.TEXAS_HOLDEM)).toBe(BettingLimit.FIXED_LIMIT);
+        expect(toCreatableBettingLimit("fixed-limit", GameVariant.OMAHA)).toBeUndefined();
+        expect(creatableBettingLimits(GameVariant.TEXAS_HOLDEM)).toEqual([BettingLimit.NO_LIMIT, BettingLimit.POT_LIMIT, BettingLimit.FIXED_LIMIT]);
+        expect(creatableBettingLimits(GameVariant.OMAHA)).toEqual([BettingLimit.NO_LIMIT, BettingLimit.POT_LIMIT]);
+    });
+
+    it("refuses junk", () => {
+        expect(toCreatableBettingLimit("", GameVariant.TEXAS_HOLDEM)).toBeUndefined();
+        expect(toCreatableBettingLimit(undefined, GameVariant.TEXAS_HOLDEM)).toBeUndefined();
+        expect(toCreatableBettingLimit("PL", GameVariant.OMAHA)).toBeUndefined();
+    });
+
+    it("labels each limit for the menu", () => {
+        expect(bettingLimitLabel(BettingLimit.NO_LIMIT)).toBe("No-Limit");
+        expect(bettingLimitLabel(BettingLimit.POT_LIMIT)).toBe("Pot-Limit");
+        expect(bettingLimitLabel(BettingLimit.FIXED_LIMIT)).toBe("Fixed-Limit");
     });
 
     it("defaults Omaha to pot-limit and Hold'em to no-limit", () => {

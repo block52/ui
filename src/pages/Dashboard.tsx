@@ -30,7 +30,7 @@ import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import t
 
 // Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
-import { defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import {
@@ -879,13 +879,17 @@ const Dashboard: React.FC = () => {
                                             <select
                                                 value={modalBettingLimit}
                                                 onChange={e => {
-                                                    const limit = toCreatableBettingLimit(e.target.value);
+                                                    const limit = toCreatableBettingLimit(e.target.value, modalGameVariant);
                                                     if (limit) setModalBettingLimit(limit);
                                                 }}
+                                                data-testid="create-betting-limit"
                                                 className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
                                             >
-                                                <option value={BettingLimit.NO_LIMIT}>No-Limit</option>
-                                                <option value={BettingLimit.POT_LIMIT}>Pot-Limit</option>
+                                                {creatableBettingLimits(modalGameVariant).map(limit => (
+                                                    <option key={limit} value={limit}>
+                                                        {bettingLimitLabel(limit)}
+                                                    </option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>

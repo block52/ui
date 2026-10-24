@@ -16,7 +16,7 @@ import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
 import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX } from "../constants/blindLevels";
-import { defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
@@ -512,13 +512,16 @@ export default function TableAdminPage() {
                             <select
                                 value={bettingLimit}
                                 onChange={e => {
-                                    const limit = toCreatableBettingLimit(e.target.value);
+                                    const limit = toCreatableBettingLimit(e.target.value, gameVariant);
                                     if (limit) setBettingLimit(limit);
                                 }}
                                 className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
                             >
-                                <option value={BettingLimit.NO_LIMIT}>No-Limit</option>
-                                <option value={BettingLimit.POT_LIMIT}>Pot-Limit</option>
+                                {creatableBettingLimits(gameVariant).map(limit => (
+                                    <option key={limit} value={limit}>
+                                        {bettingLimitLabel(limit)}
+                                    </option>
+                                ))}
                             </select>
                         </div>
                         <div>

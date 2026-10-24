@@ -2,6 +2,7 @@ import React from "react";
 import { RaiseSlider } from "./RaiseSlider";
 import { PotSizedBetButtons } from "./PotSizedBetButtons";
 import type { RaiseBetControlsProps } from "./types";
+import { hasSingleBetAmount } from "../../utils/pockerActionUtils";
 
 export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     amount,
@@ -25,6 +26,11 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     maxIsAllIn,
     allowBlindMultiples
 }) => {
+    // A fixed-limit bet or raise has one amount (ui#883): the action button
+    // carries it, so there is nothing to slide or preset.
+    if (hasSingleBetAmount(minAmount, maxAmount)) {
+        return null;
+    }
     return (
         <>
             {/* Slider Row */}

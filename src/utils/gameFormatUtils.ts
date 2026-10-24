@@ -35,14 +35,27 @@ export const toGameFormat = (value: string | undefined): GameFormat | undefined 
 };
 
 /**
- * Coerce a raw betting-limit string into a BettingLimit a table can be CREATED
- * with, returning undefined for anything else. Fixed-limit is excluded: the
- * engine doesn't play it yet and the chain refuses it (poker-vm#2654).
+ * The betting limits a table of this variant can be CREATED with, in menu
+ * order. Fixed-limit is Hold'em only: the engine plays it for Hold'em
+ * (poker-vm#2730) and the chain refuses it for Omaha (block52/pokerchain#439).
  */
-export const toCreatableBettingLimit = (value: string | undefined): BettingLimit | undefined => {
-    if (value === BettingLimit.NO_LIMIT) return BettingLimit.NO_LIMIT;
-    if (value === BettingLimit.POT_LIMIT) return BettingLimit.POT_LIMIT;
-    return undefined;
+export const creatableBettingLimits = (variant: GameVariant): BettingLimit[] =>
+    variant === GameVariant.TEXAS_HOLDEM
+        ? [BettingLimit.NO_LIMIT, BettingLimit.POT_LIMIT, BettingLimit.FIXED_LIMIT]
+        : [BettingLimit.NO_LIMIT, BettingLimit.POT_LIMIT];
+
+/**
+ * Coerce a raw betting-limit string into a BettingLimit a table of this variant
+ * can be CREATED with, returning undefined for anything else (ui#883).
+ */
+export const toCreatableBettingLimit = (value: string | undefined, variant: GameVariant): BettingLimit | undefined =>
+    creatableBettingLimits(variant).find(limit => limit === value);
+
+/** The Limit menu's label for a betting limit: "No-Limit", "Pot-Limit", "Fixed-Limit". */
+export const bettingLimitLabel = (limit: BettingLimit): string => {
+    if (limit === BettingLimit.POT_LIMIT) return "Pot-Limit";
+    if (limit === BettingLimit.FIXED_LIMIT) return "Fixed-Limit";
+    return "No-Limit";
 };
 
 /**
