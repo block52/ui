@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useCallback, useMemo } from "react";
-import { localDateTimeToUnixSeconds } from "../utils/scheduledSng";
+import { localDateTimeToUnixSeconds, LATE_REGISTRATION_LEVEL_OPTIONS, lateRegistrationOptionLabel } from "../utils/scheduledSng";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
 
 import "./Dashboard.css"; // Import the CSS file with animations
@@ -60,9 +60,6 @@ const B52_ADDRESS_REGEX = /^b521[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38,}$/;
 
 /** Every single-table field the engine can pay out (poker-vm#2667). */
 const SNG_SEAT_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9];
-// Late registration choices for a tournament (poker-vm#2731): 0 = off, else the
-// number of blind levels it stays open after the start.
-const LATE_REGISTRATION_LEVEL_OPTIONS = [0, 1, 2, 3, 4, 6];
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
@@ -91,7 +88,6 @@ const Dashboard: React.FC = () => {
 
     // New game creation states
     const [showCreateGameModal, setShowCreateGameModal] = useState(false);
-    const [selectedContractAddress, setSelectedContractAddress] = useState("0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7");
     const [createGameError, setCreateGameError] = useState("");
 
     // Modal game options
@@ -207,7 +203,6 @@ const Dashboard: React.FC = () => {
         }
     }, [passwordEnabled]);
 
-    const DEFAULT_GAME_CONTRACT = "0x4c1d6ea77a2ba47dcd0771b7cde0df30a6df1bfaa7"; // Example address
 
     // Function to handle creating a new game using Cosmos blockchain
     // Paid table name (poker-vm#337): live cost preview + validation. We normalize
@@ -1001,7 +996,7 @@ const Dashboard: React.FC = () => {
                                                         >
                                                             {LATE_REGISTRATION_LEVEL_OPTIONS.map(n => (
                                                                 <option key={n} value={n}>
-                                                                    {n === 0 ? "Off: the field is fixed at the start" : `Open for the first ${n} blind level${n === 1 ? "" : "s"}`}
+                                                                    {lateRegistrationOptionLabel(n)}
                                                                 </option>
                                                             ))}
                                                         </select>
@@ -1239,27 +1234,6 @@ const Dashboard: React.FC = () => {
                                         </>
                                     )}
 
-                                    <div>
-                                        <label className="block text-white text-sm mb-1">Variant</label>
-                                        <select
-                                            value={selectedContractAddress}
-                                            onChange={e => setSelectedContractAddress(e.target.value)}
-                                            className="w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200"
-                                        >
-                                            <React.Fragment>
-                                                <option value={DEFAULT_GAME_CONTRACT}>Texas Hold'em</option>
-                                                <option value="" disabled>
-                                                    Omaha (Coming Soon)
-                                                </option>
-                                                <option value="" disabled>
-                                                    Seven Card Stud (Coming Soon)
-                                                </option>
-                                                <option value="" disabled>
-                                                    Blackjack (Coming Soon)
-                                                </option>
-                                            </React.Fragment>
-                                        </select>
-                                    </div>
 
                                     <div className="flex items-center justify-between rounded bg-gray-900 border border-gray-700 p-2 text-sm">
                                         <span className="text-gray-400">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds)</span>

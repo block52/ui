@@ -109,3 +109,11 @@ export const lateRegistrationEndsAt = (options: GameOptionsDTO): number | undefi
 /** "Late reg: 3 levels" for a table with late registration; "" otherwise. */
 export const formatLateRegistration = (levels: number | undefined): string =>
     hasValue(levels) && levels > 0 ? `Late reg: ${levels} level${levels === 1 ? "" : "s"}` : "";
+
+/** Late registration choices for a new tournament (poker-vm#2731): 0 = off,
+ * else the number of blind levels it stays open after the start. */
+export const LATE_REGISTRATION_LEVEL_OPTIONS: readonly number[] = [0, 1, 2, 3, 4, 6];
+
+/** The create form's label for a late-registration choice. */
+export const lateRegistrationOptionLabel = (levels: number): string =>
+    levels === 0 ? "Off: the field is fixed at the start" : `Open for the first ${levels} blind level${levels === 1 ? "" : "s"}`;

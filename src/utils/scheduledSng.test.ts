@@ -1,5 +1,5 @@
 import { NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase } from "./scheduledSng";
+import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase } from "./scheduledSng";
 import type { GameOptionsDTO, ResultDTO } from "@block52/poker-vm-sdk";
 
 const start = 1_700_000_000_000;
@@ -83,5 +83,17 @@ describe("late registration (poker-vm#2731)", () => {
         expect(formatLateRegistration(1)).toBe("Late reg: 1 level");
         expect(formatLateRegistration(undefined)).toBe("");
         expect(formatLateRegistration(0)).toBe("");
+    });
+});
+
+describe("late registration create choices (ui#881)", () => {
+    it("starts with off and offers whole levels", () => {
+        expect(LATE_REGISTRATION_LEVEL_OPTIONS[0]).toBe(0);
+        expect(LATE_REGISTRATION_LEVEL_OPTIONS.every(n => Number.isInteger(n) && n >= 0)).toBe(true);
+    });
+    it("labels each choice", () => {
+        expect(lateRegistrationOptionLabel(0)).toBe("Off: the field is fixed at the start");
+        expect(lateRegistrationOptionLabel(1)).toBe("Open for the first 1 blind level");
+        expect(lateRegistrationOptionLabel(3)).toBe("Open for the first 3 blind levels");
     });
 });
