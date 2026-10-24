@@ -423,6 +423,7 @@ export interface VacantSeatResponse extends BaseHookReturn {
     isUserAlreadyPlaying: boolean;
     isSeatVacant: (seatIndex: number) => boolean;
     canJoinSeat: (seatIndex: number) => boolean;
+    registrationOpen: boolean; // a newcomer may take a seat now (ui#837)
     emptySeatIndexes: number[];
     availableSeatIndexes: number[];
 }

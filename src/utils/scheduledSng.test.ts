@@ -1,6 +1,6 @@
 import { NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase } from "./scheduledSng";
-import type { GameOptionsDTO, ResultDTO } from "@block52/poker-vm-sdk";
+import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, isSeatOpenToNewPlayers, lateRegistrationOptionLabel, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase } from "./scheduledSng";
+import { GameFormat, type GameOptionsDTO, type ResultDTO } from "@block52/poker-vm-sdk";
 
 const start = 1_700_000_000_000;
 
@@ -95,5 +95,34 @@ describe("late registration create choices (ui#881)", () => {
         expect(lateRegistrationOptionLabel(0)).toBe("Off: the field is fixed at the start");
         expect(lateRegistrationOptionLabel(1)).toBe("Open for the first 1 blind level");
         expect(lateRegistrationOptionLabel(3)).toBe("Open for the first 3 blind levels");
+    });
+});
+
+describe("isSeatOpenToNewPlayers (ui#837)", () => {
+    const firstDeal = 1_700_000_000_000;
+    const opts = (extra: Partial<GameOptionsDTO> = {}): GameOptionsDTO => ({
+        minBuyIn: "1000000", maxBuyIn: "1000000", minPlayers: 2, maxPlayers: 6, smallBlind: "25", bigBlind: "50", timeout: 30,
+        blindLevelDuration: 10, scheduledStartTime: firstDeal - 60_000, sngStartTime: firstDeal, ...extra
+    });
+    const table = (extra: Partial<GameOptionsDTO> = {}, handNumber = 3, results: ResultDTO[] = []) => ({
+        gameOptions: opts(extra), results, handNumber, previousActions: [],
+        players: [{ address: "b52a", seat: 1 }, { address: "b52b", seat: 2 }] as never
+    });
+
+    it("is always open at a cash table", () => {
+        expect(isSeatOpenToNewPlayers(GameFormat.CASH, null, firstDeal)).toBe(true);
+    });
+    it("is open at a sit-and-go before it starts, unless cancelled", () => {
+        expect(isSeatOpenToNewPlayers(GameFormat.SIT_AND_GO, table({ scheduledStartTime: firstDeal + 60_000 }, 1), firstDeal)).toBe(true);
+        expect(isSeatOpenToNewPlayers(GameFormat.SIT_AND_GO, table({ scheduledStartTime: firstDeal - 20 * 60_000, minPlayers: 4 }, 1), firstDeal)).toBe(false);
+    });
+    it("is closed after the start without late registration", () => {
+        expect(isSeatOpenToNewPlayers(GameFormat.SIT_AND_GO, table(), firstDeal + 60_000)).toBe(false);
+    });
+    it("follows the late-registration window after the start", () => {
+        expect(isSeatOpenToNewPlayers(GameFormat.SIT_AND_GO, table({ lateRegistrationLevels: 2 }), firstDeal + 60_000)).toBe(true);
+        expect(isSeatOpenToNewPlayers(GameFormat.SIT_AND_GO, table({ lateRegistrationLevels: 2 }), firstDeal + 20 * 60_000)).toBe(false);
+        const paid: ResultDTO[] = [{ place: 1, playerId: "b52a", payout: "180000" }];
+        expect(isSeatOpenToNewPlayers(GameFormat.SIT_AND_GO, table({ lateRegistrationLevels: 2 }, 3, paid), firstDeal + 60_000)).toBe(false);
     });
 });
