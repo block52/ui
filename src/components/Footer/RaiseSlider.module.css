@@ -1,0 +1,101 @@
+/* Bet/raise slider (ui#890): a thin visible track inside a tall hit area with
+   a large thumb, so it's easy to grab with a mouse or a finger. The filled
+   part of the track comes from --fill (set inline from the position). */
+.slider {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1 1 auto;
+    min-width: 0;
+    height: 28px;
+    margin: 0;
+    background: transparent;
+    cursor: pointer;
+    /* Horizontal drags belong to the slider; vertical swipes still scroll. */
+    touch-action: pan-y;
+}
+
+.slider:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.slider:focus-visible {
+    outline: none;
+}
+
+.slider::-webkit-slider-runnable-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--fill);
+}
+
+.slider::-moz-range-track {
+    height: 8px;
+    border-radius: 9999px;
+    background: var(--fill);
+}
+
+.slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    margin-top: -7px;
+    border-radius: 9999px;
+    background: #64ffda;
+    border: 2px solid #0f172a;
+    box-shadow: 0 0 0 1px rgba(100, 255, 218, 0.5), 0 2px 6px rgba(0, 0, 0, 0.5);
+    transition: transform 0.1s ease;
+}
+
+.slider::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 9999px;
+    background: #64ffda;
+    border: 2px solid #0f172a;
+    box-shadow: 0 0 0 1px rgba(100, 255, 218, 0.5), 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.slider:active::-webkit-slider-thumb,
+.slider:focus-visible::-webkit-slider-thumb {
+    transform: scale(1.12);
+}
+
+/* Phones in landscape: a slimmer row, still a finger-sized thumb. */
+.compact {
+    height: 24px;
+}
+
+.compact::-webkit-slider-runnable-track {
+    height: 4px;
+}
+
+.compact::-moz-range-track {
+    height: 4px;
+}
+
+.compact::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    margin-top: -8px;
+}
+
+/* The ALL-IN tag next to the amount box when the slider is at the whole stack. */
+.allInTag {
+    border-radius: 9999px;
+    padding: 1px 6px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .slider::-webkit-slider-thumb {
+        transition: none;
+    }
+}

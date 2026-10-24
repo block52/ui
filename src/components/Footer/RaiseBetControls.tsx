@@ -9,7 +9,6 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     minAmount,
     maxAmount,
     formattedMaxAmount,
-    step,
     displayOffset,
     totalPotMicro,
     callAmountMicro,
@@ -38,13 +37,13 @@ export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
                 value={amount}
                 min={minAmount}
                 max={maxAmount}
-                step={step}
                 formattedMax={formattedMaxAmount}
                 displayOffset={displayOffset}
                 isInvalid={isInvalid}
                 disabled={disabled}
                 isMobileLandscape={isMobileLandscape}
                 isTournament={isTournament}
+                isAllIn={maxIsAllIn && amount >= maxAmount}
                 onChange={onAmountChange}
                 onIncrement={onIncrement}
                 onDecrement={onDecrement}

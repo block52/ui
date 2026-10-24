@@ -100,7 +100,8 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
             {(canRaise || canBet) && (
                 <button
                     onClick={onBetOrRaise}
-                    disabled={loading !== null || (canRaise ? isRaiseAmountInvalid : false)}
+                    // Out-of-range amounts can't be sent, for a BET as well as a RAISE (ui#890).
+                    disabled={loading !== null || isRaiseAmountInvalid}
                     className={`cursor-pointer hover:scale-105 btn-raise rounded-lg w-full border shadow-md backdrop-blur-sm transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 ${
                         isMobileLandscape ? "px-2 py-0.5 text-[10px]" : "px-2 lg:px-4 py-1.5 lg:py-2 text-xs lg:text-sm"
                     }`}
@@ -112,7 +113,8 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                         </>
                     ) : (
                         <>
-                            {canRaise ? "RAISE TO" : "BET"}{" "}
+                            {/* At the whole stack the button confirms an all-in (ui#890). */}
+                            {isAllIn ? "ALL-IN" : canRaise ? "RAISE TO" : "BET"}{" "}
                             <span className={styles.amountAccent}>{formatDisplayAmount(raiseToAmount, isTournament)}</span>
                         </>
                     )}

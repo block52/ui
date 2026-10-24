@@ -713,7 +713,6 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                         minAmount={hasBetAction ? minBet : minRaise}
                                         maxAmount={hasBetAction ? maxBet : maxRaise}
                                         formattedMaxAmount={formattedMaxBetAmount}
-                                        step={getStep()}
                                         displayOffset={
                                             hasRaiseAction
                                                 ? getRaiseToAmount(
