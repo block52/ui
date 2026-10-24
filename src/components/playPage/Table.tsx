@@ -123,6 +123,7 @@ import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
 import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
@@ -702,8 +703,20 @@ const GeometryToggleButton: React.FC = () => {
     );
 };
 
-const Table = React.memo(() => {
-    const { id } = useParams<{ id: string }>();
+interface TableProps {
+    /**
+     * The table to show. In the multi-table workspace (ui#55) each live instance is
+     * given its id explicitly; left undefined the table falls back to the route's
+     * :id, preserving the original single-table behaviour.
+     */
+    tableId?: string;
+}
+
+const Table = React.memo(({ tableId }: TableProps = {}) => {
+    const { id: routeId } = useParams<{ id: string }>();
+    const id = tableId ?? routeId;
+    // This table's logical track (ui#834) — read by submission decisions.
+    const logicalTrack = useLogicalTrack();
     // Game state context and subscription
     const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
@@ -1268,9 +1281,9 @@ const Table = React.memo(() => {
         if (!id) {
             throw new Error("Cannot claim: missing table ID");
         }
-        await claimWinnings(id, currentNetwork);
+        await claimWinnings(id, currentNetwork, logicalTrack.get());
         fetchAccountBalance();
-    }, [id, currentNetwork, fetchAccountBalance]);
+    }, [id, currentNetwork, fetchAccountBalance, logicalTrack]);
 
     // Show error page if connection/general error occurred
     // Do NOT show the error page when the user has no wallet — the overlay handles that case.

@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { startNewHand } from "./startNewHand";
-import { getLatestGameState } from "./transportAction";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { getAutoNewHandEnabled } from "../../utils/urlParams";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
@@ -34,7 +34,7 @@ import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
  *
  * Because dealing a new hand is an action SUBMISSION, its trigger inputs
  * (`hasNewHandAction` / `isUsersTurn`) are derived from the LOGICAL track
- * (getLatestGameState — the freshest ingested snapshot), NOT the paced rendered
+ * (this table's freshest ingested snapshot), NOT the paced rendered
  * state. This is the plan's two-track invariant: submission decisions must never
  * read paced state, or a delayed rendered snapshot would submit against a stale
  * action index. The committed bus item (useGameEventsContext) is used only as the
@@ -84,9 +84,11 @@ export function useAutoNewHand(
     );
 
     // Reactive tick: re-run the deal check on every committed bus item. The item
-    // itself is NOT read for the decision — getLatestGameState() (logical track)
-    // is — it is only the signal that a new frame has arrived.
+    // itself is NOT read for the decision — this table's logical track is — it
+    // is only the signal that a new frame has arrived.
     const { latestItem } = useGameEventsContext();
+    // This table's logical track (ui#834), not another mounted table's.
+    const track = useLogicalTrack();
 
     // Keep the ref up-to-date when the reactive `enabled` prop changes
     useEffect(() => {
@@ -140,7 +142,7 @@ export function useAutoNewHand(
         // `latestItem` is the reactive tick only; the decision reads the LOGICAL
         // track so the deal is never delayed by rendered pacing.
         void latestItem;
-        const snapshot = getLatestGameState();
+        const snapshot = track.get();
         const localPlayer = snapshot?.players?.find(player => player.address?.toLowerCase() === localAddress);
         const hasNewHandAction = !!localPlayer?.legalActions?.some(action => action.action === NonPlayerActionType.NEW_HAND);
         const isUsersTurn = !!localPlayer && snapshot?.nextToAct === localPlayer.seat;
@@ -170,7 +172,7 @@ export function useAutoNewHand(
             rearmCountRef.current = 0;
             setIsDealingNewHand(false);
         }
-    }, [latestItem, localAddress, triggerAutoNewHand, rearmToken]);
+    }, [latestItem, localAddress, triggerAutoNewHand, rearmToken, track]);
 
     return { isDealingNewHand };
 }

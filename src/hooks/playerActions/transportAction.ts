@@ -6,10 +6,9 @@
  * index is assigned by the chain at execution from committed state
  * (pokerchain#273), so the client never supplies one.
  *
- * These helpers are plain async functions (no React context). The latest
- * game-state snapshot is published by GameStateContext via setLatestGameState()
- * for callers that need to resolve state off the React tree (join seat
- * resolution, SNG finishing order).
+ * These helpers are plain async functions (no React context). Each table's
+ * latest game-state snapshot (its logical track, below) is published by its
+ * GameStateProvider and read through useLogicalTrack().
  */
 import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { TrackMeta } from "../../bus/types";
@@ -18,8 +17,6 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
 import { getSigningClient } from "../../utils/cosmos/client";
 import { hasElements } from "../../utils/guards";
-
-let latestGameState: TexasHoldemStateDTO | undefined;
 
 /**
  * Provenance of a logical-track snapshot (ui#609): the relay's `optimistic`
@@ -30,26 +27,63 @@ let latestGameState: TexasHoldemStateDTO | undefined;
  */
 export type LatestGameStateMeta = TrackMeta;
 
-/** Logical-track observers, notified on every snapshot published below. */
-type LatestGameStateListener = (gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta) => void;
-const latestGameStateListeners = new Set<LatestGameStateListener>();
+/** Logical-track observers, notified on every snapshot published. */
+export type LatestGameStateListener = (gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta) => void;
 
-/** Published by the bus at ingest on every state update (and by the provider on reset). */
-export function setLatestGameState(gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta): void {
-    latestGameState = gameState;
-    latestGameStateListeners.forEach(listener => listener(gameState, meta));
+/**
+ * The LOGICAL track for one table: the freshest ingested snapshot, published by
+ * that table's GameMessageBus at ingest, and read by every submission decision
+ * (the action-submit controller, auto-new-hand, call-the-clock, join seat
+ * resolution, SNG claim).
+ *
+ * One per GameStateProvider (ui#834). It used to be a single module-level
+ * variable, which was fine with one table but, with several tables mounted
+ * (multi-tabling, ui#55), let whichever table ingested last overwrite the state
+ * every other table's submissions and auto-actions read.
+ */
+export interface LogicalTrack {
+    /** Latest snapshot, or undefined before the first state / after a reset. */
+    get(): TexasHoldemStateDTO | undefined;
+    /** Published by the bus at ingest on every state update (and by the provider on reset). */
+    set(gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta): void;
+    /** Subscribe to every published snapshot. Returns an unsubscribe function. */
+    subscribe(listener: LatestGameStateListener): () => void;
+}
+
+export function createLogicalTrack(): LogicalTrack {
+    let latest: TexasHoldemStateDTO | undefined;
+    const listeners = new Set<LatestGameStateListener>();
+    return {
+        get: () => latest,
+        set: (gameState, meta) => {
+            latest = gameState;
+            listeners.forEach(listener => listener(gameState, meta));
+        },
+        subscribe: listener => {
+            listeners.add(listener);
+            return () => {
+                listeners.delete(listener);
+            };
+        }
+    };
 }
 
 /**
- * Subscribe to the logical track (the immediate-at-ingest snapshot the bus
- * publishes). Returns an unsubscribe function. Used by the outbound action
- * submission controller to read fresh confirmation signals without polling.
+ * The default track: what a reader gets with no GameStateProvider above it
+ * (LogicalTrackContext's default), and what the module-level helpers below use.
+ * Every GameStateProvider creates its OWN track, so nothing in a live table
+ * reads or writes this one.
  */
+export const defaultLogicalTrack: LogicalTrack = createLogicalTrack();
+
+/** Publish to the default track. Live tables publish to their own track instead. */
+export function setLatestGameState(gameState: TexasHoldemStateDTO | undefined, meta: LatestGameStateMeta): void {
+    defaultLogicalTrack.set(gameState, meta);
+}
+
+/** Subscribe to the default track. Live tables subscribe to their own track instead. */
 export function subscribeLatestGameState(listener: LatestGameStateListener): () => void {
-    latestGameStateListeners.add(listener);
-    return () => {
-        latestGameStateListeners.delete(listener);
-    };
+    return defaultLogicalTrack.subscribe(listener);
 }
 
 /**
@@ -79,9 +113,9 @@ export function nextActionIndex(gameState: TexasHoldemStateDTO | undefined): num
     return (gameState?.actionCount ?? 0) + 1;
 }
 
-/** Latest snapshot, for callers that resolve their own index (join). */
+/** Latest snapshot on the default track. Live tables read their own track (useLogicalTrack). */
 export function getLatestGameState(): TexasHoldemStateDTO | undefined {
-    return latestGameState;
+    return defaultLogicalTrack.get();
 }
 
 /**

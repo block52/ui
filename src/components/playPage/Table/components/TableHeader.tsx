@@ -22,6 +22,7 @@ import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/pok
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import styles from "./TableHeader.module.css";
+import { useTableHeaderSlot } from "../../../../context/TableHeaderSlotContext";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
 // itself now lives in utils/blindStructure so the Blinds panel can share it.
@@ -100,6 +101,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     handleOpenReplay,
     replayHand = null,
 }) => {
+    const headerSlot = useTableHeaderSlot();
     // Owned here rather than passed down from Table. The hook ticks once a
     // second to drive the blind countdown, and TableHeader is its only consumer
     // — calling it in Table meant that tick re-rendered the entire play-page
@@ -307,6 +309,10 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         </div>
                     </div>
                 </div>
+
+                {/* Header slot (ui#55): the multi-tabling pill bar sits here, in the
+                    row's free middle, so it never covers a header control. */}
+                {headerSlot && <div className="flex flex-1 min-w-0 items-center justify-end z-20 px-2">{headerSlot}</div>}
 
                 {/* Right Section */}
                 <div className="flex items-center z-10 mr-1 sm:mr-3">
