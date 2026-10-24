@@ -33,7 +33,7 @@ import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
 import { useCallClock } from "../../hooks/playerActions/useCallClock";
 import { clockCallOpportunity } from "../../utils/turnClock";
-import { getLatestGameState } from "../../hooks/playerActions/transportAction";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { toast } from "react-toastify";
 import { usePreAction } from "../../hooks/playerActions/usePreAction";
@@ -250,15 +250,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // for them. Keeps a dropped connection from locking the table. Setting /
     // ?callclock=false.
     //
-    // A submission decision, so it reads the LOGICAL track (getLatestGameState),
+    // A submission decision, so it reads this table's LOGICAL track,
     // never the paced rendered one: a showdown hold or a backlog would anchor
     // the deadline on an older action and fire early. `latestItem` is only the
     // tick that says a new frame arrived.
     const { latestItem } = useGameEventsContext();
+    const track = useLogicalTrack();
     const clockCall = useMemo(() => {
         void latestItem;
-        return clockCallOpportunity(getLatestGameState(), userAddress);
-    }, [latestItem, userAddress]);
+        return clockCallOpportunity(track.get(), userAddress);
+    }, [latestItem, userAddress, track]);
     const stalledSeat = clockCall?.seat;
     // Only a toast: no balance changed and the player did nothing, so the
     // transaction popup and balance refetch (onTransactionSubmitted) stay quiet.
