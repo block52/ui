@@ -20,6 +20,8 @@ const LS_KEY_CALL_CLOCK = "setting_callclock";
 const LS_KEY_TURN_SOUND = "setting_turnsound";
 const LS_KEY_PLAYER_ACTION_SOUNDS = "setting_playeractionsounds";
 const LS_KEY_SEAT_AT_BOTTOM = "setting_seatatbottom";
+const LS_KEY_STACKS_BB_CASH = "setting_stacksbbcash";
+const LS_KEY_STACKS_BB_TOURNAMENT = "setting_stacksbbtournament";
 const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
 const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
 const LS_KEY_WIN_CELEBRATION = "setting_wincelebration";
@@ -45,6 +47,10 @@ export interface GameSettings {
     turnNotificationSound: boolean;
     playerActionSounds: boolean;
     seatAtBottom: boolean;
+    // Show every stack in big blinds instead of $ (cash) / chips (tournaments),
+    // chosen separately per format (ui#895). Both OFF by default.
+    stacksInBBCash: boolean;
+    stacksInBBTournament: boolean;
     // When OFF (default), taking a seat auto-sits-in (dealt in next hand). When ON,
     // the sit-in method radios are shown so the player chooses (ui#550/#551).
     sitInOptions: boolean;
@@ -73,6 +79,8 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleTurnNotificationSound: () => void;
     togglePlayerActionSounds: () => void;
     toggleSeatAtBottom: () => void;
+    toggleStacksInBBCash: () => void;
+    toggleStacksInBBTournament: () => void;
     toggleSitInOptions: () => void;
     togglePreSelectCheck: () => void;
     toggleWinCelebration: () => void;
@@ -109,6 +117,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [seatAtBottom, setSeatAtBottom] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_SEAT_AT_BOTTOM, true)
     );
+    const [stacksInBBCash, setStacksInBBCash] = useState<boolean>(() => readBoolSetting(LS_KEY_STACKS_BB_CASH, false));
+    const [stacksInBBTournament, setStacksInBBTournament] = useState<boolean>(() => readBoolSetting(LS_KEY_STACKS_BB_TOURNAMENT, false));
     const [sitInOptions, setSitInOptions] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_SITIN_OPTIONS, false)
     );
@@ -194,6 +204,22 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const toggleStacksInBBCash = useCallback(() => {
+        setStacksInBBCash(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_STACKS_BB_CASH, String(next));
+            return next;
+        });
+    }, []);
+
+    const toggleStacksInBBTournament = useCallback(() => {
+        setStacksInBBTournament(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_STACKS_BB_TOURNAMENT, String(next));
+            return next;
+        });
+    }, []);
+
     const toggleSitInOptions = useCallback(() => {
         setSitInOptions(prev => {
             const next = !prev;
@@ -237,6 +263,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             turnNotificationSound,
             playerActionSounds,
             seatAtBottom,
+            stacksInBBCash,
+            stacksInBBTournament,
             sitInOptions,
             preSelectCheck,
             winCelebration,
@@ -250,6 +278,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
             toggleSeatAtBottom,
+            toggleStacksInBBCash,
+            toggleStacksInBBTournament,
             toggleSitInOptions,
             togglePreSelectCheck,
             toggleWinCelebration,
@@ -265,6 +295,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             turnNotificationSound,
             playerActionSounds,
             seatAtBottom,
+            stacksInBBCash,
+            stacksInBBTournament,
             sitInOptions,
             preSelectCheck,
             winCelebration,
@@ -277,6 +309,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleTurnNotificationSound,
             togglePlayerActionSounds,
             toggleSeatAtBottom,
+            toggleStacksInBBCash,
+            toggleStacksInBBTournament,
             toggleSitInOptions,
             togglePreSelectCheck,
             toggleWinCelebration,
@@ -285,6 +319,16 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
 
     return <GameSettingsContext.Provider value={value}>{children}</GameSettingsContext.Provider>;
+};
+
+/**
+ * Whether stacks show in big blinds for a format (ui#895). Safe outside a
+ * GameSettingsProvider (e.g. a component test), where it's off.
+ */
+export const useStacksInBigBlinds = (isTournament: boolean): boolean => {
+    const context = useContext(GameSettingsContext);
+    if (!context) return false;
+    return isTournament ? context.stacksInBBTournament : context.stacksInBBCash;
 };
 
 export const useGameSettings = (): GameSettingsContextValue => {

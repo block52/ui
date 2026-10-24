@@ -52,6 +52,8 @@ const SettingsTab: React.FC = () => {
     const {
         turnNotificationSound,
         playerActionSounds,
+        stacksInBBCash,
+        stacksInBBTournament,
         autoMuck,
         callClock,
         sitInOptions,
@@ -60,6 +62,8 @@ const SettingsTab: React.FC = () => {
         potAsChips,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
+        toggleStacksInBBCash,
+        toggleStacksInBBTournament,
         toggleAutoMuck,
         toggleCallClock,
         toggleSitInOptions,
@@ -81,6 +85,18 @@ const SettingsTab: React.FC = () => {
                 description="Play sounds when players perform actions such as bet, raise, call, fold, and check."
                 checked={playerActionSounds}
                 onToggle={togglePlayerActionSounds}
+            />
+            <ToggleRow
+                label="Stacks in Big Blinds — Cash Games"
+                description="Show every stack in big blinds (e.g. 45.5 BB) instead of dollars at cash tables."
+                checked={stacksInBBCash}
+                onToggle={toggleStacksInBBCash}
+            />
+            <ToggleRow
+                label="Stacks in Big Blinds — Tournaments"
+                description="Show every stack in big blinds (e.g. 30 BB) instead of chips in Sit & Gos and tournaments. Uses the current level's big blind."
+                checked={stacksInBBTournament}
+                onToggle={toggleStacksInBBTournament}
             />
             <ToggleRow
                 label="Win Celebration"

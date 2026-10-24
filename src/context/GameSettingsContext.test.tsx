@@ -1,6 +1,6 @@
 import React from "react";
 import { act, renderHook } from "@testing-library/react";
-import { GameSettingsProvider, useGameSettings } from "./GameSettingsContext";
+import { GameSettingsProvider, useGameSettings, useStacksInBigBlinds } from "./GameSettingsContext";
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => <GameSettingsProvider>{children}</GameSettingsProvider>;
 
@@ -59,5 +59,39 @@ describe("GameSettingsContext — pot as chips (ui#772)", () => {
         localStorage.setItem("setting_potaschips", "true");
         const { result } = renderHook(() => useGameSettings(), { wrapper });
         expect(result.current.potAsChips).toBe(true);
+    });
+});
+
+describe("GameSettingsContext — stacks in big blinds (ui#895)", () => {
+    beforeEach(() => {
+        localStorage.removeItem("setting_stacksbbcash");
+        localStorage.removeItem("setting_stacksbbtournament");
+    });
+
+    it("is off by default for both formats", () => {
+        const { result } = renderHook(() => ({ cash: useStacksInBigBlinds(false), tournament: useStacksInBigBlinds(true) }), { wrapper });
+        expect(result.current).toEqual({ cash: false, tournament: false });
+    });
+
+    it("each format has its own switch, and the choice is remembered", () => {
+        const { result } = renderHook(
+            () => ({ settings: useGameSettings(), cash: useStacksInBigBlinds(false), tournament: useStacksInBigBlinds(true) }),
+            { wrapper }
+        );
+        act(() => result.current.settings.toggleStacksInBBTournament());
+        expect(result.current.tournament).toBe(true);
+        expect(result.current.cash).toBe(false);
+        expect(localStorage.getItem("setting_stacksbbtournament")).toBe("true");
+
+        act(() => result.current.settings.toggleStacksInBBCash());
+        expect(result.current.cash).toBe(true);
+
+        const { result: reloaded } = renderHook(() => ({ cash: useStacksInBigBlinds(false), tournament: useStacksInBigBlinds(true) }), { wrapper });
+        expect(reloaded.current).toEqual({ cash: true, tournament: true });
+    });
+
+    it("is off outside the settings provider", () => {
+        const { result } = renderHook(() => useStacksInBigBlinds(true));
+        expect(result.current).toBe(false);
     });
 });
