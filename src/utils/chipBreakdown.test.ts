@@ -1,4 +1,5 @@
 import { decomposeAmount, ChipStackEntry, parseCustomAmounts, chipColorClass } from "./chipBreakdown";
+import { CHIP_DENOMINATIONS, TOURNAMENT_CHIP_DENOMINATIONS, getChipSet } from "../constants/chips";
 
 /**
  * Helper: extract just the relevant fields for assertions.
@@ -90,18 +91,18 @@ describe("decomposeAmount", () => {
     // =====================================================================
     describe("exact single denomination", () => {
         it.each([
-            [1, "white", "marble/1chip.webp"],
-            [5, "red", "marble/5chip.webp"],
-            [25, "green", "marble/25chip.webp"],
-            [100, "black", "marble/100chip.webp"],
-            [500, "purple", "marble/500chip.webp"],
-            [1000, "yellow", "marble/1000chip.webp"],
-            [5000, "orange", "marble/5000chip.webp"],
-            [25000, "blue", "marble/25000chip.webp"],
-            [100000, "pink", "marble/100000chip.webp"],
-            [250000, "striped blue/orange", "marble/250000chip.webp"],
-            [1000000, "gold", "marble/1000000chip.webp"],
-            [5000000, "platinum", "marble/5000000chip.webp"],
+            [1, "white", "marble-pearl/cash/1chip.webp"],
+            [5, "red", "marble-pearl/cash/5chip.webp"],
+            [25, "green", "marble-pearl/cash/25chip.webp"],
+            [100, "black", "marble-pearl/cash/100chip.webp"],
+            [500, "purple", "marble-pearl/cash/500chip.webp"],
+            [1000, "yellow", "marble-pearl/cash/1000chip.webp"],
+            [5000, "orange", "marble-pearl/cash/5000chip.webp"],
+            [25000, "blue", "marble-pearl/cash/25000chip.webp"],
+            [100000, "pink", "marble-pearl/cash/100000chip.webp"],
+            [250000, "striped blue/orange", "marble-pearl/cash/250000chip.webp"],
+            [1000000, "gold", "marble-pearl/cash/1000000chip.webp"],
+            [5000000, "platinum", "marble-pearl/cash/5000000chip.webp"],
         ])("$%i → 1 %s chip (%s)", (amount, color, file) => {
             const result = decomposeAmount(amount);
             expect(result).toHaveLength(1);
@@ -536,16 +537,86 @@ describe("decomposeAmount", () => {
     });
 
     // =====================================================================
+    // TOURNAMENT SET (ui#842): point chips, no currency, no fractional chips
+    // =====================================================================
+    describe("tournament chip set", () => {
+        const t = (amount: number) => decomposeAmount(amount, TOURNAMENT_CHIP_DENOMINATIONS);
+
+        it("has the twelve point chips 1 … 5M, largest first, with the dollar chips' colours", () => {
+            expect(TOURNAMENT_CHIP_DENOMINATIONS.map(d => d.value)).toEqual([
+                5000000, 1000000, 250000, 100000, 25000, 5000, 1000, 500, 100, 25, 5, 1
+            ]);
+            for (const d of TOURNAMENT_CHIP_DENOMINATIONS) {
+                const cash = CHIP_DENOMINATIONS.find(c => c.value === d.value)!;
+                expect(d.color).toBe(cash.color);
+                expect(d.file).toBe(cash.file.replace("/cash/", "/tournament/"));
+            }
+        });
+
+        it("makes exact change for an arbitrary bet from the tournament folder", () => {
+            const result = t(65);
+            expect(result.map(s => [s.value, s.count])).toEqual([[25, 2], [5, 3]]);
+            expect(result.every(s => s.file.startsWith("marble-pearl/tournament/"))).toBe(true);
+        });
+
+        it("never uses a cent chip", () => {
+            for (const amount of [0, 1, 7, 31, 1500, 20000, 5000000]) {
+                expect(t(amount).every(s => s.file.startsWith("marble-pearl/tournament/") && s.value >= 1)).toBe(true);
+            }
+        });
+
+        it("falls back to a single 1 chip for zero", () => {
+            const [only, ...rest] = t(0);
+            expect(rest).toHaveLength(0);
+            expect(only.value).toBe(1);
+            expect(only.file).toBe("marble-pearl/tournament/1chip.webp");
+        });
+
+        it("cash amounts still default to the cash set", () => {
+            expect(decomposeAmount(0.25)[0].file).toBe("marble-pearl/cash/25cent.webp");
+        });
+    });
+
+    // =====================================================================
+    // CHIP STYLES (ui#842): marble (default) or flat notched, same breakdown
+    // =====================================================================
+    describe("chip styles", () => {
+        it("defaults to the marble set", () => {
+            expect(CHIP_DENOMINATIONS).toBe(getChipSet("marble", false));
+            expect(TOURNAMENT_CHIP_DENOMINATIONS).toBe(getChipSet("marble", true));
+        });
+
+        it("the notched style uses the SVG folders with the same values and colours", () => {
+            for (const tournament of [false, true]) {
+                const marble = getChipSet("marble", tournament);
+                const notched = getChipSet("notched", tournament);
+                const set = tournament ? "tournament" : "cash";
+                expect(notched.map(d => [d.value, d.color])).toEqual(marble.map(d => [d.value, d.color]));
+                notched.forEach((d, i) => {
+                    expect(d.file).toBe(marble[i].file.replace(`marble-pearl/${set}/`, `notched/${set}/`).replace(/\.webp$/, ".svg"));
+                });
+            }
+        });
+
+        it("the style changes only the images, not the breakdown", () => {
+            const marble = decomposeAmount(131.31, getChipSet("marble", false));
+            const notched = decomposeAmount(131.31, getChipSet("notched", false));
+            expect(notched.map(s => [s.value, s.count])).toEqual(marble.map(s => [s.value, s.count]));
+            expect(notched.every(s => s.file.startsWith("notched/cash/") && s.file.endsWith(".svg"))).toBe(true);
+        });
+    });
+
+    // =====================================================================
     // FILE REFERENCES (ensure correct image mapping)
     // =====================================================================
     describe("chip image file mapping", () => {
-        it("all results reference valid marble chip image files", () => {
+        it("all results reference valid marble cash chip image files", () => {
             const validFiles = [
-                "marble/1chip.webp", "marble/5chip.webp", "marble/25chip.webp", "marble/100chip.webp",
-                "marble/500chip.webp", "marble/1000chip.webp", "marble/5000chip.webp",
-                "marble/25000chip.webp", "marble/100000chip.webp", "marble/250000chip.webp",
-                "marble/1000000chip.webp", "marble/5000000chip.webp",
-                "marble/1cent.webp", "marble/5cent.webp", "marble/10cent.webp", "marble/25cent.webp", "marble/50cent.webp",
+                "marble-pearl/cash/1chip.webp", "marble-pearl/cash/5chip.webp", "marble-pearl/cash/25chip.webp", "marble-pearl/cash/100chip.webp",
+                "marble-pearl/cash/500chip.webp", "marble-pearl/cash/1000chip.webp", "marble-pearl/cash/5000chip.webp",
+                "marble-pearl/cash/25000chip.webp", "marble-pearl/cash/100000chip.webp", "marble-pearl/cash/250000chip.webp",
+                "marble-pearl/cash/1000000chip.webp", "marble-pearl/cash/5000000chip.webp",
+                "marble-pearl/cash/1cent.webp", "marble-pearl/cash/5cent.webp", "marble-pearl/cash/10cent.webp", "marble-pearl/cash/25cent.webp", "marble-pearl/cash/50cent.webp",
             ];
 
             // Test a range of amounts

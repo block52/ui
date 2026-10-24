@@ -2,6 +2,8 @@ import React from "react";
 import { formatUSDCToSimpleDollars, formatForSitAndGo, convertUSDCToNumber } from "../../../utils/numberUtils";
 import { decomposeAmount } from "../../../utils/chipBreakdown";
 import { getChipImageUrl } from "../../../utils/cardImages";
+import { getChipSet } from "../../../constants/chips";
+import { useChipStyle } from "../../../context/GameSettingsContext";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */
 const STACK_OFFSET_Y = 4;
@@ -91,7 +93,10 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament }) => {
         ? Number(amountStr)
         : convertUSDCToNumber(amountStr);
 
-    const allStacks = decomposeAmount(dollarAmount);
+    // Cash games show $/¢ chips; SNG/tournaments show point chips, in the style
+    // chosen in Settings (marble by default, or flat notched) (ui#842).
+    const chipStyle = useChipStyle();
+    const allStacks = decomposeAmount(dollarAmount, getChipSet(chipStyle, !!isTournament));
 
     const isMobile = window.innerWidth <= 768 || window.innerHeight <= 500;
     const chipSize = isMobile ? CHIP_SIZE_MOBILE : CHIP_SIZE;
@@ -130,7 +135,7 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament }) => {
                         <img
                             key={`s${si}-c${ci}`}
                             src={getChipImageUrl(stack.file)}
-                            alt={`$${stack.value} chip`}
+                            alt={isTournament ? `${stack.value} chip` : `$${stack.value} chip`}
                             style={{
                                 position: "absolute",
                                 left: `${pos.x}px`,

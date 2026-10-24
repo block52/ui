@@ -9,6 +9,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
+import { findChipStyle } from "../config/chipSets";
 import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled, getCallClockEnabled } from "../utils/urlParams";
 
 const LS_KEY_AUTO_DEAL = "setting_autodeal";
@@ -24,6 +25,7 @@ const LS_KEY_SITIN_OPTIONS = "setting_sitinoptions";
 const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
 const LS_KEY_WIN_CELEBRATION = "setting_wincelebration";
 const LS_KEY_POT_AS_CHIPS = "setting_potaschips";
+const LS_KEY_CHIP_STYLE = "setting_chipstyle";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -61,6 +63,11 @@ export interface GameSettings {
     // shows as a chip stack + amount pill with a POT caption, matching the player
     // bets on the table (ui#772).
     potAsChips: boolean;
+    // Which chip look to draw: an id from config/chipSets.ts (ui#842). Defaults to
+    // the photoreal marble set; "notched" is the flat set, sharpest at small
+    // sizes. Either way cash games show $/¢ chips and SNG/tournaments show point
+    // chips.
+    chipStyle: string;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -77,6 +84,7 @@ export interface GameSettingsContextValue extends GameSettings {
     togglePreSelectCheck: () => void;
     toggleWinCelebration: () => void;
     togglePotAsChips: () => void;
+    setChipStyle: (id: string) => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue | null>(null);
@@ -121,6 +129,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     const [potAsChips, setPotAsChips] = useState<boolean>(() =>
         readBoolSetting(LS_KEY_POT_AS_CHIPS, false)
     );
+    // An unknown or retired id falls back to the configured default.
+    const [chipStyle, setChipStyleState] = useState<string>(() => findChipStyle(localStorage.getItem(LS_KEY_CHIP_STYLE)).id);
 
     const toggleAutoDeal = useCallback(() => {
         setAutoDeal(prev => {
@@ -226,6 +236,12 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         });
     }, []);
 
+    const setChipStyle = useCallback((id: string) => {
+        const next = findChipStyle(id).id;
+        localStorage.setItem(LS_KEY_CHIP_STYLE, next);
+        setChipStyleState(next);
+    }, []);
+
     const value = useMemo<GameSettingsContextValue>(
         () => ({
             autoDeal,
@@ -241,6 +257,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             preSelectCheck,
             winCelebration,
             potAsChips,
+            chipStyle,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -253,7 +270,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleSitInOptions,
             togglePreSelectCheck,
             toggleWinCelebration,
-            togglePotAsChips
+            togglePotAsChips,
+            setChipStyle
         }),
         [
             autoDeal,
@@ -269,6 +287,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             preSelectCheck,
             winCelebration,
             potAsChips,
+            chipStyle,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -280,11 +299,22 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             toggleSitInOptions,
             togglePreSelectCheck,
             toggleWinCelebration,
-            togglePotAsChips
+            togglePotAsChips,
+            setChipStyle
         ]
     );
 
     return <GameSettingsContext.Provider value={value}>{children}</GameSettingsContext.Provider>;
+};
+
+/**
+ * Which chip look to draw: a style id from config/chipSets.ts (ui#842). Safe
+ * outside a GameSettingsProvider (e.g. a standalone chip preview), where it falls
+ * back to the configured default.
+ */
+export const useChipStyle = (): string => {
+    const context = useContext(GameSettingsContext);
+    return context?.chipStyle ?? findChipStyle(null).id;
 };
 
 export const useGameSettings = (): GameSettingsContextValue => {

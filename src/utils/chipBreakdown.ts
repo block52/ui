@@ -1,4 +1,4 @@
-import { CHIP_DENOMINATIONS, MAX_STACKS_PER_GROUP, MAX_CHIPS_PER_STACK } from "../constants/chips";
+import { CHIP_DENOMINATIONS, MAX_STACKS_PER_GROUP, MAX_CHIPS_PER_STACK, type ChipDenomination } from "../constants/chips";
 
 /**
  * chipBreakdown.ts — Poker Chip Denomination Decomposition
@@ -71,13 +71,13 @@ import { CHIP_DENOMINATIONS, MAX_STACKS_PER_GROUP, MAX_CHIPS_PER_STACK } from ".
  * Represents one vertical stack of same-colored chips.
  *
  * Example: For $312, one entry might be:
- *   { value: 100, file: "marble/100chip.webp", color: "black", count: 3, visibleCount: 3 }
+ *   { value: 100, file: "notched/cash/100chip.svg", color: "black", count: 3, visibleCount: 3 }
  *   This means "3 black ($100) chips stacked vertically"
  */
 export interface ChipStackEntry {
     /** Dollar value of this denomination (e.g. 25) */
     value: number;
-    /** Image path under the CDN chips folder (e.g. "marble/25chip.webp") */
+    /** Image path under the CDN chips folder (e.g. "notched/cash/25chip.svg") */
     file: string;
     /** Visual color label for debugging and tests */
     color: string;
@@ -103,6 +103,9 @@ export interface ChipStackEntry {
  *
  * @param dollarAmount Dollar value (not USDC micro-units). Pass the result
  *                     of formatUSDCToSimpleDollars() or similar conversion.
+ *                     For tournaments, the chip count.
+ * @param denominations The chip set, largest first: CHIP_DENOMINATIONS (cash,
+ *                     the default) or TOURNAMENT_CHIP_DENOMINATIONS (ui#842).
  * @returns Array of ChipStackEntry, highest denomination first.
  *          Always returns at least one entry (minimum: 1 white chip).
  *
@@ -111,13 +114,14 @@ export interface ChipStackEntry {
  *   decomposeAmount(150)  → [{ $100, black, 1 }, { $25, green, 2 }]
  *   decomposeAmount(0.50) → [{ $1, white, 1 }]  // fallback
  */
-export function decomposeAmount(dollarAmount: number): ChipStackEntry[] {
+export function decomposeAmount(dollarAmount: number, denominations: ChipDenomination[] = CHIP_DENOMINATIONS): ChipStackEntry[] {
     // Work in cents for full accuracy
     const totalCents = Math.round(dollarAmount * 100);
 
     if (totalCents <= 0) {
-        // Fallback: show 1¢ chip for zero or negative
-        const fallback = CHIP_DENOMINATIONS.find(d => d.value === 0.01)!;
+        // Fallback: show the smallest chip in the set (1¢ for cash, 1 for
+        // tournaments) for zero or negative
+        const fallback = denominations[denominations.length - 1];
         return [{
             value: fallback.value,
             file: fallback.file,
@@ -131,7 +135,7 @@ export function decomposeAmount(dollarAmount: number): ChipStackEntry[] {
     const stacks: ChipStackEntry[] = [];
 
     // Greedy: take as many of each denomination as possible, largest first.
-    for (const denom of CHIP_DENOMINATIONS) {
+    for (const denom of denominations) {
         const denomCents = Math.round(denom.value * 100);
         if (remainder < denomCents) continue;
         const count = Math.floor(remainder / denomCents);

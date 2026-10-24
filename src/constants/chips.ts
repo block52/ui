@@ -1,25 +1,14 @@
 /**
- * Poker chip denominations and their associated chip images.
+ * Poker chip denominations and their images.
  *
- * Each entry maps a dollar value threshold to the chip image file.
- * Images are the marble set on the cards CDN (chips/marble/*.webp, rendered in Blender; see ui#776).
- * Sorted descending so the first match ≥ threshold wins.
- * The $1 chip also covers any amount less than $1.
- *
- * Visual colors (for reference — actual colours come from the images):
- *   $1      = white
- *   $5      = red
- *   $25     = green
- *   $100    = black
- *   $500    = purple
- *   $1000   = yellow
- *   $5000   = orange
- *   $25000  = blue
- *   $100000 = pink
- *   $250000 = striped blue/orange
- *   $1000000 = gold
- *   $5000000 = platinum
+ * The chip looks and denominations are configured in config/chipSets.ts
+ * (ui#842); this module turns them into the per-style cash and tournament lists
+ * the chip breakdown walks, sorted descending so the first match ≥ threshold
+ * wins. Cash sets carry $ on dollars and ¢ on cents; tournament sets are points
+ * with no currency and no fractional chips.
  */
+
+import { CHIP_DENOMINATION_CONFIG, CHIP_STYLES, DEFAULT_CHIP_STYLE_ID, findChipStyle, type ChipStyleConfig } from "../config/chipSets";
 
 export interface ChipDenomination {
     value: number;
@@ -27,29 +16,39 @@ export interface ChipDenomination {
     color: string;
 }
 
-export const CHIP_DENOMINATIONS: ChipDenomination[] = [
-    { value: 5000000, file: "marble/5000000chip.webp", color: "platinum" },
-    { value: 1000000, file: "marble/1000000chip.webp", color: "gold" },
-    { value: 250000, file: "marble/250000chip.webp", color: "striped blue/orange" },
-    { value: 100000, file: "marble/100000chip.webp", color: "pink" },
-    { value: 25000,  file: "marble/25000chip.webp",  color: "blue" },
-    { value: 5000,   file: "marble/5000chip.webp",   color: "orange" },
-    { value: 1000,   file: "marble/1000chip.webp",   color: "yellow" },
-    { value: 500,    file: "marble/500chip.webp",     color: "purple" },
-    { value: 100,    file: "marble/100chip.webp",     color: "black" },
-    { value: 25,     file: "marble/25chip.webp",      color: "green" },
-    { value: 5,      file: "marble/5chip.webp",       color: "red" },
-    { value: 1,      file: "marble/1chip.webp",       color: "white" },
-    // Cent denominations (values in dollars)
-    { value: 0.5,    file: "marble/50cent.webp",      color: "purple" },
-    { value: 0.25,   file: "marble/25cent.webp",      color: "green" },
-    { value: 0.1,    file: "marble/10cent.webp",      color: "yellow" },
-    { value: 0.05,   file: "marble/5cent.webp",       color: "blue" },
-    { value: 0.01,   file: "marble/1cent.webp",       color: "red" },
-];
+const buildChipSet = (style: ChipStyleConfig, isTournament: boolean): ChipDenomination[] => {
+    const set = isTournament ? "tournament" : "cash";
+    return CHIP_DENOMINATION_CONFIG.filter(d => !isTournament || d.value >= 1).map(d => ({
+        value: d.value,
+        file: `${style.dir}/${set}/${d.file}.${style.ext}`,
+        color: d.color
+    }));
+};
+
+// Built once per configured style, so each lookup returns a stable array.
+const CHIP_SETS = new Map(
+    CHIP_STYLES.map(style => [style.id, { cash: buildChipSet(style, false), tournament: buildChipSet(style, true) }])
+);
+
+/**
+ * The chips to draw for a style (an id from config/chipSets; unknown ids get the
+ * default) and format: cash ($/¢) or tournament (points, same colours as the
+ * dollar chips, no fractional chips; 1/5/25/100… make exact change for any
+ * whole-number bet). Largest first.
+ */
+export const getChipSet = (styleId: string, isTournament: boolean): ChipDenomination[] => {
+    const sets = CHIP_SETS.get(findChipStyle(styleId).id)!;
+    return isTournament ? sets.tournament : sets.cash;
+};
+
+/** Cash chips in the default style. */
+export const CHIP_DENOMINATIONS: ChipDenomination[] = getChipSet(DEFAULT_CHIP_STYLE_ID, false);
+
+/** Tournament chips in the default style. */
+export const TOURNAMENT_CHIP_DENOMINATIONS: ChipDenomination[] = getChipSet(DEFAULT_CHIP_STYLE_ID, true);
 
 /** Fallback chip used for amounts < $1 */
-export const DEFAULT_CHIP_FILE = "marble/1chip.webp";
+export const DEFAULT_CHIP_FILE = CHIP_DENOMINATIONS.find(d => d.value === 1)!.file;
 
 /** Maximum number of action groups (side-by-side chip placements) to display */
 export const MAX_ACTION_GROUPS = 5;
