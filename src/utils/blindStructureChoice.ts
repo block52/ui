@@ -75,8 +75,9 @@ export interface BlindPlan {
 
 /**
  * Resolves the form's choice into the structure to submit and the structure to
- * preview. Doubling previews as a `double` structure built from the form's
- * blinds but submits nothing, so an existing table is created exactly as today.
+ * preview. Doubling previews as a rounded `double` structure built from the
+ * form's blinds but submits nothing: the engine adopts that same structure for
+ * a plain sit-and-go that has not started (poker-vm#2738).
  */
 export function resolveBlindStructureChoice(choice: BlindStructureChoice, customText: string, doubling: DoublingBlinds): BlindPlan {
     if (choice === "doubling") {
@@ -85,7 +86,8 @@ export function resolveBlindStructureChoice(choice: BlindStructureChoice, custom
                 progression: "double",
                 startSmallBlind: String(doubling.smallBlind),
                 startBigBlind: String(doubling.bigBlind),
-                durationMinutes: doubling.durationMinutes
+                durationMinutes: doubling.durationMinutes,
+                roundBlinds: true
             }
         };
     }

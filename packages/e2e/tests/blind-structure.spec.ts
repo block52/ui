@@ -24,6 +24,12 @@ test("the create modal offers blind structures with a level preview", async ({ p
   const preview = page.getByTestId("blind-preview");
   await expect(preview.locator("tbody tr")).toHaveCount(10);
   await expect(preview.locator("tbody tr").nth(1)).toContainText("50 / 100");
+  // From a 1,000 big blind the engine rounds up to two figures (poker-vm#2738):
+  // level 9 is 6,500 / 13,000, not 6,400 / 12,800.
+  await preview.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await modal.screenshot({ path: `${SHOTS}blind-structure-doubling.png` });
+  await expect(preview.locator("tbody tr").nth(8)).toContainText("6,500 / 13,000");
+  await expect(preview.locator("tbody tr").nth(9)).toContainText("13,000 / 26,000");
 
   // A preset hides them and previews the engine's levels, antes included.
   await choice.selectOption("turbo");
