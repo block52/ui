@@ -257,8 +257,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { latestItem } = useGameEventsContext();
     const clockCall = useMemo(() => {
         void latestItem;
-        return clockCallOpportunity(getLatestGameState(), userAddress);
-    }, [latestItem, userAddress]);
+        return clockCallOpportunity(getLatestGameState(), userAddress, isTournament);
+    }, [latestItem, userAddress, isTournament]);
     const stalledSeat = clockCall?.seat;
     // Only a toast: no balance changed and the player did nothing, so the
     // transaction popup and balance refetch (onTransactionSubmitted) stay quiet.

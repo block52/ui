@@ -17,6 +17,7 @@
 import { NonPlayerActionType, TexasHoldemRound, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { makeTurnId, normalizeTimestamp } from "./timerUtils";
 import { hasElements, isNullish } from "./guards";
+import { hasTournamentStarted } from "./scheduledSng";
 
 /**
  * The chain applies a `timeout` only once block time is strictly past
@@ -171,9 +172,18 @@ export interface ClockCallOpportunity {
 
 /**
  * The current opportunity for the local player, or `null` when there is none
- * (see {@link clockCallDueAtMs}).
+ * (see {@link clockCallDueAtMs}). A tournament that has not started has no
+ * turn to call even though its join actions anchor a deadline: the lobby is
+ * waiting for players, not for the seat the engine names to act (ui#898).
  */
-export const clockCallOpportunity = (gameState: TexasHoldemStateDTO | null | undefined, myAddress: string | null | undefined): ClockCallOpportunity | null => {
+export const clockCallOpportunity = (
+    gameState: TexasHoldemStateDTO | null | undefined,
+    myAddress: string | null | undefined,
+    isTournament: boolean
+): ClockCallOpportunity | null => {
+    if (isTournament && !hasTournamentStarted(gameState)) {
+        return null;
+    }
     const dueAtMs = clockCallDueAtMs(gameState, myAddress);
     if (dueAtMs === null || !gameState) {
         return null;

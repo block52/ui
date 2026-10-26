@@ -199,28 +199,49 @@ describe("clockCallDueAtMs — deadline + inclusion grace + block-time margin + 
     });
 });
 
+describe("clockCallOpportunity — no clock call before a tournament starts (ui#898)", () => {
+    const join = (index: number, seat: number, playerId: string) =>
+        action(index, T0 - 5000 + index, { seat, playerId, action: NonPlayerActionType.JOIN, round: TexasHoldemRound.ANTE });
+    const lobby = state({ round: TexasHoldemRound.ANTE, nextToAct: 1, previousActions: [join(1, 1, P1), join(2, 2, P2)] });
+
+    it("a waiting sit-and-go lobby has no turn to call, though its joins anchor a deadline", () => {
+        expect(clockCallOpportunity(lobby, P2, false)).not.toBeNull();
+        expect(clockCallOpportunity(lobby, P2, true)).toBeNull();
+    });
+
+    it("calls once the tournament has started (a blind is posted, or past hand 1)", () => {
+        const posted = state({
+            round: TexasHoldemRound.ANTE,
+            nextToAct: 2,
+            previousActions: [join(1, 1, P1), join(2, 2, P2), action(3, T0, { seat: 1, playerId: P1, action: PlayerActionType.SMALL_BLIND, round: TexasHoldemRound.ANTE })]
+        });
+        expect(clockCallOpportunity(posted, P1, true)).not.toBeNull();
+        expect(clockCallOpportunity(state({ handNumber: 2 }), P1, true)).not.toBeNull();
+    });
+});
+
 describe("clockCallOpportunity — the turn to call, keyed on the turn rather than the due time", () => {
     it("carries the turn key, the seat on the clock and the due time", () => {
-        expect(clockCallOpportunity(state(), P1)).toEqual({ key: "1:2:2", seat: 2, dueAtMs: T0 + 30_000 + WAIT });
+        expect(clockCallOpportunity(state(), P1, false)).toEqual({ key: "1:2:2", seat: 2, dueAtMs: T0 + 30_000 + WAIT });
     });
 
     it("keeps its key when the anchoring action is re-stamped (same turn, later due time)", () => {
-        const before = clockCallOpportunity(state(), P1);
-        const after = clockCallOpportunity(state({ previousActions: [action(1, T0 - 5000), action(2, T0 + 1000)] }), P1);
+        const before = clockCallOpportunity(state(), P1, false);
+        const after = clockCallOpportunity(state({ previousActions: [action(1, T0 - 5000), action(2, T0 + 1000)] }), P1, false);
         expect(after?.key).toBe(before?.key);
         expect(after?.dueAtMs).toBe((before?.dueAtMs ?? 0) + 1000);
     });
 
     it("changes its key when the turn moves on, and across hands", () => {
-        const base = clockCallOpportunity(state(), P1)?.key;
-        expect(clockCallOpportunity(state({ nextToAct: 3 }), P1)?.key).not.toBe(base);
-        expect(clockCallOpportunity(state({ previousActions: [action(1, T0 - 5000), action(2, T0), action(3, T0, { seat: 2, playerId: P2 })] }), P1)?.key).not.toBe(base);
-        expect(clockCallOpportunity(state({ handNumber: 2 }), P1)?.key).not.toBe(base);
+        const base = clockCallOpportunity(state(), P1, false)?.key;
+        expect(clockCallOpportunity(state({ nextToAct: 3 }), P1, false)?.key).not.toBe(base);
+        expect(clockCallOpportunity(state({ previousActions: [action(1, T0 - 5000), action(2, T0), action(3, T0, { seat: 2, playerId: P2 })] }), P1, false)?.key).not.toBe(base);
+        expect(clockCallOpportunity(state({ handNumber: 2 }), P1, false)?.key).not.toBe(base);
     });
 
     it("is null whenever there is no due time", () => {
-        expect(clockCallOpportunity(state(), P2)).toBeNull();
-        expect(clockCallOpportunity(state({ round: TexasHoldemRound.END }), P1)).toBeNull();
-        expect(clockCallOpportunity(undefined, P1)).toBeNull();
+        expect(clockCallOpportunity(state(), P2, false)).toBeNull();
+        expect(clockCallOpportunity(state({ round: TexasHoldemRound.END }), P1, false)).toBeNull();
+        expect(clockCallOpportunity(undefined, P1, false)).toBeNull();
     });
 });
