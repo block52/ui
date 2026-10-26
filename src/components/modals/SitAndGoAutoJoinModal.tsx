@@ -6,6 +6,7 @@
  * - Backend expects USDC microunits (6 decimals), not Wei (18 decimals)
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
@@ -30,6 +31,11 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const [buyInError, setBuyInError] = useState("");
     const [hasJoined, setHasJoined] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
+    // ui#837: the entry prompt must never trap a player who can't (or won't)
+    // join - late after registration closed, or short on funds - so they can
+    // dismiss it and spectate the table underneath.
+    const [isDismissed, setIsDismissed] = useState(false);
+    const navigate = useNavigate();
     const { currentNetwork } = useNetwork();
 
     // Get game options
@@ -245,8 +251,24 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         }
     }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess]);
 
-    // Don't show modal if user is already playing or has joined
-    if (isUserAlreadyPlaying || hasJoined) {
+    // Spectate: close the prompt and keep watching the table underneath.
+    const handleSpectate = useCallback(() => {
+        if (!isJoining) setIsDismissed(true);
+    }, [isJoining]);
+    // Return to Lobby: same route as the table header's Lobby button.
+    const handleReturnToLobby = useCallback(() => {
+        if (!isJoining) navigate("/");
+    }, [isJoining, navigate]);
+    // Escape = Spectate (ignored while a join is in flight).
+    useEffect(() => {
+        if (isUserAlreadyPlaying || hasJoined || isDismissed) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleSpectate(); };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [isUserAlreadyPlaying, hasJoined, isDismissed, handleSpectate]);
+
+    // Don't show modal if user is already playing, has joined, or chose to spectate
+    if (isUserAlreadyPlaying || hasJoined || isDismissed) {
         return null;
     }
 
@@ -256,7 +278,12 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const isCompact = typeof window !== "undefined" && window.innerHeight <= 500;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sit & Go Tournament"
+        >
             <div className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}>
                 {/* Web3 styled background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl"></div>
@@ -446,7 +473,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         disabled={isRegistrationClosed || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)}
                         className={`w-full px-4 rounded-lg font-semibold text-white transition-all duration-300 ${isCompact ? "py-2 text-sm" : "py-3"} ${
                             isRegistrationClosed || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)
-                                ? "bg-gray-600 cursor-not-allowed"
+                                ? (!isRegistrationClosed && !isJoining && !isBalanceLoading && balanceFormatted < parseFloat(maxBuyInFormatted)
+                                    ? "!text-red-400 bg-red-400/15 border border-red-400/50 cursor-not-allowed"
+                                    : "bg-gray-600 cursor-not-allowed")
                                 : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105"
                         }`}
                     >
@@ -472,6 +501,29 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             "Take My Seat"
                         )}
                     </button>
+
+                    {/* ui#837: always available so a late or underfunded
+                        player is never trapped by the prompt. */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button
+                            type="button"
+                            onClick={handleSpectate}
+                            disabled={isJoining}
+                            data-testid="sng-spectate"
+                            className={`w-full px-2 whitespace-nowrap rounded-lg font-semibold text-blue-100 bg-blue-500/15 border border-blue-300/70 hover:bg-blue-500/30 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
+                        >
+                            Spectate
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleReturnToLobby}
+                            disabled={isJoining}
+                            data-testid="sng-return-to-lobby"
+                            className={`w-full px-2 whitespace-nowrap rounded-lg font-semibold text-purple-100 bg-purple-500/20 border border-purple-400/70 hover:bg-purple-500/35 hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-300 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
+                        >
+                            Return to Lobby
+                        </button>
+                    </div>
 
                     {!isCompact && (
                         <div className="mt-6 text-center">

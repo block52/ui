@@ -58,6 +58,16 @@ export const hasTournamentStarted = (gameState: Pick<TexasHoldemStateDTO, "handN
     return actions.some(a => STARTED_ACTIONS.has(a.action));
 };
 
+/**
+ * Whether the tournament is over: the engine has recorded a 1st place in
+ * results[]. Busted players get their places as they go out; only the winner's
+ * place 1 ends it. Nothing runs on a finished table, so its clocks stop.
+ */
+export const hasTournamentFinished = (gameState: Pick<TexasHoldemStateDTO, "results"> | null | undefined): boolean => {
+    if (isNullish(gameState)) return false;
+    return Array.isArray(gameState.results) && gameState.results.some(r => r.place === 1);
+};
+
 /** "mm:ss" (or "h:mm:ss") until a time; "0:00" once passed. */
 export const formatCountdown = (untilMs: number, nowMs: number): string => {
     const total = Math.max(0, Math.floor((untilMs - nowMs) / 1000));
