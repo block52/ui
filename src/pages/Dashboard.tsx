@@ -120,10 +120,11 @@ const Dashboard: React.FC = () => {
     const [modalScheduledStart, setModalScheduledStart] = useState(""); // datetime-local value
     const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
     const [modalLateRegLevels, setModalLateRegLevels] = useState(0); // poker-vm#2731; 0 = off
-    const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(1); // 25 / 50
-    // Blind structure (ui#860, poker-vm#1734): doubling (the two selects above
-    // and below), an engine preset, or a custom structure in the SDK's text form.
-    const [modalBlindStructureChoice, setModalBlindStructureChoice] = useState<BlindStructureChoice>("doubling");
+    const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(0); // 10 / 20
+    // Blind structure (ui#860, poker-vm#1734): the ladder (default, ui#905) or
+    // doubling (both from the two selects above and below), an engine preset, or
+    // a custom structure in the SDK's text form.
+    const [modalBlindStructureChoice, setModalBlindStructureChoice] = useState<BlindStructureChoice>("ladder");
     const [modalCustomBlindText, setModalCustomBlindText] = useState(DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT);
 
     // Cash blinds are dollars (BLIND_LEVELS); Sit & Go blinds are chips (SNG_BLINDS).
@@ -1049,7 +1050,7 @@ const Dashboard: React.FC = () => {
                                                     </option>
                                                 ))}
                                             </select>
-                                            {modalBlindStructureChoice === "doubling" && (
+                                            {(modalBlindStructureChoice === "ladder" || modalBlindStructureChoice === "doubling") && (
                                                 <>
                                                     <label className="block text-white text-sm mb-1 mt-3">Starting Blinds (chips)</label>
                                                     <select

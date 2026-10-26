@@ -2,7 +2,8 @@ import { test, expect } from "./fixtures.js";
 
 /**
  * Blind structure selector on the create modal (ui#860, poker-vm#1734): a
- * Sit & Go can pick Doubling (today's blinds + level time), an engine preset,
+ * Sit & Go can pick the Ladder (the default, ui#905) or Doubling (both from the
+ * opening blinds + level time selects), an engine preset,
  * or a custom structure in the SDK's text form, with a live level preview.
  * Saves screenshots of the modal for the PR.
  */
@@ -17,12 +18,22 @@ test("the create modal offers blind structures with a level preview", async ({ p
   const modal = page.locator("div", { has: page.getByRole("heading", { name: "Create New Table" }) }).last();
   const choice = page.getByTestId("blind-structure");
   await expect(choice).toBeVisible();
-  await expect(choice).toHaveValue("doubling");
-  // Doubling keeps today's two selects and previews them doubling.
+  const preview = page.getByTestId("blind-preview");
+
+  // The default is the ladder from 10/20 (ui#905): 20, 40, 60, 80, 100, 150, 200, 300…
+  await expect(choice).toHaveValue("ladder");
   await expect(page.getByTestId("sng-blinds")).toBeVisible();
   await expect(page.getByTestId("sng-level-duration")).toBeVisible();
-  const preview = page.getByTestId("blind-preview");
   await expect(preview.locator("tbody tr")).toHaveCount(10);
+  await expect(preview.locator("tbody tr").nth(0)).toContainText("10 / 20");
+  await expect(preview.locator("tbody tr").nth(5)).toContainText("75 / 150");
+  await expect(preview.locator("tbody tr").nth(9)).toContainText("300 / 600");
+  await preview.evaluate(el => { el.scrollTop = el.scrollHeight; });
+  await modal.screenshot({ path: `${SHOTS}blind-structure-ladder.png` });
+
+  // Doubling keeps the same two selects and previews them doubling.
+  await choice.selectOption("doubling");
+  await page.getByTestId("sng-blinds").selectOption({ label: "25 / 50" });
   await expect(preview.locator("tbody tr").nth(1)).toContainText("50 / 100");
   // From a 1,000 big blind the engine rounds up to two figures (poker-vm#2738):
   // level 9 is 6,500 / 13,000, not 6,400 / 12,800.

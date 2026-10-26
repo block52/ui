@@ -10,12 +10,23 @@ import {
 const doubling = { smallBlind: 25, bigBlind: 50, durationMinutes: 10 };
 
 describe("blind structure choice (ui#860)", () => {
-    it("offers doubling, the four presets and custom, with human level numbers in the labels", () => {
-        expect(BLIND_STRUCTURE_CHOICES.map(c => c.value)).toEqual(["doubling", "turbo", "standard", "deep_stack", "hyper_turbo", "custom"]);
-        expect(BLIND_STRUCTURE_CHOICES[1].label).toBe("Turbo — 25/50 doubling, 5 min levels, ante from level 5");
-        expect(BLIND_STRUCTURE_CHOICES[3].label).toBe("Deep Stack — 25/50 ×1.5 per level, 15 min levels, ante from level 7");
+    it("offers the ladder first, then doubling, the four presets and custom, with human level numbers in the labels", () => {
+        expect(BLIND_STRUCTURE_CHOICES.map(c => c.value)).toEqual(["ladder", "doubling", "turbo", "standard", "deep_stack", "hyper_turbo", "custom"]);
+        expect(BLIND_STRUCTURE_CHOICES[2].label).toBe("Turbo — 25/50 doubling, 5 min levels, ante from level 5");
+        expect(BLIND_STRUCTURE_CHOICES[4].label).toBe("Deep Stack — 25/50 ×1.5 per level, 15 min levels, ante from level 7");
         expect(isBlindStructureChoice("hyper_turbo")).toBe(true);
         expect(isBlindStructureChoice("wsop")).toBe(false);
+    });
+
+    it("the ladder submits and previews its table from the form's blinds and level time (ui#905)", () => {
+        const plan = resolveBlindStructureChoice("ladder", "", { smallBlind: 10, bigBlind: 20, durationMinutes: 10 });
+        expect(plan.error).toBeUndefined();
+        expect(plan.structure).toMatchObject({ progression: "table" });
+        expect(plan.preview).toBe(plan.structure);
+        const rows = previewBlindLevels(plan.preview!, 8);
+        expect(rows.map(r => r.bigBlind)).toEqual(["20", "40", "60", "80", "100", "150", "200", "300"]);
+        expect(rows.every(r => r.durationMinutes === 10 && r.ante === "0")).toBe(true);
+        expect(openingBlindsOf(plan.preview!)).toEqual({ smallBlind: 10, bigBlind: 20, durationMinutes: 10 });
     });
 
     it("doubling submits nothing and previews the form's blinds doubling", () => {

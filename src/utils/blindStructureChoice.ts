@@ -1,9 +1,10 @@
 /**
  * Blind structure choice on the Create Sit & Go form (ui#860, poker-vm#1734).
  *
- * The form offers "Doubling" (today's behaviour: pick the opening blinds and
- * the minutes per level; the blinds double every level), the four engine
- * presets, or a custom structure written in the SDK's text form. This module
+ * The form offers "Ladder" (the default, ui#905: pick the opening blinds and
+ * the minutes per level; the blinds climb a round-number ladder, see
+ * blindLadder.ts), "Doubling" (pick the same; the blinds double every level),
+ * the four engine presets, or a custom structure written in the SDK's text form. This module
  * holds the pure, unit-tested logic: which structure (if any) is submitted,
  * which resolved structure the level preview expands, and the opening blinds
  * the rest of the form (creation fee, submitted small/big blind) reads.
@@ -22,8 +23,9 @@ import {
     parseBlindStructure,
     resolveBlindPreset
 } from "@block52/poker-vm-sdk";
+import { ladderStructure } from "./blindLadder";
 
-export type BlindStructureChoice = "doubling" | BlindPreset | "custom";
+export type BlindStructureChoice = "ladder" | "doubling" | BlindPreset | "custom";
 
 export interface BlindStructureChoiceOption {
     value: BlindStructureChoice;
@@ -46,7 +48,8 @@ const PRESET_NAMES: Record<BlindPreset, string> = {
 };
 
 export const BLIND_STRUCTURE_CHOICES: ReadonlyArray<BlindStructureChoiceOption> = [
-    { value: "doubling", label: "Doubling — choose the opening blinds and level time" },
+    { value: "ladder", label: "Ladder — blinds climb 20, 40, 60, 80, 100, 150, 200, 300… (choose the opening blinds and level time)" },
+    { value: "doubling", label: "Doubling — blinds double every level (choose the opening blinds and level time)" },
     ...BLIND_PRESETS.map(preset => ({ value: preset, label: `${PRESET_NAMES[preset]} — ${presetLabel(preset)}` })),
     { value: "custom", label: "Custom — write a blind structure" }
 ];
@@ -75,11 +78,15 @@ export interface BlindPlan {
 
 /**
  * Resolves the form's choice into the structure to submit and the structure to
- * preview. Doubling previews as a rounded `double` structure built from the
+ * preview. The ladder submits and previews its table structure. Doubling previews as a rounded `double` structure built from the
  * form's blinds but submits nothing: the engine adopts that same structure for
  * a plain sit-and-go that has not started (poker-vm#2738).
  */
 export function resolveBlindStructureChoice(choice: BlindStructureChoice, customText: string, doubling: DoublingBlinds): BlindPlan {
+    if (choice === "ladder") {
+        const structure = ladderStructure(doubling.smallBlind, doubling.bigBlind, doubling.durationMinutes);
+        return { structure, preview: structure };
+    }
     if (choice === "doubling") {
         return {
             preview: {
