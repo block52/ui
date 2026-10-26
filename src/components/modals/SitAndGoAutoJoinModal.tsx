@@ -508,7 +508,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             onClick={handleSpectate}
                             disabled={isJoining}
                             data-testid="sng-spectate"
-                            className={`w-full px-4 rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
+                            className={`w-full px-2 whitespace-nowrap rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
                         >
                             Spectate
                         </button>
@@ -517,7 +517,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             onClick={handleReturnToLobby}
                             disabled={isJoining}
                             data-testid="sng-return-to-lobby"
-                            className={`w-full px-4 rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
+                            className={`w-full px-2 whitespace-nowrap rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
                         >
                             Return to Lobby
                         </button>
