@@ -30,6 +30,10 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const [buyInError, setBuyInError] = useState("");
     const [hasJoined, setHasJoined] = useState(false);
     const [isJoining, setIsJoining] = useState(false);
+    // ui#837: the entry prompt must never trap a player who can't (or won't)
+    // join - late after registration closed, or short on funds - so they can
+    // dismiss it and spectate the table underneath.
+    const [isDismissed, setIsDismissed] = useState(false);
     const { currentNetwork } = useNetwork();
 
     // Get game options
@@ -245,8 +249,8 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         }
     }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess]);
 
-    // Don't show modal if user is already playing or has joined
-    if (isUserAlreadyPlaying || hasJoined) {
+    // Don't show modal if user is already playing, has joined, or chose to watch
+    if (isUserAlreadyPlaying || hasJoined || isDismissed) {
         return null;
     }
 
@@ -256,7 +260,15 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const isCompact = typeof window !== "undefined" && window.innerHeight <= 500;
 
     return (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm">
+        <div
+            className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 backdrop-blur-sm"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Sit & Go Tournament"
+            onKeyDown={e => {
+                if (e.key === "Escape" && !isJoining) setIsDismissed(true);
+            }}
+        >
             <div className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}>
                 {/* Web3 styled background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-blue-600/10 to-purple-600/10 rounded-xl"></div>
@@ -471,6 +483,18 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         ) : (
                             "Take My Seat"
                         )}
+                    </button>
+
+                    {/* Watch instead (ui#837): always available so a late or
+                        underfunded player can close the prompt and spectate. */}
+                    <button
+                        type="button"
+                        onClick={() => setIsDismissed(true)}
+                        disabled={isJoining}
+                        data-testid="sng-watch-instead"
+                        className={`w-full mt-2 px-4 rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
+                    >
+                        Watch instead
                     </button>
 
                     {!isCompact && (
