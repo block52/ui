@@ -6,6 +6,7 @@
  * - Backend expects USDC microunits (6 decimals), not Wei (18 decimals)
  */
 import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import { ethers } from "ethers";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
@@ -34,6 +35,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     // join - late after registration closed, or short on funds - so they can
     // dismiss it and spectate the table underneath.
     const [isDismissed, setIsDismissed] = useState(false);
+    const navigate = useNavigate();
     const { currentNetwork } = useNetwork();
 
     // Get game options
@@ -249,7 +251,23 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         }
     }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess]);
 
-    // Don't show modal if user is already playing, has joined, or chose to watch
+    // Spectate: close the prompt and keep watching the table underneath.
+    const handleSpectate = useCallback(() => {
+        if (!isJoining) setIsDismissed(true);
+    }, [isJoining]);
+    // Return to Lobby: same route as the table header's Lobby button.
+    const handleReturnToLobby = useCallback(() => {
+        if (!isJoining) navigate("/");
+    }, [isJoining, navigate]);
+    // Escape = Spectate (ignored while a join is in flight).
+    useEffect(() => {
+        if (isUserAlreadyPlaying || hasJoined || isDismissed) return;
+        const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") handleSpectate(); };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, [isUserAlreadyPlaying, hasJoined, isDismissed, handleSpectate]);
+
+    // Don't show modal if user is already playing, has joined, or chose to spectate
     if (isUserAlreadyPlaying || hasJoined || isDismissed) {
         return null;
     }
@@ -265,9 +283,6 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             role="dialog"
             aria-modal="true"
             aria-label="Sit & Go Tournament"
-            onKeyDown={e => {
-                if (e.key === "Escape" && !isJoining) setIsDismissed(true);
-            }}
         >
             <div className={`bg-gray-800/90 backdrop-blur-md rounded-xl shadow-2xl border border-blue-400/20 relative max-h-[90dvh] overflow-y-auto ${isCompact ? "p-3 w-80" : "p-8 w-96"}`}>
                 {/* Web3 styled background */}
@@ -485,17 +500,28 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                         )}
                     </button>
 
-                    {/* Watch instead (ui#837): always available so a late or
-                        underfunded player can close the prompt and spectate. */}
-                    <button
-                        type="button"
-                        onClick={() => setIsDismissed(true)}
-                        disabled={isJoining}
-                        data-testid="sng-watch-instead"
-                        className={`w-full mt-2 px-4 rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
-                    >
-                        Watch instead
-                    </button>
+                    {/* ui#837: always available so a late or underfunded
+                        player is never trapped by the prompt. */}
+                    <div className="grid grid-cols-2 gap-2 mt-2">
+                        <button
+                            type="button"
+                            onClick={handleSpectate}
+                            disabled={isJoining}
+                            data-testid="sng-spectate"
+                            className={`w-full px-4 rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
+                        >
+                            Spectate
+                        </button>
+                        <button
+                            type="button"
+                            onClick={handleReturnToLobby}
+                            disabled={isJoining}
+                            data-testid="sng-return-to-lobby"
+                            className={`w-full px-4 rounded-lg font-semibold text-gray-200 border border-gray-500/60 hover:bg-gray-700/60 transition-colors disabled:opacity-50 ${isCompact ? "py-1.5 text-sm" : "py-2.5"}`}
+                        >
+                            Return to Lobby
+                        </button>
+                    </div>
 
                     {!isCompact && (
                         <div className="mt-6 text-center">
