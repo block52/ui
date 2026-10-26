@@ -1,5 +1,5 @@
 import { NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase } from "./scheduledSng";
+import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentFinished, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase } from "./scheduledSng";
 import type { GameOptionsDTO, ResultDTO } from "@block52/poker-vm-sdk";
 
 const start = 1_700_000_000_000;
@@ -18,6 +18,19 @@ describe("scheduledSngPhase", () => {
     it("is short inside the grace window, then cancelled", () => {
         expect(scheduledSngPhase({ scheduledStartTime: start, minPlayers: 4, registered: 3, nowMs: start + SCHEDULED_SNG_GRACE_MS - 1 })).toBe("short");
         expect(scheduledSngPhase({ scheduledStartTime: start, minPlayers: 4, registered: 3, nowMs: start + SCHEDULED_SNG_GRACE_MS })).toBe("cancelled");
+    });
+});
+
+describe("hasTournamentFinished", () => {
+    const result = (place: number): ResultDTO => ({ place, playerId: `b521p${place}`, payout: "0" });
+    it("is false before anyone has a place, and while players are only busting out", () => {
+        expect(hasTournamentFinished({ results: [] })).toBe(false);
+        expect(hasTournamentFinished({ results: [result(4), result(3)] })).toBe(false);
+        expect(hasTournamentFinished(undefined)).toBe(false);
+        expect(hasTournamentFinished(null)).toBe(false);
+    });
+    it("is true once 1st place is recorded", () => {
+        expect(hasTournamentFinished({ results: [result(4), result(3), result(2), result(1)] })).toBe(true);
     });
 });
 

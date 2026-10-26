@@ -98,3 +98,30 @@ describe("useBlindLevel — countdown resets per level (poker-vm#2292)", () => {
         expect(renderAt(start, 250, buildOptions({ blindLevel: 2 })).result.current.secondsRemaining).toBe(-70);
     });
 });
+
+describe("useBlindLevel — the clock stops once the tournament has finished", () => {
+    const start = 1_000_000_360_000;
+    const renderWithResults = (results: TexasHoldemStateDTO["results"]) => {
+        const nowSpy = jest.spyOn(Date, "now").mockReturnValue(start + 250 * 1000);
+        const options = buildOptions({ blindLevel: 2, levelStartTime: start });
+        mockUseGameStateContext.mockReturnValue({ gameState: { ...buildState(options), results }, gameFormat: GameFormat.SIT_AND_GO });
+        const { result } = renderHook(() => useBlindLevel());
+        nowSpy.mockRestore();
+        return result.current;
+    };
+
+    it("keeps running while players are only busting out", () => {
+        const level = renderWithResults([{ place: 4, playerId: "b521d", payout: "0" }]);
+        expect(level.hasTimer).toBe(true);
+        expect(level.secondsRemaining).toBe(-70);
+    });
+
+    it("has no timer once 1st place is recorded", () => {
+        const level = renderWithResults([
+            { place: 2, playerId: "b521b", payout: "400000" },
+            { place: 1, playerId: "b521a", payout: "1000000" }
+        ]);
+        expect(level.hasTimer).toBe(false);
+        expect(level.secondsRemaining).toBe(-1);
+    });
+});

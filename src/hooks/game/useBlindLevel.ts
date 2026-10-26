@@ -4,6 +4,7 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
 import { formatChipCount } from "../../utils/potDisplayUtils";
 import { hasContent, hasValue, isNullish } from "../../utils/guards";
+import { hasTournamentFinished } from "../../utils/scheduledSng";
 
 export interface BlindLevelInfo {
     /** Current blind level (0-based), undefined if not provided by backend */
@@ -30,7 +31,7 @@ export interface BlindLevelInfo {
     levelDurationSeconds: number;
     /** Whether this is a tournament-style game with blind levels */
     isActive: boolean;
-    /** Whether we have enough data to show the timer */
+    /** Whether we have enough data to show the timer (false once the tournament has finished) */
     hasTimer: boolean;
     /**
      * The table's blind structure (a preset or a concrete structure), when it was
@@ -81,8 +82,11 @@ export const useBlindLevel = (): BlindLevelInfo => {
     const blindLevelDuration = gameOptions?.blindLevelDuration;
     const levelDurationSeconds = blindLevelDuration ? blindLevelDuration * 60 : 0;
 
-    // Timer: compute seconds remaining in current level
-    const hasTimer = isActive && levelDurationSeconds > 0 && hasValue(startTime) && startTime > 0;
+    // Timer: compute seconds remaining in current level. A finished tournament
+    // has no next level: levelStartTime stops advancing, so without this the
+    // countdown would run on into red overtime forever.
+    const isFinished = hasTournamentFinished(gameState);
+    const hasTimer = isActive && !isFinished && levelDurationSeconds > 0 && hasValue(startTime) && startTime > 0;
 
     const secondsRemaining = useMemo(() => {
         if (!hasTimer || !startTime || isNullish(level)) return -1;
