@@ -62,6 +62,18 @@ jest.mock("../services/nodeDiscovery", () => ({
     cacheNodes: jest.fn(),
     clearNodeCache: jest.fn()
 }));
+// Keep this test focused on node classification rather than the newer
+// information tabs and their Vite-only dependencies under coverage.
+jest.mock(
+    "../hooks/nodes/useChainOverview",
+    () => ({
+        useChainOverview: () => ({ overview: null, isLoading: false, error: null, refresh: async () => {} })
+    }),
+    { virtual: true }
+);
+jest.mock("../components/nodes/NetworkInfoPanel", () => ({ NetworkInfoPanel: () => null }), { virtual: true });
+jest.mock("../components/nodes/RunNodePanel", () => ({ RunNodePanel: () => null }), { virtual: true });
+jest.mock("../components/nodes/BecomeValidatorPanel", () => ({ BecomeValidatorPanel: () => null }), { virtual: true });
 jest.mock("react-router-dom", () => ({ Link: () => null }), { virtual: true });
 
 describe("NodesPage validator classification", () => {
@@ -92,7 +104,47 @@ describe("NodesPage validator classification", () => {
         const millerRow = screen.getByText("Miller Services").closest("tr");
         expect(within(texasRow as HTMLElement).getByText("Sync")).toBeInTheDocument();
         expect(within(millerRow as HTMLElement).getByText("Validator")).toBeInTheDocument();
+        const stubRow = screen.getByText("Stub").closest("tr");
+        expect(within(stubRow as HTMLElement).getByText("Offline")).toBeInTheDocument();
         expect(screen.getByText("Validators").parentElement).toHaveTextContent(/2\s*Validators/);
         expect(screen.getByText("Sync Nodes").parentElement).toHaveTextContent(/2\s*Sync Nodes/);
     });
+
+    it("keeps an online node classified as Sync when the RPC response omits voting power", async () => {
+        global.fetch = jest.fn(async () => ({ ok: true, json: async () => ({ result: {} }) }) as Response) as typeof fetch;
+
+        render(<NodesPage />);
+
+        await waitFor(() => {
+            const block52Row = screen.getByText("Block52").closest("tr");
+            expect(within(block52Row as HTMLElement).getByText("Sync")).toBeInTheDocument();
+            expect(within(block52Row as HTMLElement).getByText("Online")).toBeInTheDocument();
+        });
+    });
+
+    it.each(["returns a non-success response", "rejects the request"])(
+        "keeps an online node classified as Sync when its RPC status request %s",
+        async failure => {
+            global.fetch = jest.fn(async (input: RequestInfo | URL) => {
+                if (String(input).includes("node1.block52.xyz")) {
+                    if (failure === "rejects the request") {
+                        throw new Error("RPC unavailable");
+                    }
+                    return { ok: false } as Response;
+                }
+                return {
+                    ok: true,
+                    json: async () => ({ result: { validator_info: { voting_power: "0" } } })
+                } as Response;
+            }) as typeof fetch;
+
+            render(<NodesPage />);
+
+            await waitFor(() => {
+                const block52Row = screen.getByText("Block52").closest("tr");
+                expect(within(block52Row as HTMLElement).getByText("Sync")).toBeInTheDocument();
+                expect(within(block52Row as HTMLElement).getByText("Online")).toBeInTheDocument();
+            });
+        }
+    );
 });
