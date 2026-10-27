@@ -239,6 +239,8 @@ export async function probeNodeEndpoints(endpoints: NetworkEndpoints): Promise<{
         );
         if (rpcResponse.ok) {
             const data = await rpcResponse.json();
+            const votingPower = Number(data.result?.validator_info?.voting_power ?? 0);
+            isValidator = Number.isFinite(votingPower) && votingPower > 0;
             return {
                 reachable: true,
                 blockHeight: data.result?.sync_info?.latest_block_height || null,
