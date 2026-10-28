@@ -23,7 +23,7 @@ import { GameUIProvider, useGameUI, PendingAction } from "./gameState/GameUICont
 import { ReplayProvider, useReplay } from "./gameState/ReplayContext";
 import { GameActionsProvider, useGameActions } from "./gameState/GameActionsContext";
 import { GameEventsProvider } from "./gameState/GameEventsContext";
-import { IDLE_CONNECTION, type ConnectionState } from "./gameState/connection";
+import { IDLE_CONNECTION, isConnectionLive, type ConnectionState } from "./gameState/connection";
 import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
@@ -105,6 +105,9 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     // Connection lifecycle (ui#613). `connection` is what the UI and the
     // submission gate read; the refs are the socket's bookkeeping.
     const [connection, setConnection] = useState<ConnectionState>(IDLE_CONNECTION);
+    // Read by the wake-up handlers, which are registered once (ui#867).
+    const connectionRef = useRef<ConnectionState>(connection);
+    connectionRef.current = connection;
     /** Generation of the live socket: handlers of a superseded socket are ignored. */
     const socketGenRef = useRef(0);
     /** Set right before an intentional close (unsubscribe / re-subscribe / replay) so its onclose does not reconnect. */
@@ -338,12 +341,13 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
 
                 // Any bytes from the relay prove it is alive — the "server not
                 // responding" fallback must not fire because a frame was malformed,
-                // and the first bytes after a (re)open make the connection live.
+                // and bytes on the current socket make the connection live, also
+                // after a browser `offline` event the socket survived (ui#867).
                 if (!hasReceivedMessageRef.current) {
                     hasReceivedMessageRef.current = true;
                     reconnectAttemptRef.current = 0;
-                    setConnection({ status: "live", attempt: 0 });
                 }
+                setConnection(prev => (isConnectionLive(prev) ? prev : { status: "live", attempt: 0 }));
 
                 if (failures > 0) {
                     // Surface it (Commandment 7) without blanking the table: a bad
@@ -456,8 +460,14 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             const tableId = currentTableIdRef.current;
             if (!tableId || isReplayModeRef.current) return;
             const state = wsRef.current?.readyState;
-            if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) return;
-            console.warn(`[GameStateContext] ${reason}: socket not open; reconnecting now`);
+            if (state === WebSocket.CONNECTING) return;
+            // An open socket marked offline survived a browser `offline` event: it
+            // may be half-dead or have missed frames, and a quiet table (it is
+            // someone's turn) sends nothing to prove otherwise, so re-subscribe
+            // for a fresh snapshot instead of staying offline (ui#867). Any other
+            // open socket is live or already waiting on its first frame.
+            if (state === WebSocket.OPEN && connectionRef.current.status !== "offline") return;
+            console.warn(`[GameStateContext] ${reason}: socket not live; reconnecting now`);
             if (reconnectTimerRef.current) {
                 clearTimeout(reconnectTimerRef.current);
                 reconnectTimerRef.current = null;

@@ -481,4 +481,50 @@ describe("GameStateProvider reconnect (ui#613)", () => {
         await waitFor(() => expect(conn()).toBe("live:0"));
         onLine.mockRestore();
     });
+
+    it("recovers when the browser blips offline and back while the socket stays open (ui#867)", async () => {
+        renderProvider();
+        const first = currentSocket();
+        act(() => {
+            first.readyState = MockWebSocket.OPEN;
+            first.emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        // A network handover: offline fires, but the socket never closes.
+        act(() => {
+            window.dispatchEvent(new Event("offline"));
+        });
+        expect(conn()).toBe("offline:0");
+
+        // Back online: the socket is still OPEN, but its view may be stale, so
+        // it must re-subscribe for a fresh snapshot rather than stay offline.
+        act(() => {
+            window.dispatchEvent(new Event("online"));
+        });
+        expect(MockWebSocket.instances).toHaveLength(2);
+        act(() => {
+            currentSocket().emit(stateFrame(4));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+    });
+
+    it("a frame on the current socket clears an offline status (ui#867)", async () => {
+        renderProvider();
+        act(() => {
+            currentSocket().emit(stateFrame(3));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+
+        act(() => {
+            window.dispatchEvent(new Event("offline"));
+        });
+        expect(conn()).toBe("offline:0");
+
+        // The socket is delivering, so the table is current again.
+        act(() => {
+            currentSocket().emit(stateFrame(4));
+        });
+        await waitFor(() => expect(conn()).toBe("live:0"));
+    });
 });
