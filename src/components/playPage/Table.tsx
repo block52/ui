@@ -79,7 +79,7 @@ import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
-import { CardBackStyle, getDealerImageUrl } from "../../utils/cardImages";
+import { CardBackStyle } from "../../utils/cardImages";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "../../bus/timing";
 
@@ -1552,6 +1552,9 @@ const Table = React.memo(() => {
                                             seatIndex={seatNumber}
                                             left={position.left}
                                             bottom={position.bottom}
+                                            top={position.top}
+                                            side={position.side}
+                                            isDealer={dealerSeat === seatNumber}
                                             isTournament={isTournamentFormat(gameFormat)}
                                         />
                                     );
@@ -1560,18 +1563,6 @@ const Table = React.memo(() => {
 
                         {/* Last-pot winner banner (ui#848) */}
                         <WinnerBanner />
-
-                        {/* Dealer Button — convert seat number to rotated screen position */}
-                        {(() => {
-                            const dIdx = dealerSeat != null && dealerSeat > 0 ? (dealerSeat - 1 + startIndex) % tableSize : -1;
-                            const dPos = dIdx >= 0 ? tableLayout.positions.dealers[dIdx] : null;
-                            if (!dPos) return null;
-                            return (
-                                <div className="absolute w-12 h-12 z-[25]" style={{ left: dPos.left, top: dPos.top, transform: "translate(-50%, -50%)" }}>
-                                    <img src={getDealerImageUrl()} alt="Dealer Button" className="w-full h-full" />
-                                </div>
-                            );
-                        })()}
 
                         {/* Player seats */}
                         <PlayerSeating

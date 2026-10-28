@@ -59,9 +59,16 @@ export interface Position {
     color?: string;
 }
 
+/** Which edge of the felt a seat sits on, for bet and dealer-button placement (ui#835). */
+export type BetSide = "top" | "bottom" | "left" | "right";
+
 export interface ChipPosition {
     left: string;
     bottom: string;
+    /** Set by {@link placeBetSpots}: the bet group is centred on (left, top). */
+    top?: string;
+    /** Set by {@link placeBetSpots}: the seat's felt edge; picks the dealer button's side. */
+    side?: BetSide;
 }
 
 /**
@@ -693,6 +700,162 @@ export function getAllPositions(tableSize: TableSize): PositionArrays {
         winAnimations: applyPositionOffsets(getWinAnimationPositions(tableSize), tableSize, "winAnimations"),
         holeCards: applyHoleCardOffsets(getHoleCardSlotPositions(tableSize), tableSize),
         deck: getDeckOrigin()
+    };
+}
+
+// ─── Bet chips and the dealer button beside them (ui#835) ────────────
+//
+// Each seat's bet group (chips + amount) sits directly under or above its own
+// seat, centred on the seat's x, on the felt side of the seat. The dealer
+// button is drawn beside that group (see PlayerChipDisplay), so it always sits
+// on the felt in front of the button player, toward the table centre, the
+// same way from every seat as it rotates.
+
+/**
+ * The seat's footprint in table-div pixels around its coordinate: `halfW`
+ * each side, `above` up to the top of the hole cards, `below` down to the
+ * bottom of the stack badge / action label.
+ */
+export interface SeatEnvelope {
+    halfW: number;
+    above: number;
+    below: number;
+    /** Air between the seat footprint and the bet group. */
+    gap: number;
+    /** Half the height of the bet group (chip cluster + amount pill). */
+    groupHalfH: number;
+    /** Nominal width of a bet group (a small bet). */
+    groupW: number;
+    /** Room the dealer button takes beside the group. */
+    buttonW: number;
+}
+
+/** The seat is a 160×140 box centred on its coordinate (every viewport; the
+ *  stage zoom scales it), with the action label hanging just under it. */
+const SEAT_ENVELOPE_DESKTOP: Readonly<SeatEnvelope> = Object.freeze({
+    halfW: 80,
+    above: 70,
+    below: 76,
+    gap: 8,
+    groupHalfH: 16,
+    groupW: 110,
+    buttonW: 34
+});
+const SEAT_ENVELOPE_MOBILE: Readonly<SeatEnvelope> = Object.freeze({ ...SEAT_ENVELOPE_DESKTOP, groupHalfH: 18, buttonW: 38 });
+
+export function seatEnvelope(mobile: boolean): SeatEnvelope {
+    return mobile ? SEAT_ENVELOPE_MOBILE : SEAT_ENVELOPE_DESKTOP;
+}
+
+/**
+ * Seats within 60% of the half-width from the felt's vertical centre line run
+ * along the top or bottom of the table; the rest sit on the left or right arc.
+ */
+export function betSideFor(x: number, y: number, tableWidth: number, tableHeight: number): BetSide {
+    const nx = (x - tableWidth / 2) / (tableWidth / 2);
+    if (Math.abs(nx) < 0.6) return y < tableHeight / 2 ? "top" : "bottom";
+    return nx < 0 ? "left" : "right";
+}
+
+/** Keep-out rectangle (centre and half sizes) in table-div pixels. */
+export interface BetObstacle {
+    x: number;
+    y: number;
+    hw: number;
+    hy: number;
+}
+
+/**
+ * One bet spot per seat, in table-div pixels: the centre of the bet group.
+ * Every bet sits directly under or directly above its own player, centred on
+ * the seat's x. Seats in the upper half of the felt get it under the seat;
+ * seats in the lower half get it above the hole cards. If that spot lands on
+ * the board or pot, the bet goes on the seat's other side instead, when that
+ * side is clear of the board and of other bets. x is never adjusted.
+ */
+export function placeBetSpots(
+    players: Position[],
+    envelope: SeatEnvelope,
+    tableWidth: number,
+    tableHeight: number,
+    board: BetObstacle[] = []
+): ChipPosition[] {
+    const r = (n: number) => `${Math.round(n * 10) / 10}px`;
+    const { above, below, gap, groupHalfH, groupW, buttonW } = envelope;
+    const seats = players.map(seat => {
+        const x = parseFloat(seat.left);
+        const y = parseFloat(seat.top);
+        const side = betSideFor(x, y, tableWidth, tableHeight);
+        const under = y + below + gap + groupHalfH;
+        const over = y - above - gap - groupHalfH;
+        const preferred = y < tableHeight / 2 ? under : over;
+        return { side, cx: x, preferred, other: preferred === under ? over : under };
+    });
+    const halfW = groupW / 2 + buttonW;
+    const hitsBoard = (cx: number, cy: number) =>
+        board.some(o => Math.abs(cx - o.x) < o.hw + halfW && Math.abs(cy - o.y) < o.hy + groupHalfH);
+    const hitsBet = (i: number, cx: number, cy: number) =>
+        seats.some((other, j) => j !== i && Math.abs(cx - other.cx) < 2 * halfW && Math.abs(cy - other.preferred) < 2 * groupHalfH);
+    return seats.map((seat, i) => {
+        const flip = hitsBoard(seat.cx, seat.preferred) && !hitsBoard(seat.cx, seat.other) && !hitsBet(i, seat.cx, seat.other);
+        const cy = flip ? seat.other : seat.preferred;
+        return { left: r(seat.cx), top: r(cy), bottom: r(tableHeight - cy), side: seat.side };
+    });
+}
+
+/** The button goes on the chips' left (toward the centre for right-arc seats),
+ *  except on the left arc, where the table interior is to the right. */
+export function dealerSideFor(side: BetSide | undefined): "left" | "right" {
+    return side === "left" ? "right" : "left";
+}
+
+/** Community-card row and the pot pill above it, in table-div pixels. */
+export function boardKeepOut(tableWidth: number, tableHeight: number, portrait: boolean): BetObstacle {
+    return portrait
+        ? { x: tableWidth / 2, y: tableHeight / 2 - 20, hw: 160, hy: 80 }
+        : { x: tableWidth / 2, y: tableHeight / 2 - 15, hw: 234, hy: 102 };
+}
+
+/**
+ * Board keep-outs that may flip a bet to its seat's other side. Mobile
+ * portrait 6-max is the exception: seats 3 and 5 keep their bets under the
+ * player, so no flip applies there.
+ */
+export function betBoardFor(tableSize: number, portrait: boolean, tableWidth: number, tableHeight: number): BetObstacle[] {
+    if (portrait && tableSize === 6) return [];
+    return [boardKeepOut(tableWidth, tableHeight, portrait)];
+}
+
+/**
+ * Seat-ring positions with bet spots for (mode, tableSize), computed once and
+ * cached: the inputs are static per (mode, tableSize) (stage dims follow the
+ * mode), so every caller gets the same object back.
+ */
+const layoutCache = new Map<string, PositionArrays>();
+export function getLayoutPositions(tableSize: TableSize, mode: ViewportMode): PositionArrays {
+    const key = `${mode}|${tableSize}`;
+    let hit = layoutCache.get(key);
+    if (!hit) {
+        hit = withBetSpots(getAllPositions(tableSize), tableSize, mode);
+        layoutCache.set(key, hit);
+    }
+    return hit;
+}
+
+/** Test hook: drop cached layouts. */
+export function clearLayoutCache(): void {
+    layoutCache.clear();
+}
+
+/** Replace the chip spots with {@link placeBetSpots} for the seat ring. */
+export function withBetSpots(positions: PositionArrays, tableSize: TableSize, mode: ViewportMode): PositionArrays {
+    const dims = getStageDims();
+    const portrait = mode === "mobile-portrait";
+    const mobile = mode === "mobile-portrait" || mode === "mobile-landscape";
+    const board = betBoardFor(tableSize, portrait, dims.tableWidth, dims.tableHeight);
+    return {
+        ...positions,
+        chips: placeBetSpots(positions.players, seatEnvelope(mobile), dims.tableWidth, dims.tableHeight, board)
     };
 }
 

@@ -109,9 +109,8 @@ export default function ManualBridgeTrigger() {
                     setDepositDetails(txResponse);
 
                     // Check if transaction actually succeeded (code 0 = success, non-zero = error)
-                    // Handle both possible response structures
-                    const code = txResponse.tx_response?.code ?? txResponse.code ?? 0;
-                    const rawLog = txResponse.tx_response?.raw_log ?? txResponse.raw_log ?? "";
+                    const code = txResponse.tx_response?.code ?? 0;
+                    const rawLog = txResponse.tx_response?.raw_log ?? "";
 
                     if (code !== 0) {
                         const errorMsg = rawLog || "Transaction failed";
