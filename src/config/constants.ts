@@ -1,5 +1,9 @@
-// Always use production proxy for testing
-export const PROXY_URL = "https://poker-vm-proxy-js-ixe4h.ondigitalocean.app";
+// NOWPayments bridge proxy. Points at the TypeScript DigitalOcean Function
+// (block52/poker-vm#2748, proxy/ts) that replaces the old Express app
+// (poker-vm-proxy-js-ixe4h). The /api/nowpayments/* paths are unchanged.
+// TODO(#2748): replace with the real deployed host once `doctl serverless
+// deploy proxy/ts` (or the .do/app.yaml app) is live — this is a placeholder.
+export const PROXY_URL = "https://poker-vm-proxy-ts-PLACEHOLDER.ondigitalocean.app";
 
 // Ethereum Mainnet
 export const ETH_CHAIN_ID = 1;
