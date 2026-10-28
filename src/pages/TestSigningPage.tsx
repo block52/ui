@@ -6,7 +6,7 @@ import { getCosmosMnemonic } from "../utils/cosmos/storage";
 import { useNetwork } from "../context/NetworkContext";
 import { USDC_TO_MICRO, microToUsdc } from "../constants/currency";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
-import { isEmpty } from "../utils/guards";
+import { isEmpty, isNullish } from "../utils/guards";
 import { isTournamentFormat, toGameFormat } from "../utils/gameFormatUtils";
 import styles from "./TestSigningPage.module.css";
 
@@ -502,6 +502,15 @@ export default function TestSigningPage() {
 
         try {
             const gameState = await signingClient.queryGameState(gameId);
+
+            if (isNullish(gameState)) {
+                addResult({
+                    functionName: "queryGameState()",
+                    status: "error",
+                    message: `No game state for ${gameId}`
+                });
+                return;
+            }
 
             addResult({
                 functionName: "queryGameState()",
