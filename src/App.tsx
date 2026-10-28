@@ -122,6 +122,8 @@ function AppContent() {
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
                 <Route path="/table/:id" element={<Table />} />
+                {/* Read-only spectator route (ui#916): same Table, no wallet, no actions. */}
+                <Route path="/watch/:id" element={<Table />} />
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
                 <Route path="/wallet" element={<CosmosWalletPage />} />
                 {/* User-facing routes */}

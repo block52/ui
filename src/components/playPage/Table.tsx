@@ -73,8 +73,9 @@ import { HexagonPattern } from "../common/Modal";
 // Use environment variable for club logo with fallback to default
 const clubLogo = import.meta.env.VITE_CLUB_LOGO || defaultLogo;
 
-import { useParams } from "react-router-dom";
+import { useParams, useLocation } from "react-router-dom";
 import React from "react";
+import { isSpectatorPath } from "../../utils/spectatorMode";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
 
@@ -704,6 +705,10 @@ const GeometryToggleButton: React.FC = () => {
 
 const Table = React.memo(() => {
     const { id } = useParams<{ id: string }>();
+    // Spectator mode (ui#916): the /watch/:id route renders this same component
+    // read-only — no wallet, no actions, live socket. Like replay, but live.
+    const { pathname } = useLocation();
+    const isSpectator = isSpectatorPath(pathname);
     // Game state context and subscription
     const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
@@ -740,13 +745,14 @@ const Table = React.memo(() => {
                 // Read-only replay, no WebSocket: the hand's final state, or a point
                 // in the current hand when ?index= is given.
                 loadHistoricalState(id, replayHandParam, replayActionParam);
-            } else if (hasWallet) {
-                // Live mode: only subscribe once we have a wallet — subscribing without
-                // one immediately sets an error that hides the NoWalletOverlay.
+            } else if (isSpectator || hasWallet) {
+                // Live mode. Spectators (ui#916) subscribe without a wallet — they
+                // only watch, so the no-wallet error path (which hides the overlay)
+                // does not apply.
                 subscribeToTable(id);
             }
         }
-    }, [id, hasWallet, hasReplayParams, replayHandParam, replayActionParam, subscribeToTable, loadHistoricalState]);
+    }, [id, hasWallet, isSpectator, hasReplayParams, replayHandParam, replayActionParam, subscribeToTable, loadHistoricalState]);
 
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
@@ -1274,7 +1280,9 @@ const Table = React.memo(() => {
 
     // Show error page if connection/general error occurred
     // Do NOT show the error page when the user has no wallet — the overlay handles that case.
-    if (error && id && hasWallet) {
+    // Spectators (ui#916) are live subscribers too, so surface errors to them
+    // even though they have no wallet.
+    if (error && id && (hasWallet || isSpectator)) {
         const handleRetry = () => {
             unsubscribeFromTable();
             subscribeToTable(id);
@@ -1612,7 +1620,7 @@ const Table = React.memo(() => {
                 overlay above the safe area, so it occupies space only when it has
                 something to show — i.e. when it's the user's turn. The safe-area
                 left/right insets matter in landscape, where the notch eats a side. */}
-            {!isReplayMode &&
+            {!isReplayMode && !isSpectator &&
                 (isCompactMobile ? (
                     <div
                         className="fixed bottom-0 left-0 right-0 z-[10] [&>div]:!bottom-0"
@@ -1654,7 +1662,7 @@ const Table = React.memo(() => {
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
 
             {/* Player Action Buttons — hidden in replay mode (read-only) */}
-            {!isReplayMode && (
+            {!isReplayMode && !isSpectator && (
                 <PlayerActionButtons
                     isMobile={isMobile}
                     isMobileLandscape={isMobileLandscape}
@@ -1679,7 +1687,7 @@ const Table = React.memo(() => {
 
             {/* All Table Modals */}
             {/* Read-only replay: no join/leave/countdown/result modals (they act on the live table). */}
-            {!isReplayMode && (
+            {!isReplayMode && !isSpectator && (
             <TableModals
                 showCountdown={showCountdown}
                 gameStartTime={gameStartTime}
@@ -1705,7 +1713,8 @@ const Table = React.memo(() => {
 
             {/* No-wallet overlay — blurs the table and walks the user through wallet setup */}
             {/* Replay is read-only and must work without a wallet (poker-vm#2025). */}
-            {!hasWallet && !isReplayMode && <NoWalletOverlay onWalletReady={handleWalletReady} />}
+            {/* Spectators (ui#916) watch without a wallet — no setup overlay. */}
+            {!hasWallet && !isReplayMode && !isSpectator && <NoWalletOverlay onWalletReady={handleWalletReady} />}
         </div>
         </SitOutIntentProvider>
     );
