@@ -13,13 +13,15 @@ interface DealerButtonDisplayProps {
  * always sits on the felt directly in front of the dealer, whichever seat that
  * is. Sized 20% larger than one chip.
  */
-const DealerButtonDisplay: React.FC<DealerButtonDisplayProps> = ({ side }) => {
+const DealerButtonDisplay: React.FC<DealerButtonDisplayProps> = React.memo(({ side }) => {
     const size = dealerButtonSizeForViewport();
+    const style = React.useMemo(() => ({ width: size, height: size }), [size]);
     return (
-        <div className="dealer-button" data-dealer-side={side} style={{ width: size, height: size }} data-testid="dealer-button">
+        <div className="dealer-button" data-dealer-side={side} style={style} data-testid="dealer-button">
             <img src={getDealerImageUrl()} alt="Dealer Button" />
         </div>
     );
-};
+});
+DealerButtonDisplay.displayName = "DealerButtonDisplay";
 
 export default DealerButtonDisplay;

@@ -732,16 +732,19 @@ export interface SeatEnvelope {
 
 /** The seat is a 160×140 box centred on its coordinate (every viewport; the
  *  stage zoom scales it), with the action label hanging just under it. */
+const SEAT_ENVELOPE_DESKTOP: Readonly<SeatEnvelope> = Object.freeze({
+    halfW: 80,
+    above: 70,
+    below: 76,
+    gap: 8,
+    groupHalfH: 16,
+    groupW: 110,
+    buttonW: 34
+});
+const SEAT_ENVELOPE_MOBILE: Readonly<SeatEnvelope> = Object.freeze({ ...SEAT_ENVELOPE_DESKTOP, groupHalfH: 18, buttonW: 38 });
+
 export function seatEnvelope(mobile: boolean): SeatEnvelope {
-    return {
-        halfW: 80,
-        above: 70,
-        below: 76,
-        gap: 8,
-        groupHalfH: mobile ? 18 : 16,
-        groupW: 110,
-        buttonW: mobile ? 38 : 34
-    };
+    return mobile ? SEAT_ENVELOPE_MOBILE : SEAT_ENVELOPE_DESKTOP;
 }
 
 /**
@@ -821,6 +824,27 @@ export function boardKeepOut(tableWidth: number, tableHeight: number, portrait: 
 export function betBoardFor(tableSize: number, portrait: boolean, tableWidth: number, tableHeight: number): BetObstacle[] {
     if (portrait && tableSize === 6) return [];
     return [boardKeepOut(tableWidth, tableHeight, portrait)];
+}
+
+/**
+ * Seat-ring positions with bet spots for (mode, tableSize), computed once and
+ * cached: the inputs are static per (mode, tableSize) (stage dims follow the
+ * mode), so every caller gets the same object back.
+ */
+const layoutCache = new Map<string, PositionArrays>();
+export function getLayoutPositions(tableSize: TableSize, mode: ViewportMode): PositionArrays {
+    const key = `${mode}|${tableSize}`;
+    let hit = layoutCache.get(key);
+    if (!hit) {
+        hit = withBetSpots(getAllPositions(tableSize), tableSize, mode);
+        layoutCache.set(key, hit);
+    }
+    return hit;
+}
+
+/** Test hook: drop cached layouts. */
+export function clearLayoutCache(): void {
+    layoutCache.clear();
 }
 
 /** Replace the chip spots with {@link placeBetSpots} for the seat ring. */

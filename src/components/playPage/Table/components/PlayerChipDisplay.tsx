@@ -27,18 +27,19 @@ interface PlayerChipDisplayProps {
 const PlayerChipDisplay: React.FC<PlayerChipDisplayProps> = React.memo(({ seatIndex, left, bottom, top, side, isDealer = false, isTournament }) => {
     const { chipAmount } = usePlayerChipData(seatIndex);
     const hasBet = !!chipAmount && chipAmount !== "0";
-    if (!hasBet && !isDealer) return null;
     const centered = top !== undefined;
+    const style = React.useMemo(
+        () => ({
+            left,
+            bottom: centered ? undefined : bottom,
+            top,
+            transform: centered ? "translate(-50%, -50%)" : undefined
+        }),
+        [left, bottom, top, centered]
+    );
+    if (!hasBet && !isDealer) return null;
     return (
-        <div
-            className="chip-position"
-            style={{
-                left,
-                bottom: centered ? undefined : bottom,
-                top,
-                transform: centered ? "translate(-50%, -50%)" : undefined
-            }}
-        >
+        <div className="chip-position" style={style}>
             {/* With no bet, an empty box keeps the bet's footprint so the button sits where it would beside chips. */}
             {hasBet ? <Chip amount={chipAmount} isTournament={isTournament} /> : <span className="bet-group-empty" />}
             {isDealer && <DealerButtonDisplay side={dealerSideFor(side)} />}

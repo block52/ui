@@ -13,8 +13,7 @@ import {
     getViewportMode,
     calculateZoom,
     getTableTransform,
-    getAllPositions,
-    withBetSpots
+    getLayoutPositions
 } from "../../config/stageGeometry";
 
 export interface UseTableLayoutReturn {
@@ -125,10 +124,9 @@ export const useTableLayout = (
     // flip must recompute positions even when tableSize/container are unchanged.
     // Bets (and the dealer button beside them, ui#835) sit under or above
     // their own seat, centred on it.
-    const positions = useMemo(
-        () => withBetSpots(getAllPositions(tableSize), tableSize, getViewportMode()),
-        [tableSize, viewportMode]
-    );
+    // Keyed only on (tableSize, viewportMode) and cached per pair in
+    // stageGeometry, so game-state ticks never recompute placements.
+    const positions = useMemo(() => getLayoutPositions(tableSize, viewportMode), [tableSize, viewportMode]);
 
     const { width: cw, height: ch } = containerSize;
 
