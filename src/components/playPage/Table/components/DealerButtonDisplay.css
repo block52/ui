@@ -1,0 +1,34 @@
+/* Dealer button beside the button seat's bet group (ui#835). */
+.chip-position {
+    --dealer-button-gap: 6px;
+}
+
+.dealer-button {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 50;
+    pointer-events: none;
+}
+
+.dealer-button[data-dealer-side="left"] {
+    right: calc(100% + var(--dealer-button-gap));
+}
+
+.dealer-button[data-dealer-side="right"] {
+    left: calc(100% + var(--dealer-button-gap));
+}
+
+.dealer-button img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+/* Footprint of a small bet, so the button sits in the same place with or without one. */
+.bet-group-empty {
+    display: block;
+    width: 84px;
+    height: 32px;
+}

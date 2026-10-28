@@ -13,7 +13,8 @@ import {
     getViewportMode,
     calculateZoom,
     getTableTransform,
-    getAllPositions
+    getAllPositions,
+    withBetSpots
 } from "../../config/stageGeometry";
 
 export interface UseTableLayoutReturn {
@@ -122,7 +123,12 @@ export const useTableLayout = (
     // viewportMode is a dependency of all three: it selects the stage orientation
     // (portrait vs landscape seat rings) inside the geometry engine, so a mode
     // flip must recompute positions even when tableSize/container are unchanged.
-    const positions = useMemo(() => getAllPositions(tableSize), [tableSize, viewportMode]);
+    // Bets (and the dealer button beside them, ui#835) sit under or above
+    // their own seat, centred on it.
+    const positions = useMemo(
+        () => withBetSpots(getAllPositions(tableSize), tableSize, getViewportMode()),
+        [tableSize, viewportMode]
+    );
 
     const { width: cw, height: ch } = containerSize;
 
