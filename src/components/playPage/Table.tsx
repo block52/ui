@@ -131,6 +131,7 @@ import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds
 import NoWalletOverlay from "./NoWalletOverlay";
 import SngPayoutPanel from "./SngPayoutPanel";
 import BlindsPanel from "./BlindsPanel";
+import ChipLeaderboard from "./common/ChipLeaderboard";
 
 // Table Error Page
 import TableErrorPage from "./TableErrorPage";
@@ -1640,6 +1641,13 @@ const Table = React.memo(() => {
             ) : (
                 <TablePanel activeTab={panelTab} onSelectTab={setPanelTab} onCollapse={() => setDesktopPanelCollapsedPersisted(true)} />
             )}
+
+            {/*//! LIVE CHIP LEADERBOARD (ui#280) — tournament/SNG standings overlay on the
+                left edge. Self-gates on the "Chip Leaderboard" setting + format, so it's
+                mounted unconditionally; it clears the right-docked History/Settings panel. */}
+            <div className="fixed left-3 top-20 z-[15] hidden md:block">
+                <ChipLeaderboard />
+            </div>
 
             {/* Layout Debug Panel */}
             <LayoutDebugInfo viewportMode={viewportMode} startIndex={startIndex} tableSize={tableSize} results={results} setStartIndex={setStartIndex} />
