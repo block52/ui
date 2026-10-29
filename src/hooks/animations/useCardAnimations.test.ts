@@ -15,7 +15,7 @@ let ackAnimation: jest.Mock;
 
 /** Set the events-context return, always wiring the current ackAnimation spy. */
 function setLatestItem(latestItem: GameStreamItem | null) {
-    mockUseGameEventsContext.mockReturnValue({ latestItem, ackAnimation });
+    mockUseGameEventsContext.mockReturnValue({ latestItem, ackAnimation, isPlayingSuspense: () => false });
 }
 
 let seq = 0;

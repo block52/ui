@@ -23,6 +23,12 @@ interface GameEventsContextValue {
      * actually done rather than after a fixed guess. Stable identity.
      */
     ackAnimation: (ackId: string) => void;
+    /**
+     * Is a protected tournament run-out (ui#873) still queued or holding the
+     * rendered track? Read imperatively (it changes on timers, not commits) by
+     * useAutoNewHand to defer the next hand's deal. Stable identity.
+     */
+    isPlayingSuspense: () => boolean;
 }
 
 const GameEventsContext = createContext<GameEventsContextValue | null>(null);
@@ -30,11 +36,12 @@ const GameEventsContext = createContext<GameEventsContextValue | null>(null);
 interface GameEventsProviderProps {
     latestItem: GameStreamItem | null;
     ackAnimation: (ackId: string) => void;
+    isPlayingSuspense: () => boolean;
     children: React.ReactNode;
 }
 
-export const GameEventsProvider: React.FC<GameEventsProviderProps> = ({ latestItem, ackAnimation, children }) => {
-    const value = useMemo<GameEventsContextValue>(() => ({ latestItem, ackAnimation }), [latestItem, ackAnimation]);
+export const GameEventsProvider: React.FC<GameEventsProviderProps> = ({ latestItem, ackAnimation, isPlayingSuspense, children }) => {
+    const value = useMemo<GameEventsContextValue>(() => ({ latestItem, ackAnimation, isPlayingSuspense }), [latestItem, ackAnimation, isPlayingSuspense]);
     return <GameEventsContext.Provider value={value}>{children}</GameEventsContext.Provider>;
 };
 

@@ -9,6 +9,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isNullish } from "../../utils/guards";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
+import { autoDealDecision } from "../../utils/autoDealDeferral";
 
 /**
  * Hook to automatically trigger a new hand when the current hand ends.
@@ -41,6 +42,14 @@ import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
  * reactive tick that re-runs the check on each commit; the DATA it reads is
  * always the logical snapshot. So the deal fires promptly while the rendered
  * showdown holds — the two are decoupled and never double-delay.
+ *
+ * Exception — tournament all-in run-outs (ui#873): while the bus is still
+ * showing a protected run-out (`isPlayingSuspense`), the deal WAITS, so the
+ * next hand never piles onto the run-out and trips the backpressure valve that
+ * fast-forwarded it. The wait is re-checked on a short poll and capped by
+ * MAX_AUTO_DEAL_DEFER_MS (`autoDealDecision`), so a stuck render can never
+ * stop the table. The decision inputs are still read from the logical track;
+ * only the moment of submission moves.
  *
  * The new hand is SUBMITTED through the shared ActionSubmitController (ui#635),
  * not broadcast from here: every tx this account sends — manual or automatic —
@@ -86,7 +95,21 @@ export function useAutoNewHand(
     // Reactive tick: re-run the deal check on every committed bus item. The item
     // itself is NOT read for the decision — getLatestGameState() (logical track)
     // is — it is only the signal that a new frame has arrived.
-    const { latestItem } = useGameEventsContext();
+    const { latestItem, isPlayingSuspense } = useGameEventsContext();
+
+    // ui#873: when this deal opportunity started waiting for a run-out to
+    // finish rendering (epoch ms), the timer that re-checks it, and the tick
+    // that timer bumps to re-run the gate.
+    const deferredSinceRef = useRef<number | null>(null);
+    const deferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const [deferToken, setDeferToken] = useState<number>(0);
+    const clearDeferTimer = useCallback(() => {
+        if (deferTimerRef.current !== null) {
+            clearTimeout(deferTimerRef.current);
+            deferTimerRef.current = null;
+        }
+    }, []);
+    useEffect(() => clearDeferTimer, [clearDeferTimer]);
 
     // Keep the ref up-to-date when the reactive `enabled` prop changes
     useEffect(() => {
@@ -152,6 +175,25 @@ export function useAutoNewHand(
             !hasTriggeredRef.current;
 
         if (shouldAutoNewHand) {
+            // ui#873: hold the deal while a tournament run-out is still on
+            // screen, re-checking on a timer (the bus finishing a hold is not a
+            // commit, so no tick would arrive).
+            const now = Date.now();
+            if (deferredSinceRef.current === null) {
+                deferredSinceRef.current = now;
+            }
+            const decision = autoDealDecision({ suspenseActive: isPlayingSuspense(), waitedMs: now - deferredSinceRef.current });
+            if (decision.kind === "wait") {
+                setIsDealingNewHand(true);
+                clearDeferTimer();
+                deferTimerRef.current = setTimeout(() => {
+                    deferTimerRef.current = null;
+                    setDeferToken(token => token + 1);
+                }, decision.recheckInMs);
+                return;
+            }
+            clearDeferTimer();
+            deferredSinceRef.current = null;
             // ui#662: latch on the SUBMISSION, not the intent — a render before
             // the table id arrived used to burn the one shot for the opportunity.
             // Surface the "Dealing hand #X…" indicator, then deal immediately —
@@ -163,14 +205,24 @@ export function useAutoNewHand(
             }
         }
 
+        // A deferred deal that no longer applies (auto-new-hand switched off,
+        // or the turn moved on while waiting) must not leave the indicator up.
+        if (!shouldAutoNewHand && deferredSinceRef.current !== null && !hasTriggeredRef.current) {
+            deferredSinceRef.current = null;
+            clearDeferTimer();
+            setIsDealingNewHand(false);
+        }
+
         // New-hand opportunity gone (a hand started — by us or another player).
         // Reset so the next END re-arms, and drop the dealing indicator.
         if (!hasNewHandAction) {
             hasTriggeredRef.current = false;
             rearmCountRef.current = 0;
+            deferredSinceRef.current = null;
+            clearDeferTimer();
             setIsDealingNewHand(false);
         }
-    }, [latestItem, localAddress, triggerAutoNewHand, rearmToken]);
+    }, [latestItem, localAddress, triggerAutoNewHand, rearmToken, deferToken, isPlayingSuspense, clearDeferTimer]);
 
     return { isDealingNewHand };
 }

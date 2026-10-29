@@ -1,4 +1,4 @@
-import { expandFrames } from "./expandFrames";
+import { expandFrames, runoutBeats } from "./expandFrames";
 import { deriveEvents } from "./deriveEvents";
 import { communityCardStagger } from "./decorators/communityCardStagger";
 import { DEFAULT_DECORATION } from "./types";
@@ -268,6 +268,27 @@ describe("expandFrames", () => {
             expect(frames[0].round).toBe(TexasHoldemRound.FLOP);
         });
 
+        it("turns a SHOWING seat face up from the reveal beat on (ui#873)", () => {
+            // The seat draws an opponent's cards only while it is SHOWING.
+            const showingNext = runoutResult({
+                players: [
+                    player(1, { holeCards: ["AH", "AD"], stack: "2000000" }),
+                    player(4, { address: BOB, holeCards: ["KS", "KC"], stack: "0", status: PlayerStatus.SHOWING })
+                ]
+            });
+            const frames = expandFrames(maskedPrev, showingNext);
+            for (const frame of frames.slice(0, -1)) {
+                expect(frame.players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.SHOWING);
+                // Only the cards and status move early; the stack stays pre-payout.
+                expect(frame.players.find(p => p.seat === 4)?.stack).toBe(maskedPrev.players[1].stack);
+            }
+        });
+
+        it("keeps the previous status when next is not SHOWING", () => {
+            const frames = expandFrames(maskedPrev, revealedNext);
+            expect(frames[0].players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.ACTIVE);
+        });
+
         it("does not disturb a seat that was already face up", () => {
             const frames = expandFrames(maskedPrev, revealedNext);
             for (const frame of frames) {
@@ -362,5 +383,58 @@ describe("expandFrames + deriveEvents integration", () => {
 
         expect(hintSizes).toEqual([3, 1, 1]);
         expect(Math.max(...hintSizes)).toBeLessThanOrEqual(3);
+    });
+});
+
+describe("single-street run-outs (ui#873)", () => {
+    const turn = () => snapshot({ round: TexasHoldemRound.TURN, communityCards: BOARD.slice(0, 4), previousActions: [action(10)], actionCount: 11 });
+    const SPLIT = { splitSingleStreetRunout: true };
+
+    it("stays whole without the option (cash keeps the single-frame path)", () => {
+        const next = runoutResult();
+        expect(expandFrames(turn(), next)).toEqual([next]);
+    });
+
+    it("splits a turn all-in into river, then result, when asked", () => {
+        const next = runoutResult();
+        const frames = expandFrames(turn(), next, SPLIT);
+        expect(frames.map(f => f.communityCards.length)).toEqual([5, 5]);
+        expect(frames[0].round).toBe(TexasHoldemRound.RIVER);
+        expect(frames[0].winners).toEqual([]);
+        expect(frames[1]).toBe(next);
+    });
+
+    it("never splits an ordinary street advance, even when asked", () => {
+        const next = snapshot({ round: TexasHoldemRound.RIVER, communityCards: [...BOARD] });
+        expect(expandFrames(turn(), next, SPLIT)).toEqual([next]);
+    });
+});
+
+describe("runoutBeats (ui#873)", () => {
+    it("names nothing when nothing was expanded", () => {
+        const next = runoutResult();
+        expect(runoutBeats(preflopAllIn(), [next])).toEqual([undefined]);
+        expect(runoutBeats(undefined, [next])).toEqual([undefined]);
+    });
+
+    it("names a preflop run-out's streets and its result", () => {
+        const prev = preflopAllIn();
+        const frames = expandFrames(prev, runoutResult());
+        const beats = runoutBeats(prev, frames);
+        expect(beats[beats.length - 1]).toBe("result");
+        expect(beats.filter(b => b !== "reveal")).toEqual(["flop", "turn", "river", "result"]);
+    });
+
+    it("names the face-up frame `reveal` even when the run-out starts on the flop", () => {
+        const prev = snapshot({
+            round: TexasHoldemRound.FLOP,
+            communityCards: BOARD.slice(0, 3),
+            players: [player(1, { holeCards: ["X", "X"] }), player(4, { address: BOB, holeCards: ["X", "X"] })]
+        });
+        const next = runoutResult({
+            players: [player(1, { holeCards: ["AH", "AD"] }), player(4, { address: BOB, holeCards: ["KS", "KC"] })]
+        });
+        const frames = expandFrames(prev, next);
+        expect(runoutBeats(prev, frames)).toEqual(["reveal", "turn", "river", "result"]);
     });
 });

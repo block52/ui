@@ -64,9 +64,15 @@ interface SitAndGoResultModalProps {
      * leave. (pokerchain#239)
      */
     onClaim: () => Promise<void>;
+    /**
+     * True while a live finish is still being shown on the table (ui#874): the
+     * deciding hand's result, then the tournament-winner moment. The modal
+     * waits, so the player sees the hand play out before "You finished 2nd".
+     */
+    held: boolean;
 }
 
-export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableId, onLeave, onClaim }) => {
+export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableId, onLeave, onClaim, held }) => {
     const navigate = useNavigate();
     const { isSitAndGo, getPlayerResult } = useSitAndGoPlayerResults();
 
@@ -132,7 +138,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
         }
     }, [claimError, claimState.kind]);
 
-    if (isNullish(playerResult) || dismissed) return null;
+    if (isNullish(playerResult) || dismissed || held) return null;
     if (isNullish(tableId) || isNullish(userAddress)) return null;
 
     const { place, payout, isWinner } = playerResult;

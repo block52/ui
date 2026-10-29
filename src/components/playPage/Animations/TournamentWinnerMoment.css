@@ -1,0 +1,73 @@
+/* Tournament-winner moment (ui#874): a held, centred card over the table. */
+.b52-tournament-winner {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 45; /* above the table, below the results modal (z-50) */
+    padding: 16px;
+}
+
+.b52-tournament-winner__card {
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    padding: 24px 28px;
+    border-radius: 16px;
+    background: rgba(17, 24, 39, 0.92);
+    border: 1px solid rgba(250, 204, 21, 0.55);
+    box-shadow:
+        0 0 40px rgba(250, 204, 21, 0.25),
+        0 10px 30px rgba(0, 0, 0, 0.5);
+    color: #fff;
+    animation: b52-tournament-winner-in 600ms ease-out both;
+}
+
+.b52-tournament-winner__trophy {
+    font-size: 44px;
+    line-height: 1;
+    margin-bottom: 8px;
+}
+
+.b52-tournament-winner__headline {
+    font-size: 22px;
+    font-weight: 700;
+}
+
+.b52-tournament-winner__hand {
+    margin-top: 6px;
+    font-size: 15px;
+    color: #fde68a;
+}
+
+.b52-tournament-winner__prize {
+    margin-top: 12px;
+    font-size: 30px;
+    font-weight: 800;
+    color: #86efac;
+}
+
+.b52-tournament-winner__runner-up {
+    margin-top: 12px;
+    font-size: 14px;
+    color: #d1d5db;
+}
+
+@keyframes b52-tournament-winner-in {
+    from {
+        opacity: 0;
+        transform: scale(0.92);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .b52-tournament-winner__card {
+        animation: none;
+    }
+}

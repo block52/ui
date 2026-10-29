@@ -11,7 +11,15 @@ import {
     holeCardFlightCount,
     holeCardFlightDepartMs,
     holeCardFlightLandMs,
-    holeCardLastLandMs
+    holeCardLastLandMs,
+    CARD_STAGGER_MS,
+    FULL_RUNOUT_BEATS,
+    MAX_AUTO_DEAL_DEFER_MS,
+    REDUCED_MOTION_PAUSE_FACTOR,
+    RUNOUT_PAUSE_MS,
+    maxRunoutDurationMs,
+    runoutBeatHoldMs,
+    streetLandMs
 } from "./timing";
 
 describe("timing", () => {
@@ -60,5 +68,45 @@ describe("timing", () => {
         expect(ANIMATION_CSS_VARS["--card-drop-ms"]).toBe(`${CARD_DROP_MS}ms`);
         expect(ANIMATION_CSS_VARS["--hole-card-flight-ms"]).toBe(`${HOLE_CARD_FLIGHT_MS}ms`);
         expect(ANIMATION_CSS_VARS["--hole-card-flip-ms"]).toBe(`${HOLE_CARD_FLIP_MS}ms`);
+    });
+});
+
+describe("tournament run-out suspense (ui#873)", () => {
+    it("holds each street for its landing time plus its pause", () => {
+        expect(runoutBeatHoldMs("flop", false)).toBe(streetLandMs(3) + RUNOUT_PAUSE_MS.flop);
+        expect(runoutBeatHoldMs("turn", false)).toBe(streetLandMs(1) + RUNOUT_PAUSE_MS.turn);
+        expect(runoutBeatHoldMs("river", false)).toBe(streetLandMs(1) + RUNOUT_PAUSE_MS.river);
+        expect(runoutBeatHoldMs("reveal", false)).toBe(RUNOUT_PAUSE_MS.reveal);
+        expect(runoutBeatHoldMs("result", false)).toBe(RUNOUT_PAUSE_MS.result);
+    });
+
+    it("lands a street exactly when useCardAnimations acks it", () => {
+        expect(streetLandMs(3)).toBe(CARD_STAGGER_MS * 3 + CARD_DROP_MS);
+        expect(streetLandMs(0)).toBe(0);
+    });
+
+    it("builds suspense: the river gets the longest pause", () => {
+        expect(RUNOUT_PAUSE_MS.river).toBeGreaterThan(RUNOUT_PAUSE_MS.turn);
+        expect(RUNOUT_PAUSE_MS.turn).toBeGreaterThan(RUNOUT_PAUSE_MS.flop);
+    });
+
+    it("never holds a street for less than its card animation (the ack would win anyway)", () => {
+        for (const beat of ["flop", "turn", "river"] as const) {
+            expect(runoutBeatHoldMs(beat, false)).toBeGreaterThan(streetLandMs(beat === "flop" ? 3 : 1));
+        }
+    });
+
+    it("shortens every pause under reduced motion", () => {
+        for (const beat of FULL_RUNOUT_BEATS) {
+            expect(runoutBeatHoldMs(beat, true)).toBe(Math.round(RUNOUT_PAUSE_MS[beat] * REDUCED_MOTION_PAUSE_FACTOR));
+            expect(runoutBeatHoldMs(beat, true)).toBeLessThan(runoutBeatHoldMs(beat, false));
+        }
+    });
+
+    it("keeps a full preflop run-out readable but bounded, and caps the deal deferral beyond it", () => {
+        const total = maxRunoutDurationMs();
+        expect(total).toBeGreaterThan(8000);
+        expect(total).toBeLessThan(14000);
+        expect(MAX_AUTO_DEAL_DEFER_MS).toBeGreaterThan(total);
     });
 });

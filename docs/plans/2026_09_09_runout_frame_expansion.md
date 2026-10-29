@@ -4,6 +4,12 @@
 **Status:** Phase 1 implemented (`src/bus/expandFrames.ts`, wired into
 `GameMessageBus.ingest`, 40 new tests in `expandFrames.test.ts` + `runout.test.ts`).
 Phases 2–4 open.
+**Update (ui#873/#874):** tournament run-out beats are now tagged (`runoutBeat`),
+held for suspense (`runoutSuspense` decorator, timings in `src/bus/timing.ts`)
+and marked `protectedHold` so the §2.6 backpressure valve no longer clamps them;
+tournaments also split a one-street (turn all-in) run-out; the reveal beat
+carries the seat's SHOWING status so the hands turn face up first; the auto
+deal waits for the run-out (`useAutoNewHand` + `utils/autoDealDeferral.ts`).
 **Owner:** TBD
 
 ## Goal

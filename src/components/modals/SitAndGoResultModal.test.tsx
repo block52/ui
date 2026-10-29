@@ -75,9 +75,18 @@ beforeEach(() => {
 });
 
 describe("SitAndGoResultModal", () => {
+    it("waits while the finish is still being shown on the table (ui#874)", () => {
+        mockGetPlayerResult.mockReturnValue({ place: 2, payout: "300", isWinner: false });
+        const { rerender } = render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={true} />);
+        expect(screen.queryByTestId("sng-result-modal")).toBeNull();
+
+        rerender(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
+        expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You finished 2nd!");
+    });
+
     it("renders nothing when user has no tournament result yet", () => {
         mockGetPlayerResult.mockReturnValue(null);
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
 
         expect(screen.queryByTestId("sng-result-modal")).toBeNull();
     });
@@ -85,14 +94,14 @@ describe("SitAndGoResultModal", () => {
     it("renders nothing when not a Sit & Go", () => {
         mockIsSitAndGo.mockReturnValue(false);
         mockGetPlayerResult.mockReturnValue({ place: 1, payout: "1000000", isWinner: true });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
 
         expect(screen.queryByTestId("sng-result-modal")).toBeNull();
     });
 
     it("renders winner copy + payout for the tournament winner", () => {
         mockGetPlayerResult.mockReturnValue({ place: 1, payout: "1000000", isWinner: true });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
 
         expect(screen.getByTestId("sng-result-modal")).toBeInTheDocument();
         expect(screen.getByTestId("sng-result-heading")).toHaveTextContent(/won the tournament/i);
@@ -101,7 +110,7 @@ describe("SitAndGoResultModal", () => {
 
     it("renders paid finish (2nd) with payout, no 'thanks for playing'", () => {
         mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
 
         expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You finished 2nd!");
         expect(screen.getByTestId("sng-result-payout")).toHaveTextContent("$400000");
@@ -110,7 +119,7 @@ describe("SitAndGoResultModal", () => {
 
     it("renders unpaid finish (4th of 4 in paid-3) with 'thanks for playing', no payout line", () => {
         mockGetPlayerResult.mockReturnValue({ place: 4, payout: "0", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
 
         expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You busted out — finished 4th.");
         expect(screen.getByText(/thanks for playing/i)).toBeInTheDocument();
@@ -120,7 +129,7 @@ describe("SitAndGoResultModal", () => {
     it("unpaid finisher: Spectate Table button fires onLeave and persists dismissal", async () => {
         const onLeave = jest.fn();
         mockGetPlayerResult.mockReturnValue({ place: 4, payout: "0", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={jest.fn()} held={false} />);
 
         fireEvent.click(screen.getByTestId("sng-result-leave-btn"));
 
@@ -132,7 +141,7 @@ describe("SitAndGoResultModal", () => {
     it("paid finisher: shows Claim (not Leave); claim calls onClaim then the button dismisses", async () => {
         const onClaim = jest.fn().mockResolvedValue(undefined);
         mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} held={false} />);
 
         // A paid finisher claims — no Leave button is offered.
         expect(screen.queryByTestId("sng-result-leave-btn")).toBeNull();
@@ -162,7 +171,7 @@ describe("SitAndGoResultModal", () => {
         const onClaim = jest.fn().mockResolvedValue(undefined);
         const onLeave = jest.fn();
         mockGetPlayerResult.mockReturnValue({ place: 3, payout: "200000", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={onClaim} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={onClaim} held={false} />);
 
         expect(screen.queryByTestId("sng-result-spectate-btn")).toBeNull();
         fireEvent.click(screen.getByTestId("sng-result-claim-winnings-btn"));
@@ -181,7 +190,7 @@ describe("SitAndGoResultModal", () => {
         let resolveClaim: () => void = () => undefined;
         const onClaim = jest.fn().mockReturnValue(new Promise<void>(r => { resolveClaim = r; }));
         mockGetPlayerResult.mockReturnValue({ place: 1, payout: "1000000", isWinner: true });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} held={false} />);
 
         const claimBtn = screen.getByTestId("sng-result-claim-winnings-btn");
         expect(claimBtn).toHaveTextContent("Collect $1000000");
@@ -202,7 +211,7 @@ describe("SitAndGoResultModal", () => {
             .mockRejectedValueOnce(new Error("network down"))
             .mockResolvedValueOnce(undefined);
         mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} held={false} />);
 
         const claimBtn = screen.getByTestId("sng-result-claim-winnings-btn");
         fireEvent.click(claimBtn);
@@ -220,7 +229,7 @@ describe("SitAndGoResultModal", () => {
     it("paid finisher: an 'already claimed' rejection is treated as collected, not an error (ui#737)", async () => {
         const onClaim = jest.fn().mockRejectedValue(new Error("player b521user already claimed payout"));
         mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={onClaim} held={false} />);
 
         const claimBtn = screen.getByTestId("sng-result-claim-winnings-btn");
         fireEvent.click(claimBtn);
@@ -239,7 +248,7 @@ describe("SitAndGoResultModal", () => {
             "true",
         );
 
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
 
         expect(screen.queryByTestId("sng-result-modal")).toBeNull();
     });
@@ -247,7 +256,7 @@ describe("SitAndGoResultModal", () => {
     it("does NOT render if no user address is stored (spectator)", () => {
         setStoredAddress(null);
         mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
-        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+        render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
 
         expect(screen.queryByTestId("sng-result-modal")).toBeNull();
     });
@@ -257,13 +266,13 @@ describe("SitAndGoResultModal", () => {
 
         it("shows the Claim NFT button for a paid finish", () => {
             mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
-            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
             expect(screen.getByTestId("sng-result-claim-btn")).toBeInTheDocument();
         });
 
         it("does NOT show the Claim NFT button for an unpaid finish", () => {
             mockGetPlayerResult.mockReturnValue({ place: 4, payout: "0", isWinner: false });
-            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
             expect(screen.queryByTestId("sng-result-claim-btn")).toBeNull();
         });
 
@@ -281,7 +290,7 @@ describe("SitAndGoResultModal", () => {
             mockClaim.mockResolvedValue(undefined);
             mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
 
-            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
             fireEvent.click(screen.getByTestId("sng-result-claim-btn"));
 
             // Both calls should fire in order.
@@ -296,7 +305,7 @@ describe("SitAndGoResultModal", () => {
             );
             mockGetPlayerResult.mockReturnValue({ place: 2, payout: "400000", isWinner: false });
 
-            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} />);
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} />);
             fireEvent.click(screen.getByTestId("sng-result-claim-btn"));
 
             // Error renders into the dedicated error slot.

@@ -9,6 +9,7 @@
  */
 import type { TexasHoldemStateDTO, ActionDTO, WinnerDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import type { ClassifiedMessage } from "./ingest";
+import type { RunoutBeat } from "./timing";
 
 /**
  * Typed transitions derived by diffing prev/next snapshot at ingest
@@ -99,6 +100,14 @@ export interface Decoration {
     animations: AnimationHint[];
     sounds: SoundHint[];
     coalescible: boolean;
+    /**
+     * Planned suspense, not backlog (ui#873): a tournament all-in run-out beat.
+     * The drain does not count its hold toward HOLD_CAP_MS, does not shorten
+     * its hold or abandon its acks under ordinary backpressure, and does not
+     * coalesce it away — only a client genuinely far behind
+     * (SUSPENSE_BACKLOG_CAP real frames queued) snaps past it. Merged by OR.
+     */
+    protectedHold?: boolean;
 }
 
 /** Inert decoration — commit immediately, no animations/sounds, not coalescible. */
@@ -155,6 +164,12 @@ export interface GameStreamItem {
      * client still drops them and snaps to truth.
      */
     synthetic: boolean;
+    /**
+     * Which beat of an expanded all-in run-out this frame is (ui#873), set by the
+     * bus at ingest when {@link expandFrames} split the arriving snapshot;
+     * undefined for every other frame. Decorators pace on it (runoutSuspense).
+     */
+    runoutBeat?: RunoutBeat;
 }
 
 /**
@@ -189,6 +204,11 @@ export interface BusIntrospection {
      * dropped (ui#623). Never surfaces as a page error — see `parseFrame`.
      */
     parseFailures: number;
+    /**
+     * True while a protected run-out (ui#873) is queued or holding the rendered
+     * track — what useAutoNewHand waits on before dealing the next hand.
+     */
+    suspense: boolean;
     commitLog: Array<{ seq: number; committedAt: number; eventCount: number }>;
 }
 

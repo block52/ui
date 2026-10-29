@@ -12,6 +12,8 @@ import { makeRemoteActionSound } from "./remoteActionSound";
 import { coalesceCatchUp } from "./coalesceCatchUp";
 import { holeCardDeal, dealingOrder, DEAL_HOLE_CARDS_KIND } from "./holeCardDeal";
 import { buildDefaultDecorators } from "./index";
+import { makeRunoutSuspense } from "./runoutSuspense";
+import { runoutBeatHoldMs } from "../timing";
 import { HOLE_CARD_STAGGER_MS } from "../timing";
 import { DEFAULT_DECORATION, GameEvent, GameStreamItem } from "../types";
 import { ActionDTO, PlayerActionType, TexasHoldemRound, WinnerDTO } from "@block52/poker-vm-sdk";
@@ -239,5 +241,36 @@ describe("coalesceCatchUp", () => {
 
     it("does not classify non-state items", () => {
         expect(coalesceCatchUp(makeItem([], "pending"), undefined)).toEqual({});
+    });
+});
+
+describe("runoutSuspense (ui#873)", () => {
+    function beatItem(beat: GameStreamItem["runoutBeat"], format: string | undefined): GameStreamItem {
+        const item = makeItem([]);
+        item.classified = { kind: "state", format, snapshot: {} } as unknown as GameStreamItem["classified"];
+        if (beat !== undefined) {
+            item.runoutBeat = beat;
+        }
+        return item;
+    }
+    const decorate = makeRunoutSuspense(() => false);
+
+    it("holds a tournament run-out beat for its suspense time and protects it", () => {
+        for (const format of ["sit-and-go", "tournament"]) {
+            expect(decorate(beatItem("river", format), undefined)).toEqual({
+                minDisplayMs: runoutBeatHoldMs("river", false),
+                protectedHold: true
+            });
+        }
+    });
+
+    it("leaves cash games and non-run-out frames alone", () => {
+        expect(decorate(beatItem("river", "cash"), undefined)).toEqual({});
+        expect(decorate(beatItem(undefined, "sit-and-go"), undefined)).toEqual({});
+    });
+
+    it("uses the shorter reduced-motion pause when the viewer asks for it", () => {
+        const reduced = makeRunoutSuspense(() => true);
+        expect(reduced(beatItem("result", "sit-and-go"), undefined).minDisplayMs).toBe(runoutBeatHoldMs("result", true));
     });
 });

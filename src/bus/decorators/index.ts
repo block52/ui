@@ -14,6 +14,8 @@ import { actionBadge } from "./actionBadge";
 import { makeRemoteActionSound } from "./remoteActionSound";
 import { coalesceCatchUp } from "./coalesceCatchUp";
 import { holeCardDeal } from "./holeCardDeal";
+import { makeRunoutSuspense } from "./runoutSuspense";
+import { prefersReducedMotion } from "../../utils/motion";
 
 export { showdownHold, SHOWDOWN_HOLD_MS } from "./showdownHold";
 export { communityCardStagger, CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "./communityCardStagger";
@@ -21,11 +23,22 @@ export { actionBadge } from "./actionBadge";
 export { makeRemoteActionSound } from "./remoteActionSound";
 export { coalesceCatchUp } from "./coalesceCatchUp";
 export { holeCardDeal, dealingOrder, DEAL_HOLE_CARDS_KIND } from "./holeCardDeal";
+export { makeRunoutSuspense } from "./runoutSuspense";
 
 /**
  * @param getLocalAddress accessor for the local player's cosmos address, closed
  *   over by remoteActionSound so it can skip the local player's own echo.
+ * @param getReducedMotion accessor for the viewer's reduced-motion preference,
+ *   closed over by runoutSuspense (shorter run-out pauses).
  */
-export function buildDefaultDecorators(getLocalAddress: () => string | null): Decorator[] {
-    return [showdownHold, communityCardStagger, holeCardDeal, actionBadge, makeRemoteActionSound(getLocalAddress), coalesceCatchUp];
+export function buildDefaultDecorators(getLocalAddress: () => string | null, getReducedMotion: () => boolean = prefersReducedMotion): Decorator[] {
+    return [
+        showdownHold,
+        communityCardStagger,
+        holeCardDeal,
+        actionBadge,
+        makeRemoteActionSound(getLocalAddress),
+        makeRunoutSuspense(getReducedMotion),
+        coalesceCatchUp
+    ];
 }

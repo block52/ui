@@ -34,8 +34,30 @@
  * takes the existing single-frame path with zero added latency.
  */
 import type { TexasHoldemStateDTO, PlayerDTO } from "@block52/poker-vm-sdk";
-import { TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { isMaskedHand, isRevealedHand } from "./deriveEvents";
+import type { RunoutBeat } from "./timing";
+import { hasElements } from "../utils/guards";
+
+export interface ExpandFramesOptions {
+    /**
+     * Also split a run-out that deals only ONE street — an all-in on the turn,
+     * where the river and the result arrive together (ui#873). Without it that
+     * frame stays whole, so the winner paints with the river. Enabled for
+     * tournaments only; cash keeps the original single-frame path.
+     */
+    splitSingleStreetRunout: boolean;
+}
+
+const DEFAULT_OPTIONS: ExpandFramesOptions = { splitSingleStreetRunout: false };
+
+/**
+ * Did `next` finish the hand? Only then can a one-street jump be a run-out:
+ * an ordinary street advance leaves the hand in play.
+ */
+function handFinished(next: TexasHoldemStateDTO): boolean {
+    return next.round === TexasHoldemRound.END || next.round === TexasHoldemRound.SHOWDOWN || hasElements(next.winners);
+}
 
 /**
  * Board size after each dealing street. The engine's own schedule
@@ -50,7 +72,8 @@ const DEALING_STREETS: readonly { round: TexasHoldemRound; boardSize: number }[]
 ];
 
 /**
- * Merge newly-revealed hole cards from `next` onto `prev`'s players, per seat.
+ * Merge newly-revealed hole cards from `next` onto `prev`'s players, per seat
+ * (with next's SHOWING status, so the seat draws them face up).
  * Only a masked -> revealed transition is carried (the same predicate pair
  * {@link deriveEvents} uses to emit `cardsRevealed`); everything else keeps its
  * `prev` value, so a seat that was already visible is untouched.
@@ -68,7 +91,12 @@ function mergeRevealedHoleCards(prev: TexasHoldemStateDTO, next: TexasHoldemStat
         const nextPlayer = nextBySeat.get(player.seat);
         if (nextPlayer && isMaskedHand(player.holeCards) && isRevealedHand(nextPlayer.holeCards)) {
             revealed = true;
-            return { ...player, holeCards: nextPlayer.holeCards };
+            // The seat renders an opponent's cards face up only while its status
+            // is SHOWING (useShowingCardsByAddress), so the reveal carries next's
+            // SHOWING status with the cards — otherwise the hands stay on their
+            // backs until the result frame (ui#873). Any other status is kept.
+            const status = nextPlayer.status === PlayerStatus.SHOWING ? nextPlayer.status : player.status;
+            return { ...player, holeCards: nextPlayer.holeCards, status };
         }
         return player;
     });
@@ -88,7 +116,11 @@ function mergeRevealedHoleCards(prev: TexasHoldemStateDTO, next: TexasHoldemStat
  *   or uncalled-bet win jumps `round` but deals nothing), a single-street
  *   advance, or a board length that does not match the engine's schedule.
  */
-export function expandFrames(prev: TexasHoldemStateDTO | undefined, next: TexasHoldemStateDTO): TexasHoldemStateDTO[] {
+export function expandFrames(
+    prev: TexasHoldemStateDTO | undefined,
+    next: TexasHoldemStateDTO,
+    options: ExpandFramesOptions = DEFAULT_OPTIONS
+): TexasHoldemStateDTO[] {
     // No baseline to project from — the frame simply seeds the next call.
     if (prev === undefined) {
         return [next];
@@ -108,8 +140,11 @@ export function expandFrames(prev: TexasHoldemStateDTO | undefined, next: TexasH
     const dealtStreets = DEALING_STREETS.filter(street => street.boardSize > prevBoard && street.boardSize <= nextBoard);
 
     // Nothing dealt, or one street dealt: the existing single-frame path already
-    // renders this correctly, and it must stay latency-free.
-    if (dealtStreets.length < 2) {
+    // renders this correctly, and it must stay latency-free. The exception is a
+    // one-street RUN-OUT (the hand ended in the same frame) when the caller asks
+    // for it — otherwise the winner paints with the river (ui#873).
+    const singleStreetRunout = options.splitSingleStreetRunout && dealtStreets.length === 1 && handFinished(next);
+    if (dealtStreets.length < 2 && !singleStreetRunout) {
         return [next];
     }
 
@@ -151,4 +186,32 @@ export function expandFrames(prev: TexasHoldemStateDTO | undefined, next: TexasH
     frames.push(next);
 
     return frames;
+}
+
+/**
+ * Name each frame of an expansion (ui#873): the last is the `result`; a frame
+ * whose board is still `prev`'s is the face-up `reveal`; the rest are the
+ * street their board size completes. Returns undefined for every frame when
+ * nothing was expanded (`frames` is just `[next]`), so ordinary frames carry
+ * no beat.
+ */
+export function runoutBeats(prev: TexasHoldemStateDTO | undefined, frames: readonly TexasHoldemStateDTO[]): Array<RunoutBeat | undefined> {
+    if (prev === undefined || frames.length < 2) {
+        return frames.map(() => undefined);
+    }
+    const prevBoard = prev.communityCards.length;
+    return frames.map((frame, index): RunoutBeat | undefined => {
+        if (index === frames.length - 1) {
+            return "result";
+        }
+        const board = frame.communityCards.length;
+        if (board === prevBoard) {
+            return "reveal";
+        }
+        const street = DEALING_STREETS.find(s => s.boardSize === board);
+        if (!street) {
+            return undefined;
+        }
+        return street.round === TexasHoldemRound.FLOP ? "flop" : street.round === TexasHoldemRound.TURN ? "turn" : "river";
+    });
 }
