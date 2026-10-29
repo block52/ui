@@ -21,17 +21,9 @@ import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isSchedul
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
 import { SNG_PREVIEW_LEVEL_COUNT, type AdvancedSngParams } from "../utils/sngAdvancedParams";
-import {
-    choiceUsesFormBlinds,
-    DEFAULT_BLIND_STRUCTURE_CHOICE,
-    DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT,
-    openingBlindsOf,
-    previewBlindLevels,
-    resolveBlindStructureChoice,
-    sngBlindFields,
-    type BlindStructureChoice
-} from "../utils/blindStructureChoice";
-import { BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
+import { choiceUsesFormBlinds, openingBlindsOf, previewBlindLevels, sngBlindFields } from "../utils/blindStructureChoice";
+import { AnteControls, BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
+import { useBlindStructureForm } from "../hooks/useBlindStructureForm";
 
 /**
  * TableAdminPage - Admin interface for creating and managing poker tables
@@ -94,13 +86,10 @@ export default function TableAdminPage() {
 
     // Blind structure (ui#905, ui#906): the same choices as the lobby's create
     // modal, ladder by default. Ladder and doubling use the opening blinds and
-    // level time above; presets and custom text carry their own.
-    const [blindStructureChoice, setBlindStructureChoice] = useState<BlindStructureChoice>(DEFAULT_BLIND_STRUCTURE_CHOICE);
-    const [customBlindText, setCustomBlindText] = useState(DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT);
-    const blindPlan = useMemo(
-        () => resolveBlindStructureChoice(blindStructureChoice, customBlindText, { smallBlind: sngSmallBlind, bigBlind: sngBigBlind, durationMinutes: blindLevelDuration }),
-        [blindStructureChoice, customBlindText, sngSmallBlind, sngBigBlind, blindLevelDuration]
-    );
+    // level time above; presets and custom text carry their own. Plus the ante
+    // controls (ui#891).
+    const blindForm = useBlindStructureForm({ smallBlind: sngSmallBlind, bigBlind: sngBigBlind, durationMinutes: blindLevelDuration });
+    const { choice: blindStructureChoice, customText: customBlindText, plan: blindPlan } = blindForm;
     // What the create message carries as the opening small/big blind and level time.
     const sngOpeningBlinds = useMemo(
         () => (blindPlan.preview ? openingBlindsOf(blindPlan.preview) : { smallBlind: sngSmallBlind, bigBlind: sngBigBlind, durationMinutes: blindLevelDuration }),
@@ -735,14 +724,14 @@ export default function TableAdminPage() {
                                 <div>
                                     <BlindStructureSelect
                                         value={blindStructureChoice}
-                                        onChange={setBlindStructureChoice}
+                                        onChange={blindForm.setChoice}
                                         labelClassName="text-gray-300 text-xs mb-2 block"
                                         className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
                                     />
                                     {blindStructureChoice === "custom" && (
                                         <CustomBlindStructureInput
                                             value={customBlindText}
-                                            onChange={setCustomBlindText}
+                                            onChange={blindForm.setCustomText}
                                             error={blindPlan.error}
                                             labelClassName="text-gray-300 text-xs mt-3 mb-2 block"
                                         />
@@ -841,6 +830,16 @@ export default function TableAdminPage() {
                                     </div>
                                 </div>
                                 </>)}
+
+                                {/* Antes (ui#891) */}
+                                <AnteControls
+                                    value={blindForm.anteForm}
+                                    onChange={blindForm.setAnteForm}
+                                    disabled={blindForm.anteControlsDisabled}
+                                    customAntes={blindForm.customAntes}
+                                    labelClassName="text-gray-300 text-xs mt-3 mb-2 block"
+                                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                                />
 
                                 {/* SNG Settings Summary */}
                                 <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
@@ -1110,7 +1109,8 @@ export default function TableAdminPage() {
                     bigBlind: sngBigBlind,
                     blindLevelDuration,
                     blindStructureChoice,
-                    customBlindText
+                    customBlindText,
+                    anteForm: blindForm.anteForm
                 }}
                 onApply={handleApplyAdvancedParams}
             />

@@ -15,6 +15,7 @@
  */
 
 import { hasValue, isNullish, isBlank } from "./guards";
+import type { AnteFormState } from "./anteRule";
 import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "./blindStructureChoice";
 
 /** Chain-defined valid entrant counts for a Sit & Go. */
@@ -175,6 +176,8 @@ export interface SngPreviewInput {
     blindStructureChoice?: BlindStructureChoice;
     /** The custom structure text, read when blindStructureChoice is "custom". */
     customBlindText?: string;
+    /** The form's ante controls (ui#891); omitted = each structure's own antes. */
+    anteForm?: AnteFormState;
 }
 
 /**
@@ -189,7 +192,7 @@ export function buildSngPreview(input: SngPreviewInput): SngPreview {
         smallBlind: input.smallBlind,
         bigBlind: input.bigBlind,
         durationMinutes: input.blindLevelDuration
-    });
+    }, input.anteForm);
     const levels: BlindLevelPreview[] = plan.preview
         ? previewBlindLevels(plan.preview, SNG_PREVIEW_LEVEL_COUNT).map(r => ({
               level: r.number,
