@@ -93,3 +93,32 @@ describe("GameSettingsContext — chip style (ui#842)", () => {
         expect(result.current).toBe(DEFAULT_CHIP_STYLE_ID);
     });
 });
+
+describe("GameSettingsContext — chip leaderboard (ui#280)", () => {
+    beforeEach(() => {
+        localStorage.clear();
+    });
+
+    it("is off by default, so the leaderboard stays hidden", () => {
+        const { result } = renderHook(() => useGameSettings(), { wrapper });
+        expect(result.current.showLeaderboard).toBe(false);
+    });
+
+    it("toggles on and back off, persisting each change", () => {
+        const { result } = renderHook(() => useGameSettings(), { wrapper });
+
+        act(() => result.current.toggleShowLeaderboard());
+        expect(result.current.showLeaderboard).toBe(true);
+        expect(localStorage.getItem("setting_showleaderboard")).toBe("true");
+
+        act(() => result.current.toggleShowLeaderboard());
+        expect(result.current.showLeaderboard).toBe(false);
+        expect(localStorage.getItem("setting_showleaderboard")).toBe("false");
+    });
+
+    it("remembers the choice across a reload", () => {
+        localStorage.setItem("setting_showleaderboard", "true");
+        const { result } = renderHook(() => useGameSettings(), { wrapper });
+        expect(result.current.showLeaderboard).toBe(true);
+    });
+});

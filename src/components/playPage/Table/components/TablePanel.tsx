@@ -12,9 +12,11 @@
 
 import React from "react";
 import { FaChevronRight, FaTimes } from "react-icons/fa";
+import { isTournamentFormat } from "@block52/poker-vm-sdk";
 import ActionsLog from "../../../ActionsLog";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { CHIP_STYLES } from "../../../../config/chipSets";
+import { useGameStateContext } from "../../../../context/GameStateContext";
 
 export type TablePanelTab = "history" | "settings";
 
@@ -91,6 +93,7 @@ const SettingsTab: React.FC = () => {
         winCelebration,
         potAsChips,
         chipStyle,
+        showLeaderboard,
         toggleTurnNotificationSound,
         togglePlayerActionSounds,
         toggleAutoMuck,
@@ -99,8 +102,14 @@ const SettingsTab: React.FC = () => {
         togglePreSelectCheck,
         toggleWinCelebration,
         togglePotAsChips,
-        setChipStyle
+        setChipStyle,
+        toggleShowLeaderboard
     } = useGameSettings();
+
+    // The chip leaderboard is a tournament/SNG concept — chip share is
+    // meaningless in a cash game — so its toggle is only offered there (ui#280).
+    const { gameFormat } = useGameStateContext();
+    const isTournament = isTournamentFormat(gameFormat);
 
     return (
         <div className="flex-1 overflow-y-auto px-4 py-1">
@@ -135,6 +144,14 @@ const SettingsTab: React.FC = () => {
                 value={chipStyle}
                 onChange={setChipStyle}
             />
+            {isTournament && (
+                <ToggleRow
+                    label="Chip Leaderboard"
+                    description="Show live standings for this tournament or sit & go — each player's rank, chip count and share of the chips in play."
+                    checked={showLeaderboard}
+                    onToggle={toggleShowLeaderboard}
+                />
+            )}
             <ToggleRow
                 label="Auto Muck"
                 description="Automatically muck losing cards at showdown without prompting."
