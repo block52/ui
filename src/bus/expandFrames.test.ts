@@ -284,6 +284,24 @@ describe("expandFrames", () => {
             }
         });
 
+        it("carries cardsShown with the reveal, so a busted loser is tabled early (poker-vm#2758)", () => {
+            // A player who busts on the runout is BUSTED in next, not SHOWING;
+            // the engine's cardsShown is what tables their hand.
+            const bustedNext = runoutResult({
+                players: [
+                    player(1, { holeCards: ["AH", "AD"], stack: "2000000", status: PlayerStatus.SHOWING, cardsShown: true }),
+                    player(4, { address: BOB, holeCards: ["KS", "KC"], stack: "0", status: PlayerStatus.BUSTED, cardsShown: true })
+                ]
+            });
+            const frames = expandFrames(maskedPrev, bustedNext);
+            for (const frame of frames.slice(0, -1)) {
+                const bob = frame.players.find(p => p.seat === 4);
+                expect(bob?.holeCards).toEqual(["KS", "KC"]);
+                expect(bob?.cardsShown).toBe(true);
+                expect(bob?.status).toBe(maskedPrev.players[1].status);
+            }
+        });
+
         it("keeps the previous status when next is not SHOWING", () => {
             const frames = expandFrames(maskedPrev, revealedNext);
             expect(frames[0].players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.ACTIVE);

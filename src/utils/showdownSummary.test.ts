@@ -73,6 +73,17 @@ describe("getBeatenHandDescription", () => {
         expect(getBeatenHandDescription(gameState, winners)).toBeNull();
     });
 
+    it("counts a loser who busted on the showdown through cardsShown (poker-vm#2758)", () => {
+        const bustedLoser = { ...player(5, LOSER_ADDRESS, PlayerStatus.BUSTED, ["KS", "KC"]), cardsShown: true };
+        const gameState = state([player(3, WINNER_ADDRESS, PlayerStatus.SHOWING, ["AS", "AD"]), bustedLoser], BOARD);
+
+        const expected = describeShownHand(["KS", "KC"], BOARD)!.description;
+        expect(getBeatenHandDescription(gameState, winners)).toBe(expected);
+
+        const unmarked = player(5, LOSER_ADDRESS, PlayerStatus.BUSTED, ["KS", "KC"]);
+        expect(getBeatenHandDescription(state([player(3, WINNER_ADDRESS, PlayerStatus.SHOWING, ["AS", "AD"]), unmarked], BOARD), winners)).toBeNull();
+    });
+
     it("accepts ALL_IN reveals (all-in runouts) and ignores winners themselves", () => {
         const allInLoser = player(5, LOSER_ADDRESS, PlayerStatus.ALL_IN, ["KS", "KC"]);
         const gameState = state([player(3, WINNER_ADDRESS, PlayerStatus.ALL_IN, ["AS", "AD"]), allInLoser], BOARD);

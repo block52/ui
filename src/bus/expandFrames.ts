@@ -95,8 +95,10 @@ function mergeRevealedHoleCards(prev: TexasHoldemStateDTO, next: TexasHoldemStat
             // is SHOWING (useShowingCardsByAddress), so the reveal carries next's
             // SHOWING status with the cards — otherwise the hands stay on their
             // backs until the result frame (ui#873). Any other status is kept.
+            // cardsShown rides along too: a player who busts on the runout is
+            // tabled by it, not by SHOWING (poker-vm#2758).
             const status = nextPlayer.status === PlayerStatus.SHOWING ? nextPlayer.status : player.status;
-            return { ...player, holeCards: nextPlayer.holeCards, status };
+            return { ...player, holeCards: nextPlayer.holeCards, status, cardsShown: nextPlayer.cardsShown };
         }
         return player;
     });

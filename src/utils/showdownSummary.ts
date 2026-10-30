@@ -16,6 +16,7 @@ import { GameVariant, PlayerStatus, TexasHoldemStateDTO } from "@block52/poker-v
 import { WinnerInfo } from "../types/index";
 import { hasElements } from "./guards";
 import { EvaluatedHand, evaluateHand } from "./handEvaluation";
+import { isTabledHand } from "./tabledHand";
 
 /**
  * Evaluate revealed hole cards + board into a human description, or null when
@@ -31,7 +32,8 @@ export const describeShownHand = (
 /**
  * The strongest REVEALED losing hand at showdown — the "over …" clause.
  *
- * Only seats whose status is SHOWING or ALL_IN count as revealed: the local
+ * Only tabled seats (SHOWING, or cardsShown for a player who busted on the
+ * showdown — poker-vm#2758) and ALL_IN seats count as revealed: the local
  * player's own snapshot always carries their hole cards, so filtering by card
  * visibility alone would leak the hero's folded junk into the summary.
  */
@@ -48,7 +50,7 @@ export const getBeatenHandDescription = (
     let best: EvaluatedHand | null = null;
     for (const player of gameState.players ?? []) {
         if (winnerAddresses.has(player.address?.toLowerCase())) continue;
-        if (player.status !== PlayerStatus.SHOWING && player.status !== PlayerStatus.ALL_IN) continue;
+        if (!isTabledHand(player) && player.status !== PlayerStatus.ALL_IN) continue;
         const hand = describeShownHand(player.holeCards, board, variant);
         if (hand && (!best || hand.score > best.score)) {
             best = hand;

@@ -2,7 +2,8 @@
  * Hole cards a replay viewer is entitled to see (ui#816 follow-up).
  *
  * The chain's public state masks every hole card ("X") except those of players
- * whose status is `showing`, so a hand's steps only ever carry real cards at the
+ * whose hand is tabled (status `showing`, or `cardsShown` for a player who busted
+ * on the showdown — poker-vm#2758), so a hand's steps only ever carry real cards at the
  * showdown itself. A replay knows more than any single step:
  *   - cards shown at showdown (read once from the hand's final state), and
  *   - the viewer's own cards, from the authenticated GameState query signed
