@@ -46,6 +46,30 @@ jobs:
           path: build/
           retention-days: 7
 
+  guards:
+    name: Guards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+        with:
+          # The check diffs against the base branch's merge base.
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+
+      # Added lines only, so existing checks on main don't fail it (CLAUDE.md,
+      # UI Architecture Commandment 8). Plain Node runs the .ts; no install.
+      - name: No hand-written null/empty checks
+        if: github.event_name == 'pull_request'
+        env:
+          GUARDS_BASE: origin/${{ github.base_ref }}
+        run: node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-guards.ts
+
   test:
     name: Test
     runs-on: ubuntu-latest

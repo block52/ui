@@ -327,6 +327,12 @@ Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
 `isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings). For type
 conversions, see Commandment 12 (`utils/typeConversions`).
 
+**Checked in CI.** The `Guards` job runs `yarn check:guards`, which fails a PR
+whose added lines contain a hand-written null/empty/length check, and names the
+guard to use. Run it before opening a PR. Existing code isn't checked, only the
+lines you add. When a raw check is genuinely needed (a `typeof` check, a
+number compared with 0), end the line with `// guards-ok`.
+
 ---
 
 ### Tech Stack

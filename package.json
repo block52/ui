@@ -58,6 +58,7 @@
     "lint:fix": "eslint . --fix",
     "lint:warn": "eslint . --fix --max-warnings=100",
     "preview": "vite preview",
+    "check:guards": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON scripts/check-guards.ts",
     "test": "jest",
     "test:coverage": "jest --coverage",
     "test:watch": "jest --watch",
