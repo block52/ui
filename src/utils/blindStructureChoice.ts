@@ -14,6 +14,7 @@
  */
 
 import {
+    AnteRuleDTO,
     BLIND_PRESETS,
     BlindLevelDTO,
     BlindPreset,
@@ -24,6 +25,16 @@ import {
     resolveBlindPreset
 } from "@block52/poker-vm-sdk";
 import { ladderStructure } from "./blindLadder";
+import {
+    anteFormFromRule,
+    anteRuleFromForm,
+    anteRuleOfStructure,
+    applyAnteRule,
+    sameAnteRule,
+    validateAnteForm,
+    type AnteFormState,
+    type ConcreteBlindStructure
+} from "./anteRule";
 
 export type BlindStructureChoice = "ladder" | "doubling" | BlindPreset | "custom";
 
@@ -84,23 +95,17 @@ export interface BlindPlan {
  * preview. The ladder submits and previews its table structure. Doubling previews as a rounded `double` structure built from the
  * form's blinds but submits nothing: the engine adopts that same structure for
  * a plain sit-and-go that has not started (poker-vm#2738).
+ *
+ * `ante` is the form's ante controls (ui#891). Omitted, every choice keeps its
+ * own antes (the ladder and doubling have none, a preset has its own). Given,
+ * the controls decide the antes of the ladder, doubling and the presets:
+ * doubling with antes then submits the same rounded `double` structure with
+ * the ante rule (the engine only adopts a structure without one), and a preset
+ * whose antes were changed submits its resolved structure with the new rule
+ * (a preset by name takes no other field). Custom text carries its own antes;
+ * the controls rewrite the text instead (customTextWithAnte).
  */
-export function resolveBlindStructureChoice(choice: BlindStructureChoice, customText: string, doubling: DoublingBlinds): BlindPlan {
-    if (choice === "ladder") {
-        const structure = ladderStructure(doubling.smallBlind, doubling.bigBlind, doubling.durationMinutes);
-        return { structure, preview: structure };
-    }
-    if (choice === "doubling") {
-        return {
-            preview: {
-                progression: "double",
-                startSmallBlind: String(doubling.smallBlind),
-                startBigBlind: String(doubling.bigBlind),
-                durationMinutes: doubling.durationMinutes,
-                roundBlinds: true
-            }
-        };
-    }
+export function resolveBlindStructureChoice(choice: BlindStructureChoice, customText: string, doubling: DoublingBlinds, ante?: AnteFormState): BlindPlan {
     if (choice === "custom") {
         try {
             const structure = parseBlindStructure(customText);
@@ -109,8 +114,99 @@ export function resolveBlindStructureChoice(choice: BlindStructureChoice, custom
             return { error: err instanceof Error ? err.message : String(err) };
         }
     }
-    const structure: BlindStructureDTO = { preset: choice };
-    return { structure, preview: resolveBlindPreset(structure) };
+    const anteError = ante ? validateAnteForm(ante) : undefined;
+    if (anteError) return { error: anteError };
+    const rule = ante ? anteRuleFromForm(ante) : undefined;
+
+    if (choice === "ladder") {
+        const ladder = ladderStructure(doubling.smallBlind, doubling.bigBlind, doubling.durationMinutes);
+        const structure = rule === undefined ? ladder : applyAnteRule(ladder, rule);
+        return { structure, preview: structure };
+    }
+    if (choice === "doubling") {
+        const preview: ConcreteBlindStructure = {
+            progression: "double",
+            startSmallBlind: String(doubling.smallBlind),
+            startBigBlind: String(doubling.bigBlind),
+            durationMinutes: doubling.durationMinutes,
+            roundBlinds: true
+        };
+        if (!rule) return { preview };
+        const structure = applyAnteRule(preview, rule);
+        return { structure, preview: structure };
+    }
+    const preset: BlindStructureDTO = { preset: choice };
+    const resolved = resolveBlindPreset(preset);
+    if (rule === undefined || sameAnteRule(presetAnteRule(choice), rule)) {
+        return { structure: preset, preview: resolved };
+    }
+    const structure = applyAnteRule(resolved, rule);
+    return { structure, preview: structure };
+}
+
+/** A preset's own ante rule (null for none). Presets are algorithmic, so their rule is never per-level custom. */
+export function presetAnteRule(preset: BlindPreset): AnteRuleDTO | null {
+    const rule = anteRuleOfStructure({ preset });
+    return rule === "custom" ? null : rule;
+}
+
+/**
+ * The ante controls after choosing a structure: a preset fills them from the
+ * preset's own rule; leaving custom takes what the custom text plays; the
+ * ladder and doubling keep the current controls.
+ */
+export function anteFormForChoice(choice: BlindStructureChoice, current: AnteFormState, customText: string, previousChoice: BlindStructureChoice): AnteFormState {
+    if (choice !== "custom" && choice !== "ladder" && choice !== "doubling") {
+        return anteFormFromRule(presetAnteRule(choice), current);
+    }
+    if (previousChoice === "custom" && choice !== "custom") {
+        return anteFormOfCustomText(customText, current)?.form ?? current;
+    }
+    return current;
+}
+
+/**
+ * The controls as the custom text sets them, or undefined when the text does
+ * not parse. `custom` is true for hand-written per-level antes no single rule
+ * reproduces; the controls then show `fallback`'s level and size, and
+ * changing them rewrites every level's ante.
+ */
+export function anteFormOfCustomText(text: string, fallback: AnteFormState): { form: AnteFormState; custom: boolean } | undefined {
+    let structure: BlindStructureDTO;
+    try {
+        structure = parseBlindStructure(text);
+    } catch {
+        return undefined;
+    }
+    const rule = anteRuleOfStructure(structure);
+    if (rule === "custom") return { form: { ...fallback, enabled: true }, custom: true };
+    return { form: anteFormFromRule(rule, fallback), custom: false };
+}
+
+/**
+ * The custom text with the controls' antes written in (the controls and the
+ * text stay in sync, ui#891), or undefined when the text does not parse or the
+ * controls are invalid. A preset name is written out as its structure.
+ */
+export function customTextWithAnte(text: string, ante: AnteFormState): string | undefined {
+    if (validateAnteForm(ante)) return undefined;
+    try {
+        const structure = resolveBlindPreset(parseBlindStructure(text));
+        return formatBlindStructure(applyAnteRule(structure, anteRuleFromForm(ante)), "custom");
+    } catch {
+        return undefined;
+    }
+}
+
+/**
+ * The custom text to open with when switching to Custom: the structure the
+ * form had, antes included, written out, so custom starts from what the
+ * preview showed. Undefined when there is nothing to write (keep the text).
+ */
+export function customTextFromPlan(plan: BlindPlan): string | undefined {
+    const structure = plan.structure ?? plan.preview;
+    if (!structure) return undefined;
+    return formatBlindStructure(resolveBlindPreset(structure), "custom");
 }
 
 export interface BlindLevelRow {
@@ -131,6 +227,11 @@ export function previewBlindLevels(preview: BlindStructureDTO, count: number): B
         rows.push({ number: n + 1, smallBlind: l.smallBlind, bigBlind: l.bigBlind, ante: l.ante, durationMinutes: l.durationMinutes, isBreak: l.isBreak });
     }
     return rows;
+}
+
+/** Whether any previewed level has an ante: the preview shows its Ante column only then, like the Blinds tab. */
+export function previewHasAnte(rows: BlindLevelRow[]): boolean {
+    return rows.some(r => !r.isBreak && r.ante !== "0" && r.ante !== "");
 }
 
 /** The opening level's blinds and duration — what the create message carries as small/big blind and level time. */
