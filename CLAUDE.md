@@ -142,9 +142,9 @@ const format = parseGameFormat(game.format);
 
 ---
 
-## The 7 Commandments of UI Architecture
+## The 8 Commandments of UI Architecture
 
-These rules standardize how API calls, state management, and testing are structured across the UI. **Violations create inconsistency and tech debt.** Established in PR #159.
+These rules standardize how API calls, state management, null checks and testing are structured across the UI. **Violations create inconsistency and tech debt.** Established in PR #159.
 
 ### 1. Centralized HTTPClient — No Raw Axios/Fetch
 
@@ -277,6 +277,56 @@ describe("HTTPClient", () => {
 });
 ```
 
+### 8. Guards and `utils/` — No Inline Checks, No Helpers in Components
+
+Agents: this applies to every PR. A PR that adds `x && x.length > 0`,
+`x !== null && x !== undefined` or a helper function inside a component is not
+ready for review.
+
+Logic lives in `src/utils/` (or a hook when it needs React state), **never as
+helper functions declared inside a component body or module**. A component
+should render and wire up hooks; anything that computes, parses, formats,
+compares or validates belongs in a named, exported, unit-tested helper.
+
+```typescript
+// ❌ WRONG - logic defined inside the component file
+const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-8)}`;
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = shortAddress(player.address);
+    if (player.holeCards && player.holeCards.length > 0) { ... }
+};
+
+// ✅ CORRECT - import tested helpers and guards
+import { truncateHash } from "../utils/formatUtils";
+import { hasElements } from "../utils/guards";
+export const PlayerSeat: React.FC<Props> = ({ player }) => {
+    const label = truncateHash(player.address);
+    if (hasElements(player.holeCards)) { ... }
+};
+```
+
+Before writing a null/empty/length check or a conversion by hand, look for an
+existing helper. If one is missing, add it to `src/utils/` **with a colocated
+`*.test.ts`** rather than inlining the logic. Reuse beats re-implementation:
+grep `src/utils/` first.
+
+Most common: `src/utils/guards.ts` for null/empty checks.
+
+```typescript
+// ❌ WRONG - inline checks scattered everywhere
+if (arr && arr.length > 0) { ... }
+if (value !== null && value !== undefined) { ... }
+
+// ✅ CORRECT - use the tested guards
+import { hasElements, hasValue } from "../utils/guards";
+if (hasElements(arr)) { ... }
+if (hasValue(value)) { ... }
+```
+
+Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
+`isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings). For type
+conversions, see Commandment 12 (`utils/typeConversions`).
+
 ---
 
 ### Tech Stack
@@ -392,51 +442,9 @@ yarn lint:fix
 yarn lint:warn
 ```
 
-### Guards and `utils/`, Not Functions in Components
+### Guards and `utils/`
 
-Logic lives in `src/utils/` (or a hook when it needs React state), **never as
-helper functions declared inside a component body or module**. A component
-should render and wire up hooks; anything that computes, parses, formats,
-compares or validates belongs in a named, exported, unit-tested helper.
-
-```typescript
-// ❌ WRONG - logic defined inside the component file
-const shortAddress = (addr: string) => `${addr.slice(0, 8)}...${addr.slice(-8)}`;
-export const PlayerSeat: React.FC<Props> = ({ player }) => {
-    const label = shortAddress(player.address);
-    if (player.holeCards && player.holeCards.length > 0) { ... }
-};
-
-// ✅ CORRECT - import tested helpers and guards
-import { truncateHash } from "../utils/formatUtils";
-import { hasElements } from "../utils/guards";
-export const PlayerSeat: React.FC<Props> = ({ player }) => {
-    const label = truncateHash(player.address);
-    if (hasElements(player.holeCards)) { ... }
-};
-```
-
-Before writing a null/empty/length check or a conversion by hand, look for an
-existing helper. If one is missing, add it to `src/utils/` **with a colocated
-`*.test.ts`** rather than inlining the logic. Reuse beats re-implementation:
-grep `src/utils/` first.
-
-Most common: `src/utils/guards.ts` for null/empty checks.
-
-```typescript
-// ❌ WRONG - inline checks scattered everywhere
-if (arr && arr.length > 0) { ... }
-if (value !== null && value !== undefined) { ... }
-
-// ✅ CORRECT - use the tested guards
-import { hasElements, hasValue } from "../utils/guards";
-if (hasElements(arr)) { ... }
-if (hasValue(value)) { ... }
-```
-
-Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
-`isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings). For type
-conversions, see Commandment 12 (`utils/typeConversions`).
+See UI Architecture Commandment 8.
 
 ### New Features Must Be Unit Tested
 
