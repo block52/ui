@@ -1,3 +1,4 @@
+import { TABLE_SIZE_OPTIONS } from "../config/stageGeometry";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { localDateTimeToUnixSeconds, LATE_REGISTRATION_LEVEL_OPTIONS, lateRegistrationOptionLabel } from "../utils/scheduledSng";
 import { BettingLimit, GameFormat, GameVariant, CosmosClient, getDefaultCosmosConfig, PlayerDTO, computeGameNameFee } from "@block52/poker-vm-sdk";
@@ -568,7 +569,7 @@ export default function TableAdminPage() {
                                 onChange={e => setMaxPlayers(parseInt(e.target.value))}
                                 className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
                             >
-                                {[2, 3, 4, 5, 6, 7, 8, 9].map(n => (
+                                {TABLE_SIZE_OPTIONS.map(n => (
                                     <option key={n} value={n}>
                                         {n}
                                         {n === 2 ? " (Heads-Up)" : n === 9 ? " (Full Ring)" : ""}
@@ -599,7 +600,7 @@ export default function TableAdminPage() {
                                             onChange={e => setSngMinPlayers(parseInt(e.target.value))}
                                             className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
                                         >
-                                            {[2, 3, 4, 5, 6, 7, 8, 9].filter(n => n <= maxPlayers).map(n => (
+                                            {TABLE_SIZE_OPTIONS.filter(n => n <= maxPlayers).map(n => (
                                                 <option key={n} value={n}>
                                                     {n}
                                                 </option>

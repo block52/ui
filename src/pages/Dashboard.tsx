@@ -1,3 +1,4 @@
+import { TABLE_SIZE_OPTIONS } from "../config/stageGeometry";
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { localDateTimeToUnixSeconds, LATE_REGISTRATION_LEVEL_OPTIONS, lateRegistrationOptionLabel } from "../utils/scheduledSng";
 import { useNavigate } from "react-router-dom"; // Import useNavigate for navigation
@@ -61,7 +62,7 @@ import { colors, hexToRgba } from "../utils/colorConfig";
 const B52_ADDRESS_REGEX = /^b521[qpzry9x8gf2tvdw0s3jn54khce6mua7l]{38,}$/;
 
 /** Every single-table field the engine can pay out (poker-vm#2667). */
-const SNG_SEAT_OPTIONS = [2, 3, 4, 5, 6, 7, 8, 9];
+const SNG_SEAT_OPTIONS = TABLE_SIZE_OPTIONS;
 
 const Dashboard: React.FC = () => {
     const navigate = useNavigate();
