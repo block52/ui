@@ -25,6 +25,7 @@ import { useAutoNewHand } from "./useAutoNewHand";
 import { useAutoFold } from "./useAutoFold";
 import { useCallClock } from "./useCallClock";
 import { callClock } from "./callClock";
+import { timeBank } from "./timeBank";
 import { useAutoMuck } from "./useAutoMuck";
 import { useAutoSitOutNextBB } from "./useAutoSitOutNextBB";
 import { usePreAction } from "./usePreAction";
@@ -59,6 +60,7 @@ export {
     useAutoFold,
     useCallClock,
     callClock,
+    timeBank,
     useAutoMuck,
     useAutoSitOutNextBB,
     usePreAction

@@ -1,5 +1,5 @@
 import * as React from "react";
-import { memo, useMemo, useCallback, useState, useEffect } from "react";
+import { memo, useMemo, useCallback } from "react";
 import Badge from "../common/Badge";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
@@ -7,7 +7,6 @@ import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 import { useParams } from "react-router-dom";
 import type { PlayerProps } from "../../../types/index";
-import { useGameStateContext } from "../../../context/GameStateContext";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { getCardImageUrl } from "../../../utils/cardImages";
 import { winnerCardHighlight } from "../../../utils/holeCardLayout";
@@ -29,7 +28,7 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
         const { winnerInfo, winnerBySeat } = useWinnerInfo();
         const winnerCards = useWinnerCards();
-        const { extendTime, canExtend, isCurrentUserTurn, isActive: isTurnTimerActive } = usePlayerTimer(id, index);
+        const { isActive: isTurnTimerActive } = usePlayerTimer(id, index);
 
         const { dealerSeat } = useDealerPosition();
         const { equities, shouldShow: shouldShowEquity } = useAllInEquity();
@@ -59,36 +58,6 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
         const tournamentResult = useMemo(() => {
             return isSitAndGo ? getSeatResult(index) : null;
         }, [getSeatResult, isSitAndGo, index]);
-
-        // State for extension UI feedback
-        const [isExtending, setIsExtending] = useState(false);
-
-        // Handle time extension
-        const _handleExtendTime = () => {
-            setIsExtending(true);
-
-            // Use the timer hook's extend function
-            extendTime?.();
-
-            // Show brief feedback then reset
-            setTimeout(() => {
-                setIsExtending(false);
-            }, 1500);
-        };
-
-        // Reset extending state when it's not the player's turn
-        useEffect(() => {
-            if (!isCurrentUserTurn) {
-                setIsExtending(false);
-            }
-        }, [isCurrentUserTurn]);
-
-        // Get player count to determine if timer should be active
-        const { gameState } = useGameStateContext();
-        const playerCount = gameState?.players?.length || 0;
-
-        // Only show timer extension when there are 2+ players
-        const shouldShowTimerExtension = playerCount >= 2 && canExtend && isCurrentUserTurn && !isExtending;
 
         // 1) detect when any winner exists
         const hasWinner = useMemo(() => hasElements(winnerInfo), [winnerInfo]);
@@ -181,8 +150,6 @@ const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
                             count={index}
                             value={stackValue}
                             color={color}
-                            canExtend={shouldShowTimerExtension}
-                            // onExtend={shouldShowTimerExtension ? handleExtendTime : undefined}
                             tournamentPlace={tournamentResult?.place}
                             tournamentPayout={tournamentResult?.payout}
                             isWinner={isWinner}

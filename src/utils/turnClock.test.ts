@@ -56,6 +56,11 @@ function player(address: string, seat: number): PlayerDTO {
     };
 }
 
+/** A player whose latest time-bank use granted `ms` (engine field, newer than SDK 1.15.0's PlayerDTO type). */
+function withGrant(p: PlayerDTO, ms: number): PlayerDTO {
+    return Object.assign(p, { timeBankLastGrantMs: ms });
+}
+
 function action(index: number, timestamp: number, over: Partial<ActionDTO> = {}): ActionDTO {
     return { playerId: P1, seat: 1, action: PlayerActionType.CALL, amount: "0", round: TexasHoldemRound.PREFLOP, index, timestamp, ...over };
 }
@@ -98,12 +103,14 @@ describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
         expect(turnDeadlineMs(s)).toBe(Math.floor(T0 / 1000) * 1000 + 30_000);
     });
 
-    it("a time-bank extends the turn without re-anchoring it", () => {
+    it("a time-bank extends the turn by what that use granted, without re-anchoring it", () => {
         const s = state({
-            gameOptions: { ...options, timeBankMs: 20_000 },
+            gameOptions: { ...options, timeBankMs: 45_000 },
+            players: [player(P1, 1), withGrant(player(P2, 2), 30_000), player(P3, 3), player(P5, 5)],
             previousActions: [action(1, T0), action(2, T0 + 25_000, { action: NonPlayerActionType.TIME_BANK, playerId: P2, seat: 2 })]
         });
-        expect(turnDeadlineMs(s)).toBe(T0 + 30_000 + 20_000);
+        // the second use grants 30s, not the table's 45s first extension
+        expect(turnDeadlineMs(s)).toBe(T0 + 30_000 + 30_000);
     });
 
     it("a time-bank from an EARLIER turn does not count", () => {
@@ -114,7 +121,7 @@ describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
         expect(turnDeadlineMs(s)).toBe(T0 + 30_000);
     });
 
-    it("a time-bank with no timeBankMs configured extends by nothing", () => {
+    it("a time-bank with no grant recorded for its player extends by nothing", () => {
         const s = state({ previousActions: [action(1, T0), action(2, T0 + 1000, { action: NonPlayerActionType.TIME_BANK })] });
         expect(turnDeadlineMs(s)).toBe(T0 + 30_000);
     });

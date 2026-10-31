@@ -14,9 +14,6 @@ type BadgeProps = {
     count: number; // Seat index
     value: number; // Stack value
     color?: string;
-    // Timer extension props
-    canExtend?: boolean;
-    onExtend?: () => void;
     // Sit & Go tournament results
     tournamentPlace?: number;
     tournamentPayout?: string;
@@ -35,7 +32,7 @@ type BadgeProps = {
 };
 
 const Badge: React.FC<BadgeProps> = React.memo(({
-    count, value, color, canExtend, onExtend,
+    count, value, color,
     tournamentPlace, tournamentPayout,
     isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
     round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn
@@ -279,28 +276,6 @@ const Badge: React.FC<BadgeProps> = React.memo(({
             {/* Floating "+amount" pill on a winning seat (ui#861) */}
             {isWinner && <WinAmountFloat formattedAmount={winnerAmount} isTournament={isTournament} />}
 
-            {/* Timer Extension Icon - Timer icon inside badge */}
-            {canExtend && onExtend && (
-                <div
-                    className="timer-extension-button"
-                    onClick={onExtend}
-                >
-                    <svg
-                        className="timer-extension-icon"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        {/* Clock circle */}
-                        <circle cx="12" cy="12" r="8" strokeWidth="2"/>
-                        {/* Clock hands */}
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
-                        {/* Plus symbol in corner */}
-                        <circle cx="18" cy="6" r="3" fill="currentColor"/>
-                        <path stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 6h2M18 5v2"/>
-                    </svg>
-                </div>
-            )}
         </div>
     );
 });

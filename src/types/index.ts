@@ -365,9 +365,8 @@ export interface PlayerTimerReturn extends BaseHookReturn {
     progress: number;
     timeRemaining: number;
     isActive: boolean;
-    extendTime?: () => void;
+    /** True once the chain has granted this turn a time bank (ui#19). */
     hasUsedExtension?: boolean;
-    canExtend?: boolean;
     isCurrentUser?: boolean;
     isCurrentUserTurn?: boolean;
 }

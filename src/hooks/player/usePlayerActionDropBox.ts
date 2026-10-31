@@ -42,6 +42,7 @@ const ACTION_DISPLAY_MAP: Record<string, string> = {
   [PlayerActionType.MUCK]: "MUCK",
   [NonPlayerActionType.SIT_OUT]: "SITTING OUT",
   [NonPlayerActionType.SIT_IN]: "SIT IN",
+  [NonPlayerActionType.TIME_BANK]: "TIME BANK",
 
   // Non-player actions - we'll filter these out mostly
   "join": "JOINED",
