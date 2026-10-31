@@ -5,7 +5,7 @@ import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
-import { useParams } from "react-router-dom";
+import { useTableId } from "../../../context/TableIdContext";
 import type { PlayerProps } from "../../../types/index";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
@@ -25,7 +25,7 @@ import { NftAvatarImage } from "../../profile/NftAvatarImage";
 
 const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
-        const { id } = useParams<{ id: string }>();
+        const id = useTableId();
         const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
         const { winnerInfo, winnerBySeat } = useWinnerInfo();
         const winnerCards = useWinnerCards();

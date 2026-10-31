@@ -1,0 +1,129 @@
+/* Multi-tabling pill bar (block52/ui#55). It lives in the table header's
+   sub-header row (desktop) or its own slim row (mobile), so it takes normal
+   layout space and never covers a header control. The "your turn" pill pulses
+   a ring in the Block52 magenta so a player knows which background table
+   needs them; the ring is kept tight because the header row is only ~35px. */
+
+.b52-pill-bar {
+    /* Room for the glow ring inside the header row, and for a dragged pill. */
+    padding: 3px 4px;
+    position: relative;
+    scrollbar-width: none;
+}
+.b52-pill-bar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Pills are press-and-drag targets: no text selection or native image drag,
+   and no browser gesture once a drag has lifted (touch scrolling is handled
+   in TablePillBar). */
+.b52-table-pill {
+    touch-action: pan-x;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.b52-pill-dragging {
+    cursor: grabbing;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.55);
+    border-color: rgba(244, 114, 182, 0.9);
+}
+
+@keyframes b52-pill-glow {
+    0% {
+        box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.55), 0 0 3px 0 rgba(236, 72, 153, 0.35);
+    }
+    50% {
+        box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.95), 0 0 6px 1px rgba(236, 72, 153, 0.7);
+    }
+    100% {
+        box-shadow: 0 0 0 1px rgba(236, 72, 153, 0.55), 0 0 3px 0 rgba(236, 72, 153, 0.35);
+    }
+}
+
+.b52-pill-your-turn {
+    border-color: rgba(244, 114, 182, 0.9) !important;
+    animation: b52-pill-glow 1.4s ease-in-out infinite;
+}
+
+/* Respect users who prefer less motion: keep the ring, drop the pulse. */
+@media (prefers-reduced-motion: reduce) {
+    .b52-pill-your-turn {
+        animation: none;
+        box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.9), 0 0 5px 1px rgba(236, 72, 153, 0.6);
+    }
+}
+
+/* Single-table entry point: a small "+ Table" button in the same header slot. */
+.b52-mt-add {
+    height: 24px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: rgba(15, 23, 42, 0.6);
+    color: rgb(226, 232, 240);
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.b52-mt-add:hover {
+    background: rgba(51, 65, 85, 0.8);
+    color: #fff;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .b52-mt-add {
+        transition: none;
+    }
+}
+
+/* Floating table bubbles (ui#887): a pill pulled out of the header and parked
+   anywhere on screen. Above the table and its overlays, below modals. */
+.b52-table-bubble {
+    z-index: 150;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.55);
+    transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.b52-table-bubble:focus-visible {
+    outline: 2px solid rgba(244, 114, 182, 0.9);
+    outline-offset: 2px;
+}
+
+.b52-bubble-dragging {
+    cursor: grabbing;
+    box-shadow: 0 10px 26px rgba(0, 0, 0, 0.65);
+}
+
+/* The your-turn ring on a bubble can spread wider than in the header row. */
+.b52-table-bubble.b52-pill-your-turn {
+    animation-name: b52-bubble-glow;
+}
+
+@keyframes b52-bubble-glow {
+    0% {
+        box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.6), 0 0 8px 2px rgba(236, 72, 153, 0.4);
+    }
+    50% {
+        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.95), 0 0 20px 6px rgba(236, 72, 153, 0.75);
+    }
+    100% {
+        box-shadow: 0 0 0 2px rgba(236, 72, 153, 0.6), 0 0 8px 2px rgba(236, 72, 153, 0.4);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .b52-table-bubble {
+        transition: none;
+    }
+    .b52-table-bubble.b52-pill-your-turn {
+        animation: none;
+        box-shadow: 0 0 0 3px rgba(236, 72, 153, 0.9), 0 0 12px 3px rgba(236, 72, 153, 0.6);
+    }
+}

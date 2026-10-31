@@ -1,5 +1,5 @@
 import { withMoneyMoverRetry } from "../../utils/cosmos/client";
-import { getLatestGameState } from "./transportAction";
+import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { finishingOrderFromState } from "../../utils/cosmos/settlementTx";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 
@@ -24,11 +24,15 @@ export interface ClaimWinningsResult {
  * mid-tournament bricks the table for everyone still playing (ui#869,
  * pokerchain#436).
  *
+ * @param state - this table's latest state (its logical track, ui#834), which
+ *   carries the finishing order.
  * @throws if the wallet is not initialized or the chain rejects the settle.
  */
-export async function claimWinnings(tableId: string, network: NetworkEndpoints): Promise<ClaimWinningsResult> {
-    const state = getLatestGameState();
-
+export async function claimWinnings(
+    tableId: string,
+    network: NetworkEndpoints,
+    state: TexasHoldemStateDTO | undefined
+): Promise<ClaimWinningsResult> {
     // Pass the place-1-first finishingOrder (SDK 1.2.16; empty for a
     // non-finished state). Retry once on a sequence mismatch (ui#530 follow-up).
     const hash = await withMoneyMoverRetry(network, ({ signingClient }) =>
