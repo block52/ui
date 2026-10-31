@@ -2,14 +2,14 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from "react"
 import { useNetwork, NETWORK_PRESETS } from "./NetworkContext";
 import type { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { createAuthPayload } from "../utils/cosmos/signing";
-import { setLatestGameState } from "../hooks/playerActions/transportAction";
+import { createLogicalTrack, type LogicalTrack } from "../hooks/playerActions/transportAction";
 import { ClassifiedMessage } from "../bus/ingest";
 import { parseFrame } from "../bus/frame";
 import { GameMessageBus } from "../bus/GameMessageBus";
 import { type GameStreamItem } from "../bus/types";
 import { viteEnv } from "../utils/viteEnv";
 import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
-import { hasElements } from "../utils/guards";
+import { hasElements, isNullish } from "../utils/guards";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
@@ -23,6 +23,7 @@ import { GameUIProvider, useGameUI, PendingAction } from "./gameState/GameUICont
 import { ReplayProvider, useReplay } from "./gameState/ReplayContext";
 import { GameActionsProvider, useGameActions } from "./gameState/GameActionsContext";
 import { GameEventsProvider } from "./gameState/GameEventsContext";
+import { LogicalTrackProvider } from "./gameState/LogicalTrackContext";
 import { IDLE_CONNECTION, isConnectionLive, type ConnectionState } from "./gameState/connection";
 import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
 
@@ -116,13 +117,21 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isReplayModeRef = useRef(false);
 
+    // This table's LOGICAL track (ui#834) — one per provider, so with several
+    // tables mounted each table's submissions read only its own state.
+    const trackRef = useRef<LogicalTrack | null>(null);
+    if (isNullish(trackRef.current)) {
+        trackRef.current = createLogicalTrack();
+    }
+    const track = trackRef.current;
+
     // WS Action Bus. Created eagerly in render so it exists before any child
-    // effect calls subscribeToTable. The logical track (setLatestGameState) is
-    // fed by the bus at ingest time; committed items drive the RENDER track via
-    // applyRenderTrack below.
+    // effect calls subscribeToTable. The logical track is fed by the bus at
+    // ingest time; committed items drive the RENDER track via applyRenderTrack
+    // below.
     const busRef = useRef<GameMessageBus | null>(null);
     if (busRef.current === null) {
-        busRef.current = new GameMessageBus({ setLatestGameState });
+        busRef.current = new GameMessageBus({ setLatestGameState: track.set });
     }
 
     // Stable bridge from the render layer to the bus's animation-ack API (Phase 5).
@@ -137,7 +146,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const isPlayingSuspense = useCallback((): boolean => busRef.current?.isPlayingSuspense() ?? false, []);
 
     // Apply a classified message to the RENDER track (React state). Contains no
-    // setLatestGameState calls — the logical track is updated by the bus at
+    // logical-track writes — the logical track is updated by the bus at
     // ingest. setState dispatchers are stable, so this callback never changes
     // identity.
     const applyRenderTrack = useCallback((classified: ClassifiedMessage, rawMessage?: { gameId?: string; event?: string }) => {
@@ -508,7 +517,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         setLatestStreamItem(null);
         setGameState(undefined);
         setIsOptimistic(false);
-        setLatestGameState(undefined, { optimistic: false });
+        track.set(undefined, { optimistic: false });
         setGameFormat(undefined);
         setGameVariant(undefined);
         setGameName(undefined);
@@ -516,7 +525,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         setError(null);
         setValidationError(null);
         setPendingAction(null);
-    }, [closeSocket]);
+    }, [closeSocket, track]);
 
     // Send action through WebSocket for immediate broadcast
     const sendAction = useCallback(
@@ -738,35 +747,37 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     }, []);
 
     return (
-        <GameActionsProvider
-            subscribeToTable={subscribeToTable}
-            unsubscribeFromTable={unsubscribeFromTable}
-            sendAction={sendAction}
-            loadHistoricalState={loadHistoricalState}
-            loadHistoricalStateAtHeight={loadHistoricalStateAtHeight}
-        >
-            <GameMetaProvider gameFormat={gameFormat} gameVariant={gameVariant} gameName={gameName}>
-                <ReplayProvider
-                    isReplayMode={isReplayMode}
-                    replayHandNumber={replayHandNumber}
-                    replayActionIndex={replayActionIndex}
-                >
-                    <GameUIProvider
-                        isLoading={isLoading}
-                        error={error}
-                        validationError={validationError}
-                        pendingAction={pendingAction}
-                        connection={connection}
+        <LogicalTrackProvider value={track}>
+            <GameActionsProvider
+                subscribeToTable={subscribeToTable}
+                unsubscribeFromTable={unsubscribeFromTable}
+                sendAction={sendAction}
+                loadHistoricalState={loadHistoricalState}
+                loadHistoricalStateAtHeight={loadHistoricalStateAtHeight}
+            >
+                <GameMetaProvider gameFormat={gameFormat} gameVariant={gameVariant} gameName={gameName}>
+                    <ReplayProvider
+                        isReplayMode={isReplayMode}
+                        replayHandNumber={replayHandNumber}
+                        replayActionIndex={replayActionIndex}
                     >
-                        <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation} isPlayingSuspense={isPlayingSuspense}>
-                            <GameDataProvider gameState={gameState} isOptimistic={isOptimistic}>
-                                {children}
-                            </GameDataProvider>
-                        </GameEventsProvider>
-                    </GameUIProvider>
-                </ReplayProvider>
-            </GameMetaProvider>
-        </GameActionsProvider>
+                        <GameUIProvider
+                            isLoading={isLoading}
+                            error={error}
+                            validationError={validationError}
+                            pendingAction={pendingAction}
+                            connection={connection}
+                        >
+                            <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation} isPlayingSuspense={isPlayingSuspense}>
+                                <GameDataProvider gameState={gameState} isOptimistic={isOptimistic}>
+                                    {children}
+                                </GameDataProvider>
+                            </GameEventsProvider>
+                        </GameUIProvider>
+                    </ReplayProvider>
+                </GameMetaProvider>
+            </GameActionsProvider>
+        </LogicalTrackProvider>
     );
 };
 

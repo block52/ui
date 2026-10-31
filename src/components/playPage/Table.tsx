@@ -73,7 +73,6 @@ import { HexagonPattern } from "../common/Modal";
 // Use environment variable for club logo with fallback to default
 const clubLogo = import.meta.env.VITE_CLUB_LOGO || defaultLogo;
 
-import { useParams } from "react-router-dom";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
@@ -123,6 +122,8 @@ import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
 import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
+import { useTableId } from "../../context/TableIdContext";
 import { useGameSettings } from "../../context/GameSettingsContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
@@ -702,8 +703,20 @@ const GeometryToggleButton: React.FC = () => {
     );
 };
 
-const Table = React.memo(() => {
-    const { id } = useParams<{ id: string }>();
+interface TableProps {
+    /**
+     * The table to show. In the multi-table workspace (ui#55) each live instance is
+     * given its id explicitly; left undefined the table takes its id from
+     * TableIdContext (which falls back to the route's :id).
+     */
+    tableId?: string;
+}
+
+const Table = React.memo(({ tableId }: TableProps = {}) => {
+    const contextId = useTableId();
+    const id = tableId ?? contextId;
+    // This table's logical track (ui#834) — read by submission decisions.
+    const logicalTrack = useLogicalTrack();
     // Game state context and subscription
     const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
@@ -1268,9 +1281,9 @@ const Table = React.memo(() => {
         if (!id) {
             throw new Error("Cannot claim: missing table ID");
         }
-        await claimWinnings(id, currentNetwork);
+        await claimWinnings(id, currentNetwork, logicalTrack.get());
         fetchAccountBalance();
-    }, [id, currentNetwork, fetchAccountBalance]);
+    }, [id, currentNetwork, fetchAccountBalance, logicalTrack]);
 
     // Show error page if connection/general error occurred
     // Do NOT show the error page when the user has no wallet — the overlay handles that case.

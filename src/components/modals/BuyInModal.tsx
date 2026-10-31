@@ -12,6 +12,7 @@ import { usdcToMicroBigInt, microToUsdc, parseUsdcToMicro } from "../../constant
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useNetwork } from "../../context/NetworkContext";
 import { useGameStateContext } from "../../context/GameStateContext";
+import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { getBlindsForDisplay } from "../../utils/gameFormatUtils";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import DepositCore from "./DepositCore";
@@ -29,6 +30,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     const cosmosWallet = useCosmosWallet();
     const { currentNetwork } = useNetwork();
     const { gameState } = useGameStateContext();
+    const logicalTrack = useLogicalTrack();
 
     // Use props if provided, otherwise fall back to hook
     const hookBuyIns = useMinAndMaxBuyIns();
@@ -200,7 +202,8 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
 
             const joinOptions: JoinTableOptions = {
                 amount: buyInMicrounits.toString(),
-                seatNumber: undefined // Let the server handle random seat assignment
+                seatNumber: undefined, // joinTable picks an empty seat from this table's state
+                gameState: logicalTrack.get()
             };
 
             await joinTable(tableId || "default-game-id", joinOptions, currentNetwork);
@@ -223,7 +226,8 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
         tableId,
         minBuyInFormatted,
         maxBuyInFormatted,
-        currentNetwork
+        currentNetwork,
+        logicalTrack
     ]);
 
     // Per Commandment 7: Show error if buy-in values are missing from chain
