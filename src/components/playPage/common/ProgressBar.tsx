@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
+import { useTableId } from "../../../context/TableIdContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
 
 type ProgressBarProps = {
@@ -7,7 +7,7 @@ type ProgressBarProps = {
 };
 
 const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
-    const { id } = useParams<{ id: string }>();
+    const id = useTableId();
     const { isActive, timeRemaining, timeoutValue, hasUsedExtension } = usePlayerTimer(id, index);
 
     // State for extension UI feedback only

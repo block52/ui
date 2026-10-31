@@ -614,9 +614,11 @@ processed strictly one at a time and annotated as they arrive, instead of every
 consumer reverse-engineering "what happened" by diffing consecutive snapshots. It
 runs on two tracks:
 
-- **Logical track** — every snapshot updates `setLatestGameState` immediately at
-  ingest (zero added latency). Action submission and submission decisions (e.g.
-  `useAutoNewHand`) read this track so they never act on a stale action index.
+- **Logical track** — every snapshot updates the table's `LogicalTrack` (the
+  bus's `setLatestGameState` option) immediately at ingest (zero added latency).
+  Each `GameStateProvider` owns one track (ui#834), read with `useLogicalTrack()`,
+  which throws outside a provider. Action submission and submission decisions
+  (e.g. `useAutoNewHand`) read this track so they never act on a stale action index.
 - **Rendered track** — the queue drains into `setGameState` at the pace the
   decorations dictate (e.g. `showdownHold` holds the winner banner ~2s while the
   next hand deals behind it). Everything visual reads this track via

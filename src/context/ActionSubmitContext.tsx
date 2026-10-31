@@ -12,12 +12,12 @@ import { toast } from "react-toastify";
 import { ActionSubmitController } from "../submit/ActionSubmitController";
 import type { ControllerSnapshot, SubmitActionRequest, SubmitError, SubmitNotice, TxVerdict } from "../submit/types";
 import { parseTxVerdict } from "../submit/txVerdict";
-import { getLatestGameState, subscribeLatestGameState } from "../hooks/playerActions/transportAction";
 import { clearSigningClientCache } from "../utils/cosmos/client";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 import { useCosmosApi } from "./CosmosApiContext";
 import { useGameUI } from "./gameState/GameUIContext";
 import { isConnectionLive } from "./gameState/connection";
+import { useLogicalTrack } from "./gameState/LogicalTrackContext";
 import type { CosmosApi } from "../apis/Api";
 
 const ActionSubmitContext = createContext<ActionSubmitController>(null as unknown as ActionSubmitController);
@@ -36,12 +36,17 @@ export const ActionSubmitProvider: FC<{ children: ReactNode }> = ({ children }) 
     const liveRef = useRef<boolean>(isConnectionLive(connection));
     liveRef.current = isConnectionLive(connection);
 
-    // One controller for the app, created eagerly so it exists before any child
+    // The enclosing table's logical track (ui#834). Each GameStateProvider has
+    // its own, so with several tables mounted this controller reads only its
+    // own table's state.
+    const track = useLogicalTrack();
+
+    // One controller per provider, created eagerly so it exists before any child
     // effect can submit. Reads the logical track (never the render track).
     const controllerRef = useRef<ActionSubmitController | null>(null);
     if (controllerRef.current === null) {
         controllerRef.current = new ActionSubmitController({
-            getState: getLatestGameState,
+            getState: track.get,
             getLocalAddress: getCosmosAddressSync,
             onError: (error: SubmitError) => toast.error(error.message),
             onNotice: (notice: SubmitNotice) => toast.warn(notice.message),
@@ -68,8 +73,8 @@ export const ActionSubmitProvider: FC<{ children: ReactNode }> = ({ children }) 
         if (!controller) {
             return;
         }
-        return subscribeLatestGameState((snapshot, meta) => controller.onGameState(snapshot, meta));
-    }, []);
+        return track.subscribe((snapshot, meta) => controller.onGameState(snapshot, meta));
+    }, [track]);
 
     return <ActionSubmitContext.Provider value={controllerRef.current}>{children}</ActionSubmitContext.Provider>;
 };
