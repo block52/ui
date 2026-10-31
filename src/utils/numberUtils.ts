@@ -1,7 +1,7 @@
 import { BigUnit } from "bigunit";
 import { ethers } from "ethers";
 import { microToUsdc, USDC_TO_MICRO } from "../constants/currency";
-import { isBlank, isNullish } from "./guards";
+import { hasValue, isBlank, isNullish } from "./guards";
 
 /**
  * Format a USDC balance from micro-units (6 decimals) to display format
@@ -120,6 +120,46 @@ export const formatForCashGame = (value: number): string => {
  */
 export const formatDisplayAmount = (value: number, isTournament: boolean): string => {
     return isTournament ? formatForSitAndGo(value) : formatForCashGame(value);
+};
+
+/**
+ * The table's big blind in the same unit as a seat stack (ui#895): chips for
+ * tournaments, dollars for cash (the wire value is micro-USDC). Returns null
+ * when there is no usable big blind, so callers fall back to $ / chips.
+ * @param bigBlind `gameOptions.bigBlind` from the DTO (the current level's blind)
+ * @param isTournament Whether this is a tournament/SNG game
+ */
+export const bigBlindInStackUnits = (bigBlind: string | null | undefined, isTournament: boolean): number | null => {
+    if (isNullish(bigBlind) || isBlank(bigBlind)) return null;
+    const value = isTournament ? Number(bigBlind) : convertUSDCToNumber(bigBlind);
+    return Number.isFinite(value) && value > 0 ? value : null;
+};
+
+/**
+ * Format a count of big blinds: one decimal place, dropped for a whole number.
+ * @returns e.g. "45.5 BB", "100 BB", "12,345 BB"
+ */
+export const formatBigBlinds = (bigBlinds: number): string => {
+    const rounded = Math.round(bigBlinds * 10) / 10;
+    const decimals = Number.isInteger(rounded) ? 0 : 1;
+    const text = rounded.toLocaleString("en-US", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
+    return `${text} BB`;
+};
+
+/**
+ * Format a seat's stack (ui#895). In big blinds when the player turned that on
+ * for this format and the table has a big blind; otherwise as `formatDisplayAmount`.
+ * @param value The stack (already converted from micro-units for cash)
+ * @param isTournament Whether this is a tournament/SNG game
+ * @param bigBlind The big blind in the same unit as `value` (see `bigBlindInStackUnits`),
+ *   or null to show $ / chips
+ * @returns e.g. "45.5 BB", "$100.00" or "10,000"
+ */
+export const formatSeatStack = (value: number, isTournament: boolean, bigBlind: number | null): string => {
+    if (hasValue(bigBlind) && bigBlind > 0 && Number.isFinite(value)) {
+        return formatBigBlinds(value / bigBlind);
+    }
+    return formatDisplayAmount(value, isTournament);
 };
 
 /**
