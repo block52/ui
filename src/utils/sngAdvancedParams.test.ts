@@ -138,4 +138,11 @@ describe("buildSngPreview", () => {
         expect(preview.levels[1]).toMatchObject({ level: 2, smallBlind: 50, bigBlind: 100 });
         expect(preview.levels[2]).toMatchObject({ level: 3, smallBlind: 100, bigBlind: 200 });
     });
+
+    it("previews the form's antes when the ante controls are given (ui#891)", () => {
+        const on = buildSngPreview({ ...BASE, blindStructureChoice: "doubling", anteForm: { enabled: true, startLevel: 2, percentOfBigBlind: 100 } });
+        expect(on.levels.slice(0, 3).map(l => l.ante)).toEqual([0, 100, 200]);
+        const off = buildSngPreview({ ...BASE, blindStructureChoice: "turbo", anteForm: { enabled: false, startLevel: 4, percentOfBigBlind: 100 } });
+        expect(off.levels.every(l => l.ante === 0)).toBe(true);
+    });
 });

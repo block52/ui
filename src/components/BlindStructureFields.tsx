@@ -1,14 +1,17 @@
 /**
  * Blind structure controls shared by the lobby's create modal (Dashboard) and
  * /admin/tables (ui#905, ui#906): the structure select, the custom-text box and
- * the level preview. The logic lives in utils/blindStructureChoice; these are
- * just its views, so the two create forms can't drift apart again.
+ * the ante controls (ui#891) and the level preview. The logic lives in
+ * utils/blindStructureChoice and utils/anteRule; these are just its views, so
+ * the two create forms can't drift apart again.
  */
 import React from "react";
+import { ANTE_PERCENT_QUICK_CHOICES, describeAnteForm, validateAnteForm, type AnteFormState } from "../utils/anteRule";
 import {
     BLIND_STRUCTURE_CHOICES,
     describeBlindStructureChoice,
     isBlindStructureChoice,
+    previewHasAnte,
     type BlindLevelRow,
     type BlindStructureChoice
 } from "../utils/blindStructureChoice";
@@ -75,6 +78,106 @@ export const CustomBlindStructureInput: React.FC<CustomBlindStructureInputProps>
     </>
 );
 
+interface AnteControlsProps {
+    value: AnteFormState;
+    onChange: (form: AnteFormState) => void;
+    /** Disabled while the custom text does not parse. */
+    disabled?: boolean;
+    /** The custom text has hand-written per-level antes; changing a control replaces them. */
+    customAntes?: boolean;
+    labelClassName?: string;
+    className?: string;
+}
+
+/**
+ * Antes on/off, the level they start at and their size as a % of the big
+ * blind (ui#891). They write the structure's ante rule; the preview below
+ * shows the result.
+ */
+export const AnteControls: React.FC<AnteControlsProps> = ({ value, onChange, disabled, customAntes, labelClassName, className }) => {
+    const error = validateAnteForm(value);
+    const label = labelClassName ?? "block text-white text-sm mb-1 mt-3";
+    const control = className ?? DEFAULT_CONTROL_CLASS;
+    return (
+        <div data-testid="ante-controls">
+            <label className={label}>Antes</label>
+            <div className="flex gap-2" role="group" aria-label="Antes">
+                {[true, false].map(on => (
+                    <button
+                        key={String(on)}
+                        type="button"
+                        data-testid={on ? "ante-on" : "ante-off"}
+                        aria-pressed={value.enabled === on}
+                        disabled={disabled}
+                        onClick={() => onChange({ ...value, enabled: on })}
+                        className={`px-3 py-1.5 text-xs rounded transition-all duration-200 disabled:opacity-50 ${
+                            value.enabled === on ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                        }`}
+                    >
+                        {on ? "On" : "Off"}
+                    </button>
+                ))}
+            </div>
+            {value.enabled && (
+                <div className="grid grid-cols-2 gap-3">
+                    <div>
+                        <label className={label}>Starts at level</label>
+                        <input
+                            type="number"
+                            data-testid="ante-start-level"
+                            min={1}
+                            step={1}
+                            value={Number.isFinite(value.startLevel) ? value.startLevel : ""}
+                            disabled={disabled}
+                            onChange={e => onChange({ ...value, startLevel: e.target.valueAsNumber })}
+                            className={control}
+                        />
+                    </div>
+                    <div>
+                        <label className={label}>Ante size (% of big blind)</label>
+                        <input
+                            type="number"
+                            data-testid="ante-percent"
+                            min={1}
+                            max={100}
+                            step="any"
+                            value={Number.isFinite(value.percentOfBigBlind) ? value.percentOfBigBlind : ""}
+                            disabled={disabled}
+                            onChange={e => onChange({ ...value, percentOfBigBlind: e.target.valueAsNumber })}
+                            className={control}
+                        />
+                        <div className="flex gap-1 mt-1">
+                            {ANTE_PERCENT_QUICK_CHOICES.map(pct => (
+                                <button
+                                    key={pct}
+                                    type="button"
+                                    data-testid={`ante-percent-${pct}`}
+                                    aria-pressed={value.percentOfBigBlind === pct}
+                                    disabled={disabled}
+                                    onClick={() => onChange({ ...value, percentOfBigBlind: pct })}
+                                    className={`px-2 py-0.5 text-xs rounded transition-all duration-200 disabled:opacity-50 ${
+                                        value.percentOfBigBlind === pct ? "bg-blue-600 text-white" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                                    }`}
+                                >
+                                    {pct}%
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+            <p className="text-xs text-gray-400 mt-1" data-testid="ante-summary">
+                {customAntes ? "Your custom structure sets its own ante per level; changing these replaces them." : describeAnteForm(value)}
+            </p>
+            {error && (
+                <p className="text-xs text-red-400 mt-1" data-testid="ante-error">
+                    {error}
+                </p>
+            )}
+        </div>
+    );
+};
+
 interface BlindPreviewTableProps {
     rows: BlindLevelRow[];
     /** When set, a footnote describing the structure is shown under the table. */
@@ -82,9 +185,10 @@ interface BlindPreviewTableProps {
     className?: string;
 }
 
-/** The first levels as the engine will play them: Level, Blinds, Ante, Minutes. */
+/** The first levels as the engine will play them: Level, Blinds, Ante (when any level has one), Minutes. */
 export const BlindPreviewTable: React.FC<BlindPreviewTableProps> = ({ rows, choice, className }) => {
     if (rows.length === 0) return null;
+    const showAnte = previewHasAnte(rows);
     return (
         <div className={className ?? "mt-3 max-h-40 overflow-y-auto rounded border border-gray-700"} data-testid="blind-preview">
             <table className="w-full text-xs text-gray-300">
@@ -92,7 +196,7 @@ export const BlindPreviewTable: React.FC<BlindPreviewTableProps> = ({ rows, choi
                     <tr>
                         <th className="text-left px-2 py-1">Level</th>
                         <th className="text-left px-2 py-1">Blinds</th>
-                        <th className="text-left px-2 py-1">Ante</th>
+                        {showAnte && <th className="text-left px-2 py-1">Ante</th>}
                         <th className="text-left px-2 py-1">Minutes</th>
                     </tr>
                 </thead>
@@ -101,7 +205,7 @@ export const BlindPreviewTable: React.FC<BlindPreviewTableProps> = ({ rows, choi
                         <tr key={r.number} className={`border-t border-gray-700${r.number === 1 ? " bg-green-900/20" : ""}`}>
                             <td className="px-2 py-1">{r.number}</td>
                             <td className="px-2 py-1">{r.isBreak ? "Break" : `${Number(r.smallBlind).toLocaleString()} / ${Number(r.bigBlind).toLocaleString()}`}</td>
-                            <td className="px-2 py-1">{r.isBreak || r.ante === "0" ? "\u2014" : Number(r.ante).toLocaleString()}</td>
+                            {showAnte && <td className="px-2 py-1">{r.isBreak || r.ante === "0" ? "\u2014" : Number(r.ante).toLocaleString()}</td>}
                             <td className="px-2 py-1">{r.durationMinutes}</td>
                         </tr>
                     ))}

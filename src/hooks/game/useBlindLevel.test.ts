@@ -125,3 +125,20 @@ describe("useBlindLevel — the clock stops once the tournament has finished", (
         expect(level.secondsRemaining).toBe(-1);
     });
 });
+
+describe("useBlindLevel — current ante (ui#891)", () => {
+    afterEach(() => jest.clearAllMocks());
+
+    it("formats the level's ante when there is one", () => {
+        setContext(buildOptions({ smallBlind: "200", bigBlind: "400", blindLevel: 3, ante: "400" }));
+        const { result } = renderHook(() => useBlindLevel());
+        expect(result.current.currentAnteFormatted).toBe("400");
+    });
+
+    it("has no ante when the engine emits none or zero", () => {
+        setContext(buildOptions());
+        expect(renderHook(() => useBlindLevel()).result.current.currentAnteFormatted).toBeUndefined();
+        setContext(buildOptions({ ante: "0" }));
+        expect(renderHook(() => useBlindLevel()).result.current.currentAnteFormatted).toBeUndefined();
+    });
+});
