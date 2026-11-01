@@ -30,6 +30,9 @@ import { HoleCardRow } from "./HoleCardRow";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { usePlayerNote } from "../../../hooks/player/usePlayerNotes";
+import { PlayerNoteTags } from "./PlayerNoteTags";
+import { PlayerNotesPanel } from "./PlayerNotesPanel";
 
 type OppositePlayerProps = {
     left?: string;
@@ -98,6 +101,19 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         return getAvatarForAddress(playerData?.address, playerData?.avatar);
     }, [getAvatarForAddress, playerData?.address, playerData?.avatar]);
 
+    // Player notes and tags (ui#947): click the seat to open the notes box.
+    const { note } = usePlayerNote(playerData?.address);
+    const seatRef = React.useRef<HTMLDivElement>(null);
+    const [isNotesOpen, setIsNotesOpen] = React.useState(false);
+    const openNotes = React.useCallback(() => setIsNotesOpen(true), []);
+    const closeNotes = React.useCallback(() => setIsNotesOpen(false), []);
+    const handleSeatKeyDown = React.useCallback((e: React.KeyboardEvent) => {
+        if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            setIsNotesOpen(true);
+        }
+    }, []);
+
     if (!playerData) {
         return <></>;
     }
@@ -107,11 +123,18 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
             {/* Main player display */}
             <div
                 key={index}
+                ref={seatRef}
                 className={`${opacityClass} absolute flex flex-col justify-center w-[160px] h-[140px] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-[10] ${styles.secondaryText} ${styles.positionTransition}`}
                 style={{
                     left: left,
                     top: top
                 }}
+                onClick={openNotes}
+                onKeyDown={handleSeatKeyDown}
+                role="button"
+                tabIndex={0}
+                aria-label={`Player notes for seat ${index}`}
+                data-testid={`opponent-seat-${index}`}
             >
                 {/* Development Mode Debug Info */}
                 {import.meta.env.VITE_NODE_ENV === "development" && (
@@ -180,12 +203,14 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
                             isSittingOut={isSittingOut}
                             playerEquity={playerEquity}
                         />
+                        <PlayerNoteTags note={note} />
                     </div>
 
                     {/* Dealer Button */}
                     {/* Dealer Button — rendered at table level using geometry positions */}
                 </div>
             </div>
+            {isNotesOpen && <PlayerNotesPanel playerAddress={playerData.address} seat={index} anchor={seatRef.current} onClose={closeNotes} />}
         </>
     );
 }, (prevProps, nextProps) => {
