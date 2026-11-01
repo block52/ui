@@ -33,15 +33,15 @@ test("the create modal sets antes and previews them", async ({ page }) => {
   const controls = page.getByTestId("ante-controls");
   await expect(page.getByTestId("blind-structure")).toHaveValue("ladder");
 
-  // Default: on, from level 4, a full big blind (AC-1).
+  // Default: on, from level 4, 10% of the big blind (#891, poker-vm#2736).
   await expect(page.getByTestId("ante-on")).toHaveAttribute("aria-pressed", "true");
   await expect(page.getByTestId("ante-start-level")).toHaveValue("4");
-  await expect(page.getByTestId("ante-percent")).toHaveValue("100");
+  await expect(page.getByTestId("ante-percent")).toHaveValue("10");
   await expect(preview.locator("thead")).toContainText("Ante");
   await expect(rows.nth(2).locator("td").nth(2)).toHaveText("—");
   await expect(rows.nth(3)).toContainText("40 / 80");
-  await expect(rows.nth(3).locator("td").nth(2)).toHaveText("80");
-  await expect(rows.nth(4).locator("td").nth(2)).toHaveText("100");
+  await expect(rows.nth(3).locator("td").nth(2)).toHaveText("8");
+  await expect(rows.nth(4).locator("td").nth(2)).toHaveText("10");
   await controls.scrollIntoViewIfNeeded();
   await modal.screenshot({ path: `${SHOTS}ante-on-default.png` });
 
