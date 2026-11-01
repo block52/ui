@@ -18,7 +18,7 @@
  */
 
 import { MAX_GAME_NAME_LENGTH } from "@block52/poker-vm-sdk";
-import { isRecord } from "./guards";
+import { isBlank, isRecord } from "./guards";
 
 // ENS-style label rule — identical to the chain's gameNameRe.
 const GAME_NAME_RE = /^[a-z0-9](-?[a-z0-9]){0,31}$/;
@@ -41,7 +41,7 @@ export const tableNameCharCount = (name: string): number => [...name].length;
  */
 export function validateTableName(raw: string): string | null {
     const name = normalizeTableName(raw);
-    if (name.length === 0) {
+    if (isBlank(name)) {
         return null; // unnamed table — allowed, free
     }
     if (tableNameCharCount(name) > MAX_GAME_NAME_LENGTH) {

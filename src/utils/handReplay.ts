@@ -14,6 +14,7 @@
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../context/NetworkContext";
 import { withWinnerDescriptions } from "./winnerDescriptions";
+import { isEmpty } from "./guards";
 
 /** gRPC method path of the public (masked) game state query, as abci_query expects it. */
 export const GAME_STATE_PUBLIC_PATH = "/pokerchain.poker.v1.Query/GameStatePublic";
@@ -45,7 +46,7 @@ interface TxSearchResponse {
 /** Height of the first tx in a tx_search result, or null when there is none. */
 export function parseTxSearchHeight(response: unknown): number | null {
     const txs = (response as TxSearchResponse)?.result?.txs;
-    if (!Array.isArray(txs) || txs.length === 0) return null;
+    if (!Array.isArray(txs) || isEmpty(txs)) return null;
     const height = Number(txs[0].height);
     return Number.isInteger(height) && height > 0 ? height : null;
 }
