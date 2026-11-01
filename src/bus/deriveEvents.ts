@@ -38,7 +38,7 @@
 import type { TexasHoldemStateDTO, ActionDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { TexasHoldemRound, PlayerStatus } from "@block52/poker-vm-sdk";
 import type { GameEvent } from "./types";
-import { hasElements, isEmpty } from "../utils/guards";
+import { hasElements, hasValue, isEmpty, isNullish } from "../utils/guards";
 
 /**
  * Thrown by {@link deriveEvents} when a same-hand snapshot's action indices
@@ -78,7 +78,8 @@ function roundOrder(round: TexasHoldemRound): number {
 
 /** Highest action index present, or null when there are no actions. */
 function maxActionIndex(actions: readonly ActionDTO[] | undefined): number | null {
-    if (!actions || actions.length === 0) {
+    // readonly ActionDTO[] does not fit hasElements/isEmpty (they take a mutable T[]).
+    if (!actions || actions.length === 0) { // guards-ok
         return null;
     }
     let max = actions[0].index;
@@ -131,7 +132,7 @@ function playersBySeat(players: readonly PlayerDTO[]): Map<number, PlayerDTO> {
  */
 export function deriveEvents(prev: TexasHoldemStateDTO | undefined, next: TexasHoldemStateDTO): GameEvent[] {
     // First frame after subscribe/reset — seed the baseline, emit nothing.
-    if (prev === undefined) {
+    if (isNullish(prev)) {
         return [];
     }
 
@@ -143,7 +144,7 @@ export function deriveEvents(prev: TexasHoldemStateDTO | undefined, next: TexasH
 
     // Commandment 7: a same-hand frame whose indices went backwards is a stale /
     // out-of-order frame — surface it, do not silently accept.
-    if (sameHand && prevMax !== null && nextMax !== null && nextMax < prevMax) {
+    if (sameHand && hasValue(prevMax) && hasValue(nextMax) && nextMax < prevMax) {
         throw new RegressedSnapshotError(prevMax, nextMax, next.handNumber);
     }
 
@@ -203,7 +204,7 @@ export function deriveEvents(prev: TexasHoldemStateDTO | undefined, next: TexasH
             continue;
         }
         const prevPlayer = prevSeats.get(seat);
-        const gained = prevPlayer === undefined ? handAdvanced : handAdvanced || !isDealtHand(prevPlayer.holeCards);
+        const gained = isNullish(prevPlayer) ? handAdvanced : handAdvanced || !isDealtHand(prevPlayer.holeCards);
         if (gained) {
             dealtSeats.push(seat);
         }
