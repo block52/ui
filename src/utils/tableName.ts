@@ -18,6 +18,7 @@
  */
 
 import { MAX_GAME_NAME_LENGTH } from "@block52/poker-vm-sdk";
+import { isRecord } from "./guards";
 
 // ENS-style label rule — identical to the chain's gameNameRe.
 const GAME_NAME_RE = /^[a-z0-9](-?[a-z0-9]){0,31}$/;
@@ -56,21 +57,20 @@ export function validateTableName(raw: string): string | null {
 export const tableNameTakenMessage = (name: string): string => `“${name}” is already taken — pick another name.`;
 
 /**
- * Ask the chain whether a (normalized, valid) table name can still be claimed,
- * via its `name_available` query (pokerchain GameNames). Resolves true / false, or
- * null when the answer is unknown (network error, aborted, unexpected reply):
- * an unknown answer must never block the form, the chain still refuses a taken
- * name at create time.
+ * Ask the chain whether a (normalized, valid) table name is already taken, via
+ * its `name_available` query (pokerchain GameNames). Resolves true only when the
+ * chain says so. A free name and an unknown answer (network error, aborted,
+ * unexpected reply) both resolve false: an unknown answer must never block the
+ * form, the chain still refuses a taken name at create time.
  */
-export async function fetchTableNameAvailable(restUrl: string, name: string, signal?: AbortSignal): Promise<boolean | null> {
+export async function fetchTableNameTaken(restUrl: string, name: string, signal?: AbortSignal): Promise<boolean> {
     try {
         const res = await fetch(`${restUrl.replace(/\/$/, "")}/block52/pokerchain/poker/v1/name_available/${encodeURIComponent(name)}`, { signal });
-        if (!res.ok) return null;
+        if (!res.ok) return false;
         const body: unknown = await res.json();
-        const available = (body as { available?: unknown } | null)?.available;
-        return typeof available === "boolean" ? available : null;
+        return isRecord(body) && body.available === false;
     } catch {
-        return null;
+        return false;
     }
 }
 

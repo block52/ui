@@ -1,4 +1,4 @@
-import { validateTableName, tableNameCharCount, normalizeTableName, friendlyCreateTableError, fetchTableNameAvailable } from "./tableName";
+import { validateTableName, tableNameCharCount, normalizeTableName, friendlyCreateTableError, fetchTableNameTaken } from "./tableName";
 import { MAX_GAME_NAME_LENGTH, computeGameNameFee, GAME_NAME_MICRO_PER_CHAR } from "@block52/poker-vm-sdk";
 
 describe("normalizeTableName", () => {
@@ -77,7 +77,7 @@ describe("friendlyCreateTableError (ui#878)", () => {
     });
 });
 
-describe("fetchTableNameAvailable (ui#878)", () => {
+describe("fetchTableNameTaken (ui#878)", () => {
     const originalFetch = global.fetch;
     afterEach(() => {
         global.fetch = originalFetch;
@@ -88,18 +88,25 @@ describe("fetchTableNameAvailable (ui#878)", () => {
 
     it("asks the chain's name_available query and reads the answer", async () => {
         reply(200, { name: "friday", available: false, fee: "600000" });
-        await expect(fetchTableNameAvailable("http://localhost:1317/", "friday")).resolves.toBe(false);
+        await expect(fetchTableNameTaken("http://localhost:1317/", "friday")).resolves.toBe(true);
         expect(global.fetch).toHaveBeenCalledWith("http://localhost:1317/block52/pokerchain/poker/v1/name_available/friday", expect.anything());
         reply(200, { name: "friday", available: true, fee: "600000" });
-        await expect(fetchTableNameAvailable("http://localhost:1317", "friday")).resolves.toBe(true);
+        await expect(fetchTableNameTaken("http://localhost:1317", "friday")).resolves.toBe(false);
     });
 
-    it("returns null (unknown, never blocking) on errors or odd replies", async () => {
-        reply(500, {});
-        await expect(fetchTableNameAvailable("http://x", "friday")).resolves.toBeNull();
-        reply(200, { nope: 1 });
-        await expect(fetchTableNameAvailable("http://x", "friday")).resolves.toBeNull();
+    it.each([
+        ["an HTTP error", 500, {}],
+        ["a reply without the field", 200, { nope: 1 }],
+        ["a non-boolean field", 200, { available: "false" }],
+        ["a null body", 200, null],
+        ["an array body", 200, [false]]
+    ])("an unknown answer (%s) is not taken, so it never blocks", async (_label, status, body) => {
+        reply(status, body);
+        await expect(fetchTableNameTaken("http://x", "friday")).resolves.toBe(false);
+    });
+
+    it("a network error is not taken either", async () => {
         global.fetch = jest.fn().mockRejectedValue(new Error("offline")) as unknown as typeof fetch;
-        await expect(fetchTableNameAvailable("http://x", "friday")).resolves.toBeNull();
+        await expect(fetchTableNameTaken("http://x", "friday")).resolves.toBe(false);
     });
 });
