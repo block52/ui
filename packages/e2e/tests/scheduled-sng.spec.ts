@@ -74,6 +74,8 @@ test("table: register → countdown → ready → START → cancelled", async ({
 
   await test.step("registering: the join modal says when it starts", async () => {
     await expect(page.getByTestId("scheduled-start-info")).toContainText(/Starts .* with at least 2 players/, { timeout: 15_000 });
+    // A scheduled sit-and-go is a Tournament here too, not a "Sit & Go" (ui#934).
+    await expect(page.getByRole("dialog", { name: "Tournament" }).getByRole("heading", { name: "Tournament", exact: true })).toBeVisible();
     await page.screenshot({ path: `${SHOTS}scheduled-sng-register.png` });
   });
 
