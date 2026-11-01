@@ -13,6 +13,8 @@
  * useSyncExternalStore-compatible subscribe/get pair.
  */
 
+import { isNullish } from "./guards";
+
 export interface LastHandResult {
     tableId: string;
     handNumber: number;
@@ -55,7 +57,7 @@ export const subscribeLastHandResult = (listener: () => void): (() => void) => {
 
 /** Test/table-change helper: clears the retained result. */
 export const resetLastHandResult = (): void => {
-    if (current === null) return;
+    if (isNullish(current)) return;
     current = null;
     notify();
 };

@@ -116,7 +116,7 @@ export const turnClockAnchorMs = (previousActions: readonly ActionDTO[] | null |
             continue;
         }
         const at = normalizeTimestamp(action.timestamp);
-        if (anchor === null || at > anchor) {
+        if (isNullish(anchor) || at > anchor) {
             anchor = at;
         }
     }
@@ -206,11 +206,11 @@ export const clockCallerRank = (gameState: TexasHoldemStateDTO | null | undefine
  */
 export const clockCallDueAtMs = (gameState: TexasHoldemStateDTO | null | undefined, myAddress: string | null | undefined): number | null => {
     const deadline = turnDeadlineMs(gameState);
-    if (deadline === null) {
+    if (isNullish(deadline)) {
         return null;
     }
     const rank = clockCallerRank(gameState, myAddress);
-    if (rank === null) {
+    if (isNullish(rank)) {
         return null;
     }
     return deadline + TIMEOUT_INCLUSION_GRACE_MS + TIMEOUT_BLOCK_TIME_MARGIN_MS + rank * CLOCK_CALLER_STAGGER_MS;
@@ -247,7 +247,7 @@ export const clockCallOpportunity = (
         return null;
     }
     const dueAtMs = clockCallDueAtMs(gameState, myAddress);
-    if (dueAtMs === null || !gameState) {
+    if (isNullish(dueAtMs) || !gameState) {
         return null;
     }
     return {

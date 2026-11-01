@@ -107,7 +107,7 @@ export class ActionSoundPlayer {
     }
 
     private ensureContext(): AudioContextLike | null {
-        if (this.context !== undefined) {
+        if (this.context !== undefined) { // guards-ok
             return this.context;
         }
         try {
