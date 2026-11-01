@@ -25,7 +25,7 @@ function formatDate(iso: string): string {
 }
 
 function Section({ title, items, color }: { title: string; items: string[]; color: string }) {
-    if (!items.length) return null;
+    if (isEmpty(items)) return null;
     return (
         <div className="mt-4">
             <h3 className={`text-xs font-semibold uppercase tracking-wider mb-2 ${color}`}>{title}</h3>

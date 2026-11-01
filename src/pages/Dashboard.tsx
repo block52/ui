@@ -10,6 +10,7 @@ import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
 import { calculateBuyIn } from "../utils/buyInUtils";
+import { hasValue, isNullish, hasContent } from "../utils/guards";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
 import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 
@@ -432,9 +433,9 @@ const Dashboard: React.FC = () => {
             ),
         [modalGameFormat, modalSmallBlind, modalBigBlind, isModalTournament, modalSitAndGoBuyIn, calculatedMinBuyIn, modalStartingStack]
     );
-    const creationTotalMicro = creationFeeMicro === null ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
+    const creationTotalMicro = isNullish(creationFeeMicro) ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
     const insufficientForCreation =
-        creationTotalMicro === null || creationTotalMicro > usdcToMicroBigInt(numericUsdcBalance);
+        isNullish(creationTotalMicro) || creationTotalMicro > usdcToMicroBigInt(numericUsdcBalance);
     const createDisabled =
         isCreatingTable || !!tableNameError || insufficientForName || insufficientForCreation || (isModalTournament && !!blindPlan.error);
 
@@ -907,7 +908,7 @@ const Dashboard: React.FC = () => {
                                         />
                                         {tableNameError ? (
                                             <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
-                                        ) : normalizedTableName.length > 0 ? (
+                                        ) : hasContent(normalizedTableName) ? (
                                             <p className="text-xs text-gray-400 mt-1">
                                                 {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
                                                 <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
@@ -1184,13 +1185,13 @@ const Dashboard: React.FC = () => {
                                     <div className="flex items-center justify-between rounded bg-gray-900 border border-gray-700 p-2 text-sm">
                                         <span className="text-gray-400">Table Creation Fee ({CREATION_FEE_BIG_BLINDS.toString()} big blinds)</span>
                                         <span className="text-white font-mono">
-                                            {creationFeeMicro === null ? "—" : `$${formatMicroAsUsdc(creationFeeMicro.toString(), 6)}`}
+                                            {isNullish(creationFeeMicro) ? "—" : `$${formatMicroAsUsdc(creationFeeMicro.toString(), 6)}`}
                                         </span>
                                     </div>
-                                    {insufficientForCreation && creationTotalMicro !== null && (
+                                    {insufficientForCreation && hasValue(creationTotalMicro) && (
                                         <p className="text-red-400 text-sm">
                                             You need ${formatMicroAsUsdc(creationTotalMicro.toString(), 6)} to create this table (fee
-                                            {normalizedTableName.length > 0 ? " + name" : ""}); your balance is ${numericUsdcBalance.toFixed(6)}.
+                                            {hasContent(normalizedTableName) ? " + name" : ""}); your balance is ${numericUsdcBalance.toFixed(6)}.
                                         </p>
                                     )}
 
