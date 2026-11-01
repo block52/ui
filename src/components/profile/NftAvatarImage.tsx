@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { parseIpfsRef, ipfsGatewayUrl, ipfsGatewayCount } from "../../utils/profile/ipfs";
+import { isEmpty } from "../../utils/guards";
 
 interface NftAvatarImageProps {
     /** The resolved avatar URL (may be an ipfs gateway URL, ipfs://, CDN, or data:). */
@@ -41,7 +42,7 @@ export const NftAvatarImage: React.FC<NftAvatarImageProps> = ({ src, alt, imgCla
 
     const exhausted = attempt >= candidates.length;
 
-    if (exhausted || candidates.length === 0) {
+    if (exhausted || isEmpty(candidates)) {
         return <div className={fallbackClassName}>NFT</div>;
     }
 

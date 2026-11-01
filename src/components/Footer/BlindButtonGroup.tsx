@@ -4,6 +4,7 @@ import { LoadingSpinner } from "../common";
 import { FoldButton } from "./FoldButton";
 import type { BlindButtonGroupProps } from "./types";
 import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { hasValue } from "../../utils/guards";
 
 export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
     showSmallBlind,
@@ -24,7 +25,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
             {showSmallBlind && !hasFoldedOrMucked(playerStatus) && (
                 <button
                     onClick={onPostSmallBlind}
-                    disabled={loading !== null}
+                    disabled={hasValue(loading)}
                     className="btn-small-blind text-white font-medium py-1.5 lg:py-2 px-2 lg:px-4 rounded-lg shadow-md transition-all duration-200 text-xs lg:text-sm border flex items-center transform hover:scale-105 mr-1 lg:mr-2 disabled:opacity-50 disabled:cursor-not-allowed gap-1"
                 >
                     {loading === "small-blind" ? (
@@ -46,7 +47,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
             {showBigBlind && !hasFoldedOrMucked(playerStatus) && (
                 <button
                     onClick={onPostBigBlind}
-                    disabled={loading !== null}
+                    disabled={hasValue(loading)}
                     className="btn-big-blind text-white font-medium py-1.5 lg:py-2 px-2 lg:px-4 rounded-lg shadow-md transition-all duration-200 text-xs lg:text-sm border flex items-center transform hover:scale-105 mr-1 lg:mr-2 disabled:opacity-50 disabled:cursor-not-allowed gap-1"
                 >
                     {loading === "big-blind" ? (
@@ -69,7 +70,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
             {(canFold || loading === "fold") && (
                 <FoldButton
                     loading={loading === "fold"}
-                    disabled={loading !== null}
+                    disabled={hasValue(loading)}
                     isMobileLandscape={isMobileLandscape}
                     onClick={onFold}
                 />
