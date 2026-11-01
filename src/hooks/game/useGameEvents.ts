@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import type { GameEvent, GameEventType } from "../../bus/types";
+import { isNullish } from "../../utils/guards";
 
 /**
  * useGameEvents — the events of the latest committed bus item (WS Action Bus,
@@ -30,7 +31,7 @@ export function useGameEvents(filter?: GameEventType): GameEvent[] {
         if (!events) {
             return [];
         }
-        if (filter === undefined) {
+        if (isNullish(filter)) {
             return events;
         }
         return events.filter(event => event.type === filter);
