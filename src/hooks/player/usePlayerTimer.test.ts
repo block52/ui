@@ -11,7 +11,7 @@
  * never act.
  */
 import { renderHook, act } from "@testing-library/react";
-import { NonPlayerActionType, PlayerStatus } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usePlayerTimer } from "./usePlayerTimer";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { hasValue } from "../../utils/guards";
@@ -184,6 +184,42 @@ describe("usePlayerTimer", () => {
             const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
             expect(result.current.timeRemaining).toBe(5);
             expect(result.current.hasUsedExtension).toBe(false);
+        });
+    });
+
+    // poker-vm#2143: 15s to act pre-flop, the table's clock on later streets.
+    describe("street clock (poker-vm#2143)", () => {
+        it("counts down from 15s pre-flop", () => {
+            setState({ ...state(1, 25), round: TexasHoldemRound.PREFLOP });
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.timeoutValue).toBe(15);
+        });
+
+        it("counts down from the table's 25s on the flop, turn and river", () => {
+            for (const round of [TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
+                setState({ ...state(1, 25), round });
+                const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+                expect(result.current.timeoutValue).toBe(25);
+            }
+        });
+
+        it("adds a time bank on top of the 15s pre-flop clock", () => {
+            const now = Date.now();
+            const base = state(1, 25);
+            setState({
+                ...base,
+                round: TexasHoldemRound.PREFLOP,
+                players: base.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 45_000 } : p)),
+                previousActions: [
+                    { action: "call", playerId: "b521them", timestamp: now - 10_000 },
+                    { action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - 1_000 }
+                ],
+                gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }
+            });
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            // 15s pre-flop + 45s bank, 10s gone since the turn began
+            expect(result.current.timeoutValue).toBe(60);
+            expect(result.current.timeRemaining).toBe(50);
         });
     });
 

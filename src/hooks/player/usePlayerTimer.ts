@@ -9,13 +9,14 @@ import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { isNullish, safeLength } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
-import { timeBankGrantedMs } from "../../utils/turnClock";
+import { timeBankGrantedMs, turnTimeoutSeconds } from "../../utils/turnClock";
 
 /**
  * Player timer: how long the seat has left to act. It REPORTS time; it never acts.
  *
  * The countdown follows the chain's turn clock (`utils/turnClock.ts`): the
- * anchor ignores `time-bank` actions, and every time bank recorded this turn
+ * anchor ignores `time-bank` actions, pre-flop runs on 15s (poker-vm#2143),
+ * and every time bank recorded this turn
  * adds `gameOptions.timeBankMs` (ui#19). Extra time exists only once the chain
  * has recorded it, so this screen never shows time the table won't honour.
  *
@@ -40,8 +41,9 @@ export const usePlayerTimer = (_tableId?: string, playerSeat?: number): PlayerTi
     const { gameOptions } = useGameOptions();
     const playersBySeat = usePlayersBySeat();
 
-    // Timer configuration via shared util
-    const TIMEOUT_DURATION = useMemo(() => getTimeoutMs(gameOptions?.timeout), [gameOptions]);
+    // The street's clock: 15s pre-flop, the table's timeout after (poker-vm#2143).
+    const round = gameState?.round;
+    const TIMEOUT_DURATION = useMemo(() => turnTimeoutSeconds(timeoutToSeconds(getTimeoutMs(gameOptions?.timeout)), round) * 1000, [gameOptions, round]);
     const timeoutInSeconds = useMemo(() => timeoutToSeconds(TIMEOUT_DURATION), [TIMEOUT_DURATION]);
 
     // Find the player by seat number

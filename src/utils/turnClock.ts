@@ -51,10 +51,29 @@ export const TIMEOUT_BLOCK_TIME_MARGIN_MS = 5_000;
 export const CLOCK_CALLER_STAGGER_MS = 5_000;
 
 /**
+ * The pre-flop turn clock (poker-vm#2143): 15s to act pre-flop, the table's
+ * full `gameOptions.timeout` on the flop, turn and river. Mirrors the engine's
+ * `PreflopTimeoutSeconds`; a table already shorter than 15s keeps its own.
+ */
+export const PREFLOP_TIMEOUT_SECONDS = 15;
+
+/**
+ * Seconds a player gets to act in `round` on a table whose clock is
+ * `timeoutSeconds` (engine `turnTimeoutSeconds`). The time bank adds on top.
+ */
+export const turnTimeoutSeconds = (timeoutSeconds: number, round: TexasHoldemRound | null | undefined): number => {
+    if (round === TexasHoldemRound.PREFLOP && timeoutSeconds > PREFLOP_TIMEOUT_SECONDS) {
+        return PREFLOP_TIMEOUT_SECONDS;
+    }
+    return timeoutSeconds;
+};
+
+/**
  * Absolute deadline (epoch ms) of the current turn, mirroring the engine's
  * `TurnDeadlineMs` exactly: the latest turn-advancing recorded action (every
  * action but `time-bank`, which extends the turn without advancing it) plus
- * `gameOptions.timeout` seconds, plus one `timeBankMs` per `time-bank` recorded
+ * the street's clock ({@link turnTimeoutSeconds}: 15s pre-flop, else
+ * `gameOptions.timeout` seconds), plus one `timeBankMs` per `time-bank` recorded
  * for this turn (at or after the anchor).
  *
  * `null` when no turn is on the clock: no action clock configured, hand ended,
@@ -81,7 +100,7 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
         return null;
     }
 
-    return anchor + timeoutSeconds * 1000 + timeBankGrantedMs(gameState);
+    return anchor + turnTimeoutSeconds(timeoutSeconds, gameState.round) * 1000 + timeBankGrantedMs(gameState);
 };
 
 /**
