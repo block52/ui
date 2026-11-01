@@ -101,6 +101,7 @@ import PlayerChipDisplay from "./Table/components/PlayerChipDisplay";
 import { useTableState } from "../../hooks/game/useTableState"; //Provides currentRound, formattedTotalPot, tableSize, tableSize determines player layout (6 vs 9 players)
 import { useGameProgress } from "../../hooks/game/useGameProgress"; //Provides isGameInProgress - whether a hand is active
 import { useHoleCardWatchdog } from "../../hooks/game/useHoleCardWatchdog"; //#409: auto-recover when owning player's hole cards fail to arrive
+import { useBlindClickGuard } from "../../hooks/game/useBlindClickGuard"; // #838: ignore clicks while the screen is not painting
 import { useLastHandResultCapture } from "../../hooks/game/useLastHandResultCapture"; // retain last showdown summary for the History panel
 
 //todo wire up to use the sdk instead of the proxy
@@ -926,6 +927,7 @@ const Table = React.memo(() => {
 
     // #409 watchdog: detect "I'm in a hand but my hole cards are missing" and auto re-subscribe.
     useHoleCardWatchdog(id);
+    useBlindClickGuard();
 
     // Retain the finished hand's showdown summary ("won with X over Y") so the
     // History panel can still show it after a fast all-in runout has moved on
