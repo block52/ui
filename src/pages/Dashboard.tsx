@@ -22,7 +22,8 @@ import { AnimatedBackground } from "../components/common";
 // Game wallet and SDK imports
 // ...existing code...
 import { BettingLimit, GameFormat, GameVariant, generateWallet as generateWalletSDK, computeGameNameFee } from "@block52/poker-vm-sdk";
-import { validateTableName, tableNameCharCount, normalizeTableName } from "../utils/tableName";
+import { tableNameCharCount, normalizeTableName } from "../utils/tableName";
+import { useTableNameError } from "../hooks/game/useTableNameError";
 
 // Hook imports from barrel file
 import { useUserWalletConnect, useNewTable, useCosmosWallet } from "../hooks";
@@ -212,7 +213,8 @@ const Dashboard: React.FC = () => {
     // to the chain's canonical form (trim + lowercase, ENS-style) so the preview,
     // fee, and submitted value all match what the chain validates/charges/stores.
     const normalizedTableName = useMemo(() => normalizeTableName(modalTableName), [modalTableName]);
-    const tableNameError = useMemo(() => validateTableName(modalTableName), [modalTableName]);
+    // Format rules plus "already taken" on chain, checked as you type (ui#878).
+    const tableNameError = useTableNameError(modalTableName);
     const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
 
     const handleCreateNewGame = async () => {
