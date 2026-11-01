@@ -223,6 +223,53 @@ describe("usePlayerTimer", () => {
         });
     });
 
+    // ui#19: tapping the bank never costs your own time. The countdown shows
+    // your turn clock first (bank armed), then a fresh clock for the bank.
+    describe("turn clock first, then the bank (ui#19)", () => {
+        const banked = (turnAgoMs: number) => {
+            const now = Date.now();
+            const base = state(1, 25);
+            return {
+                ...base,
+                round: TexasHoldemRound.PREFLOP,
+                players: base.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 45_000 } : p)),
+                previousActions: [
+                    { action: "call", playerId: "b521them", timestamp: now - turnAgoMs },
+                    { action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - Math.min(turnAgoMs, 1_000) }
+                ],
+                gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }
+            };
+        };
+
+        it("keeps showing the 15s turn clock after the bank is tapped with time left", () => {
+            setState(banked(4_000)); // tapped with 11s of the 15s left
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isTimeBankArmed).toBe(true);
+            expect(result.current.isInTimeBank).toBe(false);
+            expect(result.current.phaseTimeRemaining).toBe(11);
+            expect(result.current.phaseTimeoutValue).toBe(15);
+            // the total left (what auto-fold waits on) still includes the bank
+            expect(result.current.timeRemaining).toBe(56);
+        });
+
+        it("switches to a fresh 45s bank clock when the turn clock runs out", () => {
+            setState(banked(25_000)); // 15s turn clock spent, 10s into the bank
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isTimeBankArmed).toBe(false);
+            expect(result.current.isInTimeBank).toBe(true);
+            expect(result.current.phaseTimeRemaining).toBe(35);
+            expect(result.current.phaseTimeoutValue).toBe(45);
+        });
+
+        it("is neither armed nor banking when no bank was used", () => {
+            setState({ ...state(1, 25), round: TexasHoldemRound.PREFLOP });
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isTimeBankArmed).toBe(false);
+            expect(result.current.isInTimeBank).toBe(false);
+            expect(result.current.phaseTimeoutValue).toBe(15);
+        });
+    });
+
     // ui#721: a hand replay is a frozen snapshot. The snapshot still carries a
     // nextToAct seat, but there is no live turn, so the timer must not run —
     // otherwise its per-second re-render flashes the "whose turn" indicator.

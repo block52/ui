@@ -1,5 +1,5 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, timeBankClockState, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -279,6 +279,34 @@ describe("pockerActionUtils", () => {
             expect(flags.hasBetAction).toBe(false);
             expect(flags.hasRaiseAction).toBe(false);
             expect(flags.hasCheckAction).toBe(false);
+        });
+    });
+
+    describe("timeBankClockState — the alarm clock on the player's pill (ui#19)", () => {
+        const base = { tableHasTimeBank: true, timeBankSeconds: 45, isSubmitting: false, isArmed: false, isInTimeBank: false };
+
+        it("is ready to tap on our turn with bank left", () => {
+            expect(timeBankClockState(base)).toBe("ready");
+        });
+
+        it("glows (armed) the moment it is tapped, before the chain confirms", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null, isSubmitting: true })).toBe("armed");
+        });
+
+        it("stays armed while the turn clock is still running", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null, isArmed: true })).toBe("armed");
+        });
+
+        it("is running once the turn clock is spent and the bank counts down", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null, isInTimeBank: true })).toBe("running");
+        });
+
+        it("is dim when it isn't our turn or the bank is empty", () => {
+            expect(timeBankClockState({ ...base, timeBankSeconds: null })).toBe("idle");
+        });
+
+        it("is hidden on a table without a time bank", () => {
+            expect(timeBankClockState({ ...base, tableHasTimeBank: false })).toBe("hidden");
         });
     });
 

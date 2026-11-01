@@ -256,3 +256,32 @@ export const clockCallOpportunity = (
         dueAtMs
     };
 };
+
+/**
+ * Which clock a turn is running on, for display (ui#19).
+ *
+ * The chain's deadline is `anchor + turn clock + bank granted`, so tapping the
+ * time bank never costs the player any of their own time. The screen shows it
+ * the same way: the turn clock keeps counting down (the bank is "armed"), and
+ * only when it reaches zero does the countdown switch to the bank.
+ *
+ *   - `base`: the turn clock is running; `remainingMs` / `totalMs` are its own.
+ *   - `bank`: the turn clock is spent and a bank was granted this turn;
+ *     `remainingMs` / `totalMs` are the bank's.
+ *
+ * `remainingMs` is clamped at 0, so an expired turn reads as a spent bank (or
+ * a spent turn clock when no bank was used).
+ */
+export interface TurnClockPhase {
+    phase: "base" | "bank";
+    remainingMs: number;
+    totalMs: number;
+}
+
+export const turnClockPhase = (args: { nowMs: number; anchorMs: number; baseMs: number; bankGrantedMs: number }): TurnClockPhase => {
+    const baseLeft = args.anchorMs + args.baseMs - args.nowMs;
+    if (baseLeft > 0 || args.bankGrantedMs <= 0) {
+        return { phase: "base", remainingMs: Math.max(0, baseLeft), totalMs: args.baseMs };
+    }
+    return { phase: "bank", remainingMs: Math.max(0, baseLeft + args.bankGrantedMs), totalMs: args.bankGrantedMs };
+};

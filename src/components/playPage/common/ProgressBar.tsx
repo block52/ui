@@ -8,7 +8,9 @@ type ProgressBarProps = {
 
 const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
     const { id } = useParams<{ id: string }>();
-    const { isActive, timeRemaining, timeoutValue, hasUsedExtension } = usePlayerTimer(id, index);
+    // The bar shows ONE clock at a time (ui#19): the turn clock, even once the
+    // bank is armed, then a fresh countdown for the bank when it runs out.
+    const { isActive, phaseTimeRemaining = 0, phaseTimeoutValue = 0, isInTimeBank } = usePlayerTimer(id, index);
 
     // State for extension UI feedback only
     const [isExtending, setIsExtending] = useState(false);
@@ -28,11 +30,11 @@ const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
     // Calculate remaining fraction (1 when full time, 0 when time's up).
     // Clamped because this drives a transform: an out-of-range scale would render
     // a flipped or overflowing bar, where an out-of-range width simply clipped.
-    const progressFraction = Math.max(0, Math.min(1, timeRemaining / timeoutValue));
+    const progressFraction = phaseTimeoutValue > 0 ? Math.max(0, Math.min(1, phaseTimeRemaining / phaseTimeoutValue)) : 0;
 
     return (
         <div className="animate-progress delay-2000 flex items-center w-full h-2 mb-2 mt-auto gap-2 relative">
-            <span className="ml-2 text-white text-sm w-[15px]">{timeRemaining}</span>
+            <span className={`ml-2 text-sm w-[15px] ${isInTimeBank ? "text-amber-300 font-bold" : "text-white"}`}>{phaseTimeRemaining}</span>
             <div className="relative flex-1 mr-[10px] h-full w-[calc(100%-25px)] bg-[#f0f0f030] rounded-md overflow-hidden">
                 {/*
                     Scaled, not resized. `timeRemaining` updates once a second, and
@@ -43,7 +45,7 @@ const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
                     the bar is a solid color so scaling is visually identical.
                 */}
                 <div
-                    className={`absolute top-0 left-0 h-full w-full origin-left transition-transform duration-1000 ease-linear ${hasUsedExtension ? "bg-red-500" : "bg-white"}`}
+                    className={`absolute top-0 left-0 h-full w-full origin-left transition-transform duration-1000 ease-linear ${isInTimeBank ? "bg-amber-400" : "bg-white"}`}
                     style={{
                         transform: `scaleX(${progressFraction})`
                     }}
