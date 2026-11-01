@@ -34,7 +34,7 @@ function makeItem(events: GameEvent[]): GameStreamItem {
 
 function wrapperFor(latestItem: GameStreamItem | null) {
     return function Wrapper({ children }: { children: React.ReactNode }) {
-        return <GameEventsProvider latestItem={latestItem} ackAnimation={() => {}}>{children}</GameEventsProvider>;
+        return <GameEventsProvider latestItem={latestItem} ackAnimation={() => {}} isPlayingSuspense={() => false}>{children}</GameEventsProvider>;
     };
 }
 
@@ -76,7 +76,7 @@ describe("useGameEvents", () => {
     it("updates when a new item commits", () => {
         let currentItem: GameStreamItem | null = makeItem([{ type: "handStarted", handNumber: 1 }]);
         const wrapper = ({ children }: { children: React.ReactNode }) => (
-            <GameEventsProvider latestItem={currentItem} ackAnimation={() => {}}>{children}</GameEventsProvider>
+            <GameEventsProvider latestItem={currentItem} ackAnimation={() => {}} isPlayingSuspense={() => false}>{children}</GameEventsProvider>
         );
         const { result, rerender } = renderHook(() => useGameEvents(), { wrapper });
         expect(result.current).toEqual([{ type: "handStarted", handNumber: 1 }]);

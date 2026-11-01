@@ -54,6 +54,12 @@
  *     showdown is shown.
  *   - Under pressure, kept holds are shortened to {@link SHORTENED_HOLD_MS} so
  *     the queue can catch up.
+ *   - Protected holds (ui#873): a tournament all-in run-out's beats are marked
+ *     `protectedHold` (runoutSuspense). They are planned suspense, not backlog:
+ *     their holds do not count toward {@link HOLD_CAP_MS}, and ordinary
+ *     pressure neither shortens them, abandons their acks, nor coalesces them.
+ *     Only a client genuinely far behind — more than
+ *     {@link SUSPENSE_BACKLOG_CAP} real frames queued — snaps past them.
  *
  * `reset()` clears the queue, cancels the in-flight hold timer, and clears the
  * last snapshot — but never rewinds `seq` (sequence numbers are never reused).
@@ -63,10 +69,11 @@ import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { classifyMessage, ClassifiedMessage, RawWsMessage } from "./ingest";
 import { GameStreamItem, BusIntrospection, DEFAULT_DECORATION, Decoration, GameEvent, Decorator } from "./types";
 import { deriveEvents } from "./deriveEvents";
-import { expandFrames } from "./expandFrames";
+import { expandFrames, runoutBeats } from "./expandFrames";
 import { buildDefaultDecorators } from "./decorators";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 import { isEmpty } from "../utils/guards";
+import { isTournamentFormat } from "../utils/gameFormatUtils";
 
 /** Cap on the retained commit log so the dev handle never grows unbounded. */
 const COMMIT_LOG_CAP = 200;
@@ -79,6 +86,14 @@ export const HOLD_CAP_MS = 4000;
 
 /** Under pressure, an item's post-commit hold is clamped to this (§2.6). */
 export const SHORTENED_HOLD_MS = 500;
+
+/**
+ * Real (wire) frames queued above this override a protected run-out hold
+ * (ui#873): the client has fallen so far behind — a reconnect burst — that
+ * catching up matters more than the suspense. Ordinary pressure (the next
+ * hand's frames arriving during the run-out) stays well below it.
+ */
+export const SUSPENSE_BACKLOG_CAP = DEPTH_CAP * 2;
 
 type Listener = (item: GameStreamItem) => void;
 
@@ -108,6 +123,12 @@ export class GameMessageBus {
     private drainTimer: ReturnType<typeof setTimeout> | null = null;
     /** minDisplay owed by the last committed item, applied before the next commit. */
     private carryDelayMs = 0;
+    /**
+     * True while the last committed item was a protected run-out beat whose
+     * post-commit hold has not finished (ui#873). Cleared on the next commit,
+     * when the drain goes idle, and on reset.
+     */
+    private holdingProtected = false;
 
     /**
      * Ack-bearing hints of the just-committed item still awaiting resolution
@@ -134,6 +155,7 @@ export class GameMessageBus {
         pendingAcks: 0,
         ackTimeouts: 0,
         parseFailures: 0,
+        suspense: false,
         commitLog: []
     };
 
@@ -196,7 +218,12 @@ export class GameMessageBus {
         // runs an all-in runout inside a single performAction with no yield point.
         // Expanding it gives the drain the commit boundaries it needs to pace the
         // board, and to keep the winner from painting before the river.
-        const frames = expandFrames(prevSnapshot, classified.snapshot);
+        // Tournaments also split a one-street run-out (an all-in on the turn), so
+        // the river lands before the winner (ui#873).
+        const frames = expandFrames(prevSnapshot, classified.snapshot, {
+            splitSingleStreetRunout: isTournamentFormat(classified.format)
+        });
+        const beats = runoutBeats(prevSnapshot, frames);
         const finalIndex = frames.length - 1;
 
         let previous = prevSnapshot;
@@ -206,7 +233,7 @@ export class GameMessageBus {
             // every decorator sees exactly one street's worth of change and needs
             // no knowledge of expansion.
             const frameClassified = isFinal ? classified : { ...classified, snapshot: frames[index] };
-            this.enqueue(this.buildItem(frameClassified, previous, raw, !isFinal));
+            this.enqueue(this.buildItem(frameClassified, previous, raw, !isFinal, beats[index]));
             if (!isFinal) {
                 this.introspection.expanded += 1;
             }
@@ -225,7 +252,8 @@ export class GameMessageBus {
         classified: ClassifiedMessage,
         prev: TexasHoldemStateDTO | undefined,
         raw: RawWsMessage,
-        synthetic: boolean
+        synthetic: boolean,
+        runoutBeat?: GameStreamItem["runoutBeat"]
     ): GameStreamItem {
         this.seq += 1;
 
@@ -237,7 +265,9 @@ export class GameMessageBus {
             events: this.deriveEventsForItem(classified, prev),
             decoration: { ...DEFAULT_DECORATION },
             raw,
-            synthetic
+            synthetic,
+            // Set before the decorators run: runoutSuspense paces on it.
+            ...(runoutBeat !== undefined ? { runoutBeat } : {})
         };
 
         // Run decorators to accumulate the item's decoration (Phase 3).
@@ -268,8 +298,21 @@ export class GameMessageBus {
         // pending ack ever outlives a reset (Phase 5 invariant).
         this.abandonAcks();
         this.draining = false;
+        this.holdingProtected = false;
         this.lastSnapshot = undefined;
         this.introspection.queueDepth = 0;
+        this.refreshSuspense();
+    }
+
+    /**
+     * Is a protected run-out (ui#873) still to be shown — queued, or holding the
+     * rendered track right now? useAutoNewHand defers the next hand's deal while
+     * this is true, so the next hand never piles onto the run-out. It always
+     * turns false: every hold is a timer, every ack has a timeout, and reset()
+     * clears both.
+     */
+    public isPlayingSuspense(): boolean {
+        return this.holdingProtected || this.queue.some(isProtected);
     }
 
     /**
@@ -361,9 +404,10 @@ export class GameMessageBus {
         // Backpressure abandons an in-flight ack wait the same way it compresses
         // holds (§2.6): if the newly-queued item pushes us over a cap while the
         // drain is gated on acks, stop waiting so the queue can catch up.
-        if (this.pendingAcks.size > 0 && (this.backlogDepth() > DEPTH_CAP || this.accumulatedHoldMs() > HOLD_CAP_MS)) {
+        if (this.pendingAcks.size > 0 && this.shouldCompress(this.holdingProtected)) {
             this.abandonAcks();
         }
+        this.refreshSuspense();
         this.scheduleDrain();
     }
 
@@ -400,11 +444,14 @@ export class GameMessageBus {
                 return;
             }
             this.draining = false;
+            // The last hold has run out with nothing behind it.
+            this.holdingProtected = false;
+            this.refreshSuspense();
             return;
         }
 
         const head = this.queue[0];
-        const underPressure = this.backlogDepth() > DEPTH_CAP || this.accumulatedHoldMs() > HOLD_CAP_MS;
+        const underPressure = this.shouldCompress(isProtected(head));
         const holdPreviousMs = head.decoration.holdPreviousMs ?? 0;
         const preDelay = this.carryDelayMs + holdPreviousMs;
         this.carryDelayMs = 0;
@@ -417,7 +464,9 @@ export class GameMessageBus {
                 return;
             }
             this.introspection.queueDepth = this.queue.length;
+            this.holdingProtected = isProtected(item);
             this.commit(item);
+            this.refreshSuspense();
             this.afterCommit(item, underPressure);
         }, preDelay);
     }
@@ -523,13 +572,15 @@ export class GameMessageBus {
         if (!overDepth && !overHold) {
             return;
         }
+        // Protected run-out beats survive ordinary pressure (ui#873).
+        const keepProtected = !this.overwhelmed();
         const lastIndex = this.queue.length - 1;
         const kept: GameStreamItem[] = [];
         for (let i = 0; i < this.queue.length; i++) {
             const it = this.queue[i];
             const isNewest = i === lastIndex;
             const isHandBoundary = it.events.some(e => e.type === "handEnded" || e.type === "handStarted");
-            if (it.decoration.coalescible && !isNewest && !isHandBoundary) {
+            if (it.decoration.coalescible && !isNewest && !isHandBoundary && !(keepProtected && isProtected(it))) {
                 this.introspection.coalesced += 1;
             } else {
                 kept.push(it);
@@ -560,12 +611,42 @@ export class GameMessageBus {
         return depth;
     }
 
+    /**
+     * Queued hold time that is BACKLOG. Protected run-out holds are excluded:
+     * they are planned suspense (ui#873), and counting them would put every
+     * tournament run-out over HOLD_CAP_MS on its own — the very clamp that made
+     * the run-out "bloop".
+     */
     private accumulatedHoldMs(): number {
         let sum = 0;
         for (const it of this.queue) {
+            if (isProtected(it)) {
+                continue;
+            }
             sum += (it.decoration.holdPreviousMs ?? 0) + (it.decoration.minDisplayMs ?? 0);
         }
         return sum;
+    }
+
+    /** So far behind that even protected holds give way (ui#873). */
+    private overwhelmed(): boolean {
+        return this.backlogDepth() > SUSPENSE_BACKLOG_CAP;
+    }
+
+    /**
+     * Should the drain compress (shorten the hold, drop the acks of) an item?
+     * An ordinary item: under the usual depth/hold pressure (§2.6). A protected
+     * run-out beat: only when overwhelmed.
+     */
+    private shouldCompress(protectedItem: boolean): boolean {
+        if (protectedItem) {
+            return this.overwhelmed();
+        }
+        return this.backlogDepth() > DEPTH_CAP || this.accumulatedHoldMs() > HOLD_CAP_MS;
+    }
+
+    private refreshSuspense(): void {
+        this.introspection.suspense = this.isPlayingSuspense();
     }
 
     private commit(item: GameStreamItem): void {
@@ -591,13 +672,19 @@ export function mergeDecoration(base: Decoration, patch: Partial<Decoration>): D
         holdPreviousMs: maxHold(base.holdPreviousMs, patch.holdPreviousMs),
         animations: patch.animations ? [...base.animations, ...patch.animations] : base.animations,
         sounds: patch.sounds ? [...base.sounds, ...patch.sounds] : base.sounds,
-        coalescible: base.coalescible || (patch.coalescible ?? false)
+        coalescible: base.coalescible || (patch.coalescible ?? false),
+        protectedHold: base.protectedHold === true || patch.protectedHold === true
     };
     // Keep the field absent (not 0) when neither side set it, so "no hold" reads
     // cleanly in introspection and the drain's `?? 0` still applies.
     if (merged.minDisplayMs === undefined) delete merged.minDisplayMs;
     if (merged.holdPreviousMs === undefined) delete merged.holdPreviousMs;
+    if (!merged.protectedHold) delete merged.protectedHold;
     return merged;
+}
+
+function isProtected(item: GameStreamItem): boolean {
+    return item.decoration.protectedHold === true;
 }
 
 function maxHold(a: number | undefined, b: number | undefined): number | undefined {
