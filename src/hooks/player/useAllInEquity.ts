@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useShowingCardsByAddress } from "./useShowingCardsByAddress";
-import { hasValue } from "../../utils/guards";
+import { hasValue, isNullish } from "../../utils/guards";
 import {
     PlayerStatus,
     PlayerDTO,
@@ -65,7 +65,7 @@ function writeEquityCache(key: string, equities: Map<number, number>): void {
     // Map iterates in insertion order, so the first key is the oldest.
     while (equityCache.size > EQUITY_CACHE_LIMIT) {
         const oldest = equityCache.keys().next().value;
-        if (oldest === undefined) {
+        if (isNullish(oldest)) {
             break;
         }
         equityCache.delete(oldest);
