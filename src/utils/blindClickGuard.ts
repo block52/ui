@@ -20,6 +20,8 @@
  * to look again once the screen is back.
  */
 
+import { hasValue } from "./guards";
+
 /** No painted frame for this long while the tab is visible and timers are running = the player can't see the table. */
 export const RENDER_STALL_THRESHOLD_MS = 300;
 
@@ -109,7 +111,7 @@ export function installBlindClickGuard(win: Window, onBlocked: () => void): () =
     win.addEventListener("click", onClick, options);
 
     return () => {
-        if (frameId !== undefined) {
+        if (hasValue(frameId)) {
             win.cancelAnimationFrame(frameId);
         }
         win.clearInterval(heartbeatId);
