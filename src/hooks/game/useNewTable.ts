@@ -2,6 +2,7 @@ import { useState, useCallback } from "react";
 import { BettingLimit, GameFormat, GameVariant, COSMOS_CONSTANTS, BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
+import { friendlyCreateTableError } from "../../utils/tableName";
 import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
 import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
 import { usdcToMicroBigInt } from "../../constants/currency";
@@ -157,6 +158,7 @@ export const useNewTable = (): UseNewTableReturn => {
                 const cosmosClient = getCosmosClient(currentNetwork);
 
                 if (!cosmosClient) {
+                    setError(new Error("Table creation failed - no blockchain client for this network."));
                     return null;
                 }
 
@@ -193,11 +195,13 @@ export const useNewTable = (): UseNewTableReturn => {
 
                 return { txHash, gameId };
             } else {
+                setError(new Error("Table creation failed - no transaction hash returned."));
                 return null;
             }
         } catch (err) {
             const errorMessage = err instanceof Error ? err.message : "Failed to create game on blockchain";
-            setError(new Error(errorMessage));
+            // One readable sentence, not the chain's wrapped tx error (ui#878).
+            setError(new Error(friendlyCreateTableError(errorMessage)));
             return null;
         } finally {
             setIsCreating(false);
