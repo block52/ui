@@ -134,9 +134,10 @@ type PlayerTimeBank = { timeBankRemainingMs?: number; timeBankLastGrantMs?: numb
 const playerTimeBank = (player: PlayerDTO | null | undefined): PlayerTimeBank => (player ?? {}) as PlayerTimeBank;
 
 /**
- * What one use of the time bank grants this player next (ui#19/#20): 45s the
- * first time, 30s the second, then whatever has refilled. The engine sends it
- * on every table with a time bank; null when the player has none.
+ * What one use of the time bank grants this player next (ui#19/#20/#944):
+ * whatever is left in their bank. It starts at 45s, only the seconds spent come
+ * off it (with a one-time 30s safety net), and it refills 5s per orbit. The
+ * engine sends it on every table with a time bank; null when the player has none.
  */
 export const nextTimeBankMs = (player: PlayerDTO | null | undefined): number | null => {
     return playerTimeBank(player).timeBankRemainingMs ?? null;

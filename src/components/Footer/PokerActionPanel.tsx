@@ -515,11 +515,6 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const handleShowAction = () => submitAction("show", () => showCards(tableId, network));
     const handleNewHandAction = () => submitAction("new-hand", () => startNewHand(tableId, network));
 
-    // Time bank (ui#19): straight to the controller, not through submitAction —
-    // it isn't the player's move, so Fold / Call / Raise must stay on screen
-    // while it confirms. The engine only offers it while it can be used, and
-    // the label shows what this use grants (45s, then 30s, then the refill).
-
     // Calculate button visibility flags
     const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {
         const showButtons = !!userPlayer;
