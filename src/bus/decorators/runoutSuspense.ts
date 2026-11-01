@@ -18,10 +18,11 @@
 import type { Decorator, Decoration } from "../types";
 import { runoutBeatHoldMs } from "../timing";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
+import { isNullish } from "../../utils/guards";
 
 export function makeRunoutSuspense(getReducedMotion: () => boolean): Decorator {
     return (item): Partial<Decoration> => {
-        if (item.runoutBeat === undefined || item.classified.kind !== "state") {
+        if (isNullish(item.runoutBeat) || item.classified.kind !== "state") {
             return {};
         }
         if (!isTournamentFormat(item.classified.format)) {
