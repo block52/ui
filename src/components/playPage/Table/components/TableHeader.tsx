@@ -18,6 +18,7 @@ import { ProfileAvatarButton } from "../../../profile";
 import { formatGameFormatDisplay, formatTableGameDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
 import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
+import { hasValue } from "../../../../utils/guards";
 import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
@@ -260,7 +261,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <div className="flex items-center space-x-1 sm:space-x-2">
                             {blindLevel.isActive ? (
                                 <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
-                                    {blindLevel.level !== undefined && `Level ${blindLevel.level + 1} `}{formatBlindsWithAnte(blindLevel.currentBlindsFormatted, blindLevel.currentAnteFormatted)} Next {blindLevel.nextBlindsFormatted}
+                                    {hasValue(blindLevel.level) && `Level ${blindLevel.level + 1} `}{formatBlindsWithAnte(blindLevel.currentBlindsFormatted, blindLevel.currentAnteFormatted)} Next {blindLevel.nextBlindsFormatted}
                                     {blindLevel.hasTimer && (
                                         <>
                                             {" ("}

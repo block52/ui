@@ -120,7 +120,8 @@ export function resolveBlindStructureChoice(choice: BlindStructureChoice, custom
 
     if (choice === "ladder") {
         const ladder = ladderStructure(doubling.smallBlind, doubling.bigBlind, doubling.durationMinutes);
-        const structure = rule === undefined ? ladder : applyAnteRule(ladder, rule);
+        // null is "antes off" (strip them); only undefined leaves the ladder alone.
+        const structure = rule === undefined ? ladder : applyAnteRule(ladder, rule); // guards-ok
         return { structure, preview: structure };
     }
     if (choice === "doubling") {
@@ -137,7 +138,8 @@ export function resolveBlindStructureChoice(choice: BlindStructureChoice, custom
     }
     const preset: BlindStructureDTO = { preset: choice };
     const resolved = resolveBlindPreset(preset);
-    if (rule === undefined || sameAnteRule(presetAnteRule(choice), rule)) {
+    // null is "antes off", which differs from the preset's antes; only undefined keeps the preset as is.
+    if (rule === undefined || sameAnteRule(presetAnteRule(choice), rule)) { // guards-ok
         return { structure: preset, preview: resolved };
     }
     const structure = applyAnteRule(resolved, rule);

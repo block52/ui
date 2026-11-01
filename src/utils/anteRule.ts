@@ -16,6 +16,7 @@
  */
 
 import { resolveBlindPreset, type AnteRuleDTO, type BlindLevelDTO, type BlindStructureDTO, type BlindStructurePresetDTO } from "@block52/poker-vm-sdk";
+import { isNullish } from "./guards";
 
 /** A structure with any preset resolved: what the form previews and edits. */
 export type ConcreteBlindStructure = Exclude<BlindStructureDTO, BlindStructurePresetDTO>;
@@ -121,7 +122,7 @@ export function anteRuleOfStructure(structure: BlindStructureDTO): AnteRuleDTO |
 export function describeAnteSchedule(structure: BlindStructureDTO | undefined): string {
     if (!structure) return "No antes";
     const rule = anteRuleOfStructure(structure);
-    if (rule === null) return "No antes";
+    if (isNullish(rule)) return "No antes";
     if (rule === "custom") {
         const concrete = resolveBlindPreset(structure);
         const first = concrete.progression === "table" ? concrete.levels.find(r => !r.isBreak && r.ante !== "0" && r.ante !== "") : undefined;
