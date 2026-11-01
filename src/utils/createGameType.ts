@@ -13,6 +13,7 @@
  */
 import { GameFormat } from "@block52/poker-vm-sdk";
 import { hasValue } from "./guards";
+import { isScheduledSng } from "./scheduledSng";
 
 export type CreateGameType = "cash" | "sit-and-go" | "tournament";
 
@@ -47,6 +48,13 @@ export const isScheduledCreateType = (type: CreateGameType): boolean => type ===
  */
 export const displayGameFormat = (format: GameFormat | "unknown" | null | undefined, scheduledStartTime: number | undefined, fallback: (format: GameFormat | "unknown") => string): string => {
     if (!hasValue(format)) return "";
-    if (format === GameFormat.SIT_AND_GO && hasValue(scheduledStartTime) && scheduledStartTime > 0) return "Tournament";
+    if (format === GameFormat.SIT_AND_GO && isScheduledSng({ scheduledStartTime })) return "Tournament";
     return fallback(format);
 };
+
+/** What a fixed-buy-in table is called in the join and buy-in modals (ui#934). */
+export const sitAndGoTypeLabel = (scheduledStartTime: number | undefined): string => (isScheduledSng({ scheduledStartTime }) ? "Tournament" : "Sit & Go");
+
+/** The join modal's heading: "Tournament" for a scheduled start, "Sit & Go Tournament" otherwise. */
+export const sitAndGoJoinTitle = (scheduledStartTime: number | undefined): string =>
+    isScheduledSng({ scheduledStartTime }) ? "Tournament" : "Sit & Go Tournament";
