@@ -91,7 +91,7 @@ describe("ante controls on the create form (ui#891)", () => {
     const ladderBlinds = { smallBlind: 10, bigBlind: 20, durationMinutes: 10 };
 
     it("AC-1: antes on, level 4, 100% gives the ladder an ante equal to the big blind from level 4", () => {
-        const plan = resolveBlindStructureChoice("ladder", "", ladderBlinds, DEFAULT_ANTE_FORM);
+        const plan = resolveBlindStructureChoice("ladder", "", ladderBlinds, { ...DEFAULT_ANTE_FORM, percentOfBigBlind: 100 });
         expect(plan.error).toBeUndefined();
         expect(plan.preview).toBe(plan.structure);
         const rows = previewBlindLevels(plan.preview!, 6);
@@ -123,7 +123,7 @@ describe("ante controls on the create form (ui#891)", () => {
     });
 
     it("doubling with antes submits the rounded doubling structure with the rule", () => {
-        const plan = resolveBlindStructureChoice("doubling", "", doubling, DEFAULT_ANTE_FORM);
+        const plan = resolveBlindStructureChoice("doubling", "", doubling, { ...DEFAULT_ANTE_FORM, percentOfBigBlind: 100 });
         expect(plan.structure).toEqual({
             progression: "double",
             startSmallBlind: "25",
@@ -163,7 +163,7 @@ describe("ante controls on the create form (ui#891)", () => {
         expect(anteFormOfCustomText("nope", DEFAULT_ANTE_FORM)).toBeUndefined();
 
         const rewritten = customTextWithAnte(DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT, DEFAULT_ANTE_FORM)!;
-        expect(rewritten).toContain("ante: level >= 3 ? bb : 0");
+        expect(rewritten).toContain("ante: level >= 3 ? bb * 0.1 : 0");
         expect(anteFormOfCustomText(rewritten, off)!.form).toEqual(DEFAULT_ANTE_FORM);
 
         const none = customTextWithAnte(DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT, off)!;

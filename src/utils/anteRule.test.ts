@@ -18,9 +18,9 @@ import { ladderStructure } from "./blindLadder";
 const doubling: ConcreteBlindStructure = { progression: "double", startSmallBlind: "25", startBigBlind: "50", durationMinutes: 10, roundBlinds: true };
 
 describe("ante controls ↔ ante rule (ui#891)", () => {
-    it("defaults to antes on from level 4 at a full big blind", () => {
-        expect(DEFAULT_ANTE_FORM).toEqual({ enabled: true, startLevel: 4, percentOfBigBlind: 100 });
-        expect(anteRuleFromForm(DEFAULT_ANTE_FORM)).toEqual({ startLevel: 3, bps: 10000 });
+    it("defaults to antes on from level 4 at 10% of the big blind (poker-vm#2736)", () => {
+        expect(DEFAULT_ANTE_FORM).toEqual({ enabled: true, startLevel: 4, percentOfBigBlind: 10 });
+        expect(anteRuleFromForm(DEFAULT_ANTE_FORM)).toEqual({ startLevel: 3, bps: 1000 });
     });
 
     it("maps the form to the rule: displayed level 1-based → startLevel 0-based, % → bps", () => {
@@ -132,7 +132,7 @@ describe("ante display text", () => {
     });
 
     it("describes the controls", () => {
-        expect(describeAnteForm(DEFAULT_ANTE_FORM)).toBe("From level 4 the big blind posts an ante of 100% of the big blind for the table.");
+        expect(describeAnteForm(DEFAULT_ANTE_FORM)).toBe("From level 4 the big blind posts an ante of 10% of the big blind for the table.");
         expect(describeAnteForm({ ...DEFAULT_ANTE_FORM, enabled: false })).toBe("No antes.");
     });
 

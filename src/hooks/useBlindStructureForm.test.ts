@@ -6,11 +6,11 @@ import { useBlindStructureForm } from "./useBlindStructureForm";
 const blinds = { smallBlind: 10, bigBlind: 20, durationMinutes: 10 };
 
 describe("useBlindStructureForm (ui#891)", () => {
-    it("opens on the ladder with antes on from level 4 at a full big blind", () => {
+    it("opens on the ladder with antes on from level 4 at 10% of the big blind", () => {
         const { result } = renderHook(() => useBlindStructureForm(blinds));
         expect(result.current.choice).toBe("ladder");
         expect(result.current.anteForm).toEqual(DEFAULT_ANTE_FORM);
-        expect(previewBlindLevels(result.current.plan.preview!, 5).map(r => r.ante)).toEqual(["0", "0", "0", "80", "100"]);
+        expect(previewBlindLevels(result.current.plan.preview!, 5).map(r => r.ante)).toEqual(["0", "0", "0", "8", "10"]);
     });
 
     it("turning antes off updates the plan at once", () => {
@@ -31,7 +31,7 @@ describe("useBlindStructureForm (ui#891)", () => {
         act(() => result.current.setChoice("doubling"));
         act(() => result.current.setChoice("custom"));
         expect(result.current.customText).toContain("progression: double");
-        expect(result.current.customText).toContain("ante: level >= 3 ? bb : 0");
+        expect(result.current.customText).toContain("ante: level >= 3 ? bb * 0.1 : 0");
 
         act(() => result.current.setAnteForm({ enabled: true, startLevel: 2, percentOfBigBlind: 50 }));
         expect(result.current.customText).toContain("ante: level >= 1 ? bb * 0.5 : 0");

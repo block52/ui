@@ -35,13 +35,12 @@ const BPS_PER_PERCENT = 100;
 const BPS_TOTAL = 10000n;
 
 /**
- * The form's defaults: on, from level 4, one full big blind. This is the
- * big-blind ante poker-vm#2736 proposes for the engine's current big-blind-ante
- * mechanics (the BB posts one ante for the table). If the engine moves to
- * per-player antes (10% of the big blind each, the CoinPoker model in #2736),
- * this default changes with it.
+ * The form's defaults: on, from level 4, 10% of the big blind. Antes are paid
+ * by every player dealt in (product decision 2026-10-30, poker-vm#2736 and
+ * poker-vm#2755, the CoinPoker model), so the size is 10% each, not one full
+ * big blind.
  */
-export const DEFAULT_ANTE_FORM: AnteFormState = { enabled: true, startLevel: 4, percentOfBigBlind: 100 };
+export const DEFAULT_ANTE_FORM: AnteFormState = { enabled: true, startLevel: 4, percentOfBigBlind: 10 };
 
 /** The size quick choices, in % of the big blind. 10% is what the presets post today. */
 export const ANTE_PERCENT_QUICK_CHOICES: ReadonlyArray<number> = [10, 50, 100];
