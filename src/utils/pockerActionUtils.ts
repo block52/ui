@@ -95,8 +95,19 @@ export const getActionFlags = (legalActions: LegalActionDTO[]): ActionFlags => (
     hasMuckAction: hasAction(legalActions, PlayerActionType.MUCK),
     hasShowAction: hasAction(legalActions, PlayerActionType.SHOW),
     hasDealAction: hasAction(legalActions, NonPlayerActionType.DEAL),
-    hasNewHandAction: hasAction(legalActions, NonPlayerActionType.NEW_HAND)
+    hasNewHandAction: hasAction(legalActions, NonPlayerActionType.NEW_HAND),
+    hasTimeBankAction: hasAction(legalActions, NonPlayerActionType.TIME_BANK)
 });
+
+/**
+ * The Time Bank button's extension in whole seconds (ui#19), or null when the
+ * button shouldn't show: the engine isn't offering `time-bank`, it isn't our
+ * turn (or the socket isn't live), or the table has no time bank.
+ */
+export const timeBankButtonSeconds = (args: { hasTimeBankAction: boolean; isUsersTurn: boolean; timeBankMs: number | null | undefined }): number | null => {
+    const seconds = Math.floor((args.timeBankMs ?? 0) / 1000);
+    return args.hasTimeBankAction && args.isUsersTurn && seconds > 0 ? seconds : null;
+};
 
 // Whether the showdown SHOW/MUCK bar should render for this seat.
 //
@@ -125,4 +136,6 @@ export type ActionFlags = {
     hasShowAction: boolean;
     hasDealAction: boolean;
     hasNewHandAction: boolean;
+    /** The engine offers `time-bank` only to the player to act, with bank left, once per decision (ui#19). */
+    hasTimeBankAction: boolean;
 };

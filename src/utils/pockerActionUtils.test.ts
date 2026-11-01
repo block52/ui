@@ -1,5 +1,5 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -243,7 +243,8 @@ describe("pockerActionUtils", () => {
             { action: PlayerActionType.MUCK, min: undefined, max: undefined, index: 7 },
             { action: PlayerActionType.SHOW, min: undefined, max: undefined, index: 8 },
             { action: NonPlayerActionType.DEAL, min: undefined, max: undefined, index: 9 },
-            { action: NonPlayerActionType.NEW_HAND, min: undefined, max: undefined, index: 10 }
+            { action: NonPlayerActionType.NEW_HAND, min: undefined, max: undefined, index: 10 },
+            { action: NonPlayerActionType.TIME_BANK, min: undefined, max: undefined, index: 11 }
         ];
 
         it("should return true for all flags when all actions are present", () => {
@@ -259,6 +260,7 @@ describe("pockerActionUtils", () => {
             expect(flags.hasShowAction).toBe(true);
             expect(flags.hasDealAction).toBe(true);
             expect(flags.hasNewHandAction).toBe(true);
+            expect(flags.hasTimeBankAction).toBe(true);
         });
 
         it("should return false for all flags when no actions are present", () => {
@@ -277,6 +279,28 @@ describe("pockerActionUtils", () => {
             expect(flags.hasBetAction).toBe(false);
             expect(flags.hasRaiseAction).toBe(false);
             expect(flags.hasCheckAction).toBe(false);
+        });
+    });
+
+    describe("timeBankButtonSeconds (ui#19)", () => {
+        const base = { hasTimeBankAction: true, isUsersTurn: true, timeBankMs: 30_000 };
+
+        it("shows the extension in seconds when the engine offers it on our turn", () => {
+            expect(timeBankButtonSeconds(base)).toBe(30);
+        });
+
+        it("hides when the engine doesn't offer time-bank (used, empty or off)", () => {
+            expect(timeBankButtonSeconds({ ...base, hasTimeBankAction: false })).toBeNull();
+        });
+
+        it("hides when it isn't our turn", () => {
+            expect(timeBankButtonSeconds({ ...base, isUsersTurn: false })).toBeNull();
+        });
+
+        it("hides when the table has no time bank", () => {
+            expect(timeBankButtonSeconds({ ...base, timeBankMs: 0 })).toBeNull();
+            expect(timeBankButtonSeconds({ ...base, timeBankMs: undefined })).toBeNull();
+            expect(timeBankButtonSeconds({ ...base, timeBankMs: null })).toBeNull();
         });
     });
 
