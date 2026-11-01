@@ -1,6 +1,7 @@
 import { hasAction, LegalActionDTO, PlayerActionType, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
 import { formatDisplayAmount } from "./numberUtils";
+import { hasValue } from "./guards";
 
 export const getTotalPotMicro = (totalPot: string): bigint => parseMicroToBigInt(totalPot);
 
@@ -107,6 +108,32 @@ export const getActionFlags = (legalActions: LegalActionDTO[]): ActionFlags => (
 export const timeBankButtonSeconds = (args: { hasTimeBankAction: boolean; isUsersTurn: boolean; timeBankMs: number | null | undefined }): number | null => {
     const seconds = Math.floor((args.timeBankMs ?? 0) / 1000);
     return args.hasTimeBankAction && args.isUsersTurn && seconds > 0 ? seconds : null;
+};
+
+/**
+ * How the alarm-clock time bank button on the player's own pill looks (ui#19):
+ *
+ *   - `hidden`:  the table has no time bank.
+ *   - `idle`:    shown dim, not tappable — not our turn, or the bank is empty.
+ *   - `ready`:   our turn and the engine offers `time-bank`: tap to arm it.
+ *   - `armed`:   tapped (or the tap is in flight): it glows while the turn
+ *                clock keeps running.
+ *   - `running`: the turn clock is spent and the bank is counting down.
+ */
+export type TimeBankClockState = "hidden" | "idle" | "ready" | "armed" | "running";
+
+export const timeBankClockState = (args: {
+    tableHasTimeBank: boolean;
+    timeBankSeconds: number | null;
+    isSubmitting: boolean;
+    isArmed: boolean;
+    isInTimeBank: boolean;
+}): TimeBankClockState => {
+    if (!args.tableHasTimeBank) return "hidden";
+    if (args.isInTimeBank) return "running";
+    if (args.isArmed || args.isSubmitting) return "armed";
+    if (hasValue(args.timeBankSeconds)) return "ready";
+    return "idle";
 };
 
 // Whether the showdown SHOW/MUCK bar should render for this seat.

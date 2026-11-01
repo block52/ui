@@ -3,6 +3,7 @@ import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { finishPhaseAt, hasNewFinisher, nextFinishPhaseAtMs, tournamentFinishOf, type FinishPhase, type TournamentFinish } from "../../utils/tournamentFinish";
+import { hasValue, isNullish } from "../../utils/guards";
 
 export interface TournamentFinishMoment {
     /** null when no finish is being shown (including a table opened after the finish). */
@@ -44,16 +45,16 @@ export function useTournamentFinishMoment(): TournamentFinishMoment {
         }
 
         const finish = tournamentFinishOf(snapshot);
-        const tournamentOver = finish !== null;
+        const tournamentOver = hasValue(finish);
         const startedAt = Date.now();
         const advance = () => {
             const elapsed = Date.now() - startedAt;
             const phase = finishPhaseAt(elapsed, tournamentOver);
             setMoment({ phase, finish });
             const nextAt = nextFinishPhaseAtMs(elapsed, tournamentOver);
-            timerRef.current = nextAt === null ? null : setTimeout(advance, Math.max(0, nextAt - elapsed));
+            timerRef.current = isNullish(nextAt) ? null : setTimeout(advance, Math.max(0, nextAt - elapsed));
         };
-        if (timerRef.current !== null) {
+        if (hasValue(timerRef.current)) {
             clearTimeout(timerRef.current);
         }
         advance();
@@ -61,7 +62,7 @@ export function useTournamentFinishMoment(): TournamentFinishMoment {
 
     useEffect(
         () => () => {
-            if (timerRef.current !== null) {
+            if (hasValue(timerRef.current)) {
                 clearTimeout(timerRef.current);
             }
         },

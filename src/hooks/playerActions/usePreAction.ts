@@ -44,11 +44,11 @@ export function usePreAction(
     callGuard?: PreActionCallGuard,
     onFired?: (actionName: ResolvedPreAction) => void
 ): void {
-    useLatchedDelay(action != null && isUsersTurn, !isUsersTurn, () => {
+    useLatchedDelay(hasValue(action) && isUsersTurn, !isUsersTurn, () => {
         if (!tableId) {
             return false;
         }
-        if (!isBusy && action != null) {
+        if (!isBusy && hasValue(action)) {
             const resolved = resolvePreAction(action, legal, callGuard);
             if (hasValue(resolved)) {
                 onFired?.(resolved);

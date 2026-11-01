@@ -5,7 +5,7 @@ import { ActionDTO, PlayerActionType, NonPlayerActionType } from "@block52/poker
 import { formatDisplayAmount, formatForSitAndGo, formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { getStreetCommitTotalForAction } from "../../utils/raiseUtils";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { isBlank } from "../../utils/guards";
+import { isBlank, isEmpty } from "../../utils/guards";
 
 export interface PlayerActionDisplay {
   action: string;
@@ -148,7 +148,7 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
 
   // The globally-newest, non-filtered action on this commit (or null).
   const latestAction = useMemo(() => {
-    if (playerActedEvents.length === 0) return null;
+    if (isEmpty(playerActedEvents)) return null;
     const newest = playerActedEvents[playerActedEvents.length - 1].action;
     if (FILTERED_ACTIONS.includes(newest.action.toLowerCase())) return null;
     return newest;
