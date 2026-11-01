@@ -1,5 +1,5 @@
 import { ActionDTO, NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { formatActionAmount, getActionBadgeDisplay } from "./usePlayerActionDropBox";
+import { formatActionAmount, getActionBadgeDisplay, showsActionBadge } from "./usePlayerActionDropBox";
 
 // Issue #487: the action badge under a player's avatar showed "$0.00" on Sit & Go.
 // Tournament amounts are raw whole chips; cash amounts are USDC micro-units (÷10^6).
@@ -134,5 +134,23 @@ describe("getActionBadgeDisplay", () => {
     it("labels a time-bank use TIME BANK, not the raw action name (ui#19)", () => {
         const timeBank: ActionDTO = { playerId: "b521p", seat: 1, action: NonPlayerActionType.TIME_BANK, amount: "0", round: TexasHoldemRound.PREFLOP, index: 5, timestamp: 1 };
         expect(getActionBadgeDisplay(timeBank, [timeBank], false)).toEqual({ action: "TIME BANK", amount: "" });
+    });
+});
+
+describe("showsActionBadge", () => {
+    it("shows a badge for real moves", () => {
+        for (const action of ["call", "check", "fold", "bet", "raise", "all-in", "post-big-blind"]) {
+            expect(showsActionBadge(action)).toBe(true);
+        }
+    });
+
+    it("never shows one for a time-bank use, so the countdown stays on the seat (ui#944)", () => {
+        expect(showsActionBadge(NonPlayerActionType.TIME_BANK)).toBe(false);
+    });
+
+    it("skips table bookkeeping (join, deal, new hand)", () => {
+        for (const action of ["join", "deal", "new-hand"]) {
+            expect(showsActionBadge(action)).toBe(false);
+        }
     });
 });
