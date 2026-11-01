@@ -16,6 +16,7 @@ import {
     clockCallOpportunity,
     clockCallerRank,
     PREFLOP_TIMEOUT_SECONDS,
+    turnClockPhase,
     turnDeadlineMs,
     turnTimeoutSeconds
 } from "./turnClock";
@@ -285,5 +286,29 @@ describe("clockCallOpportunity — the turn to call, keyed on the turn rather th
         expect(clockCallOpportunity(state(), P2, false)).toBeNull();
         expect(clockCallOpportunity(state({ round: TexasHoldemRound.END }), P1, false)).toBeNull();
         expect(clockCallOpportunity(undefined, P1, false)).toBeNull();
+    });
+});
+
+describe("turnClockPhase — the turn clock runs out first, then the bank (ui#19)", () => {
+    const anchorMs = 1_000_000;
+    const baseMs = 15_000;
+
+    it("counts the turn clock down while no bank is used", () => {
+        expect(turnClockPhase({ nowMs: anchorMs + 4_000, anchorMs, baseMs, bankGrantedMs: 0 })).toEqual({ phase: "base", remainingMs: 11_000, totalMs: 15_000 });
+    });
+
+    it("keeps counting the turn clock after the bank is tapped, so none of it is lost", () => {
+        // tapped with 11s left: still 11s on the turn clock, the bank waits
+        expect(turnClockPhase({ nowMs: anchorMs + 4_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "base", remainingMs: 11_000, totalMs: 15_000 });
+    });
+
+    it("switches to the full bank when the turn clock reaches zero", () => {
+        expect(turnClockPhase({ nowMs: anchorMs + 15_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "bank", remainingMs: 45_000, totalMs: 45_000 });
+        expect(turnClockPhase({ nowMs: anchorMs + 25_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "bank", remainingMs: 35_000, totalMs: 45_000 });
+    });
+
+    it("reads 0, never negative, once everything is spent", () => {
+        expect(turnClockPhase({ nowMs: anchorMs + 90_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "bank", remainingMs: 0, totalMs: 45_000 });
+        expect(turnClockPhase({ nowMs: anchorMs + 90_000, anchorMs, baseMs, bankGrantedMs: 0 })).toEqual({ phase: "base", remainingMs: 0, totalMs: 15_000 });
     });
 });
