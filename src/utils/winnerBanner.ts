@@ -60,14 +60,14 @@ function perPotBannerText(winners: BannerWinner[]): string | null {
         if (shares.length === 1) return `${label} ${bannerAmount(shares[0].formattedAmount)} to Seat ${shares[0].seat}`;
         return `${label} split: ${shares.map(s => `Seat ${s.seat} ${bannerAmount(s.formattedAmount)}`).join(" & ")}`;
     });
-    const text = phrases.join(" \u00b7 ");
-    // One player scooping every pot still gets their hand named.
+    // One player scooping every pot: no per-pot list, just the total (and their hand).
     if (winners.length === 1) {
         const w = winners[0];
         const hand = w.description || w.handName;
-        if (w.winType === "showdown" && hand) return `${text} with ${hand}`;
+        const suffix = w.winType === "showdown" && hand ? ` with ${hand}` : "";
+        return `Seat ${w.seat} wins Total Pot ${bannerAmount(w.formattedAmount)}${suffix}`;
     }
-    return text;
+    return phrases.join(" \u00b7 ");
 }
 
 export function winnerBannerText(winners: BannerWinner[] | null | undefined): string | null {

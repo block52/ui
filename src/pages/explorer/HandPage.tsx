@@ -493,7 +493,8 @@ export default function HandPage() {
                                         <span className="text-gray-400 font-mono text-xs">{truncateAddress(w.address)}</span>
                                         <span className={`font-bold ${styles.successText}`}>{formatPot(w.amount)}</span>
                                         {w.description && <span className="text-gray-400 text-xs">({w.description})</span>}
-                                        {(gameState.pots ?? []).filter(p => p && p !== "0").length > 1 && hasElements(w.pots) && (
+                                        {/* Per-pot shares only when different players won different pots (ui#918). */}
+                                        {gameState.winners.length > 1 && (gameState.pots ?? []).filter(p => p && p !== "0").length > 1 && hasElements(w.pots) && (
                                             <span className="text-gray-400 text-xs">
                                                 {w.pots.map(share => `${potLabel(share.pot, gameState.pots.length)} ${formatPot(share.amount)}`).join(", ")}
                                             </span>

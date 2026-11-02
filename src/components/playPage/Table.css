@@ -748,9 +748,45 @@
 .sit-out-toggle input[type="checkbox"]:checked ~ span {
     color: #fb923c;
 } 
-/* Phone portrait: keep the pots in the middle column so they clear the side seats' action badges. */
-@media (max-width: 480px) and (orientation: portrait) {
-    .side-pots-row {
-        max-width: 150px;
-    }
+/* Pot slot (ui#918): a fixed-height box in the board column. The pots sit in an absolutely
+ * positioned stack anchored to its bottom, so extra pots grow upward and never push the cards. */
+.pot-slot {
+    position: relative;
+    width: 100%;
+    height: 40px;
 }
+.pot-stack {
+    position: absolute;
+    /* Sits low in the slot, near the cards (the card row's top margin), away from the top seats' bets. */
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 100vw;
+}
+/* Multi-pot layout (ui#918): Total Pot centred on top, then every pot in one compact centred row.
+ * More pots means smaller pills, so the group stays inside the pot slot and clear of the bets. */
+.pot-stack:has(.side-pots-row) {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+}
+.pot-stack .side-pots-row {
+    flex-wrap: nowrap;
+    max-width: none;
+    gap: 0 8px;
+    margin-top: 4px;
+}
+.pot-stack .side-pots-row[data-count="3"] { zoom: 0.85; }
+.pot-stack .side-pots-row[data-count="4"] { zoom: 0.72; }
+/* Desktop: Main + Side pots always use the compact 4-pot size (ui#918). */
+@media (min-width: 1024px) and (pointer: fine) { .pot-stack .side-pots-row { zoom: 0.72 !important; } }
+/* Tablets (touch, e.g. iPad Mini): a bit larger, nearer the bet size, and 3px lower. */
+@media (min-width: 768px) and (pointer: coarse) { .pot-stack .side-pots-row { zoom: 0.85 !important; margin-top: 7px; } }
+.pot-stack .side-pots-row > .pot-display-secondary { font-size: 15px; }
+
+/* Pot caption sits under the amount, above the chips (ui#918). */
+.pot-pill { padding-bottom: 15px; }
+.chip-caption { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; white-space: nowrap; line-height: 1.2; z-index: 100; }
+/* Tablet portrait (vertical table): lift the board + pots together towards the table centre, between seats 4/7 and 3/8 (ui#918). */
+@media (min-width: 768px) and (pointer: coarse) and (orientation: portrait) { .community-board:not([data-mobile-readable] .community-board) { top: -30px; } }

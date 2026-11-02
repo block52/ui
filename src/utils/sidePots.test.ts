@@ -67,7 +67,7 @@ describe("side pots (ui#918)", () => {
             expect(text).toBe("Main Pot 24,400 chips to Seat 9 \u00b7 Side Pot 4,000 chips to Seat 2");
         });
 
-        it("one player scooping every pot keeps their hand", () => {
+        it("one player scooping every pot just wins the Total Pot, with their hand", () => {
             const text = winnerBannerText([
                 {
                     seat: 8,
@@ -80,7 +80,14 @@ describe("side pots (ui#918)", () => {
                     ]
                 }
             ]);
-            expect(text).toBe("Main Pot $10.00 to Seat 8 \u00b7 Side Pot $2.00 to Seat 8 with Flush, A high");
+            expect(text).toBe("Seat 8 wins Total Pot $12.00 with Flush, A high");
+        });
+
+        it("one player scooping every pot uncontested shows no hand", () => {
+            const text = winnerBannerText([
+                { seat: 1, formattedAmount: "1,800 chips", winType: "uncontested", pots: [{ pot: 0, formattedAmount: "1,200 chips" }, { pot: 1, formattedAmount: "600 chips" }] }
+            ]);
+            expect(text).toBe("Seat 1 wins Total Pot 1,800 chips");
         });
 
         it("a split side pot lists both seats", () => {

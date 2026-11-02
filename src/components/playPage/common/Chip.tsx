@@ -15,6 +15,8 @@ const CHIP_SIZE_MOBILE = 32;
 type ChipProps = {
     amount: string | bigint;
     isTournament?: boolean;
+    /** Caption centred under the amount (pot pills, ui#918), so the chip cluster can't cover it. */
+    caption?: string;
 };
 
 /**
@@ -80,7 +82,7 @@ function getClusterBounds(count: number, chipSize: number, maxVisibleCount: numb
     };
 }
 
-const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament }) => {
+const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament, caption }) => {
     const amountStr = amount ? amount.toString() : "0";
 
     // Format based on game type: raw chips for tournaments, USDC conversion for cash
@@ -150,10 +152,11 @@ const Chip: React.FC<ChipProps> = React.memo(({ amount, isTournament }) => {
             </div>
 
             {/* Dollar amount label */}
-            <span className={`text-[#dbd3d3] font-bold whitespace-nowrap ${
+            <span className={`relative text-[#dbd3d3] font-bold whitespace-nowrap ${
                 isMobile ? "text-4xl" : "text-2xl"
             }`}>
-                {isTournament ? formattedAmount : `$${formattedAmount}`}
+                <span>{isTournament ? formattedAmount : `$${formattedAmount}`}</span>
+                {caption && <span className="pot-pill-label chip-caption">{caption}</span>}
             </span>
         </div>
     );
