@@ -61,7 +61,7 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
         // The stub posts blinds without recording them, so the turn clock's
         // anchor is a big blind recorded `turnAgoMs` ago.
         const bot = s.gameState.players.find(p => p.seat !== SEAT)!;
-        const last: Action = { playerId: bot.address, seat: bot.seat, action: "post-big-blind", amount: "20000000", round: "preflop", index: 1, timestamp: now - turnAgoMs };
+        const last: Action = { playerId: bot.address, seat: bot.seat, action: "post-big-blind", amount: "20000000", round: "preflop", index: 1, timestamp: now - turnAgoMs - 5_000 }; // the clock starts 5s after the stamp (ui#944)
         // `turnNo` adds earlier actions so each step is a NEW turn: the timer
         // keeps one turn's anchor steady across re-stamped frames (#561).
         const earlier = Array.from({ length: bank.turnNo ?? 0 }, (_, i): Action => ({ ...last, action: "post-small-blind", amount: "10000000", index: 0, timestamp: last.timestamp - 1_000 - i }));

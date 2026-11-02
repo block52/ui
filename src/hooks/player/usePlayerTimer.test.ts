@@ -14,6 +14,7 @@ import { renderHook, act } from "@testing-library/react";
 import { NonPlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usePlayerTimer } from "./usePlayerTimer";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { TURN_CLOCK_START_ALLOWANCE_MS } from "../../utils/turnClock";
 import { hasValue } from "../../utils/guards";
 
 const mockUseGameData = jest.fn();
@@ -37,6 +38,9 @@ jest.mock("../playerActions/foldHand", () => ({ foldHand: (...a: unknown[]) => m
 jest.mock("../playerActions/checkHand", () => ({ checkHand: (...a: unknown[]) => mockCheck(...a) }));
 
 const TABLE = "0xtable";
+
+/** A stamp `ms` into the turn: the clock starts 5s after the stamp (ui#944). */
+const intoTurn = (ms: number) => Date.now() - ms - TURN_CLOCK_START_ALLOWANCE_MS;
 const ME = "b521me";
 
 /** A snapshot where `nextToAct` is seat 1, which is us. */
@@ -155,7 +159,7 @@ describe("usePlayerTimer", () => {
         const withTimeBank = (actionAgoMs: number, timeBankAgoMs: number | null) => {
             const now = Date.now();
             const snapshot = state();
-            const previousActions: { action?: string; playerId?: string; timestamp: number }[] = [{ action: "call", playerId: "b521them", timestamp: now - actionAgoMs }];
+            const previousActions: { action?: string; playerId?: string; timestamp: number }[] = [{ action: "call", playerId: "b521them", timestamp: intoTurn(actionAgoMs) }];
             if (hasValue(timeBankAgoMs)) {
                 previousActions.push({ action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - timeBankAgoMs });
             }
@@ -211,7 +215,7 @@ describe("usePlayerTimer", () => {
                 round: TexasHoldemRound.PREFLOP,
                 players: base.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 45_000 } : p)),
                 previousActions: [
-                    { action: "call", playerId: "b521them", timestamp: now - 10_000 },
+                    { action: "call", playerId: "b521them", timestamp: intoTurn(10_000) },
                     { action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - 1_000 }
                 ],
                 gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }
@@ -234,7 +238,7 @@ describe("usePlayerTimer", () => {
                 round: TexasHoldemRound.PREFLOP,
                 players: base.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 45_000 } : p)),
                 previousActions: [
-                    { action: "call", playerId: "b521them", timestamp: now - turnAgoMs },
+                    { action: "call", playerId: "b521them", timestamp: intoTurn(turnAgoMs) },
                     { action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - Math.min(turnAgoMs, 1_000) }
                 ],
                 gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }

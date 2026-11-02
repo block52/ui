@@ -51,6 +51,18 @@ export const TIMEOUT_BLOCK_TIME_MARGIN_MS = 5_000;
 export const CLOCK_CALLER_STAGGER_MS = 5_000;
 
 /**
+ * When a turn's clock starts, after its anchor (engine
+ * `TurnClockStartAllowanceMs`, ui#944). A move is stamped with its block's
+ * time, which on pokerchain's 5s blocks is ~5.4s before anyone can see it, so
+ * the clock starts one block interval after the stamp. Without this a player
+ * saw ~9s of a 15s pre-flop clock and their own auto-fold fired at that point.
+ */
+export const TURN_CLOCK_START_ALLOWANCE_MS = 5_000;
+
+/** When the turn's own clock starts counting (epoch ms), from its anchor. */
+export const turnClockStartMs = (anchorMs: number): number => anchorMs + TURN_CLOCK_START_ALLOWANCE_MS;
+
+/**
  * The pre-flop turn clock (poker-vm#2143): 15s to act pre-flop, the table's
  * full `gameOptions.timeout` on the flop, turn and river. Mirrors the engine's
  * `PreflopTimeoutSeconds`; a table already shorter than 15s keeps its own.
@@ -100,7 +112,7 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
         return null;
     }
 
-    return anchor + turnTimeoutSeconds(timeoutSeconds, gameState.round) * 1000 + timeBankGrantedMs(gameState);
+    return turnClockStartMs(anchor) + turnTimeoutSeconds(timeoutSeconds, gameState.round) * 1000 + timeBankGrantedMs(gameState);
 };
 
 /**
@@ -282,7 +294,7 @@ export interface TurnClockPhase {
 export const turnClockPhase = (args: { nowMs: number; anchorMs: number; baseMs: number; bankGrantedMs: number }): TurnClockPhase => {
     const baseLeft = args.anchorMs + args.baseMs - args.nowMs;
     if (baseLeft > 0 || args.bankGrantedMs <= 0) {
-        return { phase: "base", remainingMs: Math.max(0, baseLeft), totalMs: args.baseMs };
+        return { phase: "base", remainingMs: Math.min(args.baseMs, Math.max(0, baseLeft)), totalMs: args.baseMs };
     }
     return { phase: "bank", remainingMs: Math.max(0, baseLeft + args.bankGrantedMs), totalMs: args.bankGrantedMs };
 };

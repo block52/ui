@@ -108,7 +108,9 @@ export const calcTimeRemaining = (
     baseTimeoutMs: number,
     hasExtension: boolean
 ): number => {
-    const elapsed = currentTimeMs - lastActionMs;
+    // Never negative: before the clock starts (ui#944 start allowance) a turn
+    // shows its full time, not more.
+    const elapsed = Math.max(0, currentTimeMs - lastActionMs);
     const totalTimeout = getTotalTimeoutMs(baseTimeoutMs, hasExtension);
     const remaining = Math.max(0, totalTimeout - elapsed);
     return Math.ceil(remaining / 1000);
@@ -125,7 +127,7 @@ export const calcProgressPercent = (
     baseTimeoutMs: number,
     hasExtension: boolean
 ): number => {
-    const elapsed = currentTimeMs - lastActionMs;
+    const elapsed = Math.max(0, currentTimeMs - lastActionMs);
     const totalTimeout = getTotalTimeoutMs(baseTimeoutMs, hasExtension);
     return Math.min((elapsed / totalTimeout) * 100, 100);
 };
