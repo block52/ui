@@ -789,4 +789,4 @@
 .pot-pill { padding-bottom: 15px; }
 .chip-caption { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; white-space: nowrap; line-height: 1.2; z-index: 100; }
 /* Tablet portrait (vertical table): lift the board + pots together towards the table centre, between seats 4/7 and 3/8 (ui#918). */
-@media (min-width: 768px) and (pointer: coarse) and (orientation: portrait) { .community-board:not([data-mobile-readable] .community-board) { top: -30px; } }
+@media (min-width: 768px) and (pointer: coarse) and (orientation: portrait) { .community-board:not([data-mobile-readable] .community-board) { top: -44px; } }
