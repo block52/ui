@@ -3,7 +3,7 @@
  *
  * Displays the central playing surface including:
  * - Club logo
- * - Pot displays (total pot and main pot)
+ * - Pot displays (total pot, main pot, and each side pot when a player is all-in)
  * - Community cards
  * - Sit & Go waiting state
  */
@@ -122,7 +122,7 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                                 amount={potDisplayValues.totalPot}
                                 rawAmount={potDisplayValues.totalPotRaw}
                                 isTournamentStyle={potDisplayValues.isTournamentStyle}
-                                hasMainPot={potDisplayValues.showMainPot}
+                                hasMainPot={potDisplayValues.showMainPot || potDisplayValues.showSidePots}
                                 asChips={potAsChips}
                             />
                         )}
@@ -134,6 +134,21 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                                 isTournamentStyle={potDisplayValues.isTournamentStyle}
                                 asChips={potAsChips}
                             />
+                        )}
+                        {/* Side pots (ui#918): one pill per pot, main pot first */}
+                        {potDisplayValues.showSidePots && (
+                            <div className="side-pots-row" data-count={potDisplayValues.pots.length} data-testid="side-pots">
+                                {potDisplayValues.pots.map(pot => (
+                                    <MainPotDisplay
+                                        key={pot.label}
+                                        label={pot.label}
+                                        amount={pot.amount}
+                                        rawAmount={pot.raw}
+                                        isTournamentStyle={potDisplayValues.isTournamentStyle}
+                                        asChips={potAsChips}
+                                    />
+                                ))}
+                            </div>
                         )}
                     </>
                 )}

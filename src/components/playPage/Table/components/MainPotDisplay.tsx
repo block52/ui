@@ -1,5 +1,5 @@
 import React from "react";
-import { formatPotLabel } from "../../../../utils/potTextUtils";
+import { formatPotLabel, PotName } from "../../../../utils/potTextUtils";
 import { PotPill } from "./PotPill";
 
 interface MainPotDisplayProps {
@@ -10,19 +10,21 @@ interface MainPotDisplayProps {
     isTournamentStyle: boolean;
     /** "Pot as Chips" setting (ui#772): a chip pill instead of the "Main Pot: $x" text. */
     asChips: boolean;
+    /** Pot name (ui#918): "Main Pot", or "Side Pot 1" etc. when side pots are shown. */
+    label?: PotName;
 }
 
-export const MainPotDisplay: React.FC<MainPotDisplayProps> = ({ amount, rawAmount, isTournamentStyle, asChips }) => {
+export const MainPotDisplay: React.FC<MainPotDisplayProps> = ({ amount, rawAmount, isTournamentStyle, asChips, label = "Main Pot" }) => {
     if (asChips) {
         return (
             <div className="pot-chips-secondary">
-                <PotPill amount={rawAmount} label="Main Pot" isTournament={isTournamentStyle} />
+                <PotPill amount={rawAmount} label={label} isTournament={isTournamentStyle} />
             </div>
         );
     }
     return (
         <div className="pot-display-secondary">
-            {formatPotLabel("Main Pot", amount, isTournamentStyle)}
+            {formatPotLabel(label, amount, isTournamentStyle)}
         </div>
     );
 };

@@ -279,6 +279,40 @@
     margin-top: 6px;
 }
 
+/* Side pots (ui#918): main pot then each side pot, side by side, wrapping
+   inside the board's width rather than growing the table. */
+.side-pots-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 4px 10px;
+    max-width: 480px;
+    margin-top: 6px;
+}
+.side-pots-row > .pot-display-secondary,
+.side-pots-row > .pot-chips-secondary {
+    margin-top: 0;
+}
+/* Phone landscape: keep the pots on one line so they never stack into the cards. */
+@media (max-height: 500px) and (orientation: landscape) {
+    .side-pots-row {
+        flex-wrap: nowrap;
+        max-width: none;
+        gap: 0 6px;
+    }
+}
+.side-pots-row[data-count="3"] > .pot-display-secondary,
+.side-pots-row[data-count="4"] > .pot-display-secondary {
+    font-size: 0.8em;
+}
+@media (min-width: 640px) {
+    .side-pots-row[data-count="3"] > .pot-display-secondary,
+    .side-pots-row[data-count="4"] > .pot-display-secondary {
+        font-size: 15px;
+    }
+}
+
 .pot-pill {
     display: flex;
     flex-direction: column;

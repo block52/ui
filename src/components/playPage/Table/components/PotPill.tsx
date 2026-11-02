@@ -1,7 +1,9 @@
 import React from "react";
 import Chip from "../../common/Chip";
 
-export type PotPillLabel = "Pot" | "Total Pot" | "Main Pot";
+import type { PotLabel } from "../../../../utils/potTextUtils";
+
+export type PotPillLabel = "Pot" | PotLabel;
 
 interface PotPillProps {
     /** Pot size: micro-USDC for cash, chips for tournaments. */

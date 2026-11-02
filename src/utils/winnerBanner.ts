@@ -1,4 +1,5 @@
 import { hasElements } from "./guards";
+import { potLabel } from "./potDisplayUtils";
 
 /**
  * Builds the last-pot winner banner text (ui#848) from the resolved winners.
@@ -13,6 +14,8 @@ export interface BannerWinner {
     description?: string;
     /** "showdown" shows the winning hand; "uncontested" just shows the amount. */
     winType?: string;
+    /** This winner's share of each pot, main pot first (ui#918). */
+    pots?: { pot: number; formattedAmount: string }[];
 }
 
 /** A cash amount arrives as a bare decimal ("0.03"); tournament amounts already say "chips". */
@@ -33,8 +36,44 @@ function wonPhrase(formattedAmount: string): string {
  * split pot "Split pot — Seat 3 $6.25 · Seat 5 $6.25". Null when there are no
  * winners.
  */
+/**
+ * Side pots (ui#918): one phrase per pot, main pot first, e.g. "Main Pot $24.40
+ * to Seat 9 \u00b7 Side Pot $4.00 to Seat 2". Null when the engine didn't send
+ * per-pot shares or there was only one pot, so the caller keeps the old text.
+ */
+function perPotBannerText(winners: BannerWinner[]): string | null {
+    if (!winners.every(w => hasElements(w.pots))) return null;
+    const byPot = new Map<number, { seat: number; formattedAmount: string }[]>();
+    for (const w of winners) {
+        for (const share of w.pots!) {
+            const shares = byPot.get(share.pot) ?? [];
+            shares.push({ seat: w.seat, formattedAmount: share.formattedAmount });
+            byPot.set(share.pot, shares);
+        }
+    }
+    if (byPot.size < 2) return null;
+    const indexes = [...byPot.keys()].sort((a, b) => a - b);
+    const count = indexes[indexes.length - 1] + 1;
+    const phrases = indexes.map(index => {
+        const shares = byPot.get(index)!;
+        const label = potLabel(index, count);
+        if (shares.length === 1) return `${label} ${bannerAmount(shares[0].formattedAmount)} to Seat ${shares[0].seat}`;
+        return `${label} split: ${shares.map(s => `Seat ${s.seat} ${bannerAmount(s.formattedAmount)}`).join(" & ")}`;
+    });
+    const text = phrases.join(" \u00b7 ");
+    // One player scooping every pot still gets their hand named.
+    if (winners.length === 1) {
+        const w = winners[0];
+        const hand = w.description || w.handName;
+        if (w.winType === "showdown" && hand) return `${text} with ${hand}`;
+    }
+    return text;
+}
+
 export function winnerBannerText(winners: BannerWinner[] | null | undefined): string | null {
     if (!hasElements(winners)) return null;
+    const perPot = perPotBannerText(winners);
+    if (perPot) return perPot;
     if (winners.length === 1) {
         const w = winners[0];
         const engineHand = w.description || w.handName;
