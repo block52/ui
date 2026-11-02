@@ -1,6 +1,6 @@
 import { useCallback, useSyncExternalStore } from "react";
 import { getCosmosAddress } from "../../utils/cosmos/storage";
-import { hasContent } from "../../utils/guards";
+import { hasContent, hasValue, isNullish } from "../../utils/guards";
 import {
     GUEST_NOTES_OWNER,
     PLAYER_NOTES_STORAGE_PREFIX,
@@ -51,9 +51,10 @@ const writeBook = (owner: string, book: NotesBook): void => {
 };
 
 const onStorage = (event: StorageEvent): void => {
-    if (event.key !== null && !event.key.startsWith(PLAYER_NOTES_STORAGE_PREFIX)) return; // guards-ok: null = storage cleared
-    if (event.key === null) {
-        cache.clear(); // guards-ok
+    // A null key means the whole of storage was cleared.
+    if (hasValue(event.key) && !event.key.startsWith(PLAYER_NOTES_STORAGE_PREFIX)) return;
+    if (isNullish(event.key)) {
+        cache.clear();
     } else {
         cache.delete(event.key);
     }
