@@ -748,3 +748,9 @@
 .sit-out-toggle input[type="checkbox"]:checked ~ span {
     color: #fb923c;
 } 
+/* Phone portrait: keep the pots in the middle column so they clear the side seats' action badges. */
+@media (max-width: 480px) and (orientation: portrait) {
+    .side-pots-row {
+        max-width: 150px;
+    }
+}
