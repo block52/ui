@@ -1,5 +1,5 @@
 import { getSigningClient, withMoneyMoverRetry } from "../../utils/cosmos/client";
-import { getLatestGameState } from "./transportAction";
+import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { claimWinnings } from "./claimWinnings";
 
@@ -10,17 +10,15 @@ jest.mock("../../utils/cosmos/client", () => ({
     getSigningClient: jest.fn(),
     withMoneyMoverRetry: jest.fn()
 }));
-jest.mock("./transportAction");
 
 const mockGetSigningClient = getSigningClient as jest.MockedFunction<typeof getSigningClient>;
 const mockWithMoneyMoverRetry = withMoneyMoverRetry as jest.MockedFunction<typeof withMoneyMoverRetry>;
-const mockGetLatestGameState = getLatestGameState as jest.MockedFunction<typeof getLatestGameState>;
 
 type SigningClient = Awaited<ReturnType<typeof getSigningClient>>["signingClient"];
 
 describe("claimWinnings", () => {
     const fakeNetwork = { name: "testnet", rpc: "http://x", rest: "http://y" } as unknown as NetworkEndpoints;
-    const fakeState = { handNumber: 5, deck: "X", results: [{ place: 1, playerId: "b52win", payout: "100" }] };
+    const fakeState = { handNumber: 5, deck: "X", results: [{ place: 1, playerId: "b52win", payout: "100" }] } as unknown as TexasHoldemStateDTO;
 
     const wire = (recordHandEnd: jest.Mock, leaveGame: jest.Mock) =>
         mockGetSigningClient.mockResolvedValue({
@@ -30,7 +28,6 @@ describe("claimWinnings", () => {
 
     beforeEach(() => {
         jest.clearAllMocks();
-        mockGetLatestGameState.mockReturnValue(fakeState as ReturnType<typeof getLatestGameState>);
         // Passthrough: resolve the (mocked) signing client and run the callback,
         // matching withMoneyMoverRetry's happy-path behavior.
         mockWithMoneyMoverRetry.mockImplementation(async (network, fn) => fn(await mockGetSigningClient(network)));
@@ -41,7 +38,7 @@ describe("claimWinnings", () => {
         const leaveGame = jest.fn().mockResolvedValue("0xleave");
         wire(recordHandEnd, leaveGame);
 
-        const result = await claimWinnings("game-1", fakeNetwork);
+        const result = await claimWinnings("game-1", fakeNetwork, fakeState);
 
         expect(leaveGame).toHaveBeenCalledWith("game-1", ["b52win"]);
         expect(result).toEqual({ hash: "0xleave", gameId: "game-1" });
@@ -54,17 +51,16 @@ describe("claimWinnings", () => {
         const leaveGame = jest.fn().mockResolvedValue("0xleave");
         wire(recordHandEnd, leaveGame);
 
-        await claimWinnings("game-1", fakeNetwork);
+        await claimWinnings("game-1", fakeNetwork, fakeState);
 
         expect(recordHandEnd).not.toHaveBeenCalled();
     });
 
     it("settles with an empty finishingOrder when there is no local state", async () => {
-        mockGetLatestGameState.mockReturnValue(undefined);
         const leaveGame = jest.fn().mockResolvedValue("0xleave");
         wire(jest.fn(), leaveGame);
 
-        const result = await claimWinnings("game-1", fakeNetwork);
+        const result = await claimWinnings("game-1", fakeNetwork, undefined);
 
         expect(leaveGame).toHaveBeenCalledWith("game-1", []);
         expect(result.hash).toBe("0xleave");
@@ -73,6 +69,6 @@ describe("claimWinnings", () => {
     it("surfaces a rejected settle", async () => {
         wire(jest.fn(), jest.fn().mockRejectedValue(new Error("player b52test already claimed payout")));
 
-        await expect(claimWinnings("game-1", fakeNetwork)).rejects.toThrow(/already claimed/);
+        await expect(claimWinnings("game-1", fakeNetwork, fakeState)).rejects.toThrow(/already claimed/);
     });
 });
