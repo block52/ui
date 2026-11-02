@@ -1,6 +1,5 @@
 import { COSMOS_CONSTANTS, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { withMoneyMoverRetry } from "../../utils/cosmos/client";
-import { getLatestGameState } from "./transportAction";
 import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { JoinTableResult } from "../../types";
@@ -14,8 +13,8 @@ import { parseUsdcToMicro } from "../../constants/currency";
  * that only ever worked for cash: the engine's Sit-and-Go / tournament JOIN
  * does NOT treat 0 as random — it seats the player literally at 0, the
  * "not-seated" sentinel (chain seats are 1-indexed), so the join lands broken.
- * When no seat is requested we therefore pick a real empty seat from the latest
- * broadcast state instead of sending 0.
+ * When no seat is requested we therefore pick a real empty seat from the table's
+ * latest state instead of sending 0.
  */
 export function resolveJoinSeat(requestedSeat: number | undefined, gameState: TexasHoldemStateDTO | undefined): number {
     if (hasValue(requestedSeat) && requestedSeat > 0) {
@@ -58,8 +57,9 @@ export async function joinTable(tableId: string, options: JoinTableOptions, netw
     const buyInAmount = parseUsdcToMicro(options.amount);
 
     // Resolve a real seat — never the broken seat-0 "random" sentinel (which
-    // the SNG/tournament engine mis-seats). See resolveJoinSeat.
-    const seat = resolveJoinSeat(options.seatNumber, getLatestGameState());
+    // the SNG/tournament engine mis-seats). See resolveJoinSeat. The state is the
+    // caller's table's own (ui#834).
+    const seat = resolveJoinSeat(options.seatNumber, options.gameState);
 
     // Broadcast MsgJoinGame chain-direct. JOIN is an ordered money-mover (it
     // carries the account sequence), so retry once on a sequence mismatch caused
