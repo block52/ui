@@ -1,5 +1,6 @@
-/* Alarm-clock time bank button on the player's own pill (ui#19).
-   Mirrors .badge-number: the same 1.5rem circle, on the opposite end. */
+/* Alarm-clock time bank button beside the player's own pill (ui#19).
+   Mirrors .badge-number: the same 1.5rem circle, just outside it on the left
+   (the pill's right end is where an NFT avatar sits). */
 .time-bank-clock {
   position: relative;
   display: flex;
@@ -8,8 +9,6 @@
   flex-shrink: 0;
   width: 1.5rem;
   height: 1.5rem;
-  margin-left: 0.25rem;
-  margin-right: -0.375rem;
   padding: 0;
   border: none;
   border-radius: 9999px;
@@ -77,7 +76,7 @@
 .time-bank-clock-seconds {
   position: absolute;
   top: -0.55rem;
-  right: -0.55rem;
+  left: -0.55rem;
   min-width: 1.05rem;
   padding: 0 0.2rem;
   border-radius: 9999px;

@@ -16,8 +16,8 @@ const LABELS = {
 } as const;
 
 /**
- * The alarm-clock time bank button on the player's own pill, opposite the
- * seat number (ui#19). Tap it on your turn to arm the bank: it glows while
+ * The alarm-clock time bank button beside the player's own pill, just left of
+ * the seat number (ui#19). Tap it on your turn to arm the bank: it glows while
  * your turn clock runs down, then rings while the bank counts down.
  */
 export const TimeBankClock: React.FC<TimeBankClockProps> = React.memo(({ tableId, seat }) => {
