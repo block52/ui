@@ -9,7 +9,7 @@ import { GameMessageBus } from "../bus/GameMessageBus";
 import { type GameStreamItem } from "../bus/types";
 import { viteEnv } from "../utils/viteEnv";
 import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
-import { hasElements, isNullish } from "../utils/guards";
+import { hasElements, hasValue, isNullish } from "../utils/guards";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
@@ -130,7 +130,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     // ingest time; committed items drive the RENDER track via applyRenderTrack
     // below.
     const busRef = useRef<GameMessageBus | null>(null);
-    if (busRef.current === null) {
+    if (isNullish(busRef.current)) {
         busRef.current = new GameMessageBus({ setLatestGameState: track.set });
     }
 
@@ -608,7 +608,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             };
 
             try {
-                if (actionIndex !== null) {
+                if (hasValue(actionIndex)) {
                     const response = (await restApi.getGameStateAt(tableId, handNumber, actionIndex)) as { game_state?: string };
                     if (!response || !response.game_state) {
                         throw new Error(`No game state found for hand ${handNumber} at action ${actionIndex}`);
@@ -626,7 +626,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, request, height)));
                     try {
                         const endHeight = parseTxSearchHeight(await rpc.txSearch(handEndedQuery(tableId, handNumber)));
-                        if (endHeight === null) {
+                        if (isNullish(endHeight)) {
                             // Not ended on this node: it may be the hand being played now.
                             const now = await stateAt(0);
                             if (now.state.handNumber === handNumber) {
@@ -636,7 +636,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                             // Started but never ended: a duplicate new-hand in the same block
                             // replaces it before any play, so there is nothing to show.
                             const startHeight = parseTxSearchHeight(await rpc.txSearch(handStartedQuery(tableId, handNumber)));
-                            if (startHeight !== null) {
+                            if (hasValue(startHeight)) {
                                 const atStart = await stateAt(startHeight);
                                 if (atStart.state.handNumber === handNumber) {
                                     await apply(atStart);

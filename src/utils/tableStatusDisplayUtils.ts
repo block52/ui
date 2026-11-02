@@ -9,7 +9,7 @@
  * by PlayerActionButtons via the "waiting-for-players" kind.
  */
 
-import { hasElements } from "./guards";
+import { hasElements, hasValue } from "./guards";
 
 export type TableStatusMessage =
     | { kind: "seat-label"; seatNumber: number; text: string }
@@ -60,8 +60,8 @@ export function getTableStatusMessages(input: TableStatusDisplayInput): TableSta
     }
 
     // 2. Turn indicator — game in progress and someone must act
-    //    Uses !== null instead of truthiness to handle seat 0 correctly
-    if (nextToActSeat !== null && isGameInProgress) {
+    //    Uses hasValue instead of truthiness to handle seat 0 correctly
+    if (hasValue(nextToActSeat) && isGameInProgress) {
         if (isCurrentUserTurn && hasLegalActions) {
             messages.push({ kind: "your-turn", text: "Your turn to act!" });
         } else {

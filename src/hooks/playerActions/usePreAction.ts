@@ -3,8 +3,9 @@ import { checkHand } from "./checkHand";
 import { foldHand } from "./foldHand";
 import { callHand } from "./callHand";
 import { useLatchedDelay } from "./useLatchedDelay";
-import { resolvePreAction, PreAction, PreActionCallGuard, PreActionLegal } from "../../utils/preActions";
+import { resolvePreAction, PreAction, PreActionCallGuard, PreActionLegal, ResolvedPreAction } from "../../utils/preActions";
 import type { SubmitActionRequest } from "../../submit/types";
+import { hasValue } from "../../utils/guards";
 
 /**
  * The pre-action bar's firing hook (ui#388), CoinPoker-style. When the player has
@@ -23,6 +24,11 @@ import type { SubmitActionRequest } from "../../submit/types";
  * ui#430 on auto-acting against stale state). The action is SUBMITTED through the
  * shared ActionSubmitController (ui#635); if the queue is BUSY when the turn
  * arrives (the player already acted by hand), the intent resolves without acting.
+ *
+ * `onFired` is told the move it submits, BEFORE the intent resolves: the panel
+ * marks its controls pending with it, exactly as for a clicked button. Without
+ * that, clearing the armed intent while the move confirms left it our turn with
+ * nothing armed, and the full betting bar flashed up until the move landed.
  */
 export function usePreAction(
     tableId: string,
@@ -35,14 +41,18 @@ export function usePreAction(
     isBusy: boolean,
     onSubmitted?: (txHash: string) => void,
     onResolved?: () => void,
-    callGuard?: PreActionCallGuard
+    callGuard?: PreActionCallGuard,
+    onFired?: (actionName: ResolvedPreAction) => void
 ): void {
-    useLatchedDelay(action != null && isUsersTurn, !isUsersTurn, () => {
+    useLatchedDelay(hasValue(action) && isUsersTurn, !isUsersTurn, () => {
         if (!tableId) {
             return false;
         }
-        if (!isBusy && action != null) {
+        if (!isBusy && hasValue(action)) {
             const resolved = resolvePreAction(action, legal, callGuard);
+            if (hasValue(resolved)) {
+                onFired?.(resolved);
+            }
             if (resolved === "check") {
                 submit({ actionName: "check", run: () => checkHand(tableId, network), onSuccess: onSubmitted });
             } else if (resolved === "fold") {

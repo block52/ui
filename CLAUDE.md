@@ -324,8 +324,10 @@ if (hasValue(value)) { ... }
 ```
 
 Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
-`isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings). For type
-conversions, see Commandment 12 (`utils/typeConversions`).
+`isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings), `isRecord`
+(an `unknown` JSON reply or caught error whose fields you want to read, instead
+of casting it). For type conversions, see Commandment 12
+(`utils/typeConversions`).
 
 **Checked in CI.** The `Guards` job runs `yarn check:guards`, which fails a PR
 whose added lines contain a hand-written null/empty/length check, and names the

@@ -18,6 +18,7 @@
  */
 
 import { MAX_GAME_NAME_LENGTH } from "@block52/poker-vm-sdk";
+import { isBlank, isRecord } from "./guards";
 
 // ENS-style label rule — identical to the chain's gameNameRe.
 const GAME_NAME_RE = /^[a-z0-9](-?[a-z0-9]){0,31}$/;
@@ -40,7 +41,7 @@ export const tableNameCharCount = (name: string): number => [...name].length;
  */
 export function validateTableName(raw: string): string | null {
     const name = normalizeTableName(raw);
-    if (name.length === 0) {
+    if (isBlank(name)) {
         return null; // unnamed table — allowed, free
     }
     if (tableNameCharCount(name) > MAX_GAME_NAME_LENGTH) {
@@ -50,4 +51,39 @@ export function validateTableName(raw: string): string | null {
         return "Table name must be lowercase letters, numbers and single hyphens (a–z, 0–9, -), with no leading, trailing or double hyphen.";
     }
     return null;
+}
+
+/** The inline message for a name someone already owns (ui#878). */
+export const tableNameTakenMessage = (name: string): string => `“${name}” is already taken — pick another name.`;
+
+/**
+ * Ask the chain whether a (normalized, valid) table name is already taken, via
+ * its `name_available` query (pokerchain GameNames). Resolves true only when the
+ * chain says so. A free name and an unknown answer (network error, aborted,
+ * unexpected reply) both resolve false: an unknown answer must never block the
+ * form, the chain still refuses a taken name at create time.
+ */
+export async function fetchTableNameTaken(restUrl: string, name: string, signal?: AbortSignal): Promise<boolean> {
+    try {
+        const res = await fetch(`${restUrl.replace(/\/$/, "")}/block52/pokerchain/poker/v1/name_available/${encodeURIComponent(name)}`, { signal });
+        if (!res.ok) return false;
+        const body: unknown = await res.json();
+        return isRecord(body) && body.available === false;
+    } catch {
+        return false;
+    }
+}
+
+/**
+ * Turn a create-table failure into one readable sentence (ui#878). The chain's
+ * refusal arrives wrapped as "transaction <hash> failed with code <n> — failed to
+ * execute message; message index: 0: <reason>"; the player only needs the reason.
+ */
+export function friendlyCreateTableError(message: string): string {
+    const taken = /table name "([^"]+)" is already taken/.exec(message);
+    if (taken) {
+        return tableNameTakenMessage(taken[1]);
+    }
+    const reason = /message index: \d+: (.+)$/s.exec(message);
+    return reason ? reason[1].trim() : message;
 }

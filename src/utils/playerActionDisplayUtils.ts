@@ -1,5 +1,6 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerStatus, isCashFormat } from "@block52/poker-vm-sdk";
 import { SIT_IN_METHOD_POST_NOW } from "../hooks/playerActions";
+import { isNullish } from "./guards";
 
 export type PlayerActionDisplay =
     | { kind: "pending"; waitingMessage: string; showSeatOption?: boolean }
@@ -67,7 +68,7 @@ export function getPlayerActionDisplay(input: PlayerActionDisplayInput): PlayerA
     // 1. Pending: player already confirmed sit-in, waiting for action
     if (playerStatus === PlayerStatus.SITTING_IN) {
         // Default to post-now message; next-bb deferred (poker-vm#1895)
-        const waitingMessage = sitInMethod === SIT_IN_METHOD_POST_NOW || sitInMethod === null
+        const waitingMessage = sitInMethod === SIT_IN_METHOD_POST_NOW || isNullish(sitInMethod)
             ? "Waiting to sit in..."
             : "Waiting For Next Big Blind...";
         return { kind: "pending", waitingMessage };

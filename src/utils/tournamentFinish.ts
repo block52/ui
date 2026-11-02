@@ -10,7 +10,7 @@
  */
 import type { ResultDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { FINISH_SHOWDOWN_HOLD_MS, TOURNAMENT_WINNER_MOMENT_MS } from "../bus/timing";
-import { hasElements } from "./guards";
+import { hasElements, hasValue } from "./guards";
 
 export interface TournamentPlacing {
     place: number;
@@ -116,7 +116,7 @@ export function ordinalPlace(place: number): string {
 
 /** How a finisher is named on the table: by seat, as the winner banner does, else by address. */
 export function placingLabel(placing: TournamentPlacing, truncate: (address: string) => string): string {
-    return placing.seat !== null ? `Seat ${placing.seat}` : truncate(placing.address);
+    return hasValue(placing.seat) ? `Seat ${placing.seat}` : truncate(placing.address);
 }
 
 export interface WinnerMomentText {

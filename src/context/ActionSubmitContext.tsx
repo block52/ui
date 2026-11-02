@@ -19,6 +19,7 @@ import { useGameUI } from "./gameState/GameUIContext";
 import { isConnectionLive } from "./gameState/connection";
 import { useLogicalTrack } from "./gameState/LogicalTrackContext";
 import type { CosmosApi } from "../apis/Api";
+import { isNullish } from "../utils/guards";
 
 const ActionSubmitContext = createContext<ActionSubmitController>(null as unknown as ActionSubmitController);
 
@@ -44,7 +45,7 @@ export const ActionSubmitProvider: FC<{ children: ReactNode }> = ({ children }) 
     // One controller per provider, created eagerly so it exists before any child
     // effect can submit. Reads the logical track (never the render track).
     const controllerRef = useRef<ActionSubmitController | null>(null);
-    if (controllerRef.current === null) {
+    if (isNullish(controllerRef.current)) {
         controllerRef.current = new ActionSubmitController({
             getState: track.get,
             getLocalAddress: getCosmosAddressSync,

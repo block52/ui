@@ -37,7 +37,7 @@ import type { TexasHoldemStateDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { isMaskedHand, isRevealedHand } from "./deriveEvents";
 import type { RunoutBeat } from "./timing";
-import { hasElements } from "../utils/guards";
+import { hasElements, isNullish } from "../utils/guards";
 
 export interface ExpandFramesOptions {
     /**
@@ -124,7 +124,7 @@ export function expandFrames(
     options: ExpandFramesOptions = DEFAULT_OPTIONS
 ): TexasHoldemStateDTO[] {
     // No baseline to project from — the frame simply seeds the next call.
-    if (prev === undefined) {
+    if (isNullish(prev)) {
         return [next];
     }
 
@@ -198,7 +198,7 @@ export function expandFrames(
  * no beat.
  */
 export function runoutBeats(prev: TexasHoldemStateDTO | undefined, frames: readonly TexasHoldemStateDTO[]): Array<RunoutBeat | undefined> {
-    if (prev === undefined || frames.length < 2) {
+    if (isNullish(prev) || frames.length < 2) {
         return frames.map(() => undefined);
     }
     const prevBoard = prev.communityCards.length;
