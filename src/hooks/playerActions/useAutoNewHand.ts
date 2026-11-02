@@ -6,7 +6,7 @@ import { useLogicalTrack } from "../../context/gameState/LogicalTrackContext";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { getAutoNewHandEnabled } from "../../utils/urlParams";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
-import { isNullish } from "../../utils/guards";
+import { isNullish, hasValue } from "../../utils/guards";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
 import { autoDealDecision } from "../../utils/autoDealDeferral";
@@ -106,7 +106,7 @@ export function useAutoNewHand(
     const deferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [deferToken, setDeferToken] = useState<number>(0);
     const clearDeferTimer = useCallback(() => {
-        if (deferTimerRef.current !== null) {
+        if (hasValue(deferTimerRef.current)) {
             clearTimeout(deferTimerRef.current);
             deferTimerRef.current = null;
         }
@@ -181,7 +181,7 @@ export function useAutoNewHand(
             // screen, re-checking on a timer (the bus finishing a hold is not a
             // commit, so no tick would arrive).
             const now = Date.now();
-            if (deferredSinceRef.current === null) {
+            if (isNullish(deferredSinceRef.current)) {
                 deferredSinceRef.current = now;
             }
             const decision = autoDealDecision({ suspenseActive: isPlayingSuspense(), waitedMs: now - deferredSinceRef.current });
@@ -209,7 +209,7 @@ export function useAutoNewHand(
 
         // A deferred deal that no longer applies (auto-new-hand switched off,
         // or the turn moved on while waiting) must not leave the indicator up.
-        if (!shouldAutoNewHand && deferredSinceRef.current !== null && !hasTriggeredRef.current) {
+        if (!shouldAutoNewHand && hasValue(deferredSinceRef.current) && !hasTriggeredRef.current) {
             deferredSinceRef.current = null;
             clearDeferTimer();
             setIsDealingNewHand(false);

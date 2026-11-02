@@ -19,6 +19,7 @@ import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVari
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import type { PendingAction } from "../context/gameState/GameUIContext";
 import { withWinnerDescriptions } from "../utils/winnerDescriptions";
+import { hasValue } from "../utils/guards";
 
 /**
  * Cosmos event names that carry a full game-state snapshot.
@@ -120,7 +121,7 @@ export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: s
     // any cosmos state-bearing event for this game.
     const isStateUpdate =
         (message.type === "gameStateUpdate" && message.tableAddress === tableId) ||
-        (message.event !== undefined && COSMOS_STATE_EVENTS.includes(message.event) && message.gameId === tableId);
+        (hasValue(message.event) && COSMOS_STATE_EVENTS.includes(message.event) && message.gameId === tableId);
 
     if (isStateUpdate) {
         const { gameState: gameStateData, format: rawFormat, variant: rawVariant, name } = extractGameDataFromMessage(message);

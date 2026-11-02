@@ -5,7 +5,7 @@ import { FaCopy, FaCheck } from "react-icons/fa";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import { getCardImageUrl } from "../../utils/cardImages";
-import { hasElements } from "../../utils/guards";
+import { hasElements, hasValue } from "../../utils/guards";
 import type { HandDetail, HandListItem, HandListResponse } from "./types";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import { useIndexerStatus } from "../../hooks/player/useIndexerStatus";
@@ -139,7 +139,7 @@ export default function HandReplayPage() {
                     <div className="text-center py-12">
                         <div className="bg-red-900/30 rounded-lg p-6 border border-red-700 inline-block">
                             <p className="text-lg text-red-300 max-w-xl">
-                                {loadError !== null && handNumber ? describeHandLoadError(loadError, handNumber, indexerStatus) : error}
+                                {hasValue(loadError) && handNumber ? describeHandLoadError(loadError, handNumber, indexerStatus) : error}
                             </p>
                             {gameId && handNumber && (
                                 <p className="mt-3 text-sm text-gray-300">

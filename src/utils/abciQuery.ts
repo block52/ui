@@ -67,7 +67,7 @@ export function encodeGameStateRequest(request: GameStateRequest): string {
 export function decodeStringField1(base64: string): string {
     const bin = atob(base64);
     const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-    if (bytes.length === 0) return "";
+    if (bytes.length === 0) return ""; // guards-ok
     if (bytes[0] !== 0x0a) {
         throw new Error(`Unexpected protobuf tag 0x${bytes[0].toString(16)} (expected field 1, string)`);
     }

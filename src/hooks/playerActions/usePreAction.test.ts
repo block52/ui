@@ -47,11 +47,12 @@ describe("usePreAction", () => {
     let harness: ReturnType<typeof makeTestSubmit>;
     const onSubmitted = jest.fn();
     const onResolved = jest.fn();
+    const onFired = jest.fn();
 
     const render = (initial: Props = {}) =>
         renderHook(
             ({ action = "check-fold", legal = canCheck, callMicro = CALL_MICRO, isUsersTurn = true, isBusy = false, callGuard }: Props) =>
-                usePreAction(TABLE_ID, NETWORK, action, legal, callMicro, isUsersTurn, harness.submit, isBusy, onSubmitted, onResolved, callGuard),
+                usePreAction(TABLE_ID, NETWORK, action, legal, callMicro, isUsersTurn, harness.submit, isBusy, onSubmitted, onResolved, callGuard, onFired),
             { initialProps: initial }
         );
 
@@ -60,6 +61,7 @@ describe("usePreAction", () => {
         harness = makeTestSubmit();
         onSubmitted.mockReset();
         onResolved.mockReset();
+        onFired.mockReset();
         mockCheck.mockReset();
         mockCheck.mockResolvedValue({ hash: "0xcheck" } as never);
         mockFold.mockReset();
@@ -93,6 +95,44 @@ describe("usePreAction", () => {
         render({ action: "check-fold", legal: facingBet });
         await settle();
         expect(harness.requests.map(r => r.actionName)).toEqual(["fold"]);
+    });
+
+    // The flash: the panel hides the betting bar only while a pre-action is
+    // armed, and firing clears it. onFired lets the panel hold the controls
+    // pending for the move instead, so it must arrive BEFORE the intent clears.
+    describe("reports the fired move before resolving (no betting-bar flash)", () => {
+        it("a fired fold is reported, then the intent resolves", async () => {
+            const order: string[] = [];
+            onFired.mockImplementation((name: string) => order.push(`fired:${name}`));
+            onResolved.mockImplementation(() => order.push("resolved"));
+            render({ action: "check-fold", legal: facingBet });
+            await settle();
+            expect(order).toEqual(["fired:fold", "resolved"]);
+        });
+
+        it("reports check and call the same way", async () => {
+            render({ action: "check", legal: canCheck });
+            await settle();
+            expect(onFired).toHaveBeenCalledWith("check");
+
+            onFired.mockReset();
+            render({ action: "call-any", legal: facingBet });
+            await settle();
+            expect(onFired).toHaveBeenCalledWith("call");
+        });
+
+        it("reports nothing when the armed move no longer applies (normal turn, bar shows)", async () => {
+            render({ action: "check", legal: facingBet });
+            await settle();
+            expect(onFired).not.toHaveBeenCalled();
+            expect(onResolved).toHaveBeenCalledTimes(1);
+        });
+
+        it("reports nothing when the player already acted by hand", async () => {
+            render({ action: "check-fold", legal: facingBet, isBusy: true });
+            await settle();
+            expect(onFired).not.toHaveBeenCalled();
+        });
     });
 
     it("check → CHECK, and does nothing if a bet has landed", async () => {
