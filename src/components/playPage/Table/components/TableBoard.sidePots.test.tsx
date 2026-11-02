@@ -39,4 +39,22 @@ describe("TableBoard side pots (ui#918)", () => {
         render(board(["1500"], "1500"));
         expect(screen.queryByTestId("side-pots")).toBeNull();
     });
+it("Shot Clock hand #3 on the river: 3,204 main + 40 side pot", () => {
+        const values = formatPotDisplay(
+            ["3204", "40"],
+            "3244",
+            GameFormat.SIT_AND_GO,
+            TexasHoldemRound.RIVER,
+            [
+                { amount: "3204", eligibleSeats: [1, 2, 3] },
+                { amount: "40", eligibleSeats: [1, 3] }
+            ] as never
+        );
+        expect(values.showSidePots).toBe(true);
+        render(<TableBoard clubLogo="/logo.png" potDisplayValues={values} communityCards={["QD", "5S", "QH", "TH", "7C"]} isSitAndGoWaitingForPlayers={false} cardBackStyle={"classic" as CardBackStyle} />);
+        const row = screen.getByTestId("side-pots");
+        expect(row).toHaveAttribute("data-count", "2");
+        expect(row.textContent).toContain("3,204");
+        expect(row.textContent).toContain("40");
+    });
 });
