@@ -777,12 +777,17 @@
     gap: 0 8px;
     margin-top: 4px;
 }
-.pot-stack .side-pots-row[data-count="3"] { zoom: 0.85; }
-.pot-stack .side-pots-row[data-count="4"] { zoom: 0.72; }
+.pot-stack .side-pots-row[data-count="3"] { --side-row-zoom: 0.85; zoom: var(--side-row-zoom); }
+.pot-stack .side-pots-row[data-count="4"] { --side-row-zoom: 0.72; zoom: var(--side-row-zoom); }
 /* Desktop: Main + Side pots always use the compact 4-pot size (ui#918). */
-@media (min-width: 1024px) and (pointer: fine) { .pot-stack .side-pots-row { zoom: 0.72 !important; } }
+@media (min-width: 1024px) and (pointer: fine) { .pot-stack .side-pots-row { --side-row-zoom: 0.72 !important; zoom: 0.72 !important; } }
 /* Tablets (touch, e.g. iPad Mini): a bit larger, nearer the bet size, and 3px lower. */
-@media (min-width: 768px) and (pointer: coarse) { .pot-stack .side-pots-row { zoom: 0.85 !important; margin-top: 7px; } }
+@media (min-width: 768px) and (pointer: coarse) { .pot-stack .side-pots-row { --side-row-zoom: 0.85 !important; zoom: 0.85 !important; margin-top: 7px; } }
+/* ui#918: one amount size everywhere. Bets, stacks, Main/Side pot amounts paint at --bet-amount-size;
+   Total Pot paints at --total-pot-ratio x that. Side amounts divide out the row zoom so they stay equal. */
+.pot-stack { --bet-amount-size: 18px; --total-pot-ratio: 1.2; }
+.pot-stack > .pot-chips .type-num-bet > span:not(.pot-pill-label) { font-size: calc(var(--bet-amount-size) * var(--total-pot-ratio)); }
+.pot-stack .side-pots-row .type-num-bet > span:not(.pot-pill-label) { font-size: calc(var(--bet-amount-size) / var(--side-row-zoom, 1)); }
 .pot-stack .side-pots-row > .pot-display-secondary { font-size: 15px; }
 
 /* Pot caption sits under the amount, above the chips (ui#918). */
