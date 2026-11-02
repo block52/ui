@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { SNAPSHOT_INTERVAL } from "../../constants/chainNetwork";
 import { base64ToHex, stateSyncTrustHeight } from "../../utils/nodePortal";
+import { isNullish } from "../../utils/guards";
 
 interface BlockResponse {
     block_id: { hash: string };
@@ -18,7 +19,7 @@ export const useStateSyncTrust = (latestHeight: number | null): { trustHeight: n
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        if (latestHeight === null) return;
+        if (isNullish(latestHeight)) return;
         const height = stateSyncTrustHeight(latestHeight, SNAPSHOT_INTERVAL);
         const load = async () => {
             try {

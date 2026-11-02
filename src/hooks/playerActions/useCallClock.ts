@@ -5,7 +5,7 @@ import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import type { ClockCallOpportunity } from "../../utils/turnClock";
 import { callClock } from "./callClock";
 import { getCallClockEnabled } from "../../utils/urlParams";
-import { isNullish } from "../../utils/guards";
+import { isNullish, hasValue } from "../../utils/guards";
 import { AUTO_ACTION_DELAY_MS } from "./useLatchedDelay";
 import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
 
@@ -93,13 +93,13 @@ export function useCallClock(
     }, []);
 
     useEffect(() => {
-        if (!isEnabled || !tableId || isBusy || !isLive || key === null || dueAtMs === null) {
+        if (!isEnabled || !tableId || isBusy || !isLive || isNullish(key) || isNullish(dueAtMs)) {
             return;
         }
         if (calledForRef.current === key) {
             return;
         }
-        if (calledForRef.current !== null) {
+        if (hasValue(calledForRef.current)) {
             // A new opportunity: the re-arm budget starts over.
             rearmCountRef.current = 0;
         }

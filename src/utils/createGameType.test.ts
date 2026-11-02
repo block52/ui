@@ -1,5 +1,5 @@
 import { GameFormat, formatGameFormatDisplay } from "@block52/poker-vm-sdk";
-import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, displayGameFormat, isScheduledCreateType, toCreateGameType } from "./createGameType";
+import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, displayGameFormat, isScheduledCreateType, sitAndGoJoinTitle, sitAndGoTypeLabel, toCreateGameType } from "./createGameType";
 
 describe("createGameType (ui#823)", () => {
     it("offers the three types a player can create", () => {
@@ -42,6 +42,20 @@ describe("createGameType (ui#823)", () => {
         it("is empty with no format", () => {
             expect(displayGameFormat(null, 1, formatGameFormatDisplay)).toBe("");
             expect(displayGameFormat(undefined, 1, formatGameFormatDisplay)).toBe("");
+        });
+    });
+
+    describe("modal labels (ui#934)", () => {
+        it("calls a scheduled sit-and-go a Tournament", () => {
+            expect(sitAndGoTypeLabel(1_700_000_000_000)).toBe("Tournament");
+            expect(sitAndGoJoinTitle(1_700_000_000_000)).toBe("Tournament");
+        });
+
+        it("keeps Sit & Go for a table that starts when full", () => {
+            expect(sitAndGoTypeLabel(undefined)).toBe("Sit & Go");
+            expect(sitAndGoTypeLabel(0)).toBe("Sit & Go");
+            expect(sitAndGoJoinTitle(undefined)).toBe("Sit & Go Tournament");
+            expect(sitAndGoJoinTitle(0)).toBe("Sit & Go Tournament");
         });
     });
 });

@@ -56,32 +56,6 @@
   }
 }
 
-.timer-extension-button {
-  margin-left: 0.5rem;
-  margin-right: 0.25rem;
-  width: 1.25rem;
-  height: 1.25rem;
-  background-color: #2563eb;
-  border-radius: 9999px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s;
-  transform: scale(1);
-}
-
-.timer-extension-button:hover {
-  background-color: #3b82f6;
-  transform: scale(1.1);
-}
-
-.timer-extension-icon {
-  width: 0.75rem;
-  height: 0.75rem;
-  color: white;
-}
-
 /* Action Display Styles */
 .action-display-container {
   position: absolute;
@@ -429,10 +403,6 @@
   }
 
   .action-display-content {
-    transition: none;
-  }
-
-  .timer-extension-button {
     transition: none;
   }
 } 

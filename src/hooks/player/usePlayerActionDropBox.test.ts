@@ -1,4 +1,4 @@
-import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { ActionDTO, NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { formatActionAmount, getActionBadgeDisplay } from "./usePlayerActionDropBox";
 
 // Issue #487: the action badge under a player's avatar showed "$0.00" on Sit & Go.
@@ -129,5 +129,10 @@ describe("getActionBadgeDisplay", () => {
             action: "LEFT",
             amount: " $0.20"
         });
+    });
+
+    it("labels a time-bank use TIME BANK, not the raw action name (ui#19)", () => {
+        const timeBank: ActionDTO = { playerId: "b521p", seat: 1, action: NonPlayerActionType.TIME_BANK, amount: "0", round: TexasHoldemRound.PREFLOP, index: 5, timestamp: 1 };
+        expect(getActionBadgeDisplay(timeBank, [timeBank], false)).toEqual({ action: "TIME BANK", amount: "" });
     });
 });

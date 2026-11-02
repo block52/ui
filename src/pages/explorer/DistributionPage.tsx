@@ -6,6 +6,7 @@ import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import styles from "./DistributionPage.module.css";
 import { useIndexerApi } from "../../context/IndexerApiContext";
+import { isNullish } from "../../utils/guards";
 
 // Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -113,7 +114,7 @@ export default function DistributionPage() {
             tooltip: {
                 callbacks: {
                     afterLabel: (context: { parsed: { y: number | null } }) => {
-                        if (totalCardsDealt === 0 || context.parsed.y == null) return "";
+                        if (totalCardsDealt === 0 || isNullish(context.parsed.y)) return "";
                         const percentage = ((context.parsed.y / totalCardsDealt) * 100).toFixed(2);
                         return `${percentage}% of total dealt cards`;
                     }

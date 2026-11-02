@@ -251,7 +251,7 @@ export default function HandPage() {
 
     // Determine which hand we're viewing
     const selectedHand = useMemo(() => {
-        if (!hands.length) return null;
+        if (isEmpty(hands)) return null;
         if (handParam) {
             return hands.find(h => h.hand_number === Number(handParam)) || null;
         }

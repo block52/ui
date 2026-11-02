@@ -1,5 +1,5 @@
 import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { isNullish } from "./guards";
+import { hasValue, isNullish } from "./guards";
 
 /**
  * The pre-action bar (ui#388), CoinPoker-style. While it is NOT the player's turn
@@ -47,7 +47,7 @@ const BETTING_ROUNDS: ReadonlySet<string> = new Set([
 
 /** Whether the hand is on a betting street (not ante, showdown or end — nothing to pre-select there). */
 export function isBettingRound(round: TexasHoldemRound | string | null | undefined): boolean {
-    return round != null && BETTING_ROUNDS.has(round);
+    return hasValue(round) && BETTING_ROUNDS.has(round);
 }
 
 /** Table/seat snapshot that decides whether the pre-action bar is shown. */
@@ -142,5 +142,5 @@ export function shouldClearPreAction(state: {
     isUsersTurn: boolean;
     playerStatus: PlayerStatus | string | null | undefined;
 }): boolean {
-    return state.action != null && !state.isUsersTurn && state.playerStatus !== PlayerStatus.ACTIVE;
+    return hasValue(state.action) && !state.isUsersTurn && state.playerStatus !== PlayerStatus.ACTIVE;
 }
