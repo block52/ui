@@ -1,5 +1,5 @@
 import React from "react";
-import { useParams } from "react-router-dom";
+import { useTableId } from "../context/TableIdContext";
 import { useNetwork } from "../context/NetworkContext";
 import { PokerActionPanel } from "./Footer/PokerActionPanel";
 import "./Footer.css";
@@ -9,7 +9,7 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ onTransactionSubmitted }) => {
-    const { id: tableId } = useParams<{ id: string }>();
+    const tableId = useTableId();
     const { currentNetwork } = useNetwork();
 
     if (!tableId) return null;

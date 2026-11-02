@@ -3,19 +3,23 @@
  *
  * The hook no longer broadcasts: it hands the new hand to the
  * ActionSubmitController so every tx from this account goes through one queue.
- * Its trigger still reads the LOGICAL track (getLatestGameState).
+ * Its trigger still reads the LOGICAL track (the table's own, via useLogicalTrack).
  */
 import { renderHook, act } from "@testing-library/react";
 import { NonPlayerActionType, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { useAutoNewHand } from "./useAutoNewHand";
 import { startNewHand } from "./startNewHand";
-import { getLatestGameState } from "./transportAction";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS } from "../../bus/timing";
 
 jest.mock("./startNewHand");
-jest.mock("./transportAction");
+// The table's logical track (ui#834); `mockLatest` is what it currently holds.
+const mockLatest = jest.fn<TexasHoldemStateDTO | undefined, []>();
+jest.mock("../../context/gameState/LogicalTrackContext", () => ({
+    useLogicalTrack: () => mockTrack
+}));
+const mockTrack = { get: () => mockLatest(), set: jest.fn(), subscribe: jest.fn() };
 // The hook re-runs its check on every committed bus item; `tick` stands in for
 // one. (`mock`-prefixed so jest allows the factory to close over it.)
 let mockTick = 0;
@@ -26,7 +30,6 @@ jest.mock("../../context/gameState/GameEventsContext", () => ({
 }));
 
 const mockStartNewHand = startNewHand as jest.MockedFunction<typeof startNewHand>;
-const mockLatest = getLatestGameState as jest.MockedFunction<typeof getLatestGameState>;
 
 const TABLE_ID = "0xtable";
 const NETWORK = {} as never;

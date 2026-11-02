@@ -15,7 +15,7 @@
 import * as React from "react";
 import { memo, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router-dom";
+import { useTableId } from "../../../context/TableIdContext";
 import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
@@ -34,7 +34,7 @@ import { USDCDepositModal } from "../../modals";
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
-        const { id: tableId } = useParams<{ id: string }>();
+        const tableId = useTableId();
         const { gameOptions } = useGameOptions();
         const cosmosWallet = useCosmosWallet();
         const { currentNetwork } = useNetwork();
