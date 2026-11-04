@@ -1,7 +1,7 @@
 import { test, expect, CASH_GAME_ID, TEST_ADDRESS } from "./fixtures.js";
 
 /**
- * The time bank alarm clock on our own pill (ui#19).
+ * The time bank alarm clock beside our own pill, left of the seat number (ui#19).
  *
  * Tapping the bank never costs us our own time: the turn clock keeps counting
  * down while the clock glows (armed), and only when it runs out does a fresh
@@ -15,6 +15,7 @@ import { test, expect, CASH_GAME_ID, TEST_ADDRESS } from "./fixtures.js";
 const STUB = "http://localhost:8546";
 const SEAT = 5;
 const SHOTS = process.env.SHOTS;
+const AVATAR = `${process.env.UI_URL ?? "http://localhost:5173"}/logo192.png`;
 
 type Action = { playerId: string; seat: number; action: string; amount: string; round: string; index: number; timestamp: number };
 type Player = { seat: number; address: string; legalActions: Array<{ action: string; min: string; max: string; index: number }>; [k: string]: unknown };
@@ -71,6 +72,8 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
             actions.push({ ...last, playerId: TEST_ADDRESS, seat: SEAT, action: "time-bank", amount: "0", index: last.index + 1, timestamp: now - bank.tappedAgoMs });
         }
         const me = s.gameState.players.find(p => p.seat === SEAT)!;
+        // An NFT avatar, which sits on the pill's right end.
+        me.avatar = AVATAR;
         me.timeBankRemainingMs = bank.remainingMs;
         if (bank.lastGrantMs !== undefined) me.timeBankLastGrantMs = bank.lastGrantMs;
         me.legalActions = me.legalActions.filter(a => a.action !== "time-bank");
@@ -85,7 +88,7 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
         if (!SHOTS) return;
         await page.waitForTimeout(700); // let the glow / ring animation show
         const box = (await pill.boundingBox())!;
-        await page.screenshot({ path: `${SHOTS}/${name}.png`, clip: { x: box.x - 30, y: box.y - 24, width: box.width + 60, height: box.height + 70 } });
+        await page.screenshot({ path: `${SHOTS}/${name}.png`, clip: { x: box.x - 60, y: box.y - 24, width: box.width + 100, height: box.height + 70 } });
     };
 
     await test.step("ready: our turn with 45s banked; no action-bar button any more", async () => {
@@ -94,27 +97,36 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
         await expect(clock).toHaveAccessibleName("Use time bank (+45s)");
         await expect(page.getByRole("button", { name: /TIME BANK/ })).toHaveCount(0);
         await shot("1-ready");
+        // Outside the pill, left of the seat number: the pill's right end is
+        // where an NFT avatar sits, and it used to cover the clock.
+        const clockBox = (await clock.boundingBox())!;
+        const seatBox = (await pill.locator(".badge-number").boundingBox())!;
+        const pillBox = (await pill.boundingBox())!;
+        expect(clockBox.x + clockBox.width).toBeLessThanOrEqual(pillBox.x);
+        expect(Math.abs(clockBox.y + clockBox.height / 2 - (seatBox.y + seatBox.height / 2))).toBeLessThan(2);
+        const avatarBox = (await page.getByAltText("Player avatar").first().boundingBox())!;
+        expect(avatarBox.x).toBeGreaterThan(clockBox.x + clockBox.width);
         if (SHOTS) {
             const vp = page.viewportSize()!;
             await page.screenshot({ path: `${SHOTS}/0-action-bar.png`, clip: { x: 0, y: vp.height - 260, width: vp.width, height: 260 } });
         }
     });
 
-    await test.step("armed: tapped with 11s left; the 15s pre-flop clock keeps counting, it does not jump to 60", async () => {
+    await test.step("armed: tapped with 21s left; the 25s pre-flop clock keeps counting, it does not jump to 70", async () => {
         await inject(turn(4_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 500, offered: false, turnNo: 1 }));
         await expect(clock).toHaveAttribute("data-state", "armed");
-        await expect(countdown).toHaveText(/^(1[01]|9)$/);
+        await expect(countdown).toHaveText(/^(2[01]|19)$/);
         await shot("2-armed");
     });
 
     await test.step("running: the turn clock is spent; a fresh 45s countdown runs on the bank", async () => {
-        await inject(turn(25_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 14_000, offered: false, turnNo: 2 }));
+        await inject(turn(35_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 14_000, offered: false, turnNo: 2 }));
         await expect(clock).toHaveAttribute("data-state", "running");
         await expect(countdown).toHaveText(/^3[3-5]$/);
         await shot("3-running");
     });
 
-    await test.step("flop: the table's full 25s clock (pre-flop is 15s)", async () => {
+    await test.step("flop: the table's full 25s clock, the same as pre-flop", async () => {
         await inject(turn(1_000, { remainingMs: 45_000, offered: true, turnNo: 4, round: "flop" }));
         await expect(clock).toHaveAttribute("data-state", "ready");
         await expect(countdown).toHaveText(/^2[34]$/);
