@@ -64,7 +64,7 @@ jobs:
 
       # Added lines only, so existing checks on main don't fail it (CLAUDE.md,
       # UI Architecture Commandment 8). Plain Node runs the .ts; no install.
-      - name: No hand-written null/empty checks
+      - name: No hand-written null/empty/typeof checks
         if: github.event_name == 'pull_request'
         env:
           GUARDS_BASE: origin/${{ github.base_ref }}
