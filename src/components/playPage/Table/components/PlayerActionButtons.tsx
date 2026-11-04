@@ -22,6 +22,7 @@ import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { useActionSubmit } from "../../../../context/ActionSubmitContext";
 import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
 import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
+import { useLanguage } from "../../../../i18n/useLanguage";
 
 export interface PlayerActionButtonsProps {
     isMobile: boolean;
@@ -67,6 +68,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     isCurrentUserSeated,
     isTableFull
 }) => {
+    const { t } = useLanguage();
     const isCompact = isMobile || isMobileLandscape || isCompactMobile;
     const positionClass = isMobileLandscape ? "bottom-2 left-2" : isMobile ? "bottom-[260px] right-4" : "bottom-20 left-4";
     // Compact phones: panels sit above the on-demand action bar's zone, clear of
@@ -178,7 +180,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
                 />
                 <span className={`ml-2 ${seatAtBottom ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
-                    Seat me at 6 o'clock
+                    {t("seat.atBottom")}
                 </span>
             </label>
         </div>
@@ -229,13 +231,13 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
                         <div className="flex items-center gap-2">
                             <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
-                            <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>You are spectating this table</span>
+                            <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{t("seat.spectating")}</span>
                         </div>
                         {!isTableFull && (
                             <div className="flex items-center gap-2">
                                 <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
                                 <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>
-                                    To join the table, click on an available seat.
+                                    {t("seat.clickToJoin")}
                                 </span>
                             </div>
                         )}
@@ -273,7 +275,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     {sittingIn ? (
                         <>
                             <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
-                            Sitting in...
+                            {t("seat.sittingIn")}
                         </>
                     ) : (
                         "I am back"
@@ -299,7 +301,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     {sittingIn ? (
                         <>
                             <div className="w-3 h-3 border-2 border-green-200 border-t-transparent rounded-full animate-spin" />
-                            Sitting in...
+                            {t("seat.sittingIn")}
                         </>
                     ) : (
                         "Sit In"
@@ -314,7 +316,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                 <div className={`backdrop-blur-sm rounded-lg shadow-lg border border-white/20 bg-black/60 ${isCompact ? "p-2" : "p-3"}`}>
                     <div className="flex items-center gap-2">
                         <div className="w-3 h-3 border-2 border-green-300 border-t-transparent rounded-full animate-spin" />
-                        <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>Sitting in...</span>
+                        <span className={`text-green-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>{t("seat.sittingIn")}</span>
                     </div>
                 </div>
             );
@@ -340,7 +342,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                             className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
                         />
                         <span className={`ml-2 ${isChecked ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
-                            Sit Out Next Hand
+                            {t("seat.sitOutNextHand")}
                         </span>
                     </label>
                     <label className="flex items-center cursor-pointer">
@@ -351,7 +353,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                             className="form-checkbox h-4 w-4 text-amber-500 border-gray-500 rounded focus:ring-0"
                         />
                         <span className={`ml-2 ${sitOutNextBbQueued ? "text-amber-300" : "text-white"} ${isCompact ? "text-xs" : "text-sm"}`}>
-                            Sit Out Next Big Blind
+                            {t("seat.sitOutNextBigBlind")}
                         </span>
                     </label>
                 </div>
@@ -370,7 +372,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                     <div className="flex items-center gap-2">
                         <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
                         <span className={`text-blue-300 font-medium whitespace-nowrap ${isCompactMobile ? "text-[11px]" : isCompact ? "text-xs" : "text-sm"}`}>
-                            Waiting for players to join...
+                            {t("seat.waitingForPlayers")}
                         </span>
                     </div>
                 </div>,

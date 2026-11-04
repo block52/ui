@@ -1,6 +1,7 @@
 import React from "react";
 import { ActionButton } from "./ActionButton";
 import type { ShowdownButtonsProps } from "./types";
+import { useLanguage } from "../../i18n/useLanguage";
 
 export const ShowdownButtons: React.FC<ShowdownButtonsProps> = ({
     canMuck,
@@ -9,12 +10,13 @@ export const ShowdownButtons: React.FC<ShowdownButtonsProps> = ({
     onMuck,
     onShow
 }) => {
+    const { t } = useLanguage();
     return (
         <div className="flex justify-center gap-2 mb-2 lg:mb-3">
             {canMuck && (
                 <ActionButton
                     action="muck"
-                    label="MUCK CARDS"
+                    label={t("action.muck")}
                     loading={loading === "muck"}
                     onClick={onMuck}
                     variant="secondary"
@@ -24,7 +26,7 @@ export const ShowdownButtons: React.FC<ShowdownButtonsProps> = ({
             {canShow && (
                 <ActionButton
                     action="show"
-                    label="SHOW CARDS"
+                    label={t("action.show")}
                     loading={loading === "show"}
                     onClick={onShow}
                     variant="success"

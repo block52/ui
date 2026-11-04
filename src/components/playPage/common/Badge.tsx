@@ -10,6 +10,7 @@ import { useStacksInBigBlinds } from "../../../context/GameSettingsContext";
 import ProgressBar from "./ProgressBar";
 import { colors } from "../../../utils/colorConfig";
 import "./Badge.css";
+import { t } from "../../../i18n";
 
 type BadgeProps = {
     count: number; // Seat index
@@ -186,7 +187,7 @@ const Badge: React.FC<BadgeProps> = React.memo(({
                 return (
                     <div className={`action-display-content ${isTextHiding ? "action-display-content-hide" : ""}`}>
                         <span className="action-display-text">
-                            YOUR SEAT
+                            {t("felt.yourSeat")}
                         </span>
                     </div>
                 );

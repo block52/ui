@@ -5,6 +5,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import "react-toastify/dist/ReactToastify.css";
 import App from "./App";
+import { initLanguage } from "./i18n";
 import { Profiler } from "react";
 import { NetworkProvider } from "./context/NetworkContext";
 import { getCosmosMnemonic, setCosmosMnemonic, setCosmosAddress } from "./utils/cosmos/storage";
@@ -35,6 +36,8 @@ if (!getCosmosMnemonic()) {
         console.error("Failed to auto-generate Cosmos wallet:", err);
     }
 }
+
+initLanguage();
 
 const root = createRoot(document.getElementById("app") as HTMLElement);
 

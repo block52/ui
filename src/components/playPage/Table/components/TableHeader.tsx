@@ -23,6 +23,7 @@ import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
+import { useLanguage } from "../../../../i18n/useLanguage";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
 // itself now lives in utils/blindStructure so the Blinds panel can share it.
@@ -101,6 +102,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     handleOpenReplay,
     replayHand = null,
 }) => {
+    const { t } = useLanguage();
     // Owned here rather than passed down from Table. The hook ticks once a
     // second to drive the blind countdown, and TableHeader is its only consumer
     // — calling it in Table meant that tick re-rendered the entire play-page
@@ -147,8 +149,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         title="Copy table link to clipboard"
                     >
                         <FaCopy size={12} />
-                        <span className="hidden sm:inline">Copy Table Link</span>
-                        <span className="sm:hidden">Copy Link</span>
+                        <span className="hidden sm:inline">{t("table.copyLink")}</span>
+                        <span className="sm:hidden">{t("table.copyLinkShort")}</span>
                     </button>
                     {/* QR Code Button */}
                     <button
@@ -157,7 +159,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         title="Show QR code for table link"
                     >
                         <FaQrcode size={12} />
-                        <span className="hidden sm:inline">Share via QR Code</span>
+                        <span className="hidden sm:inline">{t("table.shareQr")}</span>
                     </button>
                     {/* Replay (ui#816): the previous hand, in a new tab, with media controls */}
                     {handleOpenReplay && (
@@ -169,7 +171,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             data-testid="open-replay"
                         >
                             <FaRedo size={12} />
-                            <span className="hidden sm:inline">Replay</span>
+                            <span className="hidden sm:inline">{t("table.replay")}</span>
                         </button>
                     )}
                     {/* Game Format & Variant Display - Desktop Only */}
@@ -180,7 +182,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                                 {formatTableGameDisplay(gameVariant, gameOptions.bettingLimit)}
                                 {gameOptions.minPlayers && gameOptions.maxPlayers && (
                                     <span className={`ml-1 ${styles.secondaryText}`}>
-                                        ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
+                                        {t("felt.playerCount", { current: tableActivePlayers.length, max: gameOptions.maxPlayers })}
                                     </span>
                                 )}
                             </span>
@@ -192,7 +194,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 <div className="flex items-center z-10 min-w-0">
                     <div className={`flex items-center rounded-lg py-1 px-1 sm:px-2 mr-1 sm:mr-3 min-w-0 ${styles.walletInfo}`}>
                         {isBalanceLoading ? (
-                            <span className="text-xs sm:text-sm">Loading...</span>
+                            <span className="text-xs sm:text-sm">{t("table.loading")}</span>
                         ) : (
                             <>
                                 {/* Address */}
@@ -278,27 +280,27 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             )}
 
                             <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
-                                Hand #{handNumber}
+                                {t("table.handNumber", { hand: handNumber })}
                             </span>
                             <span className={`hidden sm:inline-block text-[15px] font-semibold ${styles.secondaryText}`}>
-                                <span className="ml-2">Actions #{actionCount}</span>
+                                <span className="ml-2">{t("felt.actionCount", { count: actionCount })}</span>
                             </span>
                             <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
-                                <span className="sm:ml-2">Next to act: Seat {nextToAct}</span>
+                                <span className="sm:ml-2">{t("felt.nextToAct", { seat: String(nextToAct) })}</span>
                             </span>
                             <button
                                 onClick={handleShareHand}
                                 className={`flex items-center gap-1 text-[10px] sm:text-[15px] font-semibold transition-colors duration-200 hover:opacity-80 ${styles.secondaryText}`}
-                                title="Share this hand"
+                                title={t("table.shareHand")}
                             >
                                 <FaShare size={10} />
-                                <span className="hidden sm:inline">Share</span>
+                                <span className="hidden sm:inline">{t("table.share")}</span>
                             </button>
                             <a
                                 href={buildShareOnXUrl(buildHandShareUrl(window.location.origin, tableId, handNumber))}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                title="Share on X"
+                                title={t("table.shareX")}
                                 className={`transition-colors duration-200 hover:opacity-80 ${styles.secondaryText}`}
                             >
                                 <svg className="w-3 h-3 sm:w-4 sm:h-4" viewBox="0 0 24 24" fill="currentColor">
@@ -321,10 +323,10 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <span
                             className={`text-xs sm:text-[16px] cursor-pointer flex items-center gap-0.5 transition-colors duration-300 ml-2 sm:ml-3 ${styles.leaveTableButton}`}
                             onClick={handleLeaveTableClick}
-                            title="Leave Table"
+                            title={t("table.leave")}
                         >
-                            <span className="hidden sm:inline">Leave Table</span>
-                            <span className="sm:hidden">Leave</span>
+                            <span className="hidden sm:inline">{t("table.leave")}</span>
+                            <span className="sm:hidden">{t("table.leaveShort")}</span>
                             <RxExit size={12} />
                         </span>
                     )}
@@ -335,7 +337,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
             <Modal
                 isOpen={showQR}
                 onClose={() => setShowQR(false)}
-                title="Scan to Join Table"
+                title={t("table.scanToJoin")}
                 titleIcon={<FaQrcode size={16} />}
                 widthClass="w-80"
                 patternId="hexagons-qr"
@@ -349,7 +351,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         onClick={() => setShowQR(false)}
                         className="w-full py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold hover:bg-gray-600 transition-colors"
                     >
-                        Close
+                        {t("table.close")}
                     </button>
                 </div>
             </Modal>

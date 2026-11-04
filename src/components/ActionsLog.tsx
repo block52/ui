@@ -13,6 +13,7 @@ import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
 import { isEmpty, hasElements } from "../utils/guards";
 import styles from "./ActionsLog.module.css";
+import { t } from "../i18n";
 
 // Simple component to display only the action log
 const ActionsLog: React.FC = () => {
@@ -216,7 +217,7 @@ const ActionsLog: React.FC = () => {
             <div 
                 className={`flex justify-between items-center p-2 border-b ${styles.header}`}
             >
-                <h3 className="text-sm font-semibold">History</h3>
+                <h3 className="text-sm font-semibold">{t("panel.history")}</h3>
                 <div className="flex gap-2">
                     <button
                         onClick={handleCopyLog}
@@ -263,7 +264,7 @@ const ActionsLog: React.FC = () => {
                 <p
                     className={`text-xs p-3 ${styles.secondaryText}`}
                 >
-                    No actions recorded yet.
+                    {t("felt.noActions")}
                 </p>
             )}
         </div>

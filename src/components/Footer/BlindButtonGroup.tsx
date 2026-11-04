@@ -5,6 +5,7 @@ import { FoldButton } from "./FoldButton";
 import type { BlindButtonGroupProps } from "./types";
 import { hasFoldedOrMucked } from "../../utils/playerStatus";
 import { hasValue } from "../../utils/guards";
+import { useLanguage } from "../../i18n/useLanguage";
 
 export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
     showSmallBlind,
@@ -20,6 +21,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
     onPostBigBlind,
     onFold
 }) => {
+    const { t } = useLanguage();
     return (
         <div className={`flex justify-center items-center ${isMobileLandscape ? "gap-0.5" : "gap-1 lg:gap-2"}`}>
             {showSmallBlind && !hasFoldedOrMucked(playerStatus) && (
@@ -35,7 +37,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                         </>
                     ) : (
                         <>
-                            <span className="mr-1">Post Small Blind</span>
+                            <span className="mr-1">{t("action.postSmallBlind")}</span>
                             <span className="btn-small-blind-amount backdrop-blur-sm px-1 lg:px-2 py-1 rounded text-xs border">
                                 {smallBlindAmount}
                             </span>
@@ -57,7 +59,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
                         </>
                     ) : (
                         <>
-                            <span className="mr-1">Post Big Blind</span>
+                            <span className="mr-1">{t("action.postBigBlind")}</span>
                             <span className="btn-big-blind-amount backdrop-blur-sm px-1 lg:px-2 py-1 rounded text-xs border">
                                 {bigBlindAmount}
                             </span>
@@ -78,7 +80,7 @@ export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
 
             {hasFoldedOrMucked(playerStatus) && (
                 <div className="text-gray-400 py-1.5 lg:py-2 px-2 lg:px-4 bg-gray-800 bg-opacity-50 rounded-lg text-xs lg:text-sm">
-                    {playerStatus === PlayerStatus.MUCKED ? "You mucked your hand" : "You have folded this hand"}
+                    {playerStatus === PlayerStatus.MUCKED ? t("action.youMucked") : t("action.youFolded")}
                 </div>
             )}
         </div>

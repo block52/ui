@@ -3,6 +3,7 @@ import { LoadingSpinner } from "../common";
 import { DealEntropyModal } from "../modals";
 import type { DealButtonGroupProps } from "./types";
 import styles from "./DealButtonGroup.module.css";
+import { useLanguage } from "../../i18n/useLanguage";
 
 export const DealButtonGroup: React.FC<DealButtonGroupProps> = ({
     tableId,
@@ -11,6 +12,7 @@ export const DealButtonGroup: React.FC<DealButtonGroupProps> = ({
     disabled,
     autoDealEnabled = false
 }) => {
+    const { t } = useLanguage();
     const [showEntropyModal, setShowEntropyModal] = useState(false);
 
     const dealIcon = (
@@ -69,7 +71,7 @@ export const DealButtonGroup: React.FC<DealButtonGroupProps> = ({
                         className={`text-white font-bold py-2 lg:py-3 px-4 lg:px-6 rounded-lg shadow-md text-sm lg:text-base backdrop-blur-sm transition-all duration-300 flex items-center justify-center gap-2 transform hover:scale-105 disabled:opacity-50 disabled:cursor-not-allowed ${styles.entropyButton}`}
                     >
                         {entropyIcon}
-                        <span className="text-xs lg:text-sm">Show Entropy</span>
+                        <span className="text-xs lg:text-sm">{t("action.showEntropy")}</span>
                     </button>
                 )}
             </div>
