@@ -112,21 +112,21 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
         }
     });
 
-    await test.step("armed: tapped with 11s left; the 15s pre-flop clock keeps counting, it does not jump to 60", async () => {
+    await test.step("armed: tapped with 21s left; the 25s pre-flop clock keeps counting, it does not jump to 70", async () => {
         await inject(turn(4_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 500, offered: false, turnNo: 1 }));
         await expect(clock).toHaveAttribute("data-state", "armed");
-        await expect(countdown).toHaveText(/^(1[01]|9)$/);
+        await expect(countdown).toHaveText(/^(2[01]|19)$/);
         await shot("2-armed");
     });
 
     await test.step("running: the turn clock is spent; a fresh 45s countdown runs on the bank", async () => {
-        await inject(turn(25_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 14_000, offered: false, turnNo: 2 }));
+        await inject(turn(35_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 14_000, offered: false, turnNo: 2 }));
         await expect(clock).toHaveAttribute("data-state", "running");
         await expect(countdown).toHaveText(/^3[3-5]$/);
         await shot("3-running");
     });
 
-    await test.step("flop: the table's full 25s clock (pre-flop is 15s)", async () => {
+    await test.step("flop: the table's full 25s clock, the same as pre-flop", async () => {
         await inject(turn(1_000, { remainingMs: 45_000, offered: true, turnNo: 4, round: "flop" }));
         await expect(clock).toHaveAttribute("data-state", "ready");
         await expect(countdown).toHaveText(/^2[34]$/);
