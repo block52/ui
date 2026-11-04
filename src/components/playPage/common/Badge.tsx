@@ -30,16 +30,17 @@ type BadgeProps = {
     isSittingOut?: boolean;
     playerEquity?: number | null;
     onSitIn?: () => void;
-    // Rendered at the pill's far end, opposite the seat number: the player's
-    // own seat puts the time bank alarm clock here (ui#19).
-    trailing?: React.ReactNode;
+    // Rendered just outside the pill, left of the seat number: the player's
+    // own seat puts the time bank alarm clock here (ui#19). The pill's right
+    // end is where an NFT avatar sits, so nothing goes there.
+    leading?: React.ReactNode;
 };
 
 const Badge: React.FC<BadgeProps> = React.memo(({
     count, value, color,
     tournamentPlace, tournamentPayout,
     isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
-    round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn, trailing
+    round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn, leading
 }) => {
     // Track previous banner mode so we can detect timer→action transitions
     const prevBannerModeRef = React.useRef<string>("hidden");
@@ -237,13 +238,13 @@ const Badge: React.FC<BadgeProps> = React.memo(({
 
     return (
         <div className="badge-container">
+            {leading && <div className="badge-leading">{leading}</div>}
             <div style={{ backgroundColor: color }} className="badge-number">
                 {count}
             </div>
             <div className="badge-value">
                 {formattedValue}
             </div>
-            {trailing}
 
             {showEquityChip && (
                 <div className="equity-chip">
