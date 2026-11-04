@@ -22,6 +22,7 @@ import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/pok
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import styles from "./TableHeader.module.css";
+import { hasValue, isNullish } from "../../../../utils/guards";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
 // itself now lives in utils/blindStructure so the Blinds panel can share it.
@@ -162,9 +163,9 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                     {handleOpenReplay && (
                         <button
                             onClick={handleOpenReplay}
-                            disabled={replayHand === null}
+                            disabled={isNullish(replayHand)}
                             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border disabled:opacity-40 disabled:cursor-not-allowed ${styles.copyTableButton}`}
-                            title={replayHand === null ? "No completed hand to replay yet" : `Replay hand #${replayHand} in a new tab`}
+                            title={isNullish(replayHand) ? "No completed hand to replay yet" : `Replay hand #${replayHand} in a new tab`}
                             data-testid="open-replay"
                         >
                             <FaRedo size={12} />
@@ -259,7 +260,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <div className="flex items-center space-x-1 sm:space-x-2">
                             {blindLevel.isActive ? (
                                 <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
-                                    {blindLevel.level !== undefined && `Level ${blindLevel.level + 1} `}{blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
+                                    {hasValue(blindLevel.level) && `Level ${blindLevel.level + 1} `}{blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
                                     {blindLevel.hasTimer && (
                                         <>
                                             {" ("}

@@ -15,7 +15,7 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { getBlindsForDisplay } from "../../utils/gameFormatUtils";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import DepositCore from "./DepositCore";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements, hasValue } from "../../utils/guards";
 import { sitAndGoTypeLabel } from "../../utils/createGameType";
 import styles from "./BuyInModal.module.css";
 
@@ -37,7 +37,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     const maxBuyInValue = maxBuyIn || hookBuyIns.maxBuyIn;
 
     // Per Commandment 7: NO defaults - if buy-in values missing, show error
-    const hasBuyInValues = minBuyInValue !== undefined && maxBuyInValue !== undefined;
+    const hasBuyInValues = hasValue(minBuyInValue) && hasValue(maxBuyInValue);
 
     const { emptySeatIndexes, isUserAlreadyPlaying } = useVacantSeatData();
     const navigate = useNavigate();

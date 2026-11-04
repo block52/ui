@@ -63,7 +63,7 @@ const scheduledPhase = (game: GameWithFormat): ScheduledSngPhase =>
 /** "Starts 20:30 · min 4" for a scheduled sit-and-go; "" otherwise. */
 const scheduledLabel = (game: GameWithFormat): string => {
     const phase = scheduledPhase(game);
-    if (phase === "unscheduled" || game.scheduledStartTime === undefined) return "";
+    if (phase === "unscheduled" || isNullish(game.scheduledStartTime)) return "";
     if (phase === "cancelled") return "Cancelled: not enough players";
     if (phase === "ready") return "Starting";
     return [`Starts ${formatStartsAt(game.scheduledStartTime)} · min ${game.minPlayers}`, formatLateRegistration(game.lateRegistrationLevels)].filter(hasContent).join(" · ");

@@ -101,6 +101,7 @@ import PlayerChipDisplay from "./Table/components/PlayerChipDisplay";
 import { useTableState } from "../../hooks/game/useTableState"; //Provides currentRound, formattedTotalPot, tableSize, tableSize determines player layout (6 vs 9 players)
 import { useGameProgress } from "../../hooks/game/useGameProgress"; //Provides isGameInProgress - whether a hand is active
 import { useHoleCardWatchdog } from "../../hooks/game/useHoleCardWatchdog"; //#409: auto-recover when owning player's hole cards fail to arrive
+import { useBlindClickGuard } from "../../hooks/game/useBlindClickGuard"; // #838: ignore clicks while the screen is not painting
 import { useLastHandResultCapture } from "../../hooks/game/useLastHandResultCapture"; // retain last showdown summary for the History panel
 
 //todo wire up to use the sdk instead of the proxy
@@ -159,7 +160,7 @@ import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
 import ConnectionBanner from "./ConnectionBanner";
 
-import { hasElements } from "../../utils/guards";
+import { hasElements, hasValue, isNullish } from "../../utils/guards";
 import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
 
 //* Here's the typical sequence of a poker hand:
@@ -225,7 +226,7 @@ const LayoutDebugOverlay = () => {
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
             const action = resolveDebugOverlayAction(e, debugMode);
-            if (action === null) return;
+            if (isNullish(action)) return;
 
             // Firefox uses Ctrl+I for Page Info and editors for italic — claim it.
             if (action === "all") e.preventDefault();
@@ -717,7 +718,7 @@ const Table = React.memo(() => {
     // Replay tab: the timeline + transport drive loadHistoricalStateAtHeight.
     const replayHand = useMemo(() => latestCompletedHand(gameState), [gameState]);
     const handleOpenReplay = useCallback(() => {
-        if (!id || replayHand === null) return;
+        if (!id || isNullish(replayHand)) return;
         window.open(buildHandShareUrl(window.location.origin, id, replayHand), "_blank", "noopener");
     }, [id, replayHand]);
     const replay = useReplayTimeline({ tableId: id, handNumber: replayHandNumber, active: isReplayMode });
@@ -736,7 +737,7 @@ const Table = React.memo(() => {
 
     useEffect(() => {
         if (id) {
-            if (hasReplayParams && replayHandParam !== null) {
+            if (hasReplayParams && hasValue(replayHandParam)) {
                 // Read-only replay, no WebSocket: the hand's final state, or a point
                 // in the current hand when ?index= is given.
                 loadHistoricalState(id, replayHandParam, replayActionParam);
@@ -926,6 +927,7 @@ const Table = React.memo(() => {
 
     // #409 watchdog: detect "I'm in a hand but my hole cards are missing" and auto re-subscribe.
     useHoleCardWatchdog(id);
+    useBlindClickGuard();
 
     // Retain the finished hand's showdown summary ("won with X over Y") so the
     // History panel can still show it after a fast all-in runout has moved on
@@ -1177,8 +1179,8 @@ const Table = React.memo(() => {
 
     const potDisplayValues = useMemo(() => {
         const pots = Array.isArray(gameState?.pots) ? (gameState?.pots as string[]) : [];
-        return formatPotDisplay(pots, gameState?.totalPot, gameFormat, gameState?.round);
-    }, [gameState?.pots, gameState?.totalPot, gameFormat, gameState?.round]);
+        return formatPotDisplay(pots, gameState?.totalPot, gameFormat, gameState?.round, gameState?.potDetails);
+    }, [gameState?.pots, gameState?.totalPot, gameFormat, gameState?.round, gameState?.potDetails]);
 
     const copyToClipboard = useCallback((text: string) => {
         navigator.clipboard.writeText(text);
@@ -1337,7 +1339,7 @@ const Table = React.memo(() => {
                 />
             )}
             {/* Replay transport (ui#816): hand selector, play / pause / step / scrub, Go Live */}
-            {isReplayMode && replayHandNumber != null && (
+            {isReplayMode && hasValue(replayHandNumber) && (
                 <ReplayTransport
                     handNumber={replayHandNumber}
                     latestHand={replay.latestHand}

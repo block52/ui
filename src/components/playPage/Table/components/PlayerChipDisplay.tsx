@@ -3,6 +3,7 @@ import { usePlayerChipData } from "../../../../hooks/player/usePlayerChipData";
 import { type BetSide, dealerSideFor } from "../../../../config/stageGeometry";
 import Chip from "../../common/Chip";
 import DealerButtonDisplay from "./DealerButtonDisplay";
+import { hasValue } from "../../../../utils/guards";
 
 interface PlayerChipDisplayProps {
     seatIndex: number;
@@ -27,7 +28,7 @@ interface PlayerChipDisplayProps {
 const PlayerChipDisplay: React.FC<PlayerChipDisplayProps> = React.memo(({ seatIndex, left, bottom, top, side, isDealer = false, isTournament }) => {
     const { chipAmount } = usePlayerChipData(seatIndex);
     const hasBet = !!chipAmount && chipAmount !== "0";
-    const centered = top !== undefined;
+    const centered = hasValue(top);
     const style = React.useMemo(
         () => ({
             left,

@@ -1,5 +1,6 @@
 import React from "react";
 import { PreAction } from "../../utils/preActions";
+import { isEmpty } from "../../utils/guards";
 
 interface PreActionControlsProps {
     /** The buttons to show, left→right (from preActionButtons). */
@@ -38,7 +39,7 @@ const TITLES: Record<PreAction, string> = {
  * shown). Arming one fires it the instant the player's turn comes (no betting bar).
  */
 export const PreActionControls: React.FC<PreActionControlsProps> = ({ buttons, armed, onArm, callAmountLabel, isMobileLandscape }) => {
-    if (buttons.length === 0) return null;
+    if (isEmpty(buttons)) return null;
 
     return (
         <div className="flex justify-center gap-2">

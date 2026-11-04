@@ -6,7 +6,7 @@ import { useCreateValidator } from "../../hooks/nodes/useCreateValidator";
 import { useCosmosWallet } from "../../hooks/wallet";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { faultTolerance, parseConsensusPubkey, parseMicroAmount, powerShareBps, wouldControlLiveness } from "../../utils/nodePortal";
-import { hasContent } from "../../utils/guards";
+import { hasContent, isNullish } from "../../utils/guards";
 
 const inputClass = "w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500";
 
@@ -71,8 +71,8 @@ export const BecomeValidatorPanel: FC<{ overview: ChainOverview; onBonded: () =>
         hasContent(address) &&
         pubkey.ok &&
         amount.ok &&
-        amountError === null &&
-        moniker.trim().length > 0 &&
+        isNullish(amountError) &&
+        hasContent(moniker.trim()) &&
         confirmedSynced &&
         confirmedUpgrades &&
         !isSubmitting;

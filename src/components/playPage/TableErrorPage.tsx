@@ -28,6 +28,8 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
     // Extract for TypeScript inference
     const missingFields: string[] = error.missingFields;
     const hasMissingFields = hasElements(missingFields);
+    // rawData is unknown: a null payload is still shown, so only undefined hides the toggle.
+    const hasRawData = error.rawData !== undefined; // guards-ok
 
     const handleBackToLobby = () => {
         navigate("/tables");
@@ -94,7 +96,7 @@ function TableErrorPage({ error, tableId, onRetry }: TableErrorPageProps): React
                         </div>
 
                         {/* Raw Data Toggle */}
-                        {error.rawData !== undefined && (
+                        {hasRawData && (
                             <div>
                                 <button
                                     onClick={() => setShowRawData(!showRawData)}
