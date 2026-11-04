@@ -1,6 +1,6 @@
 /**
- * Hand-written null/empty/length checks that UI Architecture Commandment 8
- * (CLAUDE.md) says go through `src/utils/guards.ts` instead.
+ * Hand-written null/empty/length and `typeof` checks that UI Architecture
+ * Commandment 8 (CLAUDE.md) says go through `src/utils/guards.ts` instead.
  *
  * Pure and dependency-free so `check-guards.ts` can run under plain Node (no
  * `yarn install`) and Jest can test it.
@@ -25,7 +25,28 @@ export interface GuardViolation extends AddedLine {
 /** Ends a line that genuinely needs the raw check. */
 export const ESCAPE_COMMENT = "// guards-ok";
 
+/**
+ * A runtime comparison of `typeof` with `kind`, in either order. The operand
+ * can't contain `=`, so a match can't run on into a later comparison, and a type
+ * position (`x: typeof y = ...`) has no comparison to match.
+ */
+function typeofRule(kind: string, use: string): GuardRule {
+    const literal = `["'\`]${kind}["'\`]`;
+    return {
+        pattern: new RegExp(String.raw`\btypeof\b[^=;]*?[=!]==?\s*${literal}|${literal}\s*[=!]==?\s*typeof\b`),
+        use
+    };
+}
+
 export const GUARD_RULES: readonly GuardRule[] = [
+    // First, so `typeof err === "object" && err !== null` gets isRecord, which
+    // replaces both halves, and not hasValue, which would only replace one.
+    // `function`, `undefined` and `bigint` have no guard: `typeof window === "undefined"`
+    // is the safe way to test for a global.
+    typeofRule("string", "isString(x)"),
+    typeofRule("number", "isNumber(x)"),
+    typeofRule("boolean", "isBoolean(x)"),
+    typeofRule("object", "isRecord(x), which also rejects arrays"),
     { pattern: /\.length\s*(>|!==?)\s*0\b|\.length\s*>=\s*1\b/, use: "hasElements(x) for arrays, hasContent(x) for strings" },
     { pattern: /\.length\s*(===?\s*0|<\s*1)\b|!\s*[\w$.?\]\[]+\.length\b(?!\s*[<>=!])/, use: "isEmpty(x) for arrays, isBlank(x) for strings" },
     { pattern: /\.trim\(\)\s*(===?|!==?)\s*(""|''|``)/, use: "isBlank(x) / hasContent(x)" },

@@ -67,7 +67,17 @@ describe("findGuardViolations", () => {
         ["if (value !== null && value !== undefined) {", "hasValue"],
         ["return x != null;", "hasValue"],
         ["if (value === null || value === undefined) {", "isNullish"],
-        ["if (x == null) return;", "isNullish"]
+        ["if (x == null) return;", "isNullish"],
+        ["const s = typeof raw === \"string\" ? raw : \"\";", "isString"],
+        ["if (typeof code !== 'number') return null;", "isNumber"],
+        ["if (typeof flag == \"boolean\") {", "isBoolean"],
+        ["if (!raw || typeof raw !== \"object\") {", "isRecord"],
+        ["if (\"string\" === typeof raw) {", "isString"],
+        ["const m = typeof raw?.items[0] === \"number\";", "isNumber"],
+        ["const m = typeof (raw as Reply).message === \"string\";", "isString"],
+        ["const m = typeof raw!.message === \"string\";", "isString"],
+        ["if (typeof a !== \"undefined\" && typeof a.b === \"string\") {", "isString"],
+        ["const names = list.filter(v => typeof v === \"string\");", "isString"]
     ])("flags %s", (line, guard) => {
         const uses = usesFor(line);
         expect(uses).toHaveLength(1);
@@ -80,6 +90,16 @@ describe("findGuardViolations", () => {
         ["if (stack.length > 10) {"],
         ["const n = arr.length;"],
         ["if (typeof window === \"undefined\") return false;"],
+        ["if (typeof window.matchMedia !== \"function\") return;"],
+        ["if (typeof value === \"bigint\") return value;"],
+        ["if (typeof fn === \"function\" && kind === \"string\") {"],
+        ["const timer = useRef<ReturnType<typeof setTimeout> | null>(null);"],
+        ["const offsets: typeof GLOBAL_OFFSETS = { x: 0 };"],
+        ["const label: typeof DEFAULT_LABEL = \"string\";"],
+        ["type Key = keyof typeof SOUNDS;"],
+        ["if (isString(raw)) {"],
+        ["// typeof raw === \"string\" is what isString replaces"],
+        [`const isText = typeof raw === "string"; ${ESCAPE_COMMENT}`],
         ["const value: string | null = null;"],
         ["let x: number | undefined;"],
         ["// arr && arr.length > 0 is what the guard replaces"],
@@ -104,5 +124,16 @@ describe("findGuardViolations", () => {
 
     it("reports each line once even when it breaks several rules", () => {
         expect(usesFor("if (a !== null && a.length > 0) {")).toHaveLength(1);
+    });
+
+    it("suggests isRecord, not hasValue, for the object-and-not-null pair", () => {
+        const [violation, ...rest] = findGuardViolations(diffOf("src/apis/thing.ts", ["if (typeof err === \"object\" && err !== null) {"]));
+        expect(rest).toEqual([]);
+        expect(violation.found).toBe("typeof err === \"object\"");
+        expect(violation.use).toContain("isRecord");
+    });
+
+    it("warns that isRecord rejects arrays, which typeof object accepts", () => {
+        expect(usesFor("if (typeof raw === \"object\") {")[0]).toContain("rejects arrays");
     });
 });

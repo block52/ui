@@ -1,7 +1,8 @@
 /**
  * yarn check:guards — fails when the lines this branch adds use a hand-written
- * null/empty/length check instead of a guard (CLAUDE.md, UI Architecture
- * Commandment 8). Only added lines are checked, so existing code doesn't fail.
+ * null/empty/length or `typeof` check instead of a guard (CLAUDE.md, UI
+ * Architecture Commandment 8). Only added lines are checked, so existing code
+ * doesn't fail.
  *
  * Compares the working tree (committed and uncommitted changes) with its merge
  * base against GUARDS_BASE, default origin/main. Runs under plain Node 24.
@@ -17,7 +18,7 @@ const diff = git("diff", "--unified=0", "--no-color", "--no-ext-diff", mergeBase
 const violations = findGuardViolations(diff);
 
 if (violations.length === 0) {
-    console.log(`check:guards: no hand-written null/empty checks added since ${base}.`);
+    console.log(`check:guards: no hand-written null/empty/typeof checks added since ${base}.`);
     process.exit(0);
 }
 
