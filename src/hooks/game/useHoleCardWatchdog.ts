@@ -14,6 +14,9 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
  *
  * Guarded against loops: at most 2 attempts per handNumber, with a 1.5s grace period so transient
  * message-ordering hiccups (state arriving a tick before the per-player cards) self-heal first.
+ *
+ * It counts cards, so ["X", "X"] looks healthy. Our own cards arriving masked is a different
+ * failure, an expired query signature, and GameStateContext renews that one (ui#953).
  */
 
 const ROUNDS_THAT_DEAL_CARDS: ReadonlySet<TexasHoldemRound> = new Set([
