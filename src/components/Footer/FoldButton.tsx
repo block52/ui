@@ -1,6 +1,7 @@
 import React from "react";
 import { LoadingSpinner } from "../common";
 import type { FoldButtonProps } from "./types";
+import { useLanguage } from "../../i18n/useLanguage";
 
 /**
  * Reusable Fold button component with loading spinner.
@@ -12,6 +13,7 @@ export const FoldButton: React.FC<FoldButtonProps> = ({
     isMobileLandscape = false,
     onClick
 }) => {
+    const { t } = useLanguage();
     return (
         <button
             className={`btn-fold cursor-pointer rounded-lg w-full border shadow-md backdrop-blur-sm transition-all duration-200 font-medium transform active:scale-105 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-1 ${
@@ -28,7 +30,7 @@ export const FoldButton: React.FC<FoldButtonProps> = ({
                     FOLDING...
                 </>
             ) : (
-                "FOLD"
+                t("action.fold")
             )}
         </button>
     );

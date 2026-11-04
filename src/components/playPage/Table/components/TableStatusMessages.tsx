@@ -13,6 +13,7 @@
 import React, { useMemo } from "react";
 import { PlayerDTO, LegalActionDTO } from "@block52/poker-vm-sdk";
 import { getTableStatusMessages, TableStatusMessage } from "../../../../utils/tableStatusDisplayUtils";
+import { useLanguage } from "../../../../i18n/useLanguage";
 
 export interface TableStatusMessagesProps {
     viewportMode: "mobile-portrait" | "mobile-landscape" | "tablet" | "desktop";
@@ -43,6 +44,7 @@ export const TableStatusMessages: React.FC<TableStatusMessagesProps> = ({
     bigBlindPosition,
     dealerPosition
 }) => {
+    const { language } = useLanguage();
     const messages = useMemo(() => getTableStatusMessages({
         currentUserSeat,
         nextToActSeat,
@@ -65,6 +67,7 @@ export const TableStatusMessages: React.FC<TableStatusMessagesProps> = ({
         smallBlindPosition,
         bigBlindPosition,
         dealerPosition,
+        language,
     ]);
 
     const getMessageStyle = (msg: TableStatusMessage): string => {

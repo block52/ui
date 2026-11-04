@@ -10,6 +10,7 @@
  */
 
 import { hasElements, hasValue } from "./guards";
+import { t } from "../i18n";
 
 export type TableStatusMessage =
     | { kind: "seat-label"; seatNumber: number; text: string }
@@ -55,7 +56,7 @@ export function getTableStatusMessages(input: TableStatusDisplayInput): TableSta
         messages.push({
             kind: "seat-label",
             seatNumber: currentUserSeat,
-            text: `You are seated at position ${currentUserSeat}`,
+            text: t("status.seatedAt", { seat: currentUserSeat }),
         });
     }
 
@@ -63,13 +64,13 @@ export function getTableStatusMessages(input: TableStatusDisplayInput): TableSta
     //    Uses hasValue instead of truthiness to handle seat 0 correctly
     if (hasValue(nextToActSeat) && isGameInProgress) {
         if (isCurrentUserTurn && hasLegalActions) {
-            messages.push({ kind: "your-turn", text: "Your turn to act!" });
+            messages.push({ kind: "your-turn", text: t("status.yourTurn") });
         } else {
             const label = getWaitingForPlayerLabel(nextToActSeat, { smallBlindPosition, bigBlindPosition, dealerPosition });
             messages.push({
                 kind: "waiting-for-player",
                 seatNumber: nextToActSeat,
-                text: `Waiting for ${label} to act`,
+                text: t("status.waitingFor", { player: label }),
             });
         }
     }
@@ -78,7 +79,7 @@ export function getTableStatusMessages(input: TableStatusDisplayInput): TableSta
     if (!isGameInProgress && totalActivePlayers > 1 && !isSitAndGoWaitingForPlayers) {
         messages.push({
             kind: "hand-complete",
-            text: "Hand complete - waiting for next hand",
+            text: t("status.handComplete"),
         });
     }
 
@@ -96,10 +97,10 @@ export function getWaitingForPlayerLabel(
     seatNumber: number,
     positions?: { smallBlindPosition?: number; bigBlindPosition?: number; dealerPosition?: number }
 ): string {
-    if (positions?.dealerPosition === seatNumber) return "Dealer";
-    if (positions?.smallBlindPosition === seatNumber) return "Small Blind";
-    if (positions?.bigBlindPosition === seatNumber) return "Big Blind";
-    return `player at seat ${seatNumber}`;
+    if (positions?.dealerPosition === seatNumber) return t("status.dealer");
+    if (positions?.smallBlindPosition === seatNumber) return t("status.smallBlind");
+    if (positions?.bigBlindPosition === seatNumber) return t("status.bigBlind");
+    return t("status.playerAtSeat", { seat: seatNumber });
 }
 
 /**

@@ -76,8 +76,10 @@ import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, preAction
 // Import types
 import type { PokerActionPanelProps } from "./types";
 import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { useLanguage } from "../../i18n/useLanguage";
 
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
+    const { t } = useLanguage();
     // The ActionSubmitController owns dedupe, serialization, the safe transport
     // retry, the confirmation gate (busy stays until the chain advances a signal
     // — ui#364/#440), the 8s escape-hatch, and centralized error toasts.
@@ -262,7 +264,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const stalledSeat = clockCall?.seat;
     // Only a toast: no balance changed and the player did nothing, so the
     // transaction popup and balance refetch (onTransactionSubmitted) stay quiet.
-    const handleClockCalled = useCallback(() => toast.info(`Called the clock on seat ${stalledSeat}`), [stalledSeat]);
+    const handleClockCalled = useCallback(() => toast.info(t("action.calledClock", { seat: String(stalledSeat) })), [stalledSeat]);
     useCallClock(tableId, network, clockCall, submit, isSubmitBusy, isConnectionLive(connection), handleClockCalled, callClockEnabled);
 
     // Pre-select "Check/Fold" (ui#388): before it's the player's turn, if checking
@@ -622,7 +624,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                     <div className="flex justify-center mb-2 lg:mb-3">
                         <ActionButton
                             action="new-hand"
-                            label="START NEW HAND"
+                            label={t("action.startNewHand")}
                             loading={loadingAction === "new-hand"}
                             onClick={handleNewHandAction}
                             variant="primary"
@@ -637,7 +639,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                     <div className="flex justify-center mb-2 lg:mb-3">
                         <ActionButton
                             action="new-hand"
-                            label={`Dealing hand #${(gameState?.handNumber ?? 0) + 1}`}
+                            label={t("action.dealingHand", { hand: (gameState?.handNumber ?? 0) + 1 })}
                             loading={true}
                             disabled={true}
                             onClick={() => {}}

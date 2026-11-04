@@ -1,6 +1,7 @@
 import React from "react";
 import { RECONNECT_MAX_ATTEMPTS } from "../../utils/reconnectBackoff";
 import type { ConnectionState } from "../../context/gameState/connection";
+import { useLanguage } from "../../i18n/useLanguage";
 
 interface ConnectionBannerProps {
     connection: ConnectionState;
@@ -15,6 +16,7 @@ interface ConnectionBannerProps {
  * that what they are looking at may be stale.
  */
 export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({ connection, onRetry }) => {
+    const { t } = useLanguage();
     if (connection.status === "live" || connection.status === "idle") {
         return null;
     }
@@ -22,10 +24,10 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({ connection, 
     const isOffline = connection.status === "offline";
     const message =
         connection.status === "connecting"
-            ? "Connecting to the table…"
+            ? t("connection.connecting")
             : connection.status === "reconnecting"
-              ? `Connection lost — reconnecting (attempt ${connection.attempt} of ${RECONNECT_MAX_ATTEMPTS}). The table may be out of date; actions are paused.`
-              : "You are offline. The table may be out of date; actions are paused.";
+              ? t("connection.reconnecting", { attempt: connection.attempt, max: RECONNECT_MAX_ATTEMPTS })
+              : t("connection.offline");
 
     return (
         <div
@@ -39,7 +41,7 @@ export const ConnectionBanner: React.FC<ConnectionBannerProps> = ({ connection, 
             <span>{message}</span>
             {isOffline && (
                 <button type="button" onClick={onRetry} className="px-3 py-1 rounded bg-black/70 text-white hover:bg-black/90 transition-colors">
-                    Retry now
+                    {t("connection.retry")}
                 </button>
             )}
         </div>

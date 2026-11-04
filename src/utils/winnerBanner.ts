@@ -1,5 +1,5 @@
 import { hasElements } from "./guards";
-import { potLabel } from "./potDisplayUtils";
+import { t } from "../i18n";
 
 /**
  * Builds the last-pot winner banner text (ui#848) from the resolved winners.
@@ -26,9 +26,10 @@ function bannerAmount(formattedAmount: string): string {
     return isCashAmount(formattedAmount) ? `$${formattedAmount}` : formattedAmount;
 }
 
-/** "the $0.03 pot" for cash; "1,240 chips" for tournaments. */
-function wonPhrase(formattedAmount: string): string {
-    return isCashAmount(formattedAmount) ? `the ${bannerAmount(formattedAmount)} pot` : formattedAmount;
+/** The pot's name ("Main Pot", "Side Pot 2") in the player's language. */
+function translatedPotLabel(index: number, count: number): string {
+    if (index === 0) return t("banner.mainPot");
+    return count > 2 ? t("banner.sidePotNumber", { number: index }) : t("banner.sidePot");
 }
 
 /**
@@ -56,16 +57,16 @@ function perPotBannerText(winners: BannerWinner[]): string | null {
     const count = indexes[indexes.length - 1] + 1;
     const phrases = indexes.map(index => {
         const shares = byPot.get(index)!;
-        const label = potLabel(index, count);
-        if (shares.length === 1) return `${label} ${bannerAmount(shares[0].formattedAmount)} to Seat ${shares[0].seat}`;
-        return `${label} split: ${shares.map(s => `Seat ${s.seat} ${bannerAmount(s.formattedAmount)}`).join(" & ")}`;
+        const label = translatedPotLabel(index, count);
+        if (shares.length === 1) return t("banner.potToSeat", { pot: label, amount: bannerAmount(shares[0].formattedAmount), seat: shares[0].seat });
+        return t("banner.potSplit", { pot: label, shares: shares.map(s => t("banner.seatAmount", { seat: s.seat, amount: bannerAmount(s.formattedAmount) })).join(" & ") });
     });
     // One player scooping every pot: no per-pot list, just the total (and their hand).
     if (winners.length === 1) {
         const w = winners[0];
         const hand = w.description || w.handName;
-        const suffix = w.winType === "showdown" && hand ? ` with ${hand}` : "";
-        return `Seat ${w.seat} wins Total Pot ${bannerAmount(w.formattedAmount)}${suffix}`;
+        const won = t("banner.winsTotal", { seat: w.seat, amount: bannerAmount(w.formattedAmount) });
+        return w.winType === "showdown" && hand ? t("banner.withHand", { won, hand }) : won;
     }
     return phrases.join(" \u00b7 ");
 }
@@ -79,10 +80,12 @@ export function winnerBannerText(winners: BannerWinner[] | null | undefined): st
         const engineHand = w.description || w.handName;
         // The engine's wording as-is, so the banner matches the seat labels and
         // hand log (wording changes belong upstream in the engine — see poker-vm).
-        const hand = w.winType === "showdown" && engineHand ? ` with ${engineHand}` : "";
-        return `Seat ${w.seat} wins ${wonPhrase(w.formattedAmount)}${hand}`;
+        const won = isCashAmount(w.formattedAmount)
+            ? t("banner.winsPot", { seat: w.seat, amount: bannerAmount(w.formattedAmount) })
+            : t("banner.winsChips", { seat: w.seat, amount: w.formattedAmount });
+        return w.winType === "showdown" && engineHand ? t("banner.withHand", { won, hand: engineHand }) : won;
     }
-    return `Split pot — ${winners.map(w => `Seat ${w.seat} ${bannerAmount(w.formattedAmount)}`).join(" · ")}`;
+    return t("banner.split", { shares: winners.map(w => t("banner.seatAmount", { seat: w.seat, amount: bannerAmount(w.formattedAmount) })).join(" · ") });
 }
 
 /** Gap between the table's info bar and the banner (px). */

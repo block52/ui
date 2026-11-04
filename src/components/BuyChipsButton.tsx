@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { TopUpModal } from "./modals";
 import styles from "./BuyChipsButton.module.css";
+import { t } from "../i18n";
 
 interface BuyChipsButtonProps {
     tableId: string;
@@ -56,7 +57,7 @@ const BuyChipsButton: React.FC<BuyChipsButtonProps> = ({
                 }`}
                 title={disabled ? disabledReason || "You can top up between hands, not while you're in the hand" : "Add chips for the next hand"}
             >
-                💰 TOP-UP CHIPS
+                💰 {t("felt.topUp")}
             </button>
 
             {showModal && (

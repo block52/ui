@@ -34,6 +34,7 @@ import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
+import { useLanguage } from "../../../../i18n/useLanguage";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 
@@ -133,6 +134,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     handleLeaveTableClick,
     handleShareHand
 }) => {
+    const { t } = useLanguage();
     const blindLevel = useBlindLevel();
     const [menuOpen, setMenuOpen] = useState(false);
     const [showQR, setShowQR] = useState(false);
@@ -188,7 +190,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         title="Refresh balance"
                     >
                         {isBalanceLoading ? (
-                            <span className="text-xs text-gray-300">Loading...</span>
+                            <span className="text-xs text-gray-300">{t("table.loading")}</span>
                         ) : (
                             <span className="text-white font-medium text-xs whitespace-nowrap">
                                 ${balanceFormatted}
@@ -250,7 +252,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         }}
                     >
                         <div className="flex items-center justify-between pl-4 min-h-[44px] border-b border-white/10">
-                            <span className="text-white text-sm font-bold">Table menu</span>
+                            <span className="text-white text-sm font-bold">{t("table.menu")}</span>
                             <button
                                 onClick={() => setMenuOpen(false)}
                                 className="w-11 h-11 flex items-center justify-center text-white hover:opacity-80"
@@ -267,7 +269,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                     {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
                                     Texas Hold'em
                                     <span className={`ml-1 ${styles.secondaryText}`}>
-                                        ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
+                                        {t("felt.playerCount", { current: tableActivePlayers.length, max: gameOptions.maxPlayers })}
                                     </span>
                                 </span>
                             </div>
@@ -275,7 +277,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
 
                         {/* Network */}
                         <div className="px-4 py-2 flex items-center gap-3 border-b border-white/10">
-                            <span className="text-xs text-gray-400">Network</span>
+                            <span className="text-xs text-gray-400">{t("table.network")}</span>
                             <NetworkSelector />
                         </div>
 
@@ -286,17 +288,17 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         </button>
                         <div className={`${menuRowClass} cursor-default`}>
                             <ProfileAvatarButton title="Open avatar picker" className="min-w-[44px] min-h-[44px] flex items-center justify-center" />
-                            <span>Avatar / NFT badge</span>
+                            <span>{t("table.avatar")}</span>
                         </div>
 
                         {/* Sharing */}
                         <button className={menuRowClass} onClick={closeMenuAnd(handleCopyTableLink)}>
                             <FaCopy size={14} />
-                            <span>Copy Table Link</span>
+                            <span>{t("table.copyLink")}</span>
                         </button>
                         <button className={menuRowClass} onClick={closeMenuAnd(() => setShowQR(true))}>
                             <FaQrcode size={14} />
-                            <span>Share via QR Code</span>
+                            <span>{t("table.shareQr")}</span>
                         </button>
                         {handleOpenReplay && (
                             <button className={menuRowClass} onClick={closeMenuAnd(handleOpenReplay)} disabled={isNullish(replayHand)} data-testid="open-replay">
@@ -306,7 +308,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         )}
                         <button className={menuRowClass} onClick={closeMenuAnd(handleShareHand)}>
                             <FaShare size={14} />
-                            <span>Share this hand</span>
+                            <span>{t("table.shareHand")}</span>
                         </button>
                         <a
                             href={buildShareOnXUrl(buildHandShareUrl(window.location.origin, tableId, handNumber))}
@@ -317,7 +319,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z" />
                             </svg>
-                            <span>Share on X</span>
+                            <span>{t("table.shareX")}</span>
                         </a>
 
                         {/* History / Settings panel. On phones the floating panel would
@@ -325,11 +327,11 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             carries its own close button (ui#752 follow-up). */}
                         <button className={menuRowClass} onClick={closeMenuAnd(() => onOpenPanel("history"))}>
                             <LuHistory size={16} />
-                            <span>Hand history</span>
+                            <span>{t("table.handHistory")}</span>
                         </button>
                         <button className={menuRowClass} onClick={closeMenuAnd(() => onOpenPanel("settings"))}>
                             <IoSettingsOutline size={16} />
-                            <span>Settings</span>
+                            <span>{t("panel.settings")}</span>
                         </button>
 
                         {/* Top-up — disabled while in the current hand, same rule as the
@@ -341,13 +343,13 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                 title={canTopUp ? "Add chips for the next hand" : "You can top up between hands — not while you're in the current hand."}
                             >
                                 <span>💰</span>
-                                <span>Top-Up Chips</span>
+                                <span>{t("table.topUp")}</span>
                             </button>
                         )}
 
                         {/* Table style — replaces the fixed bottom-left selector on mobile */}
                         <button className={menuRowClass} onClick={onCycleTableStyle}>
-                            <span className="text-xs text-gray-400">Style</span>
+                            <span className="text-xs text-gray-400">{t("table.style")}</span>
                             <span>{TABLE_STYLE_LABELS[tableStyle]}</span>
                         </button>
 
@@ -363,7 +365,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             role="switch"
                             aria-checked={seatAtBottom}
                         >
-                            <span className="text-xs text-gray-400">Seat</span>
+                            <span className="text-xs text-gray-400">{t("table.seat")}</span>
                             <span className={seatAtBottom ? "text-amber-300" : undefined}>
                                 {seatAtBottom ? "✓ " : ""}Seat me at 6 o&apos;clock
                             </span>
@@ -377,15 +379,15 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         {canSitOut && (
                             <>
                                 <button className={menuRowClass} onClick={toggleNextHand} role="switch" aria-checked={nextHandChecked}>
-                                    <span className="text-xs text-gray-400">Sit out</span>
+                                    <span className="text-xs text-gray-400">{t("table.sitOut")}</span>
                                     <span className={nextHandChecked ? "text-amber-300" : undefined}>
-                                        {nextHandChecked ? "☑ " : "☐ "}Next hand
+                                        {nextHandChecked ? "☑ " : "☐ "}{t("table.nextHand")}
                                     </span>
                                 </button>
                                 <button className={menuRowClass} onClick={toggleNextBb} role="switch" aria-checked={nextBbQueued}>
-                                    <span className="text-xs text-gray-400">Sit out</span>
+                                    <span className="text-xs text-gray-400">{t("table.sitOut")}</span>
                                     <span className={nextBbQueued ? "text-amber-300" : undefined}>
-                                        {nextBbQueued ? "☑ " : "☐ "}Next big blind
+                                        {nextBbQueued ? "☑ " : "☐ "}{t("table.nextBigBlind")}
                                     </span>
                                 </button>
                             </>
@@ -398,7 +400,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                             <div className={`${menuRowClass} cursor-default hover:bg-transparent`}>
                                 <span className="animate-pulse w-2 h-2 rounded-full bg-blue-400 shrink-0" />
                                 <span className="text-blue-300 text-xs">
-                                    {isTableFull ? "Spectating — the table is full" : "Spectating — tap an open seat to join"}
+                                    {isTableFull ? t("table.spectatingFull") : t("table.spectatingTap")}
                                 </span>
                             </div>
                         )}
@@ -412,7 +414,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                 onClick={closeMenuAnd(handleLeaveTableClick)}
                             >
                                 <RxExit size={16} />
-                                <span className="font-semibold">Leave Table</span>
+                                <span className="font-semibold">{t("table.leave")}</span>
                             </button>
                         )}
                     </div>
@@ -423,7 +425,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
             <Modal
                 isOpen={showQR}
                 onClose={() => setShowQR(false)}
-                title="Scan to Join Table"
+                title={t("table.scanToJoin")}
                 titleIcon={<FaQrcode size={16} />}
                 widthClass="w-80"
                 patternId="hexagons-qr-mobile"
@@ -437,7 +439,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         onClick={() => setShowQR(false)}
                         className="w-full py-2 rounded-lg bg-gray-700 text-white text-sm font-semibold hover:bg-gray-600 transition-colors"
                     >
-                        Close
+                        {t("table.close")}
                     </button>
                 </div>
             </Modal>

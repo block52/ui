@@ -1,6 +1,7 @@
 import React from "react";
 import { formatPotLabel } from "../../../../utils/potTextUtils";
 import { PotPill } from "./PotPill";
+import { useLanguage } from "../../../../i18n/useLanguage";
 
 interface TotalPotDisplayProps {
     /** Formatted pot size, for the text label. */
@@ -15,6 +16,7 @@ interface TotalPotDisplayProps {
 }
 
 export const TotalPotDisplay: React.FC<TotalPotDisplayProps> = ({ amount, rawAmount, isTournamentStyle, hasMainPot, asChips }) => {
+    useLanguage();
     if (asChips) {
         return (
             <div className="pot-chips">

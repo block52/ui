@@ -15,6 +15,7 @@ import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
 import { hasContent, isNullish, isEmpty } from "../utils/guards";
+import { useLanguage } from "../i18n/useLanguage";
 
 const PAGE_SIZE = 20;
 
@@ -70,6 +71,7 @@ const scheduledLabel = (game: GameWithFormat): string => {
 };
 
 const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
+    const { t } = useLanguage();
     const { games: rawGames, isLoading, error, refetch } = useFindGames();
     const { deleteGame, isDeleting } = useDeleteGame();
     const { forceCloseGame, isClosing } = useForceCloseGame();
@@ -238,7 +240,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         return (
             <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
                 <div className="px-6 py-4 bg-gray-900 border-b border-gray-700">
-                    <h2 className="text-xl font-bold text-white">Available Tables</h2>
+                    <h2 className="text-xl font-bold text-white">{t("lobby.available")}</h2>
                 </div>
                 <div className="flex items-center justify-center py-12">
                     <svg className="animate-spin h-8 w-8 mr-3 text-blue-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -249,7 +251,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                         ></path>
                     </svg>
-                    <span className="text-white text-lg">Loading tables...</span>
+                    <span className="text-white text-lg">{t("lobby.loading")}</span>
                 </div>
             </div>
         );
@@ -259,7 +261,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
         return (
             <div className="bg-gray-800 rounded-lg border border-gray-700 overflow-hidden">
                 <div className="px-6 py-4 bg-gray-900 border-b border-gray-700">
-                    <h2 className="text-xl font-bold text-white">Available Tables</h2>
+                    <h2 className="text-xl font-bold text-white">{t("lobby.available")}</h2>
                 </div>
                 <div className="text-center py-12">
                     <div className="text-red-400 mb-4">
@@ -274,7 +276,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                     </div>
                     <p className="text-gray-300 mb-4">{error.message}</p>
                     <button onClick={refetch} className={`px-4 py-2 rounded-lg text-white transition-all hover:opacity-90 ${styles.actionButton}`}>
-                        Retry
+                        {t("lobby.retry")}
                     </button>
                 </div>
             </div>
@@ -286,7 +288,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
             {/* Header — stacks vertically below sm so the search box gets real
                 width instead of being crushed by three children on one line */}
             <div className="px-6 py-4 bg-gray-900 border-b border-gray-700 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center sm:gap-4">
-                <h2 className="text-xl font-bold text-white sm:shrink-0">Available Tables</h2>
+                <h2 className="text-xl font-bold text-white sm:shrink-0">{t("lobby.available")}</h2>
                 {isSmUp && (
                     <div className="flex items-center gap-3 ml-auto">
                         {treasuryAddress && (
@@ -319,7 +321,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                         type="text"
                         value={gameIdSearch}
                         onChange={handleGameIdSearch}
-                        placeholder="Search by table name or ID..."
+                        placeholder={t("lobby.search")}
                         className="w-full pl-9 pr-3 py-2 bg-gray-800 border border-gray-600 rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
                     />
                 </div>
@@ -335,24 +337,24 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                 <table className="w-full table-fixed sm:table-auto">
                     <thead className="bg-gray-900">
                         <tr>
-                            <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Club</th>
-                            <th className="w-[38%] sm:w-[140px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Table ID</th>
+                            <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">{t("lobby.club")}</th>
+                            <th className="w-[38%] sm:w-[140px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">{t("lobby.tableId")}</th>
                             {hasCashGames && (
-                                <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Stakes</th>
+                                <th className="hidden sm:table-cell sm:w-[150px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">{t("lobby.stakes")}</th>
                             )}
                             {/* Format sorting is only reachable from md up — the column
                                 (and its SortButton) is not rendered below that. */}
                             <th className="hidden md:table-cell md:w-[120px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
-                                <SortButton label="Format" direction={formatSortDir} onClick={handleFormatSortClick} />
+                                <SortButton label={t("lobby.format")} direction={formatSortDir} onClick={handleFormatSortClick} />
                             </th>
-                            <th className="hidden sm:table-cell sm:w-[160px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Game</th>
+                            <th className="hidden sm:table-cell sm:w-[160px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">{t("lobby.game")}</th>
                             <th className="w-[18%] sm:w-[100px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
-                                <SortButton label="Players" direction={playersSortDir} onClick={handlePlayersSortClick} />
+                                <SortButton label={t("lobby.players")} direction={playersSortDir} onClick={handlePlayersSortClick} />
                             </th>
                             <th className="w-[24%] sm:w-[190px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">
-                                <SortButton label="Buy-In" direction={buyInSortDir} onClick={handleBuyInSortClick} />
+                                <SortButton label={t("lobby.buyIn")} direction={buyInSortDir} onClick={handleBuyInSortClick} />
                             </th>
-                            <th className="w-[20%] sm:w-[80px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">Action</th>
+                            <th className="w-[20%] sm:w-[80px] px-2 sm:px-4 py-3 text-center text-sm font-semibold text-gray-400">{t("lobby.action")}</th>
                             {/* Creator-only manage column (delete / force-close). Looks
                                 empty to non-creators but is NOT dead — hidden on mobile
                                 rather than deleted. */}
@@ -377,15 +379,15 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                             />
                                         </svg>
                                     </div>
-                                    <p className="text-gray-400 mb-1">No tables available</p>
-                                    <p className="text-gray-500 text-sm">Create the first table to start playing!</p>
+                                    <p className="text-gray-400 mb-1">{t("lobby.noTables")}</p>
+                                    <p className="text-gray-500 text-sm">{t("lobby.createFirst")}</p>
                                     {onCreateTable && (
                                         <button
                                             type="button"
                                             onClick={onCreateTable}
                                             className="mt-4 px-4 py-2 text-sm text-white rounded-lg transition duration-300 shadow-md bg-blue-600 hover:bg-blue-700"
                                         >
-                                            Create table
+                                            {t("lobby.createTable")}
                                         </button>
                                     )}
                                 </td>

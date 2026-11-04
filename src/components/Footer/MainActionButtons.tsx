@@ -8,6 +8,7 @@ import { formatDisplayAmount } from "../../utils/numberUtils";
 import type { MainActionButtonsProps } from "./types";
 import styles from "./MainActionButtons.module.css";
 import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { useLanguage } from "../../i18n/useLanguage";
 
 export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
     canFold,
@@ -35,6 +36,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
     onBetOrRaise,
     onAllIn
 }) => {
+    const { t } = useLanguage();
     // Calculate the total amount to display for raise button
     // This includes blinds posted during ANTE round when we're in PREFLOP
     const raiseToAmount = canRaise ? getRaiseToAmount(raiseAmount, previousActions, currentRound, userAddress, isTournament) : raiseAmount;
@@ -52,7 +54,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
 
             {hasFoldedOrMucked(playerStatus) && (
                 <div className="text-gray-400 py-1.5 lg:py-2 px-2 lg:px-4 bg-gray-800 bg-opacity-50 rounded-lg text-xs lg:text-sm">
-                    {playerStatus === PlayerStatus.MUCKED ? "You mucked your hand" : "You have folded this hand"}
+                    {playerStatus === PlayerStatus.MUCKED ? t("action.youMucked") : t("action.youFolded")}
                 </div>
             )}
 
@@ -71,7 +73,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                             CHECKING...
                         </>
                     ) : (
-                        "CHECK"
+                        t("action.check")
                     )}
                 </button>
             )}
@@ -92,7 +94,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                         </>
                     ) : (
                         <>
-                            {callIsAllIn ? "CALL (ALL-IN)" : "CALL"} <span className={styles.amountAccent}>{callAmount}</span>
+                            {callIsAllIn ? t("action.callAllIn") : t("action.call")} <span className={styles.amountAccent}>{callAmount}</span>
                         </>
                     )}
                 </button>
@@ -115,7 +117,7 @@ export const MainActionButtons: React.FC<MainActionButtonsProps> = ({
                     ) : (
                         <>
                             {/* At the whole stack the button confirms an all-in (ui#890). */}
-                            {isAllIn ? "ALL-IN" : canRaise ? "RAISE TO" : "BET"}{" "}
+                            {isAllIn ? t("action.allIn") : canRaise ? t("action.raiseTo") : t("action.bet")}{" "}
                             <span className={styles.amountAccent}>{formatDisplayAmount(raiseToAmount, isTournament)}</span>
                         </>
                     )}

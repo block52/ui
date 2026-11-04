@@ -30,9 +30,11 @@ import { hasElements, isNullish } from "../../../utils/guards";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
+import { useLanguage } from "../../../i18n/useLanguage";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
+        const { t, language } = useLanguage();
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
         const { id: tableId } = useParams<{ id: string }>();
         const { gameOptions } = useGameOptions();
@@ -216,10 +218,10 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         // Memoize seat text
         const seatText = useMemo(
             () => ({
-                title: isUserAlreadyPlaying ? "Vacant Seat" : `Seat ${index}`,
-                subtitle: !isUserAlreadyPlaying ? (canJoinThisSeat ? "Click to Join" : "Seat Taken") : null
+                title: isUserAlreadyPlaying ? t("felt.vacantSeat") : t("felt.seatNumber", { seat: index }),
+                subtitle: !isUserAlreadyPlaying ? (canJoinThisSeat ? t("felt.clickToJoin") : t("felt.seatTaken")) : null
             }),
-            [isUserAlreadyPlaying, canJoinThisSeat, index]
+            [isUserAlreadyPlaying, canJoinThisSeat, index, t, language]
         );
 
         // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
@@ -269,15 +271,15 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                     // Sit & Go: Fixed buy-in amount
                                     <div className={`mb-6 p-4 rounded-lg border-2 ${styles.fixedBuyInPanel}`}>
                                         <div className="text-center">
-                                            <div className="text-xs text-gray-400 mb-1">Required Buy-In</div>
+                                            <div className="text-xs text-gray-400 mb-1">{t("buyIn.required")}</div>
                                             <div className="text-3xl font-bold text-white">${formatUSDCToSimpleDollars(gameOptions.minBuyIn)}</div>
-                                            <div className="text-xs text-gray-400 mt-1">Fixed amount for this tournament</div>
+                                            <div className="text-xs text-gray-400 mt-1">{t("buyIn.fixed")}</div>
                                         </div>
                                     </div>
                                 ) : (
                                     // Cash Game: Editable buy-in amount
                                     <div className="mb-6">
-                                        <label className="block text-xs text-gray-400 mb-2">Buy-In Amount</label>
+                                        <label className="block text-xs text-gray-400 mb-2">{t("buyIn.amount")}</label>
 
                                         {/* Slider with min/max labels */}
                                         <div className="mb-3">
@@ -312,7 +314,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                 setBuyInAmount(e.target.value);
                                                 setBuyInAmountDisplay(e.target.value);
                                             }}
-                                            placeholder="Enter amount"
+                                            placeholder={t("buyIn.enterAmount")}
                                             className={`w-full px-4 py-2 rounded-lg text-white text-center text-lg ${styles.buyInInput}`}
                                             step={bigBlindValue.toString()}
                                             min={minBuyInNum.toString()}
@@ -323,7 +325,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
 
                                 {/* User Balance */}
                                 <div className="mb-6">
-                                    <div className="text-xs text-gray-400 mb-2">Your USDC Balance:</div>
+                                    <div className="text-xs text-gray-400 mb-2">{t("buyIn.balance")}</div>
                                     {/* Require update here when cosmos client return array of usdc = 0 instead of returning an empty array */}
                                     {hasElements(cosmosWallet.balance) ? (
                                         cosmosWallet.balance.map((balance, idx) => {
@@ -381,24 +383,24 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                                                     ></path>
                                                 </svg>
-                                                Joining...
+                                                {t("buyIn.joining")}
                                             </>
                                         ) : (
-                                            `Confirm & Join Seat ${index}`
+                                            t("felt.confirmJoin", { seat: index })
                                         )}
                                     </button>
                                     <button
                                         onClick={handleDepositClick}
                                         className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 flex items-center justify-center ${styles.confirmButton}`}
                                     >
-                                        Top Up Game Wallet
+                                        {t("buyIn.topUp")}
                                     </button>
                                     <button
                                         onClick={() => setShowBuyInModal(false)}
                                         className={`w-full px-6 py-3 text-sm font-semibold rounded-lg transition duration-300 ${styles.cancelButton}`}
                                         disabled={isJoining}
                                     >
-                                        Cancel
+                                        {t("buyIn.cancel")}
                                     </button>
                                 </div>
                             </div>
