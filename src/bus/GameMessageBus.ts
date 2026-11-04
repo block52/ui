@@ -72,7 +72,7 @@ import { deriveEvents } from "./deriveEvents";
 import { expandFrames, runoutBeats } from "./expandFrames";
 import { buildDefaultDecorators } from "./decorators";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
-import { isEmpty } from "../utils/guards";
+import { hasValue, isEmpty, isNullish } from "../utils/guards";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
 
 /** Cap on the retained commit log so the dev handle never grows unbounded. */
@@ -267,7 +267,7 @@ export class GameMessageBus {
             raw,
             synthetic,
             // Set before the decorators run: runoutSuspense paces on it.
-            ...(runoutBeat !== undefined ? { runoutBeat } : {})
+            ...(hasValue(runoutBeat) ? { runoutBeat } : {})
         };
 
         // Run decorators to accumulate the item's decoration (Phase 3).
@@ -289,7 +289,7 @@ export class GameMessageBus {
     public reset(): void {
         this.queue = [];
         this.carryDelayMs = 0;
-        if (this.drainTimer !== null) {
+        if (hasValue(this.drainTimer)) {
             clearTimeout(this.drainTimer);
             this.drainTimer = null;
         }
@@ -374,7 +374,7 @@ export class GameMessageBus {
      */
     private assignAckIds(item: GameStreamItem): void {
         item.decoration.animations.forEach((hint, index) => {
-            if (hint.ackTimeoutMs !== undefined) {
+            if (hasValue(hint.ackTimeoutMs)) {
                 hint.ackId = `${item.seq}:${index}`;
             }
         });
@@ -491,7 +491,7 @@ export class GameMessageBus {
             minDisplayMs = SHORTENED_HOLD_MS;
         }
 
-        const ackHints = underPressure ? [] : item.decoration.animations.filter(h => h.ackId !== undefined);
+        const ackHints = underPressure ? [] : item.decoration.animations.filter(h => hasValue(h.ackId));
 
         if (isEmpty(ackHints)) {
             this.carryDelayMs = minDisplayMs;
@@ -677,8 +677,8 @@ export function mergeDecoration(base: Decoration, patch: Partial<Decoration>): D
     };
     // Keep the field absent (not 0) when neither side set it, so "no hold" reads
     // cleanly in introspection and the drain's `?? 0` still applies.
-    if (merged.minDisplayMs === undefined) delete merged.minDisplayMs;
-    if (merged.holdPreviousMs === undefined) delete merged.holdPreviousMs;
+    if (isNullish(merged.minDisplayMs)) delete merged.minDisplayMs;
+    if (isNullish(merged.holdPreviousMs)) delete merged.holdPreviousMs;
     if (!merged.protectedHold) delete merged.protectedHold;
     return merged;
 }
@@ -688,7 +688,7 @@ function isProtected(item: GameStreamItem): boolean {
 }
 
 function maxHold(a: number | undefined, b: number | undefined): number | undefined {
-    if (a === undefined) return b;
-    if (b === undefined) return a;
+    if (isNullish(a)) return b;
+    if (isNullish(b)) return a;
     return Math.max(a, b);
 }

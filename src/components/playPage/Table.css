@@ -17,16 +17,15 @@
 }
 
 /*
- * Composited replacements for the two `background-position` animations above.
+ * Composited replacement for the `shimmer` background-position animation above.
  *
  * `background-position` is a PAINT property — the compositor cannot run it, so
- * animating it re-rasterizes the element every frame on the main thread. On the
- * full-viewport table backgrounds that was the single most expensive thing on
- * the page. These move an oversized child with `transform` instead, which the
- * compositor handles off-thread, and are geometrically equivalent (see the
- * arithmetic on each rule below).
+ * animating it re-rasterizes the element every frame on the main thread. This
+ * moves an oversized child with `transform` instead, which the compositor
+ * handles off-thread. The child is its own GPU layer, so keep it small: the
+ * table's other (drift) layer was 16 viewports and was made static (ui#838).
  *
- * Deliberately NOT named `shimmer`/`gradient`: @keyframes names are GLOBAL, and
+ * Deliberately NOT named `shimmer`: @keyframes names are GLOBAL, and
  * Dashboard.css defines its own `shimmer` and `gradient` with the old
  * background-position semantics. Reusing the names would let whichever
  * stylesheet loads last silently redefine the other's animation.
@@ -34,12 +33,6 @@
 @keyframes table-shimmer-slide {
     0% { transform: translate3d(0, 0, 0); }
     100% { transform: translate3d(-50%, 0, 0); }
-}
-
-@keyframes table-gradient-drift {
-    0% { transform: translate3d(0, 0, 0); }
-    50% { transform: translate3d(-75%, 0, 0); }
-    100% { transform: translate3d(0, 0, 0); }
 }
 
 @keyframes float {
@@ -109,14 +102,14 @@
 
 /* Animation classes */
 /*
- * The shimmer host. The gradient and the motion live on ::before, which is 4x
+ * The shimmer host. The gradient and the motion live on ::before, which is 2x
  * the host's width and slides left by exactly one tile per cycle.
  *
- * Equivalence: the old rule put a 200%-wide (2W) repeating gradient on the host
- * and swept background-position 0% -> 200%, which offsets the image by -2W. Here
- * ::before is 4W carrying two 2W tiles (background-size: 50%), translated -50%
- * = -2W. Same distance, same direction, and the seam lands on a tile boundary so
- * the loop is still invisible.
+ * ::before is 2W carrying two W-wide tiles (background-size: 50%), translated
+ * -50% = -W per cycle, so the seam lands on a tile boundary and the loop is
+ * invisible. It was 4W (two 2W tiles over 3s); that is a 4-viewport GPU layer
+ * animating forever on the table, part of the graphics-memory load behind the
+ * macOS black screen (ui#838). Same band speed (W per 1.5s), half the layer.
  *
  * The host must be positioned (both users are `position: absolute`) so ::before
  * anchors to it.
@@ -131,11 +124,11 @@
     top: 0;
     bottom: 0;
     left: 0;
-    width: 400%;
+    width: 200%;
     background-image: linear-gradient(90deg, transparent 0%, var(--brand-primary-10) 25%, transparent 50%, var(--brand-primary-10) 75%, transparent 100%);
     background-size: 50% 100%;
     background-repeat: repeat-x;
-    animation: table-shimmer-slide 3s infinite linear;
+    animation: table-shimmer-slide 1.5s infinite linear;
     will-change: transform;
 }
 
@@ -277,6 +270,40 @@
 
 .pot-chips-secondary {
     margin-top: 6px;
+}
+
+/* Side pots (ui#918): main pot then each side pot, side by side, wrapping
+   inside the board's width rather than growing the table. */
+.side-pots-row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 4px 10px;
+    max-width: 480px;
+    margin-top: 6px;
+}
+.side-pots-row > .pot-display-secondary,
+.side-pots-row > .pot-chips-secondary {
+    margin-top: 0;
+}
+/* Phone landscape: keep the pots on one line so they never stack into the cards. */
+@media (max-height: 500px) and (orientation: landscape) {
+    .side-pots-row {
+        flex-wrap: nowrap;
+        max-width: none;
+        gap: 0 6px;
+    }
+}
+.side-pots-row[data-count="3"] > .pot-display-secondary,
+.side-pots-row[data-count="4"] > .pot-display-secondary {
+    font-size: 0.8em;
+}
+@media (min-width: 640px) {
+    .side-pots-row[data-count="3"] > .pot-display-secondary,
+    .side-pots-row[data-count="4"] > .pot-display-secondary {
+        font-size: 15px;
+    }
 }
 
 .pot-pill {
@@ -436,13 +463,10 @@
     overflow: visible;
 }
 
-/* Optimized background animations - reduce CPU load */
 /*
- * Equivalence: the old rule painted a 400% x 400% gradient (4W x 4H) on the host
- * and ping-ponged background-position-x 0% -> 100% -> 0%, which offsets the
- * image by -3W and back, with background-position-y pinned at 50% (a constant
- * -1.5H offset). Here ::before IS that 4W x 4H image, offset `top: -150%` to
- * reproduce the vertical centering, translated -75% (= -3W) and back.
+ * ::before is the 4W x 4H gradient, offset `top: -150%` so the host shows its
+ * vertically centred slice. It is static and not composited (ui#838): the host
+ * clips it, so only the visible slice is painted.
  */
 .background-animated-static {
     position: absolute;
@@ -467,8 +491,11 @@
         var(--anim-color-5-10) 75%,
         var(--anim-color-2-10) 100%
     );
-    animation: table-gradient-drift 15s ease infinite;
-    will-change: transform;
+    /* Static (ui#838). This 4W x 4H layer used to drift forever with
+       will-change: transform, which made it a ~16-viewport GPU layer: measured
+       at 2x DPR it was the largest single cost in the table's graphics memory,
+       and GPU memory pressure on macOS resets the GPU process (black screen,
+       clicks still land). At 2% effective alpha the drift was not visible. */
 }
 
 /* Static radial gradient - reduce calculations */
@@ -483,7 +510,8 @@
         radial-gradient(circle at 0% 100%, var(--anim-color-4-70) 0%, transparent 50%),
         radial-gradient(circle at 100% 100%, var(--anim-color-5-70) 0%, transparent 50%),
         var(--table-bg-base);
-    filter: blur(60px);
+    /* No filter: blur (ui#838). The radial stops already fade to transparent;
+       a full-viewport blur(60px) is an extra offscreen GPU surface. */
     transition: all 0.3s ease-out;
 }
 
@@ -626,10 +654,6 @@
 
 /* Performance mode - disable expensive animations */
 @media (prefers-reduced-motion: reduce) {
-    .background-animated-static::before {
-        animation: none;
-    }
-    
     .shimmer-animation::before {
         animation: none;
     }
@@ -673,17 +697,13 @@
     /* The animation is on ::before, not the host — this previously matched an
        element with no animation and did nothing. */
     .shimmer-animation::before {
-        animation-duration: 6s; /* Slower = less CPU */
+        animation-duration: 3s; /* Half speed = less CPU */
     }
     
     .text-gradient {
         animation-duration: 6s; /* Slower = less CPU */
     }
     
-    /* Simplify blur effects on mobile */
-    .background-base-static {
-        filter: blur(30px); /* Less blur = better performance */
-    }
 }
 
 /* Professional Sit Out Toggle for Mobile */
@@ -714,3 +734,52 @@
 .sit-out-toggle input[type="checkbox"]:checked ~ span {
     color: #fb923c;
 } 
+/* Pot slot (ui#918): a fixed-height box in the board column. The pots sit in an absolutely
+ * positioned stack anchored to its bottom, so extra pots grow upward and never push the cards. */
+.pot-slot {
+    position: relative;
+    width: 100%;
+    height: 40px;
+}
+.pot-stack {
+    position: absolute;
+    /* Sits low in the slot, near the cards (the card row's top margin), away from the top seats' bets. */
+    bottom: -22px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 100vw;
+}
+/* Multi-pot layout (ui#918): Total Pot centred on top, then every pot in one compact centred row.
+ * More pots means smaller pills, so the group stays inside the pot slot and clear of the bets. */
+.pot-stack:has(.side-pots-row) {
+    flex-direction: column !important;
+    align-items: center !important;
+    gap: 2px !important;
+}
+.pot-stack .side-pots-row {
+    flex-wrap: nowrap;
+    max-width: none;
+    gap: 0 8px;
+    margin-top: 4px;
+}
+.pot-stack .side-pots-row[data-count="3"] { --side-row-zoom: 0.85; zoom: var(--side-row-zoom); }
+.pot-stack .side-pots-row[data-count="4"] { --side-row-zoom: 0.72; zoom: var(--side-row-zoom); }
+/* Desktop: Main + Side pots always use the compact 4-pot size (ui#918). */
+@media (min-width: 1024px) and (pointer: fine) { .pot-stack .side-pots-row { --side-row-zoom: 0.72 !important; zoom: 0.72 !important; } }
+/* Tablets (touch, e.g. iPad Mini): a bit larger, nearer the bet size, and 3px lower. */
+@media (min-width: 768px) and (pointer: coarse) { .pot-stack .side-pots-row { --side-row-zoom: 0.85 !important; zoom: 0.85 !important; margin-top: 7px; } }
+/* ui#918: one amount size everywhere. Bets, stacks, Main/Side pot amounts paint at --bet-amount-size;
+   Total Pot paints at --total-pot-ratio x that. Side amounts divide out the row zoom so they stay equal. */
+.pot-stack { --bet-amount-size: 18px; --total-pot-ratio: 1.2; }
+.pot-stack > .pot-chips .type-num-bet > span:not(.pot-pill-label) { font-size: calc(var(--bet-amount-size) * var(--total-pot-ratio)); }
+.pot-stack .side-pots-row .type-num-bet > span:not(.pot-pill-label) { font-size: calc(var(--bet-amount-size) / var(--side-row-zoom, 1)); }
+.pot-stack .side-pots-row > .pot-display-secondary { font-size: 15px; }
+
+/* Pot caption sits under the amount, above the chips (ui#918). */
+.pot-pill { padding-bottom: 15px; }
+.chip-caption { position: absolute; top: 100%; left: 50%; transform: translateX(-50%); margin-top: 2px; white-space: nowrap; line-height: 1.2; z-index: 100; }
+/* Tablet portrait (vertical table): lift the board + pots together towards the table centre, between seats 4/7 and 3/8 (ui#918). */
+@media (min-width: 768px) and (pointer: coarse) and (orientation: portrait) { .community-board:not([data-mobile-readable] .community-board) { top: -44px; } }
+/* Tablet landscape (e.g. iPad Mini 1024x768): drop the board + all pots together 5px on screen (ui#918). */
+@media (min-width: 768px) and (pointer: coarse) and (orientation: landscape) { .community-board:not([data-mobile-readable] .community-board) { translate: 0 calc(5px / var(--table-zoom, 1)); } }

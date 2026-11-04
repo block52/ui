@@ -14,7 +14,7 @@
  * - maxPlayers: number of runners/entrants
  */
 
-import { hasValue, isNullish, isBlank } from "./guards";
+import { hasValue, isNullish, isBlank, hasElements } from "./guards";
 import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "./blindStructureChoice";
 
 /** Chain-defined valid entrant counts for a Sit & Go. */
@@ -157,7 +157,7 @@ export function parseAdvancedSngParams(raw: string): AdvancedSngParseResult {
         errors.push("\"blindLevelDuration\" must be a whole number of minutes.");
     }
 
-    if (errors.length > 0) {
+    if (hasElements(errors)) {
         return { isValid: false, errors };
     }
 

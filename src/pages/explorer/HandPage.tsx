@@ -7,6 +7,7 @@ import { useIndexerApi } from "../../context/IndexerApiContext";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { potLabel } from "../../utils/potDisplayUtils";
 import { isEmpty, hasElements, hasContent } from "../../utils/guards";
 import { parseGameStateJson } from "../../utils/handReplay";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../utils/handReplay";
@@ -155,6 +156,9 @@ function ReadOnlyTable({ gameState, handData }: { gameState: TexasHoldemStateDTO
     const communityCards = gameState.communityCards || [];
     const totalPot = gameState.totalPot || "0";
     const mainPot = gameState.pots?.[0] || "0";
+    // Main pot then each side pot (ui#918); an older engine sends just one.
+    const allPots = gameState.pots ?? [];
+    const hasSidePots = allPots.filter(p => p && p !== "0").length > 1;
 
     return (
         <div className={styles.tableContainer}>
@@ -172,11 +176,20 @@ function ReadOnlyTable({ gameState, handData }: { gameState: TexasHoldemStateDTO
                         <div className={styles.potLabel}>
                             Pot: <span className={styles.potValue}>{formatPot(totalPot)}</span>
                         </div>
-                        {mainPot !== totalPot && mainPot !== "0" && (
-                            <div className={styles.mainPotLabel}>
-                                Main: {formatPot(mainPot)}
-                            </div>
-                        )}
+                        {hasSidePots
+                            ? allPots.map((pot, i) =>
+                                  pot && pot !== "0" ? (
+                                      <div key={i} className={styles.mainPotLabel} data-testid="hand-pot">
+                                          {potLabel(i, allPots.length)}: {formatPot(pot)}
+                                      </div>
+                                  ) : null
+                              )
+                            : mainPot !== totalPot &&
+                              mainPot !== "0" && (
+                                  <div className={styles.mainPotLabel}>
+                                      Main: {formatPot(mainPot)}
+                                  </div>
+                              )}
                     </div>
                 )}
 
@@ -251,7 +264,7 @@ export default function HandPage() {
 
     // Determine which hand we're viewing
     const selectedHand = useMemo(() => {
-        if (!hands.length) return null;
+        if (isEmpty(hands)) return null;
         if (handParam) {
             return hands.find(h => h.hand_number === Number(handParam)) || null;
         }
@@ -480,6 +493,12 @@ export default function HandPage() {
                                         <span className="text-gray-400 font-mono text-xs">{truncateAddress(w.address)}</span>
                                         <span className={`font-bold ${styles.successText}`}>{formatPot(w.amount)}</span>
                                         {w.description && <span className="text-gray-400 text-xs">({w.description})</span>}
+                                        {/* Per-pot shares only when different players won different pots (ui#918). */}
+                                        {gameState.winners.length > 1 && (gameState.pots ?? []).filter(p => p && p !== "0").length > 1 && hasElements(w.pots) && (
+                                            <span className="text-gray-400 text-xs">
+                                                {w.pots.map(share => `${potLabel(share.pot, gameState.pots.length)} ${formatPot(share.amount)}`).join(", ")}
+                                            </span>
+                                        )}
                                         {hasElements(w.cards) && (
                                             <div className="flex gap-1">
                                                 {w.cards.map((c, ci) => (

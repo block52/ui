@@ -53,12 +53,12 @@ export const useTableState = (): TableStateReturn => {
 
         try {
             // Use totalPot from game state (main pot + current round bets)
-            // Falls back to pots[0] (main pot) if totalPot not available
+            // Falls back to the sum of every pot (main + side pots, ui#918) if totalPot not available
             let totalPotWei = "0";
             if (gameState.totalPot) {
                 totalPotWei = gameState.totalPot;
             } else if (hasElements(gameState.pots)) {
-                totalPotWei = gameState.pots[0];
+                totalPotWei = gameState.pots.reduce((sum, pot) => sum + BigInt(pot || "0"), 0n).toString();
             }
 
             // Format total pot value to display format

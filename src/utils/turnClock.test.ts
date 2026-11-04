@@ -15,9 +15,8 @@ import {
     clockCallDueAtMs,
     clockCallOpportunity,
     clockCallerRank,
-    PREFLOP_TIMEOUT_SECONDS,
+    turnClockPhase,
     turnDeadlineMs,
-    turnTimeoutSeconds
 } from "./turnClock";
 
 const WAIT = TIMEOUT_INCLUSION_GRACE_MS + TIMEOUT_BLOCK_TIME_MARGIN_MS;
@@ -90,38 +89,19 @@ function state(over: Partial<TexasHoldemStateDTO> = {}): TexasHoldemStateDTO {
     };
 }
 
-describe("turnTimeoutSeconds — 15s pre-flop, the table's clock after (poker-vm#2143)", () => {
-    it("caps the pre-flop clock at 15s", () => {
-        expect(PREFLOP_TIMEOUT_SECONDS).toBe(15);
-        expect(turnTimeoutSeconds(25, TexasHoldemRound.PREFLOP)).toBe(15);
-        expect(turnTimeoutSeconds(30, TexasHoldemRound.PREFLOP)).toBe(15);
-    });
-
-    it("gives the flop, turn and river the table's full clock", () => {
-        for (const round of [TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
-            expect(turnTimeoutSeconds(25, round)).toBe(25);
-        }
-    });
-
-    it("keeps a table's own clock pre-flop when it is already 15s or shorter", () => {
-        expect(turnTimeoutSeconds(15, TexasHoldemRound.PREFLOP)).toBe(15);
-        expect(turnTimeoutSeconds(10, TexasHoldemRound.PREFLOP)).toBe(10);
-    });
-});
-
 describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
-    it("runs 15s pre-flop and the full timeout on the flop", () => {
-        expect(turnDeadlineMs(state({ round: TexasHoldemRound.PREFLOP }))).toBe(T0 + 15_000);
+    it("runs the table's full timeout on every street, pre-flop included", () => {
+        expect(turnDeadlineMs(state({ round: TexasHoldemRound.PREFLOP }))).toBe(T0 + 30_000);
         expect(turnDeadlineMs(state({ round: TexasHoldemRound.FLOP }))).toBe(T0 + 30_000);
     });
 
-    it("adds the time bank on top of the 15s pre-flop clock", () => {
+    it("adds the time bank on top of the pre-flop clock", () => {
         const s = state({
             round: TexasHoldemRound.PREFLOP,
             players: [player(P1, 1), withGrant(player(P2, 2), 45_000), player(P3, 3), player(P5, 5)],
             previousActions: [action(1, T0), action(2, T0 + 10_000, { action: NonPlayerActionType.TIME_BANK, playerId: P2, seat: 2 })]
         });
-        expect(turnDeadlineMs(s)).toBe(T0 + 15_000 + 45_000);
+        expect(turnDeadlineMs(s)).toBe(T0 + 30_000 + 45_000);
     });
 
     it("is the latest recorded action plus the timeout in seconds", () => {
@@ -285,5 +265,29 @@ describe("clockCallOpportunity — the turn to call, keyed on the turn rather th
         expect(clockCallOpportunity(state(), P2, false)).toBeNull();
         expect(clockCallOpportunity(state({ round: TexasHoldemRound.END }), P1, false)).toBeNull();
         expect(clockCallOpportunity(undefined, P1, false)).toBeNull();
+    });
+});
+
+describe("turnClockPhase — the turn clock runs out first, then the bank (ui#19)", () => {
+    const anchorMs = 1_000_000;
+    const baseMs = 15_000;
+
+    it("counts the turn clock down while no bank is used", () => {
+        expect(turnClockPhase({ nowMs: anchorMs + 4_000, anchorMs, baseMs, bankGrantedMs: 0 })).toEqual({ phase: "base", remainingMs: 11_000, totalMs: 15_000 });
+    });
+
+    it("keeps counting the turn clock after the bank is tapped, so none of it is lost", () => {
+        // tapped with 11s left: still 11s on the turn clock, the bank waits
+        expect(turnClockPhase({ nowMs: anchorMs + 4_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "base", remainingMs: 11_000, totalMs: 15_000 });
+    });
+
+    it("switches to the full bank when the turn clock reaches zero", () => {
+        expect(turnClockPhase({ nowMs: anchorMs + 15_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "bank", remainingMs: 45_000, totalMs: 45_000 });
+        expect(turnClockPhase({ nowMs: anchorMs + 25_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "bank", remainingMs: 35_000, totalMs: 45_000 });
+    });
+
+    it("reads 0, never negative, once everything is spent", () => {
+        expect(turnClockPhase({ nowMs: anchorMs + 90_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "bank", remainingMs: 0, totalMs: 45_000 });
+        expect(turnClockPhase({ nowMs: anchorMs + 90_000, anchorMs, baseMs, bankGrantedMs: 0 })).toEqual({ phase: "base", remainingMs: 0, totalMs: 15_000 });
     });
 });

@@ -187,23 +187,16 @@ describe("usePlayerTimer", () => {
         });
     });
 
-    // poker-vm#2143: 15s to act pre-flop, the table's clock on later streets.
-    describe("street clock (poker-vm#2143)", () => {
-        it("counts down from 15s pre-flop", () => {
-            setState({ ...state(1, 25), round: TexasHoldemRound.PREFLOP });
-            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
-            expect(result.current.timeoutValue).toBe(15);
-        });
-
-        it("counts down from the table's 25s on the flop, turn and river", () => {
-            for (const round of [TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
+    describe("street clock", () => {
+        it("counts down from the table's 25s on every street, pre-flop included", () => {
+            for (const round of [TexasHoldemRound.PREFLOP, TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
                 setState({ ...state(1, 25), round });
                 const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
                 expect(result.current.timeoutValue).toBe(25);
             }
         });
 
-        it("adds a time bank on top of the 15s pre-flop clock", () => {
+        it("adds a time bank on top of the pre-flop clock", () => {
             const now = Date.now();
             const base = state(1, 25);
             setState({
@@ -217,9 +210,56 @@ describe("usePlayerTimer", () => {
                 gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }
             });
             const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
-            // 15s pre-flop + 45s bank, 10s gone since the turn began
-            expect(result.current.timeoutValue).toBe(60);
-            expect(result.current.timeRemaining).toBe(50);
+            // 25s pre-flop + 45s bank, 10s gone since the turn began
+            expect(result.current.timeoutValue).toBe(70);
+            expect(result.current.timeRemaining).toBe(60);
+        });
+    });
+
+    // ui#19: tapping the bank never costs your own time. The countdown shows
+    // your turn clock first (bank armed), then a fresh clock for the bank.
+    describe("turn clock first, then the bank (ui#19)", () => {
+        const banked = (turnAgoMs: number) => {
+            const now = Date.now();
+            const base = state(1, 25);
+            return {
+                ...base,
+                round: TexasHoldemRound.PREFLOP,
+                players: base.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 45_000 } : p)),
+                previousActions: [
+                    { action: "call", playerId: "b521them", timestamp: now - turnAgoMs },
+                    { action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - Math.min(turnAgoMs, 1_000) }
+                ],
+                gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }
+            };
+        };
+
+        it("keeps showing the 25s turn clock after the bank is tapped with time left", () => {
+            setState(banked(4_000)); // tapped with 21s of the 25s left
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isTimeBankArmed).toBe(true);
+            expect(result.current.isInTimeBank).toBe(false);
+            expect(result.current.phaseTimeRemaining).toBe(21);
+            expect(result.current.phaseTimeoutValue).toBe(25);
+            // the total left (what auto-fold waits on) still includes the bank
+            expect(result.current.timeRemaining).toBe(66);
+        });
+
+        it("switches to a fresh 45s bank clock when the turn clock runs out", () => {
+            setState(banked(35_000)); // 25s turn clock spent, 10s into the bank
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isTimeBankArmed).toBe(false);
+            expect(result.current.isInTimeBank).toBe(true);
+            expect(result.current.phaseTimeRemaining).toBe(35);
+            expect(result.current.phaseTimeoutValue).toBe(45);
+        });
+
+        it("is neither armed nor banking when no bank was used", () => {
+            setState({ ...state(1, 25), round: TexasHoldemRound.PREFLOP });
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.isTimeBankArmed).toBe(false);
+            expect(result.current.isInTimeBank).toBe(false);
+            expect(result.current.phaseTimeoutValue).toBe(25);
         });
     });
 

@@ -9,14 +9,13 @@ import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { isNullish, safeLength } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
-import { timeBankGrantedMs, turnTimeoutSeconds } from "../../utils/turnClock";
+import { timeBankGrantedMs, turnClockPhase } from "../../utils/turnClock";
 
 /**
  * Player timer: how long the seat has left to act. It REPORTS time; it never acts.
  *
  * The countdown follows the chain's turn clock (`utils/turnClock.ts`): the
- * anchor ignores `time-bank` actions, pre-flop runs on 15s (poker-vm#2143),
- * and every time bank recorded this turn
+ * anchor ignores `time-bank` actions, and every time bank recorded this turn
  * adds `gameOptions.timeBankMs` (ui#19). Extra time exists only once the chain
  * has recorded it, so this screen never shows time the table won't honour.
  *
@@ -41,9 +40,7 @@ export const usePlayerTimer = (_tableId?: string, playerSeat?: number): PlayerTi
     const { gameOptions } = useGameOptions();
     const playersBySeat = usePlayersBySeat();
 
-    // The street's clock: 15s pre-flop, the table's timeout after (poker-vm#2143).
-    const round = gameState?.round;
-    const TIMEOUT_DURATION = useMemo(() => turnTimeoutSeconds(timeoutToSeconds(getTimeoutMs(gameOptions?.timeout)), round) * 1000, [gameOptions, round]);
+    const TIMEOUT_DURATION = useMemo(() => getTimeoutMs(gameOptions?.timeout), [gameOptions]);
     const timeoutInSeconds = useMemo(() => timeoutToSeconds(TIMEOUT_DURATION), [TIMEOUT_DURATION]);
 
     // Find the player by seat number
@@ -110,6 +107,14 @@ export const usePlayerTimer = (_tableId?: string, playerSeat?: number): PlayerTi
         return calcTimeRemaining(currentTime, anchoredActionTimestamp, totalTimeoutMs, false);
     }, [currentTime, anchoredActionTimestamp, isNextToAct, totalTimeoutMs]);
 
+    // What the screen shows (ui#19): the turn clock first, even after the bank
+    // is tapped, then the bank once the turn clock hits zero. `timeRemaining`
+    // above stays the TOTAL left — auto-fold must wait for the bank too.
+    const clockPhase = useMemo(
+        () => turnClockPhase({ nowMs: currentTime, anchorMs: anchoredActionTimestamp, baseMs: TIMEOUT_DURATION, bankGrantedMs: timeBankMs }),
+        [currentTime, anchoredActionTimestamp, TIMEOUT_DURATION, timeBankMs]
+    );
+
     // Update current time every second - ONLY for active players
     useEffect(() => {
         if (!isNextToAct) {
@@ -138,6 +143,10 @@ export const usePlayerTimer = (_tableId?: string, playerSeat?: number): PlayerTi
         isLoading,
         error,
         hasUsedExtension: timeBankMs > 0,
+        isTimeBankArmed: isNextToAct && timeBankMs > 0 && clockPhase.phase === "base",
+        isInTimeBank: isNextToAct && clockPhase.phase === "bank",
+        phaseTimeRemaining: isNextToAct ? Math.ceil(clockPhase.remainingMs / 1000) : 0,
+        phaseTimeoutValue: timeoutToSeconds(clockPhase.totalMs),
         isCurrentUser,
         isCurrentUserTurn: isCurrentUser && isNextToAct
     };

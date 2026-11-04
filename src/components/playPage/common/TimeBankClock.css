@@ -1,0 +1,118 @@
+/* Alarm-clock time bank button beside the player's own pill (ui#19).
+   Mirrors .badge-number: the same 1.5rem circle, just outside it on the left
+   (the pill's right end is where an NFT avatar sits). */
+.time-bank-clock {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 1.5rem;
+  height: 1.5rem;
+  padding: 0;
+  border: none;
+  border-radius: 9999px;
+  background: #1f2937;
+  color: #facc15;
+  cursor: default;
+  transition: transform 150ms ease, box-shadow 200ms ease, opacity 200ms ease;
+}
+
+.time-bank-clock-icon {
+  width: 1.15rem;
+  height: 1.15rem;
+  overflow: visible;
+}
+
+.tbc-body { fill: #facc15; }
+.tbc-face { fill: #fffbeb; }
+.tbc-bell { fill: #f97316; }
+.tbc-pin { fill: #111827; }
+.tbc-hammer,
+.tbc-leg,
+.tbc-tick,
+.tbc-hand {
+  fill: none;
+  stroke: #111827;
+  stroke-linecap: round;
+}
+.tbc-hammer,
+.tbc-leg { stroke: #f97316; stroke-width: 2.2; }
+.tbc-tick { stroke-width: 1.4; }
+.tbc-hand { stroke-width: 1.8; }
+.tbc-hand-minute { stroke: #dc2626; }
+
+/* Not your turn, or no bank left: there but quiet. */
+.time-bank-clock-idle {
+  opacity: 0.45;
+  filter: grayscale(0.7);
+}
+
+/* Your turn with bank left: inviting, tap to arm. */
+.time-bank-clock-ready {
+  cursor: pointer;
+  box-shadow: 0 0 0 2px #facc15;
+  animation: tbc-nudge 2.4s ease-in-out infinite;
+}
+.time-bank-clock-ready:hover { transform: scale(1.12); }
+.time-bank-clock-ready:active { transform: scale(0.95); }
+
+/* Tapped: glows while your own clock keeps running. */
+.time-bank-clock-armed {
+  background: #78350f;
+  animation: tbc-glow 1.2s ease-in-out infinite;
+}
+
+/* Your clock ran out: the bank is counting down, and the clock rings. */
+.time-bank-clock-running {
+  background: #b45309;
+  box-shadow: 0 0 10px 3px rgba(251, 191, 36, 0.85);
+}
+.time-bank-clock-running .time-bank-clock-icon {
+  animation: tbc-ring 0.6s ease-in-out infinite;
+  transform-origin: 50% 60%;
+}
+
+.time-bank-clock-seconds {
+  position: absolute;
+  top: -0.55rem;
+  left: -0.55rem;
+  min-width: 1.05rem;
+  padding: 0 0.2rem;
+  border-radius: 9999px;
+  background: #111827;
+  border: 1px solid #facc15;
+  color: #facc15;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 0.95rem;
+  text-align: center;
+  pointer-events: none;
+}
+
+@keyframes tbc-nudge {
+  0%, 88%, 100% { transform: rotate(0deg); }
+  91% { transform: rotate(-12deg); }
+  94% { transform: rotate(12deg); }
+  97% { transform: rotate(-6deg); }
+}
+
+@keyframes tbc-glow {
+  0%, 100% { box-shadow: 0 0 4px 1px rgba(251, 191, 36, 0.55), 0 0 0 2px #fbbf24; }
+  50% { box-shadow: 0 0 14px 5px rgba(251, 191, 36, 0.95), 0 0 0 2px #fde68a; }
+}
+
+@keyframes tbc-ring {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-14deg); }
+  75% { transform: rotate(14deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .time-bank-clock-ready,
+  .time-bank-clock-armed,
+  .time-bank-clock-running .time-bank-clock-icon {
+    animation: none;
+  }
+  .time-bank-clock-armed { box-shadow: 0 0 10px 3px rgba(251, 191, 36, 0.85); }
+}

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements, hasValue, isNullish } from "../../utils/guards";
+import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { hasContent, hasElements, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -14,7 +14,6 @@ import {
     isMaxAllIn,
     isShortShoveRaise,
     shouldShowShowdownBar,
-    timeBankButtonSeconds,
     validRaiseAmount
 } from "../../utils/pockerActionUtils";
 import { formatDisplayAmount } from "../../utils/numberUtils";
@@ -33,7 +32,7 @@ import { useAutoPostBlinds } from "../../hooks/playerActions/useAutoPostBlinds";
 import { useAutoNewHand } from "../../hooks/playerActions/useAutoNewHand";
 import { useAutoFold } from "../../hooks/playerActions/useAutoFold";
 import { useCallClock } from "../../hooks/playerActions/useCallClock";
-import { clockCallOpportunity, nextTimeBankMs } from "../../utils/turnClock";
+import { clockCallOpportunity } from "../../utils/turnClock";
 import { getLatestGameState } from "../../hooks/playerActions/transportAction";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { toast } from "react-toastify";
@@ -55,7 +54,6 @@ import { raiseHand } from "../../hooks/playerActions/raiseHand";
 import { postSmallBlind } from "../../hooks/playerActions/postSmallBlind";
 import { postBigBlind } from "../../hooks/playerActions/postBigBlind";
 import { startNewHand } from "../../hooks/playerActions/startNewHand";
-import { timeBank } from "../../hooks/playerActions/timeBank";
 import type { PlayerActionResult } from "../../types";
 
 // Import utils
@@ -184,8 +182,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         hasRaiseAction,
         hasMuckAction,
         hasShowAction,
-        hasDealAction,
-        hasTimeBankAction
+        hasDealAction
     } = getActionFlags(legalActions);
 
     // Blind amounts - single source of truth from gameState.gameOptions (per Commandment 7)
@@ -522,8 +519,6 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // it isn't the player's move, so Fold / Call / Raise must stay on screen
     // while it confirms. The engine only offers it while it can be used, and
     // the label shows what this use grants (45s, then 30s, then the refill).
-    const timeBankSeconds = timeBankButtonSeconds({ hasTimeBankAction, isUsersTurn, timeBankMs: nextTimeBankMs(userPlayer) });
-    const handleTimeBankAction = () => submit({ actionName: NonPlayerActionType.TIME_BANK, run: () => timeBank(tableId, network) });
 
     // Calculate button visibility flags
     const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {
@@ -695,18 +690,6 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                         {/* Main Action Buttons */}
                         {showActionButtons && !showSmallBlindButton && !showBigBlindButton && (
                             <>
-                                {hasValue(timeBankSeconds) && (
-                                    <div className="flex justify-center">
-                                        <ActionButton
-                                            action={NonPlayerActionType.TIME_BANK}
-                                            label={`TIME BANK +${timeBankSeconds}s`}
-                                            loading={loadingAction === NonPlayerActionType.TIME_BANK}
-                                            onClick={handleTimeBankAction}
-                                            variant="secondary"
-                                            className="px-4 py-1.5 text-xs lg:text-sm font-bold"
-                                        />
-                                    </div>
-                                )}
                                 <MainActionButtons
                                     canFold={canFoldAnytime}
                                     canCheck={hasCheckAction}

@@ -7,6 +7,10 @@ import { useGameUI } from "./gameState/GameUIContext";
 import { useGameActions } from "./gameState/GameActionsContext";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 import { TexasHoldemStateDTO, GameOptionsDTO } from "@block52/poker-vm-sdk";
+import { createAuthPayload } from "../utils/cosmos/signing";
+import { AUTH_MASKED_RETRY_MS, AUTH_RENEWAL_CHECK_MS, AUTH_RENEWAL_INTERVAL_MS } from "../utils/wsAuth";
+
+jest.mock("../utils/cosmos/signing", () => ({ createAuthPayload: jest.fn() }));
 
 // The provider constructs a WebSocket; hand-roll a mock so tests can drive
 // scripted frames into ws.onmessage without a real socket.
@@ -526,5 +530,195 @@ describe("GameStateProvider reconnect (ui#613)", () => {
             currentSocket().emit(stateFrame(4));
         });
         await waitFor(() => expect(conn()).toBe("live:0"));
+    });
+});
+
+describe("GameStateProvider auth renewal (ui#953)", () => {
+    const ADDRESS = "b521testaddress";
+    const signMock = createAuthPayload as jest.MockedFunction<typeof createAuthPayload>;
+    let originalWebSocket: typeof WebSocket;
+    let warn: jest.SpyInstance;
+
+    beforeEach(() => {
+        jest.useFakeTimers();
+        warn = jest.spyOn(console, "warn").mockImplementation(() => {});
+        originalWebSocket = global.WebSocket;
+        // @ts-expect-error — assigning the hand-rolled mock over the DOM lib type.
+        global.WebSocket = MockWebSocket;
+        MockWebSocket.instances = [];
+        localStorage.clear();
+        localStorage.setItem(STORAGE_KEYS.cosmosAddress, ADDRESS);
+        signMock.mockReset();
+        signMock.mockImplementation(async () => ({
+            playerAddress: ADDRESS,
+            timestamp: Math.floor(Date.now() / 1000),
+            signature: `sig-${Date.now()}`
+        }));
+    });
+
+    afterEach(() => {
+        warn.mockRestore();
+        global.WebSocket = originalWebSocket;
+        delete window.__B52_BUS__;
+        jest.useRealTimers();
+    });
+
+    const conn = () => screen.getByTestId("conn").textContent;
+    const hand = () => screen.getByTestId("hand").textContent;
+    const subscribes = (socket: MockWebSocket) => socket.sent.map(data => JSON.parse(data)).filter(message => message.type === "subscribe");
+    const advance = (ms: number) =>
+        act(async () => {
+            await jest.advanceTimersByTimeAsync(ms);
+        });
+
+    function heroFrame(handNumber: number, holeCards: string[]): unknown {
+        const players = [{ seat: 1, address: ADDRESS, holeCards }] as unknown as TexasHoldemStateDTO["players"];
+        return {
+            event: "state",
+            gameId: TABLE_ID,
+            data: { format: "cash", variant: "texas-holdem", gameState: { ...makeSnapshot(handNumber), players } }
+        };
+    }
+
+    /** Open the socket, take the subscribe it signs, and go live on a frame. */
+    async function openLive(frame: unknown = stateFrame(3)): Promise<MockWebSocket> {
+        renderProvider();
+        const socket = currentSocket();
+        await act(async () => {
+            socket.readyState = MockWebSocket.OPEN;
+            await socket.onopen?.();
+        });
+        expect(subscribes(socket)).toHaveLength(1);
+        act(() => socket.emit(frame));
+        await waitFor(() => expect(conn()).toBe("live:0"));
+        return socket;
+    }
+
+    it("signs again on the same socket before the chain's hour runs out, then keeps doing so", async () => {
+        const socket = await openLive();
+        const [first] = subscribes(socket);
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS - AUTH_RENEWAL_CHECK_MS);
+        expect(subscribes(socket)).toHaveLength(1);
+
+        await advance(AUTH_RENEWAL_CHECK_MS);
+        expect(subscribes(socket)).toHaveLength(2);
+        const [, renewed] = subscribes(socket);
+        expect(renewed.gameId).toBe(TABLE_ID);
+        expect(renewed.playerAddress).toBe(ADDRESS);
+        expect(renewed.timestamp).toBeGreaterThan(first.timestamp);
+        expect(renewed.signature).not.toBe(first.signature);
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+        expect(subscribes(socket)).toHaveLength(3);
+        expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it("leaves the table up through a renewal: no reconnect, and the answer is an ordinary frame", async () => {
+        const socket = await openLive();
+        await waitFor(() => expect(hand()).toBe("3"));
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+        expect(conn()).toBe("live:0");
+        expect(hand()).toBe("3");
+
+        act(() => socket.emit(stateFrame(4)));
+        await waitFor(() => expect(hand()).toBe("4"));
+        expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it("renews on the tab coming back when the signature aged in the background", async () => {
+        const socket = await openLive();
+
+        // A frozen tab: the clock moved, but no timer ran.
+        jest.setSystemTime(Date.now() + AUTH_RENEWAL_INTERVAL_MS);
+        await act(async () => {
+            document.dispatchEvent(new Event("visibilitychange"));
+        });
+
+        expect(subscribes(socket)).toHaveLength(2);
+        expect(MockWebSocket.instances).toHaveLength(1);
+    });
+
+    it("does not sign again for a tab switch while the signature is young", async () => {
+        const socket = await openLive();
+
+        await act(async () => {
+            document.dispatchEvent(new Event("visibilitychange"));
+        });
+
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("signs again at once when our own cards arrive masked", async () => {
+        const socket = await openLive(heroFrame(3, ["AS", "KD"]));
+        await advance(AUTH_MASKED_RETRY_MS);
+        expect(subscribes(socket)).toHaveLength(1);
+
+        act(() => socket.emit(heroFrame(3, ["X", "X"])));
+        await waitFor(() => expect(subscribes(socket)).toHaveLength(2));
+        expect(MockWebSocket.instances).toHaveLength(1);
+        expect(conn()).toBe("live:0");
+    });
+
+    it("does not sign again for frames with our own cards visible", async () => {
+        const socket = await openLive(heroFrame(3, ["AS", "KD"]));
+        await advance(AUTH_MASKED_RETRY_MS);
+
+        act(() => socket.emit(heroFrame(3, ["AS", "KD"])));
+        await advance(AUTH_RENEWAL_CHECK_MS);
+
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("retries masked cards no faster than the debounce, also on a table that has gone quiet", async () => {
+        const socket = await openLive(heroFrame(3, ["AS", "KD"]));
+        await advance(AUTH_MASKED_RETRY_MS);
+
+        act(() => socket.emit(heroFrame(3, ["X", "X"])));
+        await waitFor(() => expect(subscribes(socket)).toHaveLength(2));
+
+        // Still masked, frames arriving: inside the window nothing more is signed.
+        act(() => socket.emit(heroFrame(3, ["X", "X"])));
+        await advance(AUTH_MASKED_RETRY_MS / 2);
+        expect(subscribes(socket)).toHaveLength(2);
+
+        // No frame at all now: the clock retries by itself, on its first check
+        // past the window.
+        await advance(AUTH_MASKED_RETRY_MS / 2 + AUTH_RENEWAL_CHECK_MS);
+        expect(subscribes(socket)).toHaveLength(3);
+    });
+
+    it("sends nothing when signing fails, which would overwrite the relay's credentials", async () => {
+        const socket = await openLive();
+        signMock.mockResolvedValue(null);
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+
+        expect(signMock).toHaveBeenCalledTimes(2);
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("sends nothing when the socket closes while signing", async () => {
+        const socket = await openLive();
+        signMock.mockImplementation(async () => {
+            socket.readyState = MockWebSocket.CLOSED;
+            return { playerAddress: ADDRESS, timestamp: 1, signature: "late" };
+        });
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+
+        expect(subscribes(socket)).toHaveLength(1);
+    });
+
+    it("stops renewing after an unsubscribe", async () => {
+        const socket = await openLive();
+        act(() => screen.getByText("unsubscribe").click());
+        signMock.mockClear();
+
+        await advance(AUTH_RENEWAL_INTERVAL_MS);
+
+        expect(signMock).not.toHaveBeenCalled();
+        expect(subscribes(socket)).toHaveLength(1);
     });
 });

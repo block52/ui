@@ -18,7 +18,7 @@ import {
 import { encodeGameStateRequest } from "../../utils/abciQuery";
 import { getCosmosAddress, getCosmosMnemonic } from "../../utils/cosmos/storage";
 import { signQueryMessage } from "../../utils/cosmos/signing";
-import { hasElements } from "../../utils/guards";
+import { hasElements, isNullish } from "../../utils/guards";
 import type { CometRpcApi } from "../../apis/Api";
 import { useReplayTransport, type ReplayTransport } from "./useReplayTransport";
 
@@ -118,7 +118,7 @@ export function useReplayTimeline({ tableId, handNumber, active }: UseReplayTime
     const settledRef = useRef<string | null>(null);
 
     useEffect(() => {
-        if (!active || !tableId || handNumber === null) {
+        if (!active || !tableId || isNullish(handNumber)) {
             setSteps([]);
             setLatestHand(null);
             setKnownCards(NO_KNOWN_CARDS);
@@ -184,7 +184,7 @@ export function useReplayTimeline({ tableId, handNumber, active }: UseReplayTime
 
     // Load the step the transport points at (the arrival step is already shown).
     useEffect(() => {
-        if (!active || !tableId || handNumber === null || !hasElements(steps)) return;
+        if (!active || !tableId || isNullish(handNumber) || !hasElements(steps)) return;
         const key = `${tableId}:${handNumber}:${transport.position}:${knownHoleCardsKey(knownCards)}`;
         if (settledRef.current === key) return;
         settledRef.current = key;
