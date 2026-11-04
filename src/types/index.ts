@@ -443,6 +443,8 @@ export interface WinnerInfo {
     description?: string;
     handName?: string;
     cards?: string[];
+    /** What this winner took from each pot, main pot first (ui#918). Absent on engines before SDK 1.23.0. */
+    pots?: { pot: number; amount: string; formattedAmount: string }[];
 }
 
 export interface WinnerInfoReturn {
