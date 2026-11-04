@@ -111,6 +111,14 @@ export const timeBankButtonSeconds = (args: { hasTimeBankAction: boolean; isUser
 };
 
 /**
+ * Whether the submission in flight ends the player's turn (ui#944): any action
+ * but the time bank, which extends the turn instead. The chain takes up to a
+ * block to confirm it, and the player's clock should stop the moment they act.
+ */
+export const isTurnEndingSubmit = (loadingAction: string | null | undefined): boolean =>
+    hasValue(loadingAction) && loadingAction !== NonPlayerActionType.TIME_BANK;
+
+/**
  * How the alarm-clock time bank button on the player's own pill looks (ui#19):
  *
  *   - `hidden`:  the table has no time bank.
@@ -128,8 +136,11 @@ export const timeBankClockState = (args: {
     isSubmitting: boolean;
     isArmed: boolean;
     isInTimeBank: boolean;
+    /** The player has acted: the turn is over, even before the chain confirms it. */
+    isEndingTurn?: boolean;
 }): TimeBankClockState => {
     if (!args.tableHasTimeBank) return "hidden";
+    if (args.isEndingTurn) return "idle";
     if (args.isInTimeBank) return "running";
     if (args.isArmed || args.isSubmitting) return "armed";
     if (hasValue(args.timeBankSeconds)) return "ready";

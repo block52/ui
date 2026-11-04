@@ -18,6 +18,7 @@ import {
     PREFLOP_TIMEOUT_SECONDS,
     TURN_CLOCK_START_ALLOWANCE_MS,
     turnClockPhase,
+    turnCountdownStartMs,
     turnDeadlineMs,
     turnTimeoutSeconds
 } from "./turnClock";
@@ -328,5 +329,15 @@ describe("turn clock start allowance (ui#944)", () => {
 describe("turnClockPhase before the clock starts (ui#944)", () => {
     it("shows the full turn clock, never more", () => {
         expect(turnClockPhase({ nowMs: 7_000, anchorMs: 10_000, baseMs: 15_000, bankGrantedMs: 0 })).toEqual({ phase: "base", remainingMs: 15_000, totalMs: 15_000 });
+    });
+});
+
+describe("turnCountdownStartMs (ui#944)", () => {
+    it("counts a committed turn from the chain's clock start", () => {
+        expect(turnCountdownStartMs(10_000, false, 99_000)).toBe(15_000);
+    });
+
+    it("counts a turn first seen on a projection from now, because its stamp is stale", () => {
+        expect(turnCountdownStartMs(10_000, true, 12_345)).toBe(12_345);
     });
 });

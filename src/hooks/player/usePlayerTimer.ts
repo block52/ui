@@ -9,7 +9,7 @@ import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { isNullish, safeLength } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
-import { timeBankGrantedMs, turnClockPhase, turnClockStartMs, turnTimeoutSeconds } from "../../utils/turnClock";
+import { timeBankGrantedMs, turnClockPhase, turnCountdownStartMs, turnTimeoutSeconds } from "../../utils/turnClock";
 
 /**
  * Player timer: how long the seat has left to act. It REPORTS time; it never acts.
@@ -33,7 +33,7 @@ import { timeBankGrantedMs, turnClockPhase, turnClockStartMs, turnTimeoutSeconds
 export const usePlayerTimer = (_tableId?: string, playerSeat?: number): PlayerTimerReturn => {
     const [currentTime, setCurrentTime] = useState(Date.now());
 
-    const { gameState } = useGameData();
+    const { gameState, isOptimistic } = useGameData();
     const { isLoading, error } = useGameUI();
     const { isReplayMode } = useReplay();
 
@@ -76,10 +76,11 @@ export const usePlayerTimer = (_tableId?: string, playerSeat?: number): PlayerTi
         [gameState?.nextToAct, actionCount]
     );
     const turnAnchorRef = useRef<TurnAnchor>({ turnId: "", anchorMs: lastActionTimestamp });
-    turnAnchorRef.current = resolveTurnAnchor(turnAnchorRef.current, turnId, lastActionTimestamp);
-    // The clock starts one block interval after the anchor's stamp (ui#944),
-    // exactly as the chain's deadline does.
-    const anchoredActionTimestamp = turnClockStartMs(turnAnchorRef.current.anchorMs);
+    // The clock starts one block interval after the anchor's stamp, as the
+    // chain's deadline does; a turn first seen on a relay projection starts when
+    // it is seen, because a projection's stamp is stale (ui#944).
+    turnAnchorRef.current = resolveTurnAnchor(turnAnchorRef.current, turnId, turnCountdownStartMs(lastActionTimestamp, isOptimistic, Date.now()));
+    const anchoredActionTimestamp = turnAnchorRef.current.anchorMs;
 
     // Check if this player is next to act. A hand replay is a frozen snapshot with
     // no live turn, so no seat is ever "to act" — this keeps the countdown timer and

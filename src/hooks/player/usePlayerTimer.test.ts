@@ -274,6 +274,37 @@ describe("usePlayerTimer", () => {
         });
     });
 
+    // ui#944: a projection stamps a pending move with the last block's time.
+    describe("a turn first seen on a relay projection", () => {
+        const projected = (stampAgoMs: number) => ({ ...state(1, 25), round: TexasHoldemRound.FLOP, previousActions: [{ action: "check", playerId: "b521them", timestamp: Date.now() - stampAgoMs }] });
+        const setProjected = (snapshot: unknown, isOptimistic: boolean) => {
+            setState(snapshot);
+            mockUseGameData.mockReturnValue({ gameState: snapshot, isOptimistic });
+        };
+
+        it("shows the full clock, not the time since the stale stamp", () => {
+            setProjected(projected(12_000), true);
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.phaseTimeRemaining).toBe(25);
+            expect(result.current.timeRemaining).toBe(25);
+        });
+
+        it("keeps that start when the committed frame of the same turn arrives", () => {
+            const snapshot = projected(12_000);
+            setProjected(snapshot, true);
+            const { result, rerender } = renderHook(() => usePlayerTimer(TABLE, 1));
+            setProjected({ ...snapshot, previousActions: [{ ...snapshot.previousActions[0], timestamp: Date.now() - 1_000 }] }, false);
+            rerender();
+            expect(result.current.phaseTimeRemaining).toBe(25);
+        });
+
+        it("counts a committed turn from the chain's clock start, as before", () => {
+            setProjected(projected(9_000), false); // 4s into the clock
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.phaseTimeRemaining).toBe(21);
+        });
+    });
+
     // ui#721: a hand replay is a frozen snapshot. The snapshot still carries a
     // nextToAct seat, but there is no live turn, so the timer must not run —
     // otherwise its per-second re-render flashes the "whose turn" indicator.

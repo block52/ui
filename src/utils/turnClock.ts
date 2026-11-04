@@ -63,6 +63,19 @@ export const TURN_CLOCK_START_ALLOWANCE_MS = 5_000;
 export const turnClockStartMs = (anchorMs: number): number => anchorMs + TURN_CLOCK_START_ALLOWANCE_MS;
 
 /**
+ * When the countdown starts for a turn first seen on this frame (ui#944).
+ *
+ * A committed frame counts from the chain's clock start. A relay projection of
+ * mempool actions (`isOptimistic`) stamps a pending move with the LAST block's
+ * time, which can be a full block older than the stamp the chain will give it,
+ * so counting from it would cut into the player's clock and fold them early.
+ * A turn first seen on a projection counts from the moment it is seen: the
+ * player gets the full clock, and the chain's real deadline is no earlier.
+ */
+export const turnCountdownStartMs = (anchorMs: number, isOptimistic: boolean, nowMs: number): number =>
+    isOptimistic ? nowMs : turnClockStartMs(anchorMs);
+
+/**
  * The pre-flop turn clock (poker-vm#2143): 15s to act pre-flop, the table's
  * full `gameOptions.timeout` on the flop, turn and river. Mirrors the engine's
  * `PreflopTimeoutSeconds`; a table already shorter than 15s keeps its own.
