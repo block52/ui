@@ -3,6 +3,7 @@ import { toast } from "react-toastify";
 import { usePaymentApi } from "../../context/PaymentApiContext";
 import { proxyErrorMessage, isProxyTimeout, STILL_GOING_THROUGH } from "../../utils/bridge/proxyError";
 import { LoadingSpinner } from "../common/LoadingSpinner";
+import { hasElements, hasValue, isEmpty, isNullish } from "../../utils/guards";
 
 /** One payment NOWPayments settled whose USDC has not all reached the bridge (proxy GET /unbridged). */
 export interface UnbridgedPaymentDTO {
@@ -123,7 +124,7 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
         }
     };
 
-    const owesMoreThanWallet = totalOwed !== null && hotWalletUsdc !== null && parseFloat(totalOwed) > parseFloat(hotWalletUsdc);
+    const owesMoreThanWallet = hasValue(totalOwed) && hasValue(hotWalletUsdc) && parseFloat(totalOwed) > parseFloat(hotWalletUsdc);
 
     return (
         <div className="bg-gradient-to-r from-red-900/30 to-orange-900/30 rounded-lg mb-6 border border-red-700 p-4" data-testid="stuck-payments">
@@ -154,7 +155,7 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
 
             {!adminKey && <p className="text-yellow-300 text-base">Enter the admin key above to see this list.</p>}
 
-            {adminKey && isLoading && payments === null && (
+            {adminKey && isLoading && isNullish(payments) && (
                 <div className="flex items-center gap-2 text-gray-300 text-base">
                     <LoadingSpinner size="sm" /> Loading…
                 </div>
@@ -173,11 +174,11 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
                 </p>
             )}
 
-            {payments && payments.length === 0 && !loadError && (
+            {hasValue(payments) && isEmpty(payments) && !loadError && (
                 <p className="text-green-300 text-base">✅ Nobody is waiting. Every settled payment has been bridged.</p>
             )}
 
-            {payments && payments.length > 0 && (
+            {hasElements(payments) && (
                 <ul className="space-y-3">
                     {payments.map(p => (
                         <li key={p.payment_id} className="bg-gray-900/60 rounded-lg p-3" data-testid={`stuck-${p.payment_id}`}>
@@ -199,7 +200,7 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
                                         <>
                                             <button
                                                 onClick={() => handleRetry(p)}
-                                                disabled={busyId !== null}
+                                                disabled={hasValue(busyId)}
                                                 title="Sends USDC from the hot wallet to the bridge for this player. Moves real money."
                                                 className="min-h-[44px] px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white font-semibold rounded-lg text-base"
                                             >
@@ -217,7 +218,7 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
                                         <>
                                             <button
                                                 onClick={() => setConfirmingId(p.payment_id)}
-                                                disabled={busyId !== null}
+                                                disabled={hasValue(busyId)}
                                                 title="Bridge what this payment still owes, to the player's address on record. Asks you to confirm first."
                                                 className="min-h-[44px] px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white font-semibold rounded-lg text-base flex items-center gap-2"
                                             >
@@ -229,7 +230,7 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
                                                     setMarkingId(markingId === p.payment_id ? null : p.payment_id);
                                                     setMarkTxHash("");
                                                 }}
-                                                disabled={busyId !== null}
+                                                disabled={hasValue(busyId)}
                                                 title="Already sent by hand? Record its transaction hash so this payment can never be paid twice. Moves no money."
                                                 className="min-h-[44px] px-4 py-2 bg-gray-700 hover:bg-gray-600 disabled:bg-gray-800 text-white rounded-lg text-base"
                                             >
@@ -251,7 +252,7 @@ export function StuckPaymentsPanel({ adminKey, hotWalletUsdc, onBridged }: Stuck
                                     />
                                     <button
                                         onClick={() => handleMarkPaid(p)}
-                                        disabled={busyId !== null}
+                                        disabled={hasValue(busyId)}
                                         title="Records this payment as paid. Moves no money."
                                         className="min-h-[44px] px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg text-base"
                                     >

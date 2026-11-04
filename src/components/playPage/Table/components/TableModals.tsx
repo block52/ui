@@ -7,6 +7,8 @@
  * - Sit & Go waiting modal
  * - Transaction popup
  * - Leave table modal
+ * - Tournament-winner moment (ui#874), which holds the result modal back until
+ *   the deciding hand and the winner have been shown
  */
 
 import React from "react";
@@ -16,6 +18,9 @@ import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
 import TransactionPopup from "../../common/TransactionPopup";
 import { LeaveTableModal } from "../../../modals";
+import TournamentWinnerMoment from "../../Animations/TournamentWinnerMoment";
+import { useTournamentFinishMoment } from "../../../../hooks/game/useTournamentFinishMoment";
+import { holdsResultModals } from "../../../../utils/tournamentFinish";
 
 export interface TableModalsProps {
     // Game Start Countdown
@@ -68,6 +73,11 @@ export const TableModals: React.FC<TableModalsProps> = ({
     currentPlayerStack,
     isInActiveHand
 }) => {
+    // ui#874: a finish happening live holds the results / busted modal until the
+    // deciding hand (and, at the end, the tournament-winner moment) has shown.
+    const finishMoment = useTournamentFinishMoment();
+    const holdResults = holdsResultModals(finishMoment.phase);
+
     return (
         <>
             {/* Game Start Countdown Modal */}
@@ -96,8 +106,12 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 table is finished — no balance-still-on-table concern.
                 block52/ui#371. */}
             {gameFormat && isSitAndGoFormat(gameFormat) && (
-                <SitAndGoResultModal tableId={tableId} onLeave={handleLeaveTableConfirm} onClaim={handleClaimWinnings} />
+                <SitAndGoResultModal tableId={tableId} onLeave={handleLeaveTableConfirm} onClaim={handleClaimWinnings} held={holdResults} />
             )}
+
+            {/* Tournament-winner moment (ui#874): winner, prize, winning hand and
+                runner-up, held before the results modal. */}
+            {finishMoment.phase === "winner" && finishMoment.finish && <TournamentWinnerMoment finish={finishMoment.finish} />}
 
             {/* Transaction Popup - Bottom Right */}
             <TransactionPopup txHash={recentTxHash} onClose={handleCloseTransactionPopup} />

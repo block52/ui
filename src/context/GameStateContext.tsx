@@ -9,7 +9,7 @@ import { GameMessageBus } from "../bus/GameMessageBus";
 import { type GameStreamItem } from "../bus/types";
 import { viteEnv } from "../utils/viteEnv";
 import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
-import { hasElements } from "../utils/guards";
+import { hasElements, hasValue, isNullish } from "../utils/guards";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
@@ -25,6 +25,7 @@ import { GameActionsProvider, useGameActions } from "./gameState/GameActionsCont
 import { GameEventsProvider } from "./gameState/GameEventsContext";
 import { IDLE_CONNECTION, isConnectionLive, type ConnectionState } from "./gameState/connection";
 import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
+import { AUTH_RENEWAL_CHECK_MS, isAuthRenewalDue, isOwnHandMasked } from "../utils/wsAuth";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
 const ENABLE_REST_FALLBACK = false;
@@ -115,13 +116,17 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const reconnectAttemptRef = useRef(0);
     const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isReplayModeRef = useRef(false);
+    /** When the live socket's credentials were last signed (ui#953). */
+    const authSignedAtRef = useRef(0);
+    /** Whether the latest committed frame had our own cards masked (ui#953). */
+    const ownHandMaskedRef = useRef(false);
 
     // WS Action Bus. Created eagerly in render so it exists before any child
     // effect calls subscribeToTable. The logical track (setLatestGameState) is
     // fed by the bus at ingest time; committed items drive the RENDER track via
     // applyRenderTrack below.
     const busRef = useRef<GameMessageBus | null>(null);
-    if (busRef.current === null) {
+    if (isNullish(busRef.current)) {
         busRef.current = new GameMessageBus({ setLatestGameState });
     }
 
@@ -131,6 +136,10 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     const ackAnimation = useCallback((ackId: string) => {
         busRef.current?.ackAnimation(ackId);
     }, []);
+
+    // Stable bridge to the bus's run-out state (ui#873): useAutoNewHand defers
+    // the next hand's deal while a protected tournament run-out is still showing.
+    const isPlayingSuspense = useCallback((): boolean => busRef.current?.isPlayingSuspense() ?? false, []);
 
     // Apply a classified message to the RENDER track (React state). Contains no
     // setLatestGameState calls — the logical track is updated by the bus at
@@ -295,6 +304,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             ws.onopen = async () => {
                 if (!isCurrent()) return;
                 // Create authenticated subscription message with signature
+                authSignedAtRef.current = Date.now();
                 const authPayload = await createAuthPayload();
                 if (!isCurrent() || ws.readyState !== WebSocket.OPEN) return;
 
@@ -451,6 +461,46 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         [openSocket]
     );
 
+    /**
+     * Sign again on the open socket when its credentials are due (ui#953). The
+     * relay overwrites what it stored on a subscribe and answers with a snapshot,
+     * an ordinary state frame on the same socket. So no bus reset and no
+     * reconnecting state: the table never notices.
+     */
+    const renewAuthIfDue = useCallback(async () => {
+        const ws = wsRef.current;
+        const tableId = currentTableIdRef.current;
+        if (isNullish(ws) || ws.readyState !== WebSocket.OPEN || !hasValue(tableId) || isReplayModeRef.current) return;
+
+        const nowMs = Date.now();
+        const ownHandMasked = ownHandMaskedRef.current;
+        if (!isAuthRenewalDue({ nowMs, signedAtMs: authSignedAtRef.current, ownHandMasked })) return;
+        authSignedAtRef.current = nowMs;
+
+        if (ownHandMasked) {
+            console.warn(`[GameStateContext] own cards arrived masked on ${tableId}; signing again`);
+        }
+        const authPayload = await createAuthPayload();
+        // No signature, no subscribe: one without would overwrite the relay's
+        // stored credentials, and they may still be good.
+        if (isNullish(authPayload) || wsRef.current !== ws || ws.readyState !== WebSocket.OPEN || currentTableIdRef.current !== tableId) return;
+        ws.send(JSON.stringify({ type: "subscribe", gameId: tableId, ...authPayload }));
+    }, []);
+
+    // The renewal clock (ui#953). A no-op until a socket is open and due.
+    useEffect(() => {
+        const timer = setInterval(() => void renewAuthIfDue(), AUTH_RENEWAL_CHECK_MS);
+        return () => clearInterval(timer);
+    }, [renewAuthIfDue]);
+
+    // The safety net (ui#953): our own cards masked means the relay's authenticated
+    // query failed, whatever the signature's age. The ref lets the clock above keep
+    // retrying on a quiet table, where no further frame would bring us back here.
+    useEffect(() => {
+        ownHandMaskedRef.current = isOwnHandMasked(gameState, localStorage.getItem(STORAGE_KEYS.cosmosAddress));
+        void renewAuthIfDue();
+    }, [gameState, renewAuthIfDue]);
+
     // Wake-ups (ui#613): a tab coming back from the background (mobile
     // browsers drop sockets there, often without a prompt onclose) or the
     // browser coming back online reconnects immediately with a fresh attempt
@@ -465,8 +515,12 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             // may be half-dead or have missed frames, and a quiet table (it is
             // someone's turn) sends nothing to prove otherwise, so re-subscribe
             // for a fresh snapshot instead of staying offline (ui#867). Any other
-            // open socket is live or already waiting on its first frame.
-            if (state === WebSocket.OPEN && connectionRef.current.status !== "offline") return;
+            // open socket is live or already waiting on its first frame, but it may
+            // have spent long enough in the background to need signing (ui#953).
+            if (state === WebSocket.OPEN && connectionRef.current.status !== "offline") {
+                void renewAuthIfDue();
+                return;
+            }
             console.warn(`[GameStateContext] ${reason}: socket not live; reconnecting now`);
             if (reconnectTimerRef.current) {
                 clearTimeout(reconnectTimerRef.current);
@@ -490,7 +544,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             window.removeEventListener("online", onOnline);
             window.removeEventListener("offline", onOffline);
         };
-    }, [openSocket]);
+    }, [openSocket, renewAuthIfDue]);
 
     const unsubscribeFromTable = useCallback(() => {
         // An intentional close: no reconnect, no timers left behind.
@@ -595,7 +649,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
             };
 
             try {
-                if (actionIndex !== null) {
+                if (hasValue(actionIndex)) {
                     const response = (await restApi.getGameStateAt(tableId, handNumber, actionIndex)) as { game_state?: string };
                     if (!response || !response.game_state) {
                         throw new Error(`No game state found for hand ${handNumber} at action ${actionIndex}`);
@@ -613,7 +667,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, request, height)));
                     try {
                         const endHeight = parseTxSearchHeight(await rpc.txSearch(handEndedQuery(tableId, handNumber)));
-                        if (endHeight === null) {
+                        if (isNullish(endHeight)) {
                             // Not ended on this node: it may be the hand being played now.
                             const now = await stateAt(0);
                             if (now.state.handNumber === handNumber) {
@@ -623,7 +677,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                             // Started but never ended: a duplicate new-hand in the same block
                             // replaces it before any play, so there is nothing to show.
                             const startHeight = parseTxSearchHeight(await rpc.txSearch(handStartedQuery(tableId, handNumber)));
-                            if (startHeight !== null) {
+                            if (hasValue(startHeight)) {
                                 const atStart = await stateAt(startHeight);
                                 if (atStart.state.handNumber === handNumber) {
                                     await apply(atStart);
@@ -754,7 +808,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
                         pendingAction={pendingAction}
                         connection={connection}
                     >
-                        <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation}>
+                        <GameEventsProvider latestItem={latestStreamItem} ackAnimation={ackAnimation} isPlayingSuspense={isPlayingSuspense}>
                             <GameDataProvider gameState={gameState} isOptimistic={isOptimistic}>
                                 {children}
                             </GameDataProvider>

@@ -13,6 +13,7 @@
  */
 
 import { viteEnv } from "../viteEnv";
+import { hasElements } from "../guards";
 
 const ARWEAVE_GATEWAY = "https://arweave.net/";
 
@@ -33,7 +34,7 @@ const parseGatewayEnv = (raw: string | undefined): string[] => {
         .split(",")
         .map(s => s.trim().replace(/\/+$/, ""))
         .filter(s => s.startsWith("http://") || s.startsWith("https://"));
-    return parsed.length > 0 ? parsed : DEFAULT_IPFS_GATEWAYS;
+    return hasElements(parsed) ? parsed : DEFAULT_IPFS_GATEWAYS;
 };
 
 export const IPFS_GATEWAYS: string[] = parseGatewayEnv(viteEnv.VITE_IPFS_GATEWAYS);

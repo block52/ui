@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import type { AnimationHint } from "../../bus/types";
+import { hasValue } from "../../utils/guards";
 
 /**
  * useAnimationAck — bridge bus animation acks to React consumers (Phase 5, §2.7).
@@ -33,7 +34,7 @@ export function useAnimationAck(hints: AnimationHint[]): (ackId: string) => void
     // commit). Keeps the set bounded and lets each commit's ids be acked once.
     const ackKey = hints
         .map(hint => hint.ackId)
-        .filter((id): id is string => id !== undefined)
+        .filter((id): id is string => hasValue(id))
         .join(",");
     useEffect(() => {
         ackedRef.current = new Set();

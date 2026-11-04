@@ -2,7 +2,7 @@ import { ActionDTO } from "@block52/poker-vm-sdk";
 import { hasElements } from "./guards";
 
 /** Default timeout in seconds for game creation */
-export const DEFAULT_TIMEOUT_SECONDS = 30;
+export const DEFAULT_TIMEOUT_SECONDS = 25;
 
 /** Default timeout in milliseconds — used when gameOptions hasn't loaded yet */
 const DEFAULT_TIMEOUT_MS = DEFAULT_TIMEOUT_SECONDS * 1000;
@@ -10,7 +10,7 @@ const DEFAULT_TIMEOUT_MS = DEFAULT_TIMEOUT_SECONDS * 1000;
 /**
  * Get the timeout duration in milliseconds from gameOptions.
  * Timeout is always provided at game creation (currently 300s) but the SDK
- * type marks it optional. Default to 30 000 ms while gameOptions is loading.
+ * type marks it optional. Default to DEFAULT_TIMEOUT_SECONDS while gameOptions is loading.
  */
 export const getTimeoutMs = (timeoutSeconds: number | undefined | null): number => {
     if (!timeoutSeconds) {

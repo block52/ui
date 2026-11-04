@@ -1,0 +1,12 @@
+.card {
+    background-color: color-mix(in srgb, var(--ui-bg-medium) 50%, transparent);
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent);
+}
+
+.winner {
+    color: var(--brand-primary);
+}
+
+.runnersUp {
+    border-top: 1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent);
+}

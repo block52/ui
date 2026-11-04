@@ -1,5 +1,6 @@
-import { GameVariant, PlayerActionType, PlayerStatus, PokerGameIntegration, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
+import { GameVariant, PlayerActionType, PokerGameIntegration, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
 import { isRevealedHand } from "../bus/deriveEvents";
+import { isTabledHand } from "./tabledHand";
 import { hasElements, isEmpty } from "./guards";
 import { evaluateHand } from "./handEvaluation";
 
@@ -35,7 +36,7 @@ export function getShownHoleCards(state: TexasHoldemStateDTO, winner: WinnerDTO)
     const player = state.players?.find(p => p.address?.toLowerCase() === address);
     if (!player || !player.holeCards || !isRevealedHand(player.holeCards)) return null;
     const showed =
-        player.status === PlayerStatus.SHOWING ||
+        isTabledHand(player) ||
         (state.previousActions ?? []).some(a => a.action === PlayerActionType.SHOW && a.playerId?.toLowerCase() === address);
     return showed ? player.holeCards : null;
 }

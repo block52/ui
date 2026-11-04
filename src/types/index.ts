@@ -365,9 +365,16 @@ export interface PlayerTimerReturn extends BaseHookReturn {
     progress: number;
     timeRemaining: number;
     isActive: boolean;
-    extendTime?: () => void;
+    /** True once the chain has granted this turn a time bank (ui#19). */
     hasUsedExtension?: boolean;
-    canExtend?: boolean;
+    /** The bank is granted but the turn clock is still running first (ui#19). */
+    isTimeBankArmed?: boolean;
+    /** The turn clock is spent and the countdown is on the bank (ui#19). */
+    isInTimeBank?: boolean;
+    /** Seconds left on the clock currently showing (turn clock, then bank). */
+    phaseTimeRemaining?: number;
+    /** Length in seconds of the clock currently showing. */
+    phaseTimeoutValue?: number;
     isCurrentUser?: boolean;
     isCurrentUserTurn?: boolean;
 }
@@ -436,6 +443,8 @@ export interface WinnerInfo {
     description?: string;
     handName?: string;
     cards?: string[];
+    /** What this winner took from each pot, main pot first (ui#918). Absent on engines before SDK 1.23.0. */
+    pots?: { pot: number; amount: string; formattedAmount: string }[];
 }
 
 export interface WinnerInfoReturn {

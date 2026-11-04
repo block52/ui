@@ -1,8 +1,9 @@
 import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { PlayerDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { ShowingCardsByAddressReturn, ShowingCardData } from "../../types/index";
 import { isRevealedHand } from "../../bus/deriveEvents";
+import { isTabledHand } from "../../utils/tabledHand";
 
 /**
  * Custom hook to get hole cards of players who have shown their cards
@@ -11,7 +12,7 @@ import { isRevealedHand } from "../../bus/deriveEvents";
  * Components call subscribeToTable(tableId) which creates a WebSocket connection with both tableAddress 
  * and playerId parameters. This hook reads the real-time showing cards data from that context.
  * 
- * @returns Object containing all players with "showing" status and their cards
+ * @returns Object containing all players whose hand is tabled and their cards
  */
 export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
   // Get game state directly from Context - real-time data via WebSocket
@@ -25,7 +26,7 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
 
   const showingFingerprint = useMemo(() => (
     gameState?.players ?? []
-  ).map(player => `${player.seat}:${player.status}:${player.holeCards?.join(",") ?? ""}`).join("|"), [gameState?.players]);
+  ).map(player => `${player.seat}:${player.status}:${player.cardsShown === true}:${player.holeCards?.join(",") ?? ""}`).join("|"), [gameState?.players]);
   
   // Find all players with status "showing"
   const showingPlayers = useMemo((): ShowingCardData[] => {
@@ -38,7 +39,9 @@ export const useShowingCardsByAddress = (): ShowingCardsByAddressReturn => {
           // In a replay the only real cards in state are ones the viewer is
           // entitled to see (shown at showdown, or their own — ui#816), on
           // every step of the hand, whatever the player's status was then.
-          (player.status === PlayerStatus.SHOWING || isReplayMode) && isRevealedHand(player.holeCards)
+          // A player who busted on a showdown keeps their hand tabled through
+          // cardsShown after their status leaves SHOWING (poker-vm#2758).
+          (isTabledHand(player) || isReplayMode) && isRevealedHand(player.holeCards)
         )
         .map((player: PlayerDTO) => ({
           address: player.address,

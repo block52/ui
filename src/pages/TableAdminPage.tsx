@@ -4,13 +4,14 @@ import { BettingLimit, GameFormat, GameVariant, CosmosClient, getDefaultCosmosCo
 import { Link, useNavigate } from "react-router-dom";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { isValidPlayerAddress } from "../utils/addressUtils";
-import { isEmpty } from "../utils/guards";
+import { isEmpty, hasValue, isNullish, hasContent, hasElements } from "../utils/guards";
 import { useNewTable } from "../hooks/game/useNewTable";
 import { useFindGames } from "../hooks/game/useFindGames";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
-import { validateTableName, normalizeTableName, tableNameCharCount } from "../utils/tableName";
+import { normalizeTableName, tableNameCharCount } from "../utils/tableName";
+import { useTableNameError } from "../hooks/game/useTableNameError";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import TableList from "../components/TableList";
 import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
@@ -147,12 +148,12 @@ export default function TableAdminPage() {
     // user omitted keeps its current value (mergeAdvancedParams handles that in
     // the modal; here we only write fields that were actually provided).
     const handleApplyAdvancedParams = (params: AdvancedSngParams) => {
-        if (params.maxPlayers !== undefined) setMaxPlayers(params.maxPlayers);
-        if (params.startingStack !== undefined) setStartingStack(params.startingStack);
-        if (params.smallBlind !== undefined) setSngSmallBlind(params.smallBlind);
-        if (params.bigBlind !== undefined) setSngBigBlind(params.bigBlind);
-        if (params.blindLevelDuration !== undefined) setBlindLevelDuration(params.blindLevelDuration);
-        if (params.buyIn !== undefined) setTournamentBuyIn(params.buyIn.toString());
+        if (hasValue(params.maxPlayers)) setMaxPlayers(params.maxPlayers);
+        if (hasValue(params.startingStack)) setStartingStack(params.startingStack);
+        if (hasValue(params.smallBlind)) setSngSmallBlind(params.smallBlind);
+        if (hasValue(params.bigBlind)) setSngBigBlind(params.bigBlind);
+        if (hasValue(params.blindLevelDuration)) setBlindLevelDuration(params.blindLevelDuration);
+        if (hasValue(params.buyIn)) setTournamentBuyIn(params.buyIn.toString());
     };
 
     // Calculate actual buy-in values from BB
@@ -189,7 +190,8 @@ export default function TableAdminPage() {
     // Paid table name (poker-vm#337): normalize to the chain's canonical form so the
     // preview, fee, validation and submitted value all match the chain.
     const normalizedTableName = useMemo(() => normalizeTableName(tableName), [tableName]);
-    const tableNameError = useMemo(() => validateTableName(tableName), [tableName]);
+    // Format rules plus "already taken" on chain, checked as you type (ui#878).
+    const tableNameError = useTableNameError(tableName);
     const tableNameFeeUsd = useMemo(() => microToUsdc(computeGameNameFee(normalizedTableName)), [normalizedTableName]);
 
     // Table creation fee = 10 big blinds (pokerchain#378, ui#690), priced from the
@@ -205,12 +207,12 @@ export default function TableAdminPage() {
             ),
         [gameFormat, smallBlind, bigBlind, tournamentBuyIn, calculatedMinBuyIn, startingStack]
     );
-    const creationFeeFormatted = creationFeeMicro === null ? "—" : formatMicroAsUsdc(creationFeeMicro.toString(), 6);
-    const totalCostMicro = creationFeeMicro === null ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
-    const totalCostFormatted = totalCostMicro === null ? "—" : formatMicroAsUsdc(totalCostMicro.toString(), 6);
+    const creationFeeFormatted = isNullish(creationFeeMicro) ? "—" : formatMicroAsUsdc(creationFeeMicro.toString(), 6);
+    const totalCostMicro = isNullish(creationFeeMicro) ? null : creationFeeMicro + computeGameNameFee(normalizedTableName);
+    const totalCostFormatted = isNullish(totalCostMicro) ? "—" : formatMicroAsUsdc(totalCostMicro.toString(), 6);
     // Enough for the creation fee AND any name fee — the chain debits both.
-    const hasEnoughUsdc = totalCostMicro !== null && BigInt(usdcBalance) >= totalCostMicro;
-    const insufficientForName = totalCostMicro !== null && normalizedTableName.length > 0 && BigInt(usdcBalance) < totalCostMicro;
+    const hasEnoughUsdc = hasValue(totalCostMicro) && BigInt(usdcBalance) >= totalCostMicro;
+    const insufficientForName = hasValue(totalCostMicro) && hasContent(normalizedTableName) && BigInt(usdcBalance) < totalCostMicro;
 
     // Transform fetched games to TableData format - memoized to prevent infinite loops
     const tables: TableData[] = useMemo(() => {
@@ -324,9 +326,10 @@ export default function TableAdminPage() {
                 setTimeout(() => {
                     refetch();
                 }, 2000);
-            } else {
-                toast.error("Table creation failed - no transaction hash returned");
             }
+            // No result: useNewTable has already set `createError`, which the effect
+            // below toasts once. A second generic toast here used to stack on top
+            // of the real reason (ui#878).
         } catch (err: unknown) {
             console.error("❌ Failed to create table:", err);
             const error = err instanceof Error ? err : new Error("Unknown error");
@@ -365,7 +368,7 @@ export default function TableAdminPage() {
                         // Count players with valid addresses (seated players)
                         // Filter out empty seats using the utility function
                         const seatedPlayers = gameState.players?.filter((p: PlayerDTO | null) =>
-                            p !== null && isValidPlayerAddress(p.address)
+                            hasValue(p) && isValidPlayerAddress(p.address)
                         ).length || 0;
                         counts[table.gameId] = seatedPlayers;
                     }
@@ -462,7 +465,7 @@ export default function TableAdminPage() {
                         />
                         {tableNameError ? (
                             <p className="text-xs text-red-400 mt-1">{tableNameError}</p>
-                        ) : normalizedTableName.length > 0 ? (
+                        ) : hasContent(normalizedTableName) ? (
                             <p className="text-xs text-gray-400 mt-1">
                                 {tableNameCharCount(normalizedTableName)} characters × $0.10 ={" "}
                                 <span className="text-white font-semibold">${tableNameFeeUsd.toFixed(2)}</span>
@@ -489,7 +492,7 @@ export default function TableAdminPage() {
                                     <p className="text-red-300 font-semibold mb-1">Insufficient USDC Balance</p>
                                     <p className="text-red-400/80 text-sm mb-3">
                                         You need {totalCostFormatted} USDC to create this table ({CREATION_FEE_BIG_BLINDS.toString()} big blinds
-                                        {normalizedTableName.length > 0 ? " plus the name fee" : ""}).
+                                        {hasContent(normalizedTableName) ? " plus the name fee" : ""}).
                                         Your current balance is ${usdcBalanceFormatted} USDC.
                                     </p>
                                     <Link
@@ -963,7 +966,7 @@ export default function TableAdminPage() {
 
                             {showStructure && (
                                 <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
-                                    {blindPreviewRows.length > 0 ? (
+                                    {hasElements(blindPreviewRows) ? (
                                         <BlindPreviewTable rows={blindPreviewRows} choice={blindStructureChoice} className="rounded border border-gray-700" />
                                     ) : (
                                         <p className="text-red-400 text-xs">Fix the custom structure to see its levels.</p>
@@ -1055,7 +1058,7 @@ export default function TableAdminPage() {
                             disabled={isCreating || !cosmosWallet.address || !hasEnoughUsdc || !!tableNameError || insufficientForName}
                             className="flex-1 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 disabled:cursor-not-allowed text-white font-semibold rounded-lg transition-colors text-sm"
                         >
-                            {isCreating ? "Creating..." : !hasEnoughUsdc ? "Insufficient USDC" : tableNameError ? "Invalid table name" : "Create Table"}
+                            {isCreating ? "Creating..." : !hasEnoughUsdc ? "Insufficient USDC" : tableNameError ? (tableNameError.includes("already taken") ? "Name taken" : "Invalid table name") : "Create Table"}
                         </button>
                         <button
                             onClick={refetch}

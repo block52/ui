@@ -30,6 +30,7 @@ import type { PlayerActionResult } from "../types";
 import { snapshotConfirmationSignals } from "./confirmationGate";
 import { attributeEvidence, type Evidence, type OpenJobRef } from "./identity";
 import { classifyActionError } from "./classifyActionError";
+import { hasElements, hasValue, isEmpty } from "../utils/guards";
 import type {
     ControllerSnapshot,
     SubmitActionRequest,
@@ -250,7 +251,7 @@ export class ActionSubmitController {
 
     private applyEvidence(snapshot: TexasHoldemStateDTO, meta: TrackMeta): void {
         const open = this.openJobs();
-        if (open.length === 0) {
+        if (isEmpty(open)) {
             return;
         }
         const refs: OpenJobRef[] = open.map(job => ({ id: job.id, actionName: job.request.actionName, baseline: job.baseline! }));
@@ -299,7 +300,7 @@ export class ActionSubmitController {
             return true; // already queued
         }
         const settledAt = this.lastSettledAt.get(dedupeKey);
-        return settledAt !== undefined && at - settledAt < window;
+        return hasValue(settledAt) && at - settledAt < window;
     }
 
     private startJob(job: SubmitJob): void {
@@ -400,7 +401,7 @@ export class ActionSubmitController {
     }
 
     private clearConfirmTimer(): void {
-        if (this.confirmTimer !== null) {
+        if (hasValue(this.confirmTimer)) {
             clearTimeout(this.confirmTimer);
             this.confirmTimer = null;
         }
@@ -504,7 +505,7 @@ export class ActionSubmitController {
             this.emit();
             return;
         }
-        while (this.queue.length > 0) {
+        while (hasElements(this.queue)) {
             const next = this.queue.shift()!;
             if (this.isStaleQueuedDecision(next)) {
                 this.rejectStaleQueuedDecision(next);
@@ -612,7 +613,7 @@ export class ActionSubmitController {
 
     private stopVerdictPolling(job: SubmitJob): void {
         const timer = this.verdictTimers.get(job.id);
-        if (timer !== undefined) {
+        if (hasValue(timer)) {
             clearTimeout(timer);
             this.verdictTimers.delete(job.id);
         }

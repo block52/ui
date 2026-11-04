@@ -1,4 +1,4 @@
-import { hasValue, isNullish, isEmpty, hasElements, safeLength, isBlank, hasContent } from "./guards";
+import { hasValue, isNullish, isEmpty, hasElements, safeLength, isBlank, hasContent, isRecord } from "./guards";
 
 describe("hasValue / isNullish", () => {
     it.each([null, undefined])("treats %s as nullish", value => {
@@ -52,5 +52,17 @@ describe("isBlank / hasContent", () => {
     it("treats a non-empty string as having content", () => {
         expect(isBlank("x")).toBe(false);
         expect(hasContent("x")).toBe(true);
+    });
+});
+
+describe("isRecord", () => {
+    it.each([null, undefined, "x", 0, true, []])("rejects %p", value => {
+        expect(isRecord(value)).toBe(false);
+    });
+
+    it("accepts a plain object, so its fields can be read", () => {
+        const body: unknown = JSON.parse('{"available":false}');
+        expect(isRecord(body)).toBe(true);
+        expect(isRecord(body) && body.available).toBe(false);
     });
 });

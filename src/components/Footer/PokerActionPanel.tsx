@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
-import { NonPlayerActionType, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements, isNullish } from "../../utils/guards";
+import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { hasContent, hasElements, hasValue, isNullish } from "../../utils/guards";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
@@ -71,7 +71,7 @@ import { RaiseBetControls } from "./RaiseBetControls";
 import { PreActionControls } from "./PreActionControls";
 import { allowsBlindMultiples } from "../../utils/preflopPresets";
 import { isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer } from "../../utils/chipUtils";
-import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, preActionButtons, PreAction } from "../../utils/preActions";
+import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, preActionButtons, PreAction, ResolvedPreAction } from "../../utils/preActions";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
@@ -158,7 +158,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     }, [legalActions, optimisticActionName]);
 
     useEffect(() => {
-        if (optimisticActionName && optimisticActionTurnIndex !== null && actionTurnIndex !== optimisticActionTurnIndex) {
+        if (optimisticActionName && hasValue(optimisticActionTurnIndex) && actionTurnIndex !== optimisticActionTurnIndex) {
             setOptimisticActionName(null);
             setOptimisticActionTurnIndex(null);
         }
@@ -313,7 +313,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const { isDealingNewHand } = useAutoNewHand(tableId, network, submit, submitLastError, onTransactionSubmitted, autoNewHandEnabled);
 
     // Show deal button if player has the deal action
-    const controlsPending = optimisticActionName !== null;
+    const controlsPending = hasValue(optimisticActionName);
     const shouldShowDealButton = hasDealAction && isUsersTurn && !controlsPending;
     const hideOtherButtons = shouldShowDealButton;
 
@@ -362,7 +362,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // street, AND there is at least one applicable button (hidden when committed with
     // nothing owed). See utils/preActions.
     const showPreActions =
-        shouldShowPreActions({ enabled: preSelectCheck, isUsersTurn, playerStatus, round: gameState?.round }) && preActionBtns.length > 0;
+        shouldShowPreActions({ enabled: preSelectCheck, isUsersTurn, playerStatus, round: gameState?.round }) && hasElements(preActionBtns);
 
     // Scope an armed pre-action to the current round.
     useEffect(() => {
@@ -373,7 +373,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     // Clear when leaving the hand, or when the armed selection no longer fits the current
     // button set (the situation changed), or when a "Call {amount}" pick's size changed.
     useEffect(() => {
-        if (preAction == null) return;
+        if (isNullish(preAction)) return;
         const left = shouldClearPreAction({ action: preAction, isUsersTurn, playerStatus });
         const amountChanged = preAction === "call-exact" && preActionCallMicro !== armedCallMicro;
         const stale = !isUsersTurn && (!preActionBtns.includes(preAction) || amountChanged);
@@ -396,6 +396,16 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         setPreAction(null);
         setArmedCallMicro(null);
     }, []);
+    // A fired pre-action holds the controls pending like a clicked button does,
+    // until the move lands or fails — otherwise clearing the armed intent while
+    // it confirms flashes the whole betting bar for that moment.
+    const markPreActionPending = useCallback(
+        (actionName: ResolvedPreAction) => {
+            setOptimisticActionName(actionName);
+            setOptimisticActionTurnIndex(actionTurnIndex);
+        },
+        [actionTurnIndex]
+    );
     usePreAction(
         tableId,
         network,
@@ -407,7 +417,8 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
         isSubmitBusy,
         onTransactionSubmitted,
         clearPreAction,
-        preActionCallGuard
+        preActionCallGuard,
+        markPreActionPending
     );
 
     // All-in as a FE label (poker-vm#2351/#2353). The engine never advertises an
@@ -503,6 +514,11 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
     const handleMuckAction = () => submitAction("muck", () => muckCards(tableId, network));
     const handleShowAction = () => submitAction("show", () => showCards(tableId, network));
     const handleNewHandAction = () => submitAction("new-hand", () => startNewHand(tableId, network));
+
+    // Time bank (ui#19): straight to the controller, not through submitAction —
+    // it isn't the player's move, so Fold / Call / Raise must stay on screen
+    // while it confirms. The engine only offers it while it can be used, and
+    // the label shows what this use grants (45s, then 30s, then the refill).
 
     // Calculate button visibility flags
     const { canFoldAnytime, showActionButtons, showSmallBlindButton, showBigBlindButton } = useMemo(() => {

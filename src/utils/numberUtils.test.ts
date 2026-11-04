@@ -7,7 +7,10 @@ import {
     formatForCashGame,
     convertAmountToBigInt,
     formatSliderInputValue,
-    parseSliderInput
+    parseSliderInput,
+    bigBlindInStackUnits,
+    formatBigBlinds,
+    formatSeatStack
 } from "./numberUtils";
 
 describe("numberUtils", () => {
@@ -158,6 +161,53 @@ describe("numberUtils", () => {
 
             it("should never return a negative amount", () => {
                 expect(parseSliderInput("1.00", 5, false)).toBe(0);
+            });
+        });
+    });
+
+    describe("stacks in big blinds (ui#895)", () => {
+        describe("bigBlindInStackUnits", () => {
+            it("converts a cash blind from micro-USDC to dollars", () => {
+                expect(bigBlindInStackUnits("20000", false)).toBe(0.02);
+            });
+
+            it("keeps a tournament blind in chips", () => {
+                expect(bigBlindInStackUnits("50", true)).toBe(50);
+            });
+
+            it("has no answer without a usable big blind", () => {
+                expect(bigBlindInStackUnits(undefined, false)).toBeNull();
+                expect(bigBlindInStackUnits(null, true)).toBeNull();
+                expect(bigBlindInStackUnits("", true)).toBeNull();
+                expect(bigBlindInStackUnits("0", false)).toBeNull();
+                expect(bigBlindInStackUnits("abc", true)).toBeNull();
+            });
+        });
+
+        describe("formatBigBlinds", () => {
+            it("formats to one decimal, dropping .0", () => {
+                expect(formatBigBlinds(99.5)).toBe("99.5 BB");
+                expect(formatBigBlinds(30)).toBe("30 BB");
+                expect(formatBigBlinds(29.96)).toBe("30 BB");
+                expect(formatBigBlinds(0.5)).toBe("0.5 BB");
+                expect(formatBigBlinds(12345)).toBe("12,345 BB");
+            });
+        });
+
+        describe("formatSeatStack", () => {
+            it("shows a cash stack in big blinds", () => {
+                expect(formatSeatStack(1.99, false, 0.02)).toBe("99.5 BB");
+            });
+
+            it("shows a tournament stack in big blinds of the current level", () => {
+                expect(formatSeatStack(1500, true, 50)).toBe("30 BB");
+                expect(formatSeatStack(1500, true, 100)).toBe("15 BB");
+            });
+
+            it("falls back to $ / chips without a big blind", () => {
+                expect(formatSeatStack(100, false, null)).toBe("$100.00");
+                expect(formatSeatStack(10000, true, null)).toBe("10,000");
+                expect(formatSeatStack(100, false, 0)).toBe("$100.00");
             });
         });
     });

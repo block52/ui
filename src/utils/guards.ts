@@ -70,3 +70,15 @@ export function isBlank(value: string | null | undefined): boolean {
 export function hasContent(value: string | null | undefined): value is string {
     return value !== null && value !== undefined && value !== "";
 }
+
+/**
+ * Check that an `unknown` value (a parsed JSON reply, a caught error) is a
+ * non-null object whose fields can be read. Narrows it to a record of unknowns,
+ * so each field still needs its own check. Use it instead of casting a reply.
+ * @example
+ * const body: unknown = await res.json();
+ * if (isRecord(body) && body.available === false) { ... }
+ */
+export function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null && !Array.isArray(value);
+}

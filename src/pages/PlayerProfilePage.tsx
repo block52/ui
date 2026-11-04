@@ -4,7 +4,7 @@ import { microToUsdc } from "../constants/currency";
 import { truncateMiddle } from "../utils/stringUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
-import { isEmpty, hasElements } from "../utils/guards";
+import { isEmpty, hasElements, hasValue } from "../utils/guards";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
 import { formatScaledPercent } from "../utils/vip";
@@ -178,11 +178,11 @@ export default function PlayerProfilePage() {
                                                     </td>
                                                     <td className="px-6 py-4 text-right text-gray-300">{s.join_block.toLocaleString()}</td>
                                                     <td className="px-6 py-4 text-right text-gray-300">
-                                                        {s.leave_block != null ? s.leave_block.toLocaleString() : "—"}
+                                                        {hasValue(s.leave_block) ? s.leave_block.toLocaleString() : "—"}
                                                     </td>
                                                     <td className="px-6 py-4 text-right text-gray-300">{formatUsd(s.buy_in_amount)}</td>
                                                     <td className="px-6 py-4 text-right text-gray-300">
-                                                        {s.cash_out_amount != null ? formatUsd(s.cash_out_amount) : "—"}
+                                                        {hasValue(s.cash_out_amount) ? formatUsd(s.cash_out_amount) : "—"}
                                                     </td>
                                                 </tr>
                                             ))}

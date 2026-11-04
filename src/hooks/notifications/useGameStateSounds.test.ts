@@ -29,25 +29,25 @@ describe("useGameStateSounds", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         mockUseActionSounds.mockReturnValue({ playActionSound });
-        mockUseGameEventsContext.mockReturnValue({ latestItem: null, ackAnimation: jest.fn() });
+        mockUseGameEventsContext.mockReturnValue({ latestItem: null, ackAnimation: jest.fn(), isPlayingSuspense: () => false });
     });
 
     describe("decoration.sounds hints", () => {
         it("plays a single-action frame's sound immediately, with no timer tick", () => {
-            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([{ kind: "call" }]), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([{ kind: "call" }]), ackAnimation: jest.fn(), isPlayingSuspense: () => false });
             renderHook(() => useGameStateSounds(true));
             expect(playActionSound).toHaveBeenCalledTimes(1);
             expect(playActionSound).toHaveBeenCalledWith("call");
         });
 
         it("plays nothing when there are no sound hints", () => {
-            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([]), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([]), ackAnimation: jest.fn(), isPlayingSuspense: () => false });
             renderHook(() => useGameStateSounds(true));
             expect(playActionSound).not.toHaveBeenCalled();
         });
 
         it("does nothing when sounds are disabled", () => {
-            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([{ kind: "call" }]), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([{ kind: "call" }]), ackAnimation: jest.fn(), isPlayingSuspense: () => false });
             renderHook(() => useGameStateSounds(false));
             expect(playActionSound).not.toHaveBeenCalled();
         });
@@ -70,7 +70,8 @@ describe("useGameStateSounds", () => {
         it("plays every hint, in action order, one stagger apart", () => {
             mockUseGameEventsContext.mockReturnValue({
                 latestItem: makeItem([{ kind: "raise" }, { kind: "fold" }, { kind: "call" }]),
-                ackAnimation: jest.fn()
+                ackAnimation: jest.fn(),
+                isPlayingSuspense: () => false
             });
             renderHook(() => useGameStateSounds(true));
             expect(playActionSound.mock.calls).toEqual([["raise"]]);
@@ -83,12 +84,16 @@ describe("useGameStateSounds", () => {
         });
 
         it("does not let the next frame swallow the previous frame's pending sounds", () => {
-            mockUseGameEventsContext.mockReturnValue({ latestItem: frame([{ kind: "raise" }, { kind: "fold" }], 1), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({
+                latestItem: frame([{ kind: "raise" }, { kind: "fold" }], 1),
+                ackAnimation: jest.fn(),
+                isPlayingSuspense: () => false
+            });
             const { rerender } = renderHook(() => useGameStateSounds(true));
 
             // The next commit lands inside the stagger window.
             act(() => jest.advanceTimersByTime(SOUND_STAGGER_MS / 2));
-            mockUseGameEventsContext.mockReturnValue({ latestItem: frame([{ kind: "call" }], 2), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({ latestItem: frame([{ kind: "call" }], 2), ackAnimation: jest.fn(), isPlayingSuspense: () => false });
             rerender();
             act(() => jest.advanceTimersByTime(SOUND_STAGGER_MS));
 
@@ -97,7 +102,11 @@ describe("useGameStateSounds", () => {
 
         it("keeps only the newest sounds of a catch-up burst", () => {
             const burst: SoundHint[] = Array.from({ length: MAX_SOUNDS_PER_FRAME + 3 }, (_, i) => ({ kind: i % 2 ? "call" : "fold", seat: i }));
-            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([...burst.slice(0, -1), { kind: "all-in" }]), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({
+                latestItem: makeItem([...burst.slice(0, -1), { kind: "all-in" }]),
+                ackAnimation: jest.fn(),
+                isPlayingSuspense: () => false
+            });
             renderHook(() => useGameStateSounds(true));
             act(() => jest.advanceTimersByTime(SOUND_STAGGER_MS * (MAX_SOUNDS_PER_FRAME + 5)));
 
@@ -106,14 +115,22 @@ describe("useGameStateSounds", () => {
         });
 
         it("cancels pending sounds when sounds are switched off, and on unmount", () => {
-            mockUseGameEventsContext.mockReturnValue({ latestItem: makeItem([{ kind: "raise" }, { kind: "fold" }]), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({
+                latestItem: makeItem([{ kind: "raise" }, { kind: "fold" }]),
+                ackAnimation: jest.fn(),
+                isPlayingSuspense: () => false
+            });
             const { rerender, unmount } = renderHook(({ enabled }) => useGameStateSounds(enabled), { initialProps: { enabled: true } });
             rerender({ enabled: false });
             act(() => jest.advanceTimersByTime(SOUND_STAGGER_MS * 2));
             expect(playActionSound.mock.calls).toEqual([["raise"]]);
 
             playActionSound.mockClear();
-            mockUseGameEventsContext.mockReturnValue({ latestItem: frame([{ kind: "bet" }, { kind: "call" }], 2), ackAnimation: jest.fn() });
+            mockUseGameEventsContext.mockReturnValue({
+                latestItem: frame([{ kind: "bet" }, { kind: "call" }], 2),
+                ackAnimation: jest.fn(),
+                isPlayingSuspense: () => false
+            });
             rerender({ enabled: true });
             unmount();
             act(() => jest.advanceTimersByTime(SOUND_STAGGER_MS * 2));

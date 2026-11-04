@@ -15,7 +15,8 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { getBlindsForDisplay } from "../../utils/gameFormatUtils";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import DepositCore from "./DepositCore";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements, hasValue } from "../../utils/guards";
+import { sitAndGoTypeLabel } from "../../utils/createGameType";
 import styles from "./BuyInModal.module.css";
 
 import type { BuyInModalProps } from "./types";
@@ -36,7 +37,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     const maxBuyInValue = maxBuyIn || hookBuyIns.maxBuyIn;
 
     // Per Commandment 7: NO defaults - if buy-in values missing, show error
-    const hasBuyInValues = minBuyInValue !== undefined && maxBuyInValue !== undefined;
+    const hasBuyInValues = hasValue(minBuyInValue) && hasValue(maxBuyInValue);
 
     const { emptySeatIndexes, isUserAlreadyPlaying } = useVacantSeatData();
     const navigate = useNavigate();
@@ -355,7 +356,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
 
                 {/* Buy-In Amount Selection */}
                 <div className="mb-6">
-                    <label className="block text-gray-300 mb-2 font-medium text-sm">{isSitAndGo ? "Fixed Buy-In (Sit & Go)" : "Buy-In Amount"}</label>
+                    <label className="block text-gray-300 mb-2 font-medium text-sm">{isSitAndGo ? `Fixed Buy-In (${sitAndGoTypeLabel(gameState?.gameOptions?.scheduledStartTime)})` : "Buy-In Amount"}</label>
                     {isSitAndGo ? (
                         // Sit & Go: Show fixed buy-in amount (non-editable)
                         <div className={`p-4 rounded-lg border-2 ${styles.fixedBuyInPanel}`}>

@@ -12,14 +12,17 @@ import { startNewHand } from "./startNewHand";
 import { getLatestGameState } from "./transportAction";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
+import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS } from "../../bus/timing";
 
 jest.mock("./startNewHand");
 jest.mock("./transportAction");
 // The hook re-runs its check on every committed bus item; `tick` stands in for
 // one. (`mock`-prefixed so jest allows the factory to close over it.)
 let mockTick = 0;
+// ui#873: whether the bus is still showing a protected tournament run-out.
+let mockSuspense = false;
 jest.mock("../../context/gameState/GameEventsContext", () => ({
-    useGameEventsContext: () => ({ latestItem: mockTick })
+    useGameEventsContext: () => ({ latestItem: mockTick, isPlayingSuspense: () => mockSuspense })
 }));
 
 const mockStartNewHand = startNewHand as jest.MockedFunction<typeof startNewHand>;
@@ -54,6 +57,7 @@ describe("useAutoNewHand", () => {
         mockStartNewHand.mockReset();
         mockStartNewHand.mockResolvedValue({ hash: "0xnew", gameId: TABLE_ID, action: "new-hand", amount: "0" } as never);
         mockLatest.mockReset();
+        mockSuspense = false;
     });
     afterEach(() => localStorage.clear());
 
@@ -195,6 +199,87 @@ describe("useAutoNewHand", () => {
 
             act(() => submit.mock.calls[2][0].onFailure!(fail("terminal")));
             expect(submit).toHaveBeenCalledTimes(4);
+        });
+    });
+
+    // ui#873: dealing the next hand straight away piled its frames onto a
+    // tournament all-in run-out and fast-forwarded it.
+    describe("deferral while a tournament run-out is showing (ui#873)", () => {
+        beforeEach(() => jest.useFakeTimers());
+        afterEach(() => {
+            jest.clearAllTimers();
+            jest.useRealTimers();
+        });
+
+        it("waits for the run-out, showing the dealing indicator, then deals", () => {
+            mockSuspense = true;
+            mockLatest.mockReturnValue(snapshot(true));
+            const { result } = renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+
+            expect(submit).not.toHaveBeenCalled();
+            expect(result.current.isDealingNewHand).toBe(true);
+
+            act(() => {
+                jest.advanceTimersByTime(AUTO_DEAL_DEFER_POLL_MS * 4);
+            });
+            expect(submit).not.toHaveBeenCalled();
+
+            mockSuspense = false;
+            act(() => {
+                jest.advanceTimersByTime(AUTO_DEAL_DEFER_POLL_MS);
+            });
+            expect(submit).toHaveBeenCalledTimes(1);
+            expect(submit.mock.calls[0][0].actionName).toBe("new-hand");
+        });
+
+        it("deals anyway once the cap passes, so a stuck render never stops the table", () => {
+            mockSuspense = true;
+            mockLatest.mockReturnValue(snapshot(true));
+            renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+
+            act(() => {
+                jest.advanceTimersByTime(MAX_AUTO_DEAL_DEFER_MS - AUTO_DEAL_DEFER_POLL_MS);
+            });
+            expect(submit).not.toHaveBeenCalled();
+            act(() => {
+                jest.advanceTimersByTime(AUTO_DEAL_DEFER_POLL_MS * 2);
+            });
+            expect(submit).toHaveBeenCalledTimes(1);
+        });
+
+        it("drops a deferred deal (and its indicator) when the opportunity goes away", () => {
+            mockSuspense = true;
+            mockLatest.mockReturnValue(snapshot(true));
+            const { result, rerender } = renderHook(() => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, true));
+            expect(result.current.isDealingNewHand).toBe(true);
+
+            // Another player dealt meanwhile.
+            frame(snapshot(false));
+            act(() => rerender());
+            mockSuspense = false;
+            act(() => {
+                jest.advanceTimersByTime(MAX_AUTO_DEAL_DEFER_MS);
+            });
+
+            expect(submit).not.toHaveBeenCalled();
+            expect(result.current.isDealingNewHand).toBe(false);
+        });
+
+        it("drops the indicator when auto-new-hand is switched off while waiting", () => {
+            mockSuspense = true;
+            mockLatest.mockReturnValue(snapshot(true));
+            const { result, rerender } = renderHook(({ enabled }) => useAutoNewHand(TABLE_ID, NETWORK, submit, null, undefined, enabled), {
+                initialProps: { enabled: true }
+            });
+            expect(result.current.isDealingNewHand).toBe(true);
+
+            rerender({ enabled: false });
+            act(() => {
+                jest.advanceTimersByTime(AUTO_DEAL_DEFER_POLL_MS);
+            });
+
+            expect(submit).not.toHaveBeenCalled();
+            expect(result.current.isDealingNewHand).toBe(false);
         });
     });
 });

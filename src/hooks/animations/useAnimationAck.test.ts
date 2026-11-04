@@ -15,7 +15,7 @@ function hint(ackId?: string): AnimationHint {
 
 beforeEach(() => {
     ackAnimation = jest.fn();
-    mockUseGameEventsContext.mockReturnValue({ latestItem: null, ackAnimation });
+    mockUseGameEventsContext.mockReturnValue({ latestItem: null, ackAnimation, isPlayingSuspense: () => false });
 });
 
 describe("useAnimationAck", () => {

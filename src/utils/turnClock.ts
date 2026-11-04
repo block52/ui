@@ -14,7 +14,7 @@
  * Everything here is a pure function of a state snapshot, so it can be tested
  * without React and so every observer at the table computes the same answer.
  */
-import { NonPlayerActionType, TexasHoldemRound, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, TexasHoldemRound, type ActionDTO, type PlayerDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { makeTurnId, normalizeTimestamp } from "./timerUtils";
 import { hasElements, isNullish } from "./guards";
 import { hasTournamentStarted } from "./scheduledSng";
@@ -76,29 +76,72 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
         return null;
     }
 
+    const anchor = turnClockAnchorMs(gameState.previousActions);
+    if (isNullish(anchor)) {
+        return null;
+    }
+
+    return anchor + timeoutSeconds * 1000 + timeBankGrantedMs(gameState);
+};
+
+/**
+ * The turn clock's anchor (epoch ms): the latest recorded action that advanced
+ * the turn. A `time-bank` extends the current turn without advancing it, so it
+ * never moves the anchor (engine `turnClockAnchor`). `null` when nothing
+ * anchors the clock yet.
+ */
+export const turnClockAnchorMs = (previousActions: readonly ActionDTO[] | null | undefined): number | null => {
     let anchor: number | null = null;
-    for (const action of gameState.previousActions) {
+    for (const action of previousActions ?? []) {
         if (action.action === NonPlayerActionType.TIME_BANK) {
             continue;
         }
         const at = normalizeTimestamp(action.timestamp);
-        if (anchor === null || at > anchor) {
+        if (isNullish(anchor) || at > anchor) {
             anchor = at;
         }
     }
-    if (anchor === null) {
-        return null;
-    }
+    return anchor;
+};
 
-    const timeBankMs = gameState.gameOptions.timeBankMs ?? 0;
-    let grants = 0;
-    for (const action of gameState.previousActions) {
-        if (action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor) {
-            grants += 1;
-        }
-    }
+/**
+ * The engine's per-player time-bank state (poker-vm feat/20-time-bank-tiers):
+ * what the next use grants and what the latest use granted. Newer than the
+ * SDK's PlayerDTO type (1.15.0), so it is read here, in one place, until the
+ * SDK release carries `timeBankRemainingMs` / `timeBankLastGrantMs`; then this
+ * accessor goes and callers read the fields directly.
+ */
+type PlayerTimeBank = { timeBankRemainingMs?: number; timeBankLastGrantMs?: number };
+const playerTimeBank = (player: PlayerDTO | null | undefined): PlayerTimeBank => (player ?? {}) as PlayerTimeBank;
 
-    return anchor + timeoutSeconds * 1000 + grants * timeBankMs;
+/**
+ * What one use of the time bank grants this player next (ui#19/#20): 45s the
+ * first time, 30s the second, then whatever has refilled. The engine sends it
+ * on every table with a time bank; null when the player has none.
+ */
+export const nextTimeBankMs = (player: PlayerDTO | null | undefined): number | null => {
+    return playerTimeBank(player).timeBankRemainingMs ?? null;
+};
+
+/**
+ * Extra time the time bank has granted the current turn (ui#19/#20): for each
+ * `time-bank` recorded at or after the clock's anchor, what that player's use
+ * granted (`timeBankLastGrantMs`), mirroring the engine's TurnDeadlineMs. 0
+ * when nobody used it this turn.
+ */
+export const timeBankGrantedMs = (gameState: TexasHoldemStateDTO | null | undefined): number => {
+    const previousActions = gameState?.previousActions ?? [];
+    const anchor = turnClockAnchorMs(previousActions);
+    if (isNullish(anchor)) {
+        return 0;
+    }
+    const grantOf = (address: string): number => {
+        const player = gameState?.players?.find(p => p.address?.toLowerCase() === address.toLowerCase());
+        return playerTimeBank(player).timeBankLastGrantMs ?? 0;
+    };
+    return previousActions
+        .filter(action => action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor)
+        .reduce((total, action) => total + grantOf(action.playerId), 0);
 };
 
 /**
@@ -144,11 +187,11 @@ export const clockCallerRank = (gameState: TexasHoldemStateDTO | null | undefine
  */
 export const clockCallDueAtMs = (gameState: TexasHoldemStateDTO | null | undefined, myAddress: string | null | undefined): number | null => {
     const deadline = turnDeadlineMs(gameState);
-    if (deadline === null) {
+    if (isNullish(deadline)) {
         return null;
     }
     const rank = clockCallerRank(gameState, myAddress);
-    if (rank === null) {
+    if (isNullish(rank)) {
         return null;
     }
     return deadline + TIMEOUT_INCLUSION_GRACE_MS + TIMEOUT_BLOCK_TIME_MARGIN_MS + rank * CLOCK_CALLER_STAGGER_MS;
@@ -185,7 +228,7 @@ export const clockCallOpportunity = (
         return null;
     }
     const dueAtMs = clockCallDueAtMs(gameState, myAddress);
-    if (dueAtMs === null || !gameState) {
+    if (isNullish(dueAtMs) || !gameState) {
         return null;
     }
     return {
@@ -193,4 +236,33 @@ export const clockCallOpportunity = (
         seat: gameState.nextToAct,
         dueAtMs
     };
+};
+
+/**
+ * Which clock a turn is running on, for display (ui#19).
+ *
+ * The chain's deadline is `anchor + turn clock + bank granted`, so tapping the
+ * time bank never costs the player any of their own time. The screen shows it
+ * the same way: the turn clock keeps counting down (the bank is "armed"), and
+ * only when it reaches zero does the countdown switch to the bank.
+ *
+ *   - `base`: the turn clock is running; `remainingMs` / `totalMs` are its own.
+ *   - `bank`: the turn clock is spent and a bank was granted this turn;
+ *     `remainingMs` / `totalMs` are the bank's.
+ *
+ * `remainingMs` is clamped at 0, so an expired turn reads as a spent bank (or
+ * a spent turn clock when no bank was used).
+ */
+export interface TurnClockPhase {
+    phase: "base" | "bank";
+    remainingMs: number;
+    totalMs: number;
+}
+
+export const turnClockPhase = (args: { nowMs: number; anchorMs: number; baseMs: number; bankGrantedMs: number }): TurnClockPhase => {
+    const baseLeft = args.anchorMs + args.baseMs - args.nowMs;
+    if (baseLeft > 0 || args.bankGrantedMs <= 0) {
+        return { phase: "base", remainingMs: Math.max(0, baseLeft), totalMs: args.baseMs };
+    }
+    return { phase: "bank", remainingMs: Math.max(0, baseLeft + args.bankGrantedMs), totalMs: args.bankGrantedMs };
 };

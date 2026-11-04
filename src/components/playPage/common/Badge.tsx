@@ -5,7 +5,8 @@ import { WinAmountFloat } from "./WinAmountFloat";
 import { useSeatJoinNotification } from "../../../hooks/notifications/useSeatJoinNotification";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { isTournamentFormat } from "../../../utils/gameFormatUtils";
-import { formatForSitAndGo, formatForCashGame, formatUSDCToSimpleDollars } from "../../../utils/numberUtils";
+import { formatUSDCToSimpleDollars, bigBlindInStackUnits, formatSeatStack } from "../../../utils/numberUtils";
+import { useStacksInBigBlinds } from "../../../context/GameSettingsContext";
 import ProgressBar from "./ProgressBar";
 import { colors } from "../../../utils/colorConfig";
 import "./Badge.css";
@@ -14,9 +15,6 @@ type BadgeProps = {
     count: number; // Seat index
     value: number; // Stack value
     color?: string;
-    // Timer extension props
-    canExtend?: boolean;
-    onExtend?: () => void;
     // Sit & Go tournament results
     tournamentPlace?: number;
     tournamentPayout?: string;
@@ -32,25 +30,30 @@ type BadgeProps = {
     isSittingOut?: boolean;
     playerEquity?: number | null;
     onSitIn?: () => void;
+    // Rendered just outside the pill, left of the seat number: the player's
+    // own seat puts the time bank alarm clock here (ui#19). The pill's right
+    // end is where an NFT avatar sits, so nothing goes there.
+    leading?: React.ReactNode;
 };
 
 const Badge: React.FC<BadgeProps> = React.memo(({
-    count, value, color, canExtend, onExtend,
+    count, value, color,
     tournamentPlace, tournamentPayout,
     isWinner, winnerAmount, winnerHandDescription, isTurnTimerActive,
-    round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn
+    round, isFolded, isAllIn, isSeated, isSittingOut, playerEquity, onSitIn, leading
 }) => {
     // Track previous banner mode so we can detect timer→action transitions
     const prevBannerModeRef = React.useRef<string>("hidden");
 
     // Get game format to determine if it's a tournament-style game
-    const { gameFormat } = useGameStateContext();
+    const { gameFormat, gameState } = useGameStateContext();
     const isTournament = isTournamentFormat(gameFormat);
 
-    // Format the value based on game format using clean utility functions
-    const formattedValue = isTournament
-        ? formatForSitAndGo(value)  // Returns "10,000" format (tournament chips)
-        : formatForCashGame(value);  // Returns "$100.00" format (cash game)
+    // "45.5 BB" if the player turned on stacks in big blinds for this format
+    // (ui#895), else "$100.00" (cash) or "10,000" (tournament chips).
+    const showInBigBlinds = useStacksInBigBlinds(isTournament);
+    const bigBlind = showInBigBlinds ? bigBlindInStackUnits(gameState?.gameOptions?.bigBlind, isTournament) : null;
+    const formattedValue = formatSeatStack(value, isTournament, bigBlind);
 
     // Get action display data for this player
     const actionDisplay = usePlayerActionDropBox(count);
@@ -235,6 +238,7 @@ const Badge: React.FC<BadgeProps> = React.memo(({
 
     return (
         <div className="badge-container">
+            {leading && <div className="badge-leading">{leading}</div>}
             <div style={{ backgroundColor: color }} className="badge-number">
                 {count}
             </div>
@@ -279,28 +283,6 @@ const Badge: React.FC<BadgeProps> = React.memo(({
             {/* Floating "+amount" pill on a winning seat (ui#861) */}
             {isWinner && <WinAmountFloat formattedAmount={winnerAmount} isTournament={isTournament} />}
 
-            {/* Timer Extension Icon - Timer icon inside badge */}
-            {canExtend && onExtend && (
-                <div
-                    className="timer-extension-button"
-                    onClick={onExtend}
-                >
-                    <svg
-                        className="timer-extension-icon"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                    >
-                        {/* Clock circle */}
-                        <circle cx="12" cy="12" r="8" strokeWidth="2"/>
-                        {/* Clock hands */}
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6l4 2"/>
-                        {/* Plus symbol in corner */}
-                        <circle cx="18" cy="6" r="3" fill="currentColor"/>
-                        <path stroke="white" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M17 6h2M18 5v2"/>
-                    </svg>
-                </div>
-            )}
         </div>
     );
 });

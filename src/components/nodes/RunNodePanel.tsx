@@ -4,6 +4,7 @@ import { useStateSyncTrust } from "../../hooks/nodes/useStateSyncTrust";
 import { SEED_NODES, SNAPSHOT_INTERVAL, STATE_SYNC_RPC_SERVERS, VALIDATOR_PEERS, CHAIN_ID, GENESIS_PATH } from "../../constants/chainNetwork";
 import { appTomlSnippet, configTomlSnippet } from "../../utils/nodePortal";
 import { copyToClipboard } from "../playPage/Table/utils";
+import { hasValue } from "../../utils/guards";
 
 const CodeBlock: FC<{ title: string; code: string }> = ({ title, code }) => (
     <div className="mb-5">
@@ -59,7 +60,7 @@ export const RunNodePanel: FC<{ overview: ChainOverview }> = ({ overview }) => {
                     the chain.
                 </p>
                 {error && <p className="text-red-400 text-sm mb-3">Could not read a trust block: {error}</p>}
-                {trustHeight !== null && trustHash !== null && (
+                {hasValue(trustHeight) && hasValue(trustHash) && (
                     <CodeBlock
                         title="config.toml"
                         code={configTomlSnippet({ validators: VALIDATOR_PEERS, seeds: SEED_NODES, rpcServers: STATE_SYNC_RPC_SERVERS, trustHeight, trustHash })}
