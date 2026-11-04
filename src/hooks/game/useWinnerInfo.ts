@@ -47,7 +47,12 @@ function getWinnerInfo(gameData: TexasHoldemStateDTO, isTournament: boolean) {
                 winType: getWinType(winner),
                 description: winner.description,
                 handName: winner.name,
-                cards: winner.cards
+                cards: winner.cards,
+                pots: winner.pots?.map(share => ({
+                    pot: share.pot,
+                    amount: share.amount,
+                    formattedAmount: formatWinAmount(share.amount, isTournament)
+                }))
             };
         });
     }
@@ -83,7 +88,7 @@ export const useWinnerInfo = (): WinnerInfoReturn => {
             return "";
         }
         const winners = gameState.winners
-            .map(w => `${w.seat ?? ""}:${w.address}:${w.amount}:${w.name ?? ""}:${w.description ?? ""}:${(w.cards ?? []).join(",")}`)
+            .map(w => `${w.seat ?? ""}:${w.address}:${w.amount}:${w.name ?? ""}:${w.description ?? ""}:${(w.cards ?? []).join(",")}:${(w.pots ?? []).map(p => `${p.pot}=${p.amount}`).join(",")}`)
             .join("|");
         // getWinnerInfo falls back to a players[] lookup when winner.seat is
         // absent, so the address->seat mapping is part of the input too.
