@@ -160,7 +160,7 @@ import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
 import ConnectionBanner from "./ConnectionBanner";
 
-import { hasElements } from "../../utils/guards";
+import { hasElements, hasValue, isNullish } from "../../utils/guards";
 import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
 
 //* Here's the typical sequence of a poker hand:
@@ -226,7 +226,7 @@ const LayoutDebugOverlay = () => {
     useEffect(() => {
         const handleKey = (e: KeyboardEvent) => {
             const action = resolveDebugOverlayAction(e, debugMode);
-            if (action === null) return;
+            if (isNullish(action)) return;
 
             // Firefox uses Ctrl+I for Page Info and editors for italic — claim it.
             if (action === "all") e.preventDefault();
@@ -718,7 +718,7 @@ const Table = React.memo(() => {
     // Replay tab: the timeline + transport drive loadHistoricalStateAtHeight.
     const replayHand = useMemo(() => latestCompletedHand(gameState), [gameState]);
     const handleOpenReplay = useCallback(() => {
-        if (!id || replayHand === null) return;
+        if (!id || isNullish(replayHand)) return;
         window.open(buildHandShareUrl(window.location.origin, id, replayHand), "_blank", "noopener");
     }, [id, replayHand]);
     const replay = useReplayTimeline({ tableId: id, handNumber: replayHandNumber, active: isReplayMode });
@@ -737,7 +737,7 @@ const Table = React.memo(() => {
 
     useEffect(() => {
         if (id) {
-            if (hasReplayParams && replayHandParam !== null) {
+            if (hasReplayParams && hasValue(replayHandParam)) {
                 // Read-only replay, no WebSocket: the hand's final state, or a point
                 // in the current hand when ?index= is given.
                 loadHistoricalState(id, replayHandParam, replayActionParam);
@@ -1339,7 +1339,7 @@ const Table = React.memo(() => {
                 />
             )}
             {/* Replay transport (ui#816): hand selector, play / pause / step / scrub, Go Live */}
-            {isReplayMode && replayHandNumber != null && (
+            {isReplayMode && hasValue(replayHandNumber) && (
                 <ReplayTransport
                     handNumber={replayHandNumber}
                     latestHand={replay.latestHand}

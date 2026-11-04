@@ -1,5 +1,6 @@
 import React from "react";
 import { formatBalance } from "../../utils/numberUtils";
+import { hasValue } from "../../utils/guards";
 import styles from "./DepositComponents.module.css";
 
 interface BalanceDisplayProps {
@@ -22,7 +23,7 @@ export const BalanceDisplay: React.FC<BalanceDisplayProps> = ({ balance, nonce, 
             <p className={`text-xl font-bold ${styles.primaryText}`}>
                 ${formatBalance(balance)} USDC
             </p>
-            {nonce != null && (
+            {hasValue(nonce) && (
                 <p
                     className={`text-sm mt-2 border-t pt-2 ${styles.secondaryText} ${styles.secondaryBorder}`}
                 >

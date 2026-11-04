@@ -1,6 +1,7 @@
 import React from "react";
 import { FaBackward, FaForward, FaPause, FaPlay, FaStepBackward, FaStepForward } from "react-icons/fa";
 import { REPLAY_SPEEDS } from "../../utils/replayTimeline";
+import { hasValue } from "../../utils/guards";
 
 export interface ReplayTransportProps {
     handNumber: number;
@@ -75,13 +76,13 @@ export const ReplayTransport: React.FC<ReplayTransportProps> = ({
                 </button>
                 <span className="font-semibold whitespace-nowrap" data-testid="replay-hand">
                     Hand #{handNumber}
-                    {latestHand !== null && <span className="opacity-80 font-normal"> of {latestHand}</span>}
+                    {hasValue(latestHand) && <span className="opacity-80 font-normal"> of {latestHand}</span>}
                 </span>
                 <button
                     type="button"
                     className={iconButton}
                     onClick={onNextHand}
-                    disabled={latestHand !== null && handNumber >= latestHand}
+                    disabled={hasValue(latestHand) && handNumber >= latestHand}
                     title="Next hand"
                     aria-label="Next hand"
                     data-testid="replay-next-hand"
