@@ -1,5 +1,6 @@
 import { isAxiosError } from "axios";
 import { httpErrorMessage } from "../../apis/HTTPClient";
+import { isString } from "../guards";
 
 const NO_RESPONSE = "No response from the payments server";
 
@@ -22,7 +23,7 @@ export const STILL_GOING_THROUGH = "No answer yet — it may still be going thro
 
 export function proxyErrorMessage(err: unknown): string {
     if (isProxyTimeout(err)) return STILL_GOING_THROUGH;
-    if (typeof err === "string") return looksLikeHtml(err) ? "The payments server is unavailable right now" : err.trim() || NO_RESPONSE;
+    if (isString(err)) return looksLikeHtml(err) ? "The payments server is unavailable right now" : err.trim() || NO_RESPONSE;
     return explain(httpErrorMessage(err, NO_RESPONSE));
 }
 

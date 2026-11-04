@@ -1,6 +1,7 @@
 import { useCallback } from "react";
 import { useNetwork } from "../../context/NetworkContext";
 import { getCosmosUrls } from "../../utils/cosmos/urls";
+import { isString } from "../../utils/guards";
 
 /**
  * Validator-signed payload returned by the chain for a SitAndGo win
@@ -58,7 +59,7 @@ export const useFetchSngClaimSignature = () => {
 
             if (!response.ok) {
                 // Cosmos REST gateway error shape: { code, message, details }
-                const msg = typeof raw?.message === "string" ? raw.message : response.statusText;
+                const msg = isString(raw?.message) ? raw.message : response.statusText;
                 throw new Error(`Failed to fetch SNG claim signature: ${msg}`);
             }
 

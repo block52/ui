@@ -102,5 +102,7 @@ describe("handHistory (ui#721)", () => {
         expect(indexerErrorCode({ code: 404 })).toBe(404);
         expect(indexerErrorCode(new Error("x"))).toBeUndefined();
         expect(indexerErrorCode(null)).toBeUndefined();
+        expect(indexerErrorCode({ code: "404" })).toBeUndefined();
+        expect(indexerErrorCode([])).toBeUndefined();
     });
 });

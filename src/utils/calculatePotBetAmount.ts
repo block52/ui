@@ -1,5 +1,6 @@
 import { PlayerActionType, ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
+import { isNumber } from "./guards";
 
 type CalculatePotBetAmountParams = {
     currentRound: TexasHoldemRound;
@@ -73,7 +74,7 @@ const NAMED_FRACTIONS: Record<Exclude<PotBetVariation, number>, PotFraction> = {
  * @throws If a custom multiplier is negative, not finite, or in exponent form.
  */
 export function toPotFraction(variation: PotBetVariation): PotFraction {
-    if (typeof variation !== "number") {
+    if (!isNumber(variation)) {
         return NAMED_FRACTIONS[variation];
     }
     const digits = String(variation);

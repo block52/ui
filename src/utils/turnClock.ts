@@ -16,7 +16,7 @@
  */
 import { NonPlayerActionType, TexasHoldemRound, type ActionDTO, type PlayerDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { makeTurnId, normalizeTimestamp } from "./timerUtils";
-import { hasElements, isNullish } from "./guards";
+import { hasElements, isNullish, isNumber } from "./guards";
 import { hasTournamentStarted } from "./scheduledSng";
 
 /**
@@ -66,7 +66,7 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
         return null;
     }
     const timeoutSeconds = gameState.gameOptions?.timeout;
-    if (typeof timeoutSeconds !== "number" || timeoutSeconds <= 0) {
+    if (!isNumber(timeoutSeconds) || timeoutSeconds <= 0) {
         return null;
     }
     if (gameState.round === TexasHoldemRound.END || !(gameState.nextToAct > 0)) {

@@ -233,5 +233,9 @@ describe("classifyMessage", () => {
             expect(classifyMessage(null, TABLE_ID)).toEqual({ kind: "ignore" });
             expect(classifyMessage(undefined, TABLE_ID)).toEqual({ kind: "ignore" });
         });
+
+        it("ignores an array frame", () => {
+            expect(classifyMessage([] as unknown as RawWsMessage, TABLE_ID)).toEqual({ kind: "ignore" });
+        });
     });
 });

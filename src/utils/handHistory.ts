@@ -7,7 +7,7 @@ import { GameFormat, PlayerStatus, isTournamentFormat } from "@block52/poker-vm-
 import type { PlayerHand } from "../types/players";
 import type { IndexerStatus } from "../pages/explorer/types";
 import { formatAmount } from "./accountUtils";
-import { hasValue } from "./guards";
+import { hasValue, isNumber, isRecord } from "./guards";
 import { httpErrorMessage, isNetworkError } from "../apis/HTTPClient";
 
 /** A hand's identity across tables: one table can't repeat a hand number. */
@@ -75,7 +75,7 @@ export function describeIndexing(status: IndexerStatus): string {
 
 /** The status code the indexer put in an error body ({ error, message, code }), if any. */
 export function indexerErrorCode(err: unknown): number | undefined {
-    if (typeof err === "object" && err !== null && "code" in err && typeof err.code === "number") {
+    if (isRecord(err) && isNumber(err.code)) {
         return err.code;
     }
     return undefined;

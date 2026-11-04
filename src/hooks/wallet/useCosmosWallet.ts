@@ -12,6 +12,7 @@ import { getCosmosClient, getSigningClient } from "../../utils/cosmos/client";
 import { getCosmosMnemonic, getCosmosAddress, setCosmosMnemonic, setCosmosAddress } from "../../utils/cosmos/storage";
 import { getAddressFromMnemonic } from "@block52/poker-vm-sdk";
 import { useNetwork } from "../../context/NetworkContext";
+import { isString } from "../../utils/guards";
 
 interface Balance {
     denom: string;
@@ -124,7 +125,7 @@ export const useCosmosWallet = (): UseCosmosWalletReturn => {
             const { signingClient } = await getSigningClient(currentNetwork);
 
             // Convert amount to BigInt if it's a string
-            const amountBigInt = typeof amount === "string" ? BigInt(amount) : amount;
+            const amountBigInt = isString(amount) ? BigInt(amount) : amount;
 
             // Send tokens - use the provided denom (usdc or stake)
             const txHash = await signingClient.sendTokens(

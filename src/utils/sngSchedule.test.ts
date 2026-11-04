@@ -153,6 +153,11 @@ describe("parseSngSchedule", () => {
         expect(() => parseSngSchedule("nope")).toThrow();
     });
 
+    it("rejects an array where an object belongs", () => {
+        expect(() => parseSngSchedule([])).toThrow("SNG schedule must be a JSON object");
+        expect(() => parseSngSchedule({ tournaments: [[]] })).toThrow("SNG schedule entry 0 must be an object");
+    });
+
     it("rejects a missing tournaments array", () => {
         expect(() => parseSngSchedule({})).toThrow(/tournaments/);
     });

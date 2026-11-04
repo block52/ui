@@ -25,6 +25,7 @@ describe("parseConsensusPubkey", () => {
         expect(parseConsensusPubkey("{not json").ok).toBe(false);
         expect(parseConsensusPubkey(`{"@type":"/cosmos.crypto.secp256k1.PubKey","key":"${KEY}"}`).ok).toBe(false);
         expect(parseConsensusPubkey(`{"@type":"/cosmos.crypto.ed25519.PubKey"}`).ok).toBe(false);
+        expect(parseConsensusPubkey(`{"key":5}`)).toEqual({ ok: false, error: "JSON has no \"key\" field" });
         expect(parseConsensusPubkey("A".repeat(43)).ok).toBe(false);
         expect(parseConsensusPubkey("b521hg93rsm2f5v3zlepf20ru88uweajt3nf492s2p").ok).toBe(false);
     });

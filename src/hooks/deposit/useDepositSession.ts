@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { DEPOSIT_ADDRESS } from "../../config/constants";
 import { usePaymentApi } from "../../context/PaymentApiContext";
 import { DepositSession, TransactionStatus } from "../../types";
+import { isRecord } from "../../utils/guards";
 
 interface UseDepositSessionReturn {
     sessionId: string | null;
@@ -150,7 +151,7 @@ export const useDepositSession = (): UseDepositSessionReturn => {
             } catch (err: unknown) {
                 console.error("Failed to create deposit session:", err);
                 // HTTPClient throws the response body on error (see HTTPClient.onError)
-                if (err && typeof err === "object" && "error" in err) {
+                if (isRecord(err) && "error" in err) {
                     const body = err as { error?: string };
                     setError(body.error || "Failed to create deposit session");
                 } else {
