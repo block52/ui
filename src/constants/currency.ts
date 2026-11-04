@@ -1,4 +1,4 @@
-import { isNullish } from "../utils/guards";
+import { isNullish, isNumber, isString } from "../utils/guards";
 /**
  * Currency conversion constants for USDC
  *
@@ -136,7 +136,7 @@ export function microToUsdc(microAmount: number | string | bigint): number {
     if (typeof microAmount === "bigint") {
         return Number(microAmount) / USDC_TO_MICRO;
     }
-    const amount = typeof microAmount === "string" ? parseFloat(microAmount) : microAmount;
+    const amount = isString(microAmount) ? parseFloat(microAmount) : microAmount;
     return amount / USDC_TO_MICRO;
 }
 
@@ -149,7 +149,7 @@ export function microToUsdc(microAmount: number | string | bigint): number {
 export function parseMicroToBigInt(value: string | number | bigint | undefined): bigint {
     if (isNullish(value)) return 0n;
     if (typeof value === "bigint") return value;
-    if (typeof value === "number") return BigInt(Math.floor(value));
+    if (isNumber(value)) return BigInt(Math.floor(value));
     // Handle string - remove any decimal places (shouldn't have any for micro-units)
     const parsed = value.includes(".") ? value.split(".")[0] : value;
     return BigInt(parsed || "0");

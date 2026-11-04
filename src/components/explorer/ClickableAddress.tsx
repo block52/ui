@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import styles from "./ClickableAddress.module.css";
-import { isNullish, isEmpty } from "../../utils/guards";
+import { isNullish, isEmpty, isBoolean, isNumber, isRecord, isString } from "../../utils/guards";
 
 interface ClickableAddressProps {
     address: string;
@@ -50,7 +50,7 @@ export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React
         return <span className="text-gray-500">null</span>;
     }
 
-    if (typeof obj === "string") {
+    if (isString(obj)) {
         // Check if it's a Cosmos address
         if (obj.startsWith("b52") && obj.length > 20) {
             return <ClickableAddress address={obj} />;
@@ -58,7 +58,7 @@ export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React
         return <span className="text-green-400">&quot;{obj}&quot;</span>;
     }
 
-    if (typeof obj === "number" || typeof obj === "boolean") {
+    if (isNumber(obj) || isBoolean(obj)) {
         return <span className="text-blue-400">{String(obj)}</span>;
     }
 
@@ -82,8 +82,8 @@ export const renderJSONWithClickableAddresses = (obj: unknown, depth = 0): React
         );
     }
 
-    if (typeof obj === "object") {
-        const entries = Object.entries(obj as Record<string, unknown>);
+    if (isRecord(obj)) {
+        const entries = Object.entries(obj);
         if (isEmpty(entries)) {
             return <span>{"{}"}</span>;
         }

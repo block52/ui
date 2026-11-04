@@ -18,7 +18,7 @@ import {
     type TransferEvent
 } from "../utils/transactionUtils";
 import { useCosmosApi } from "../context/CosmosApiContext";
-import { isEmpty, hasElements } from "../utils/guards";
+import { isEmpty, hasElements, isString } from "../utils/guards";
 
 interface Transaction {
     txhash: string;
@@ -180,7 +180,7 @@ const TransactionPanel: React.FC<TransactionPanelProps> = ({ cosmosWalletAddress
                     // Extract poker action details
                     if (msgType.includes("MsgPerformAction")) {
                         action = msg.action;
-                        amount = getDisplayableActionAmount("MsgPerformAction", typeof msg.amount === "string" ? msg.amount : undefined);
+                        amount = getDisplayableActionAmount("MsgPerformAction", isString(msg.amount) ? msg.amount : undefined);
                         gameId = msg.game_id;
                     } else if (msgType.includes("MsgJoinGame")) {
                         action = "join";

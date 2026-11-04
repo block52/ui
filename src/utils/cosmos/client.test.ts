@@ -36,7 +36,7 @@ jest.mock("./storage", () => ({
     getCosmosMnemonic: () => mockMnemonic()
 }));
 
-import { getSigningClient, clearSigningClientCache, withSigningClientRetry, withMoneyMoverRetry, isSequenceMismatchError } from "./client";
+import { getSigningClient, clearSigningClientCache, withSigningClientRetry, withMoneyMoverRetry, isSequenceMismatchError, isTransportError } from "./client";
 
 const NETWORK_A: NetworkEndpoints = {
     name: "A",
@@ -299,5 +299,20 @@ describe("withMoneyMoverRetry", () => {
 
         // First client + one rebuild attempt = 2 derivations, no infinite loop.
         expect(mockCreateSigningClientFromMnemonic).toHaveBeenCalledTimes(2);
+    });
+});
+
+describe("isTransportError", () => {
+    it("recognises a transport failure on an Error or a plain error body", () => {
+        expect(isTransportError(new Error("Network request failed"))).toBe(true);
+        expect(isTransportError({ message: "socket hang up" })).toBe(true);
+    });
+
+    it("does not treat a chain rejection as transport, so it is never retried", () => {
+        expect(isTransportError(new Error("insufficient funds"))).toBe(false);
+    });
+
+    it.each([null, undefined, 0, "", "network down", [], { message: 42 }, {}])("rejects %p", err => {
+        expect(isTransportError(err)).toBe(false);
     });
 });

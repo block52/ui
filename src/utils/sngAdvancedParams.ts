@@ -14,7 +14,7 @@
  * - maxPlayers: number of runners/entrants
  */
 
-import { hasValue, isNullish, isBlank, hasElements } from "./guards";
+import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "./guards";
 import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "./blindStructureChoice";
 
 /** Chain-defined valid entrant counts for a Sit & Go. */
@@ -80,7 +80,7 @@ export interface SngPreview {
 }
 
 function isFiniteNumber(value: unknown): value is number {
-    return typeof value === "number" && Number.isFinite(value);
+    return isNumber(value) && Number.isFinite(value);
 }
 
 /**
@@ -108,11 +108,11 @@ export function parseAdvancedSngParams(raw: string): AdvancedSngParseResult {
         return { isValid: false, errors: [`Invalid JSON: ${message}`] };
     }
 
-    if (isNullish(parsed) || typeof parsed !== "object" || Array.isArray(parsed)) {
+    if (!isRecord(parsed)) {
         return { isValid: false, errors: ["Params must be a JSON object, e.g. { \"startingStack\": 1500 }."] };
     }
 
-    const obj = parsed as Record<string, unknown>;
+    const obj = parsed;
     const errors: string[] = [];
 
     // Reject unknown keys so typos surface instead of being silently ignored.

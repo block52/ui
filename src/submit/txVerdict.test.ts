@@ -27,4 +27,9 @@ describe("parseTxVerdict", () => {
         expect(parseTxVerdict(null, HASH)).toBeNull();
         expect(parseTxVerdict("not json", HASH)).toBeNull();
     });
+
+    it("yields no verdict for an array at either level", () => {
+        expect(parseTxVerdict([], HASH)).toBeNull();
+        expect(parseTxVerdict({ tx_response: [] }, HASH)).toBeNull();
+    });
 });

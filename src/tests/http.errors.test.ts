@@ -31,6 +31,7 @@ describe("httpErrorMessage", () => {
         expect(httpErrorMessage("plain string", "fallback")).toBe("fallback");
         expect(httpErrorMessage(null, "fallback")).toBe("fallback");
         expect(httpErrorMessage(undefined, "fallback")).toBe("fallback");
+        expect(httpErrorMessage([], "fallback")).toBe("fallback");
     });
 });
 

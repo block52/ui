@@ -4,6 +4,7 @@ import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { PlayerSeatInfoReturn } from "../../types/index";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { isNumber } from "../../utils/guards";
 
 /**
  * Custom hook to manage player seat information
@@ -43,7 +44,7 @@ export const usePlayerSeatInfo = (): PlayerSeatInfoReturn => {
 
         const result: Record<number, PlayerDTO> = {};
         gameState.players.forEach((player: PlayerDTO) => {
-            if (player && typeof player.seat === "number" && player.seat >= 0) {
+            if (player && isNumber(player.seat) && player.seat >= 0) {
                 result[player.seat] = player;
             }
         });
