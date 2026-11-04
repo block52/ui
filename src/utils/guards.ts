@@ -82,3 +82,32 @@ export function hasContent(value: string | null | undefined): value is string {
 export function isRecord(value: unknown): value is Record<string, unknown> {
     return typeof value === "object" && value !== null && !Array.isArray(value);
 }
+
+/**
+ * Check that a value is a string, including "". Use it on an `unknown` reply
+ * field or to split a `string | number` union. Use `hasContent` when "" shouldn't count.
+ * @example
+ * const rawLog = isString(body.raw_log) ? body.raw_log : "";
+ */
+export function isString(value: unknown): value is string {
+    return typeof value === "string";
+}
+
+/**
+ * Check that a value is a number, including NaN and Infinity, as `typeof` does.
+ * Add `Number.isFinite` when those shouldn't count.
+ * @example
+ * if (!isNumber(body.code)) { return null; }
+ */
+export function isNumber(value: unknown): value is number {
+    return typeof value === "number";
+}
+
+/**
+ * Check that a value is a boolean.
+ * @example
+ * if (isBoolean(body.available)) { setAvailable(body.available); }
+ */
+export function isBoolean(value: unknown): value is boolean {
+    return typeof value === "boolean";
+}

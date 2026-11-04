@@ -8,34 +8,25 @@
  * failure signal is `tx_response.code !== 0`, and `raw_log` carries the reason.
  */
 import type { TxVerdict } from "./types";
-import { hasValue } from "../utils/guards";
-
-interface TxResponseShape {
-    tx_response?: {
-        code?: unknown;
-        raw_log?: unknown;
-        height?: unknown;
-        txhash?: unknown;
-    };
-}
+import { hasContent, isNumber, isRecord, isString } from "../utils/guards";
 
 export function parseTxVerdict(response: unknown, hash: string): TxVerdict | null {
-    if (!hasValue(response) || typeof response !== "object") {
+    if (!isRecord(response)) {
         return null;
     }
-    const txResponse = (response as TxResponseShape).tx_response;
-    if (!hasValue(txResponse) || typeof txResponse !== "object") {
+    const txResponse = response.tx_response;
+    if (!isRecord(txResponse)) {
         return null;
     }
     const { code, raw_log: rawLog, height, txhash } = txResponse;
-    if (typeof code !== "number") {
+    if (!isNumber(code)) {
         return null;
     }
-    const parsedHeight = typeof height === "number" ? height : typeof height === "string" ? Number(height) : Number.NaN;
+    const parsedHeight = isNumber(height) ? height : isString(height) ? Number(height) : Number.NaN;
     return {
-        hash: typeof txhash === "string" && txhash !== "" ? txhash : hash,
+        hash: isString(txhash) && hasContent(txhash) ? txhash : hash,
         code,
-        rawLog: typeof rawLog === "string" ? rawLog : "",
+        rawLog: isString(rawLog) ? rawLog : "",
         height: Number.isFinite(parsedHeight) ? parsedHeight : 0
     };
 }

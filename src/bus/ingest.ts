@@ -19,7 +19,7 @@ import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVari
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import type { PendingAction } from "../context/gameState/GameUIContext";
 import { withWinnerDescriptions } from "../utils/winnerDescriptions";
-import { hasValue } from "../utils/guards";
+import { hasValue, isRecord } from "../utils/guards";
 
 /**
  * Cosmos event names that carry a full game-state snapshot.
@@ -111,7 +111,7 @@ export type ClassifiedMessage =
  * @param tableId - the table the provider is currently subscribed to
  */
 export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: string): ClassifiedMessage {
-    if (!raw || typeof raw !== "object") {
+    if (!isRecord(raw)) {
         return { kind: "ignore" };
     }
 

@@ -1,5 +1,6 @@
 import axios, { isAxiosError, AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from "axios";
 import { STORAGE_KEYS } from "../constants/storageKeys";
+import { isRecord, isString } from "../utils/guards";
 
 export interface HTTPClientConfig {
     baseUrl: string;
@@ -16,9 +17,9 @@ export interface HTTPClientConfig {
  */
 export const httpErrorMessage = (err: unknown, fallback: string): string => {
     if (err instanceof Error) return err.message;
-    if (typeof err === "object" && err !== null) {
-        if ("error" in err && typeof err.error === "string") return err.error;
-        if ("message" in err && typeof err.message === "string") return err.message;
+    if (isRecord(err)) {
+        if (isString(err.error)) return err.error;
+        if (isString(err.message)) return err.message;
     }
     return fallback;
 };

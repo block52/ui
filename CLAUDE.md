@@ -305,12 +305,12 @@ export const PlayerSeat: React.FC<Props> = ({ player }) => {
 };
 ```
 
-Before writing a null/empty/length check or a conversion by hand, look for an
-existing helper. If one is missing, add it to `src/utils/` **with a colocated
-`*.test.ts`** rather than inlining the logic. Reuse beats re-implementation:
-grep `src/utils/` first.
+Before writing a null/empty/length check, a `typeof` check or a conversion by
+hand, look for an existing helper. If one is missing, add it to `src/utils/`
+**with a colocated `*.test.ts`** rather than inlining the logic. Reuse beats
+re-implementation: grep `src/utils/` first.
 
-Most common: `src/utils/guards.ts` for null/empty checks.
+Most common: `src/utils/guards.ts` for null/empty and `typeof` checks.
 
 ```typescript
 // ❌ WRONG - inline checks scattered everywhere
@@ -326,14 +326,20 @@ if (hasValue(value)) { ... }
 Available guards: `hasValue` / `isNullish` (null-or-undefined), `hasElements` /
 `isEmpty` / `safeLength` (arrays), `hasContent` / `isBlank` (strings), `isRecord`
 (an `unknown` JSON reply or caught error whose fields you want to read, instead
-of casting it). For type conversions, see Commandment 12
+of casting it or checking `typeof x === "object"`; unlike that check, it rejects
+arrays), `isString` / `isNumber` / `isBoolean` (instead of a
+`typeof x === "string"` check). For type conversions, see Commandment 12
 (`utils/typeConversions`).
 
 **Checked in CI.** The `Guards` job runs `yarn check:guards`, which fails a PR
-whose added lines contain a hand-written null/empty/length check, and names the
-guard to use. Run it before opening a PR. Existing code isn't checked, only the
-lines you add. When a raw check is genuinely needed (a `typeof` check, a
-number compared with 0), end the line with `// guards-ok`.
+whose added lines contain a hand-written null/empty/length check or a `typeof`
+check for a string, number, boolean or object, and names the guard to use. Run it
+before opening a PR. Existing code isn't checked, only the lines you add. When a
+raw check is genuinely needed (`null` and `undefined` meaning different things, a
+number compared with 0, an object check that must accept arrays), end the line
+with `// guards-ok`. `typeof` checks for `function`, `undefined` and `bigint`
+aren't flagged: `typeof window === "undefined"` is the safe way to test for a
+global.
 
 ---
 

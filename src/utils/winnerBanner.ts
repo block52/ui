@@ -1,4 +1,4 @@
-import { hasElements } from "./guards";
+import { hasElements, isNumber } from "./guards";
 import { potLabel } from "./potDisplayUtils";
 
 /**
@@ -99,7 +99,7 @@ const BANNER_FALLBACK_TOP_PX = 108;
  * @param infoBarBottom The info bar's bottom edge, or null when it isn't rendered
  */
 export function winnerBannerTop(infoBarBottom: number | null | undefined): number {
-    return typeof infoBarBottom === "number" ? Math.round(infoBarBottom) + BANNER_GAP_PX : BANNER_FALLBACK_TOP_PX;
+    return isNumber(infoBarBottom) ? Math.round(infoBarBottom) + BANNER_GAP_PX : BANNER_FALLBACK_TOP_PX;
 }
 
 /** How far past each clip edge the pill starts and finishes (px), so not even a sliver shows. */

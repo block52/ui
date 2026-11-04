@@ -3,6 +3,7 @@
  * bonding a validator). No React, no network: unit-tested in nodePortal.test.ts.
  */
 import { P2PPeer } from "../constants/chainNetwork";
+import { isRecord, isString } from "./guards";
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string };
 
@@ -25,7 +26,7 @@ export function parseConsensusPubkey(input: string): ParseResult<string> {
         } catch {
             return { ok: false, error: "That looks like JSON but doesn't parse" };
         }
-        if (typeof parsed !== "object" || parsed === null || !("key" in parsed) || typeof parsed.key !== "string") {
+        if (!isRecord(parsed) || !isString(parsed.key)) {
             return { ok: false, error: "JSON has no \"key\" field" };
         }
         if ("@type" in parsed && parsed["@type"] !== "/cosmos.crypto.ed25519.PubKey") {

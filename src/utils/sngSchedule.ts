@@ -12,7 +12,7 @@
  * so daylight-saving transitions (AEST↔AEDT) are handled correctly.
  */
 
-import { isNullish, hasContent } from "./guards";
+import { hasContent, isNumber, isRecord, isString } from "./guards";
 
 /** A weekly recurring Sit & Go, as defined in the remote JSON schedule. */
 export interface SngTournament {
@@ -199,29 +199,29 @@ export function formatLocalLabel(date: Date): string {
  * is an operator error to surface, not to paper over.
  */
 export function parseSngSchedule(raw: unknown): SngTournament[] {
-    if (isNullish(raw) || typeof raw !== "object") {
+    if (!isRecord(raw)) {
         throw new Error("SNG schedule must be a JSON object");
     }
-    const tournaments = (raw as { tournaments?: unknown }).tournaments;
+    const tournaments = raw.tournaments;
     if (!Array.isArray(tournaments)) {
         throw new Error("SNG schedule must have a `tournaments` array");
     }
 
     return tournaments.map((entry, index) => {
-        if (isNullish(entry) || typeof entry !== "object") {
+        if (!isRecord(entry)) {
             throw new Error(`SNG schedule entry ${index} must be an object`);
         }
-        const t = entry as Record<string, unknown>;
+        const t = entry;
         const requireString = (field: string): string => {
             const value = t[field];
-            if (typeof value !== "string" || !hasContent(value)) {
+            if (!isString(value) || !hasContent(value)) {
                 throw new Error(`SNG schedule entry ${index} missing string field "${field}"`);
             }
             return value;
         };
         const requireNumber = (field: string, min: number, max: number): number => {
             const value = t[field];
-            if (typeof value !== "number" || !Number.isInteger(value) || value < min || value > max) {
+            if (!isNumber(value) || !Number.isInteger(value) || value < min || value > max) {
                 throw new Error(`SNG schedule entry ${index} field "${field}" must be an integer in [${min}, ${max}]`);
             }
             return value;
