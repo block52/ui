@@ -6,7 +6,9 @@
  * 1. Alchemy getNFTMetadata — a cached CDN image, no public IPFS gateway, the
  *    same source the own-avatar path already uses.
  * 2. tokenURI(tokenId) — standard ERC-721 — then the metadata document.
- * 3. baseURI() + tokenId — for contracts using the baseURI pattern (incl. proxies).
+ * 3. uri(tokenId) — ERC-1155 (Rarible's shared collection reverts tokenURI and
+ *    answers here). `{id}` in that string is the zero-padded hex token id.
+ * 4. baseURI() + tokenId — for contracts using the baseURI pattern (incl. proxies).
  *
  * The metadata document is content-addressed like the image, so it is fetched
  * through every IPFS gateway in turn (5s each) rather than only the first: one
@@ -23,6 +25,7 @@ const ETH_RPC_URL = viteEnv.VITE_MAINNET_RPC_URL || "";
 
 // ERC-721 function selectors
 const TOKEN_URI_SELECTOR = "0xc87b56dd"; // tokenURI(uint256)
+const ERC1155_URI_SELECTOR = "0x0e89341c"; // uri(uint256)
 const BASE_URI_SELECTOR = "0x6c0360eb"; // baseURI()
 
 const FETCH_TIMEOUT_MS = 5000;
@@ -119,9 +122,13 @@ async function resolveUncached(contractAddress: string, tokenId: string): Promis
         return null;
     }
 
-    // Try tokenURI(tokenId) first (standard ERC-721), then baseURI() + tokenId.
-    return (await tryTokenUri(contractAddress, tokenId)) || (await tryBaseUri(contractAddress, tokenId));
+    // ERC-721 tokenURI, then ERC-1155 uri (tokenURI reverts on those contracts),
+    // then the baseURI + id pattern.
+    return (await tryTokenUri(contractAddress, tokenId)) || (await tryErc1155Uri(contractAddress, tokenId)) || (await tryBaseUri(contractAddress, tokenId));
 }
+
+/** ABI word for a uint256 token id: 32 bytes, lowercase hex, no 0x. */
+const tokenIdWord = (tokenId: string): string => BigInt(tokenId).toString(16).padStart(64, "0");
 
 const fetchWithTimeout = (url: string, init?: RequestInit): Promise<Response> => {
     const signal = typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(FETCH_TIMEOUT_MS) : undefined;
@@ -172,8 +179,7 @@ async function tryAlchemyMetadata(contractAddress: string, tokenId: string): Pro
  */
 async function tryTokenUri(contractAddress: string, tokenId: string): Promise<string | null> {
     try {
-        const tokenIdHex = BigInt(tokenId).toString(16).padStart(64, "0");
-        const callData = TOKEN_URI_SELECTOR + tokenIdHex;
+        const callData = TOKEN_URI_SELECTOR + tokenIdWord(tokenId);
 
         const json = await ethCall(contractAddress, callData);
         if (!json.result || json.result === "0x" || json.error) {
@@ -186,6 +192,30 @@ async function tryTokenUri(contractAddress: string, tokenId: string): Promise<st
         return fetchMetadataImage(tokenUri);
     } catch (err) {
         console.error("[nftImageResolver] tokenURI failed:", err);
+        return null;
+    }
+}
+
+/**
+ * ERC-1155 uri(uint256). Rarible's shared collection (and others) revert
+ * tokenURI and keep the metadata here, sometimes as `ipfs://ipfs/<cid>` and
+ * sometimes as a template containing `{id}`.
+ */
+async function tryErc1155Uri(contractAddress: string, tokenId: string): Promise<string | null> {
+    try {
+        const idHex = tokenIdWord(tokenId);
+        const json = await ethCall(contractAddress, ERC1155_URI_SELECTOR + idHex);
+        if (!json.result || json.result === "0x" || json.error) {
+            return null;
+        }
+
+        const uri = decodeAbiString(json.result);
+        if (!uri) return null;
+
+        // The spec says clients substitute `{id}` with the 64-nybble token id.
+        return fetchMetadataImage(uri.replace(/\{id\}/gi, idHex));
+    } catch (err) {
+        console.error("[nftImageResolver] uri(uint256) failed:", err);
         return null;
     }
 }
