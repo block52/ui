@@ -1,5 +1,5 @@
 import { useMemo, useRef } from "react";
-import { GameFormat } from "@block52/poker-vm-sdk";
+import { isTournamentFormat } from "@block52/poker-vm-sdk";
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameMeta } from "../../context/gameState/GameMetaContext";
@@ -50,7 +50,7 @@ export const useSitAndGoPayouts = (): SitAndGoPayoutsReturn => {
     const payouts: Payouts = isOptimistic ? committedPayoutsRef.current : gameState?.payouts;
 
     return useMemo(() => {
-        if (gameFormat !== GameFormat.SIT_AND_GO) return EMPTY;
+        if (!isTournamentFormat(gameFormat)) return EMPTY;
 
         if (!hasElements(payouts)) {
             return { isSitAndGo: true, prizePool: null, places: [] };

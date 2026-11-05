@@ -57,6 +57,13 @@ const setContext = (
 describe("useSitAndGoPayouts", () => {
     beforeEach(() => jest.clearAllMocks());
 
+    it("reads payouts for a tournament, like a sit-and-go (poker-vm#2776)", () => {
+        setContext(buildState([{ place: 1, amount: "20000000" }]), GameFormat.TOURNAMENT);
+        const { result } = renderHook(() => useSitAndGoPayouts());
+        expect(result.current.isSitAndGo).toBe(true);
+        expect(result.current.places).toHaveLength(1);
+    });
+
     it("returns empty struct when format is cash", () => {
         setContext(buildState([{ place: 1, amount: "20000000" }]), GameFormat.CASH);
         const { result } = renderHook(() => useSitAndGoPayouts());
