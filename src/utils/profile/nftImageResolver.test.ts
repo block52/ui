@@ -128,4 +128,45 @@ describe("resolveNftImageUrl", () => {
         });
         await expect(mod.resolveNftImageUrl(CONTRACT, "390")).resolves.toBeNull();
     });
+
+    // Rarible's shared ERC-1155 reverts tokenURI and returns ipfs://ipfs/<cid> from uri(uint256).
+    it("resolves an ERC-1155 token from uri(uint256) when tokenURI reverts", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded next to the isolated resolver so both see the same module instance
+        const { IPFS_GATEWAYS } = require("./ipfs");
+        const meta = "bafkreie3ourrwpctutuob5f2a6x5vrrf7nsi3hl4cywrdrrji67fwzmabu";
+        const tokenId = "100900698192843761210240057463506480671189295916682838689081205178188861276189";
+        const { mod, calls } = loadResolver((url, init) => {
+            if (url.includes("/getNFTMetadata")) return json({ image: {} });
+            if (init?.method === "POST") {
+                const body = String(init.body);
+                if (body.includes("0xc87b56dd")) return json({ error: { message: "execution reverted" } });
+                if (body.includes("0x0e89341c")) return json({ result: abiString(`ipfs://ipfs/${meta}`) });
+                throw new Error(`unexpected eth_call ${body}`);
+            }
+            if (url.startsWith(`${IPFS_GATEWAYS[0]}/ipfs/${meta}`)) return json({ image: `ipfs://${IMAGE_CID}/1` });
+            throw new Error(`unexpected fetch ${url}`);
+        });
+
+        await expect(mod.resolveNftImageUrl(CONTRACT, tokenId)).resolves.toBe(`${IPFS_GATEWAYS[0]}/ipfs/${IMAGE_CID}/1`);
+        expect(calls.some(call => call.includes("0x6c0360eb"))).toBe(false);
+    });
+
+    it("substitutes {id} in an ERC-1155 uri template with the padded hex token id", async () => {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports -- loaded next to the isolated resolver so both see the same module instance
+        const { IPFS_GATEWAYS } = require("./ipfs");
+        const idHex = "1d".padStart(64, "0");
+        const { mod } = loadResolver((url, init) => {
+            if (url.includes("/getNFTMetadata")) return json({ image: {} });
+            if (init?.method === "POST") {
+                const body = String(init.body);
+                if (body.includes("0xc87b56dd")) return json({ result: "0x" });
+                if (body.includes("0x0e89341c")) return json({ result: abiString(`ipfs://${META_CID}/{id}.json`) });
+                throw new Error(`unexpected eth_call ${body}`);
+            }
+            if (url.startsWith(`${IPFS_GATEWAYS[0]}/ipfs/${META_CID}/${idHex}.json`)) return json({ image: "https://cdn.example/1155.png" });
+            throw new Error(`unexpected fetch ${url}`);
+        });
+
+        await expect(mod.resolveNftImageUrl(CONTRACT, "29")).resolves.toBe("https://cdn.example/1155.png");
+    });
 });
