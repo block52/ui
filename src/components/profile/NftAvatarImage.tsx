@@ -11,6 +11,12 @@ interface NftAvatarImageProps {
     chipClassName: string;
     /** Class(es) applied to the "NFT" fallback chip when every source fails. */
     fallbackClassName: string;
+    /**
+     * Render nothing once every source has failed, instead of the "NFT" chip.
+     * Used where a failed image should leave the surrounding layout unchanged
+     * (the awards page keeps the address on its own).
+     */
+    hideOnExhausted?: boolean;
 }
 
 /**
@@ -22,7 +28,7 @@ interface NftAvatarImageProps {
  * before giving up; non-IPFS sources (Alchemy CDN, data:) just try once. The
  * chip and placeholder styling are passed in so seats keep their existing look.
  */
-export const NftAvatarImage: React.FC<NftAvatarImageProps> = ({ src, alt, imgClassName, chipClassName, fallbackClassName }) => {
+export const NftAvatarImage: React.FC<NftAvatarImageProps> = ({ src, alt, imgClassName, chipClassName, fallbackClassName, hideOnExhausted = false }) => {
     const ref = useMemo(() => parseIpfsRef(src), [src]);
     // Candidate URLs to try, in order: for an IPFS ref, one per gateway; else the
     // single source as given.
@@ -43,6 +49,9 @@ export const NftAvatarImage: React.FC<NftAvatarImageProps> = ({ src, alt, imgCla
     const exhausted = attempt >= candidates.length;
 
     if (exhausted || isEmpty(candidates)) {
+        if (hideOnExhausted) {
+            return null;
+        }
         return <div className={fallbackClassName}>NFT</div>;
     }
 
@@ -53,7 +62,7 @@ export const NftAvatarImage: React.FC<NftAvatarImageProps> = ({ src, alt, imgCla
                 alt={alt}
                 className={imgClassName}
                 // Step to the next gateway/source; when all are spent the next
-                // render shows the "NFT" chip.
+                // render shows the "NFT" chip, or nothing when hideOnExhausted.
                 onError={() => setAttempt(a => a + 1)}
             />
         </div>
