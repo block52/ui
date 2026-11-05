@@ -15,8 +15,8 @@ describe("createGameType (ui#823)", () => {
         expect(toCreateGameType(undefined)).toBeUndefined();
     });
 
-    it("creates a Tournament as a sit-and-go on chain — the only format the chain accepts for it today", () => {
-        expect(createGameTypeFormat("tournament")).toBe(GameFormat.SIT_AND_GO);
+    it("creates each type as its own format on chain (poker-vm#2776)", () => {
+        expect(createGameTypeFormat("tournament")).toBe(GameFormat.TOURNAMENT);
         expect(createGameTypeFormat("sit-and-go")).toBe(GameFormat.SIT_AND_GO);
         expect(createGameTypeFormat("cash")).toBe(GameFormat.CASH);
     });
