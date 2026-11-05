@@ -18,6 +18,14 @@
   transition: transform 150ms ease, box-shadow 200ms ease, opacity 200ms ease;
 }
 
+/* A bigger target than the icon: a small button on a table is easy to miss. */
+.time-bank-clock::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+  border-radius: 9999px;
+}
+
 .time-bank-clock-icon {
   width: 1.15rem;
   height: 1.15rem;
@@ -54,7 +62,7 @@
   box-shadow: 0 0 0 2px #facc15;
   animation: tbc-nudge 2.4s ease-in-out infinite;
 }
-.time-bank-clock-ready:hover { transform: scale(1.12); }
+.time-bank-clock-ready:hover { transform: scale(1.12); animation: none; }
 .time-bank-clock-ready:active { transform: scale(0.95); }
 
 /* Tapped: glows while your own clock keeps running. */

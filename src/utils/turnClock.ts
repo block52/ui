@@ -170,23 +170,26 @@ export const nextTimeBankMs = (player: PlayerDTO | null | undefined): number | n
 
 /**
  * Extra time the time bank has granted the current turn (ui#19/#20): for each
- * `time-bank` recorded at or after the clock's anchor, what that player's use
+ * `time-bank` after the last turn-advancing action, what that player's use
  * granted (`timeBankLastGrantMs`), mirroring the engine's TurnDeadlineMs. 0
  * when nobody used it this turn.
+ *
+ * It goes by order, not timestamp (ui#944): every action in a block shares that
+ * block's time, so a tap and the move ending the turn can carry the same stamp.
+ * A timestamp test counted the tap against the next turn too, leaving the alarm
+ * clock stuck on "armed" for a player acting again.
  */
 export const timeBankGrantedMs = (gameState: TexasHoldemStateDTO | null | undefined): number => {
     const previousActions = gameState?.previousActions ?? [];
-    const anchor = turnClockAnchorMs(previousActions);
-    if (isNullish(anchor)) {
-        return 0;
-    }
     const grantOf = (address: string): number => {
         const player = gameState?.players?.find(p => p.address?.toLowerCase() === address.toLowerCase());
         return playerTimeBank(player).timeBankLastGrantMs ?? 0;
     };
-    return previousActions
-        .filter(action => action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor)
-        .reduce((total, action) => total + grantOf(action.playerId), 0);
+    let granted = 0;
+    for (let i = previousActions.length - 1; i >= 0 && previousActions[i].action === NonPlayerActionType.TIME_BANK; i--) {
+        granted += grantOf(previousActions[i].playerId);
+    }
+    return granted;
 };
 
 /**

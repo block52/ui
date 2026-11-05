@@ -17,6 +17,7 @@ import {
     clockCallerRank,
     PREFLOP_TIMEOUT_SECONDS,
     TURN_CLOCK_START_ALLOWANCE_MS,
+    timeBankGrantedMs,
     turnClockPhase,
     turnCountdownStartMs,
     turnDeadlineMs,
@@ -152,6 +153,18 @@ describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
         });
         // the second use grants 30s, not the table's 45s first extension
         expect(turnDeadlineMs(s)).toBe(T0 + A + 30_000 + 30_000);
+    });
+
+    it("a tap in the same block as the move does not count against the next turn (ui#944)", () => {
+        const s = state({
+            players: [player(P1, 1), withGrant(player(P2, 2), 45_000), player(P3, 3), player(P5, 5)],
+            previousActions: [
+                action(1, T0, { action: NonPlayerActionType.TIME_BANK, playerId: P2, seat: 2 }),
+                action(2, T0, { action: PlayerActionType.CHECK, playerId: P2, seat: 2 })
+            ]
+        });
+        expect(timeBankGrantedMs(s)).toBe(0);
+        expect(turnDeadlineMs(s)).toBe(T0 + A + 30_000);
     });
 
     it("a time-bank from an EARLIER turn does not count", () => {
