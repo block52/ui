@@ -1,3 +1,4 @@
+import type { Page, Route } from "@playwright/test";
 import { test, expect, TEST_ADDRESS } from "./fixtures.js";
 
 /**
@@ -26,6 +27,29 @@ async function inject(gameState: Json): Promise<void> {
       frame: { event: "action_performed", gameId: SNG_GAME_ID, data: { format: "sit-and-go", variant: "texas-holdem", gameState } },
     }),
   });
+}
+
+/** Taking a seat reloads the page 1.5s later, which would drop any frame injected before it. */
+async function takeSeat(page: Page): Promise<void> {
+  const reloaded = page.waitForEvent("load", { timeout: 20_000 });
+  await page.getByRole("button", { name: "Take My Seat" }).first().click();
+  await reloaded;
+}
+
+/** Whether the stub has recorded START. */
+async function startRecorded(): Promise<boolean> {
+  const state = (await stubState()).gameState as Json;
+  return (state.previousActions as Json[]).some((a) => a.action === "start");
+}
+
+/** Refuse the page's transactions, so the ready state stays up without its auto-START landing. */
+async function blockBroadcasts(page: Page): Promise<() => Promise<void>> {
+  const handler = async (route: Route) => {
+    if (route.request().postData()?.includes("broadcast_tx")) return route.abort();
+    return route.fallback();
+  };
+  await page.route("http://localhost:8546/**", handler);
+  return () => page.unroute("http://localhost:8546/**", handler);
 }
 
 const player = (address: string, seat: number, legalActions: Json[] = []): Json => ({
@@ -69,7 +93,7 @@ test("lobby: a scheduled sit-and-go is a Tournament with its start time and mini
   await form.screenshot({ path: `${SHOTS}scheduled-sng-create-form.png` });
 });
 
-test("table: register → countdown → ready → START → cancelled", async ({ page }) => {
+test("table: register → countdown → ready → auto START → cancelled", async ({ page }) => {
   await page.goto(`/table/${SNG_GAME_ID}`);
 
   await test.step("registering: the join modal says when it starts", async () => {
@@ -80,7 +104,7 @@ test("table: register → countdown → ready → START → cancelled", async ({
   });
 
   await test.step("take a seat: the stub registers us without dealing", async () => {
-    await page.getByRole("button", { name: "Take My Seat" }).first().click();
+    await takeSeat(page);
     const panel = page.getByTestId("scheduled-start-panel");
     await expect(panel).toBeVisible({ timeout: 20_000 });
     await expect(panel).toContainText("STARTS IN");
@@ -92,7 +116,8 @@ test("table: register → countdown → ready → START → cancelled", async ({
   const botSeat = ((base.players as Json[]).find((p) => p.address !== TEST_ADDRESS)?.seat as number) ?? 3;
   const mySeat = ((base.players as Json[]).find((p) => p.address === TEST_ADDRESS)?.seat as number) ?? 1;
 
-  await test.step("ready: the start time has passed with enough players", async () => {
+  await test.step("ready, with the chain unreachable: Start now is there as a fallback", async () => {
+    const unblock = await blockBroadcasts(page);
     await inject({
       ...base,
       gameOptions: { ...options, scheduledStartTime: Date.now() - 5_000 },
@@ -105,14 +130,14 @@ test("table: register → countdown → ready → START → cancelled", async ({
     // everyone waits, so the button must not depend on them.
     await expect(page.getByTestId("start-tournament-button")).toBeEnabled();
     await page.screenshot({ path: `${SHOTS}scheduled-sng-ready.png` });
+    await unblock();
   });
 
-  await test.step("any registered player presses Start now: START is sent and the field starts", async () => {
-    await page.getByTestId("start-tournament-button").click();
+  await test.step("the page sends START by itself and the field starts (poker-vm#2776)", async () => {
+    await expect.poll(startRecorded, { timeout: 20_000 }).toBe(true);
     // The waiting modal leaves once the stub records START and deals everyone in.
-    await expect(page.getByTestId("scheduled-start-panel")).toBeHidden({ timeout: 20_000 });
+    await expect(page.getByTestId("scheduled-start-panel")).toBeHidden({ timeout: 10_000 });
     const after = (await stubState()).gameState as Json;
-    expect((after.previousActions as Json[]).some((a) => a.action === "start")).toBe(true);
     expect((after.players as Json[]).every((p) => p.status === "active")).toBe(true);
     await page.screenshot({ path: `${SHOTS}scheduled-sng-started.png` });
   });

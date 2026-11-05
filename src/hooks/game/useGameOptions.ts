@@ -54,6 +54,8 @@ export const useGameOptions = (): GameOptionsReturn => {
                 bettingLimit: options.bettingLimit,
                 // Absent = the sit-and-go starts only when full (poker-vm#2680).
                 scheduledStartTime: options.scheduledStartTime,
+                // Holds a full table for its start time: every tournament (poker-vm#2776).
+                waitForStartTime: options.waitForStartTime,
                 otherOptions: options.otherOptions || {}
             } as Required<GameOptionsDTO>;
         } catch (err) {

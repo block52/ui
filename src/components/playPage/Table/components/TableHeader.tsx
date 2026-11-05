@@ -15,7 +15,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
-import { formatGameFormatDisplay, formatTableGameDisplay, isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { formatGameFormatDisplay, formatTableGameDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
 import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
@@ -317,7 +317,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         for SNG, where the roster is frozen once play starts
                         (poker-vm#2343) and leave/claim is handled by the SNG
                         modals (block52/ui#465). */}
-                    {currentPlayerData && !(gameFormat && isSitAndGoFormat(gameFormat)) && (
+                    {currentPlayerData && !(gameFormat && isTournamentFormat(gameFormat)) && (
                         <span
                             className={`text-xs sm:text-[16px] cursor-pointer flex items-center gap-0.5 transition-colors duration-300 ml-2 sm:ml-3 ${styles.leaveTableButton}`}
                             onClick={handleLeaveTableClick}

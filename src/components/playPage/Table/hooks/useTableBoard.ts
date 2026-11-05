@@ -11,7 +11,7 @@ import { useMemo } from "react";
 import { useGameStateContext } from "../../../../context/GameStateContext";
 import { useTableState } from "../../../../hooks/game/useTableState";
 import { useVacantSeatData } from "../../../../hooks/game/useVacantSeatData";
-import { isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
 import { UseTableBoardReturn } from "../types";
 import { hasElements } from "../../../../utils/guards";
 
@@ -33,7 +33,7 @@ export const useTableBoard = (): UseTableBoardReturn => {
 
     // Determine if sit & go is waiting for players
     const isSitAndGoWaitingForPlayers = useMemo(() => {
-        const isSitAndGo = isSitAndGoFormat(gameFormat);
+        const isSitAndGo = isTournamentFormat(gameFormat);
         const hasEmptySeats = hasElements(emptySeatIndexes);
         return isSitAndGo && isUserAlreadyPlaying && hasEmptySeats;
     }, [gameFormat, isUserAlreadyPlaying, emptySeatIndexes.length]);
