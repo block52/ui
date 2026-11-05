@@ -40,6 +40,17 @@ export const isScheduledSng = (options: Pick<GameOptionsDTO, "scheduledStartTime
 export const waitsForStartTime = (options: Pick<GameOptionsDTO, "waitForStartTime"> | null | undefined): boolean =>
     options?.waitForStartTime === true;
 
+/** How often an open table page resends START until it lands. The chain checks its block time, which can lag this clock. */
+export const AUTO_START_RETRY_MS = 6000;
+
+/**
+ * Whether an open table page should send START by itself: the start time has
+ * passed with the minimum registered, or the engine is offering it. The chain has
+ * no timer, so a registered player's page does this. The chain checks the time and
+ * the field, and the first START wins; any others are refused, which is harmless.
+ */
+export const shouldAutoStart = (phase: ScheduledSngPhase, startOffered: boolean): boolean => phase === "ready" || startOffered;
+
 export const scheduledSngPhase = ({ scheduledStartTime, minPlayers, registered, nowMs }: ScheduledSngInput): ScheduledSngPhase => {
     if (isNullish(scheduledStartTime) || scheduledStartTime <= 0) return "unscheduled";
     if (nowMs < scheduledStartTime) return "registering";

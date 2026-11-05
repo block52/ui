@@ -1,5 +1,5 @@
 import { NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentFinished, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase, isAwaitingTournamentStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "./scheduledSng";
+import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentFinished, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase, isAwaitingTournamentStart, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "./scheduledSng";
 import type { ActionDTO, GameOptionsDTO, ResultDTO } from "@block52/poker-vm-sdk";
 import type { ScheduledSngPhase } from "./scheduledSng";
 
@@ -45,6 +45,18 @@ describe("isAwaitingTournamentStart", () => {
     it("is never true for cash, or for someone not seated", () => {
         expect(isAwaitingTournamentStart({ ...input, gameFormat: "cash", gameState: notStarted({ waitForStartTime: true }) })).toBe(false);
         expect(isAwaitingTournamentStart({ ...input, isUserAlreadyPlaying: false, gameFormat: "tournament", gameState: notStarted({ waitForStartTime: true }) })).toBe(false);
+    });
+});
+
+describe("shouldAutoStart", () => {
+    it("sends START once the start time has come with the minimum registered", () => {
+        expect(shouldAutoStart("ready", false)).toBe(true);
+    });
+    it("sends START when the engine offers it", () => {
+        expect(shouldAutoStart("registering", true)).toBe(true);
+    });
+    it.each(["unscheduled", "registering", "short", "cancelled"] as const)("does not send it while %s", phase => {
+        expect(shouldAutoStart(phase, false)).toBe(false);
     });
 });
 

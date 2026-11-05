@@ -4,7 +4,7 @@
  * Displays a modal for players who have joined a Sit & Go tournament
  * and are waiting for more players to fill the table before the game starts.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import { hasValue, isEmpty, isNullish } from "../../utils/guards";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
@@ -15,7 +15,7 @@ import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalA
 import { startTournament } from "../../hooks/playerActions/startTournament";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { formatSitAndGoStackString } from "../../utils/numberUtils";
-import { formatCountdown, formatStartsAt, isScheduledSng, scheduledSngPhase, tournamentStartRule, waitingProgressText, waitsForStartTime } from "../../utils/scheduledSng";
+import { AUTO_START_RETRY_MS, formatCountdown, formatStartsAt, isScheduledSng, scheduledSngPhase, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "../../utils/scheduledSng";
 import styles from "./SitAndGoWaitingModal.module.css";
 
 interface SitAndGoWaitingModalProps {
@@ -32,15 +32,12 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
     const { legalActions } = usePlayerLegalActions();
 
     // Scheduled start (poker-vm#2680): a clock for the countdown and the phase.
-    // Once the start time has passed with the minimum registered ("ready"),
-    // ANY registered player may press "Start now" (ui#830): the chain checks
-    // the block time and the field when the action lands, and a refusal shows
-    // under the button. The button is NOT gated on the engine offering START
-    // in legalActions — the chain stores the legal actions as of the last
-    // transaction, so while everyone waits they never include START. If a
-    // refresh does carry the offer, the client sends START by itself. The
-    // first START in a block wins; the rest are refused as already started,
-    // which is harmless.
+    // Once the start time has passed with the minimum registered ("ready"), this
+    // page sends START by itself and retries until it lands (poker-vm#2776): the
+    // chain has no timer, and the legal actions it stores date from the last
+    // transaction, so they don't carry START while everyone waits. "Start now" is
+    // there as well, and shows why if the chain refuses. The chain checks the
+    // block time and the field when the action lands.
     const scheduled = isScheduledSng(gameOptions);
     const [nowMs, setNowMs] = useState(() => Date.now());
     useEffect(() => {
@@ -58,7 +55,6 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
     const startOffered = legalActions.some(a => a.action === NonPlayerActionType.START);
     const [isStarting, setIsStarting] = useState(false);
     const [startError, setStartError] = useState<string | null>(null);
-    const autoStartFired = useRef(false);
     const sendStart = useCallback(async () => {
         if (!tableId) return;
         setIsStarting(true);
@@ -71,12 +67,16 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
             setIsStarting(false);
         }
     }, [tableId, currentNetwork]);
+    const autoStart = shouldAutoStart(phase, startOffered);
     useEffect(() => {
-        if (startOffered && !autoStartFired.current) {
-            autoStartFired.current = true;
-            void sendStart();
-        }
-    }, [startOffered, sendStart]);
+        if (!autoStart || !tableId) return;
+        const attempt = () => {
+            startTournament(tableId, currentNetwork).catch(err => console.warn("Auto-start not accepted yet:", err));
+        };
+        attempt();
+        const id = setInterval(attempt, AUTO_START_RETRY_MS);
+        return () => clearInterval(id);
+    }, [autoStart, tableId, currentNetwork]);
 
     const [isConfirming, setIsConfirming] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);

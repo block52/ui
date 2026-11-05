@@ -1,3 +1,4 @@
+import type { Page, Route } from "@playwright/test";
 import { test, expect, TEST_ADDRESS } from "./fixtures.js";
 
 /**
@@ -43,13 +44,36 @@ const player = (address: string, seat: number): Json => ({
   legalActions: [],
 });
 
+/** Taking a seat reloads the page 1.5s later, which would drop any frame injected before it. */
+async function takeSeat(page: Page): Promise<void> {
+  const reloaded = page.waitForEvent("load", { timeout: 20_000 });
+  await page.getByRole("button", { name: "Take My Seat" }).first().click();
+  await reloaded;
+}
+
+/** Whether the stub has recorded START. */
+async function startRecorded(): Promise<boolean> {
+  const state = (await stubState()).gameState as Json;
+  return (state.previousActions as Json[]).some((a) => a.action === "start");
+}
+
+/** Refuse the page's transactions, so the ready state stays up without its auto-START landing. */
+async function blockBroadcasts(page: Page): Promise<() => Promise<void>> {
+  const handler = async (route: Route) => {
+    if (route.request().postData()?.includes("broadcast_tx")) return route.abort();
+    return route.fallback();
+  };
+  await page.route("http://localhost:8546/**", handler);
+  return () => page.unroute("http://localhost:8546/**", handler);
+}
+
 /** Every seat taken, with us in `mySeat`. */
 const fullTable = (mySeat: number): Json[] =>
   [1, 2, 3, 4, 5, 6].map((seat) => player(seat === mySeat ? TEST_ADDRESS : BOT(seat), seat));
 
 test("a full tournament keeps its waiting modal until START, then starts", async ({ page }) => {
   await page.goto(`/table/${SNG_GAME_ID}`);
-  await page.getByRole("button", { name: "Take My Seat" }).first().click();
+  await takeSeat(page);
   const panel = page.getByTestId("scheduled-start-panel");
   await expect(panel).toBeVisible({ timeout: 20_000 });
 
@@ -78,23 +102,28 @@ test("a full tournament keeps its waiting modal until START, then starts", async
     await page.screenshot({ path: `${SHOTS}tournament-under-minimum.png` });
   });
 
-  await test.step("the start time arrives: Start now sends START and the modal leaves", async () => {
+  await test.step("the start time arrives, with the chain unreachable: Start now is there as a fallback", async () => {
+    const unblock = await blockBroadcasts(page);
     await inject("tournament", { ...base, gameOptions: { ...options, scheduledStartTime: Date.now() - 5_000 }, players: fullTable(mySeat) });
     await expect(panel).toContainText("READY TO START", { timeout: 10_000 });
+    await expect(page.getByTestId("start-tournament-button")).toBeEnabled();
     await expect(page.getByText("The start time has arrived.")).toBeVisible();
     await expect(page.getByText("Minimum reached, ready to start")).toBeVisible();
     await page.waitForTimeout(BAR_SETTLE_MS);
     await page.screenshot({ path: `${SHOTS}tournament-full-ready.png` });
-    await page.getByTestId("start-tournament-button").click();
-    await expect(panel).toBeHidden({ timeout: 20_000 });
-    const after = (await stubState()).gameState as Json;
-    expect((after.previousActions as Json[]).some((a) => a.action === "start")).toBe(true);
+    expect(await startRecorded()).toBe(false);
+    await unblock();
+  });
+
+  await test.step("the page sends START by itself, with nobody pressing anything, and the modal leaves", async () => {
+    await expect.poll(startRecorded, { timeout: 20_000 }).toBe(true);
+    await expect(panel).toBeHidden({ timeout: 10_000 });
   });
 });
 
 test("a full table without the hold still leaves the waiting modal, because the engine deals it", async ({ page }) => {
   await page.goto(`/table/${SNG_GAME_ID}`);
-  await page.getByRole("button", { name: "Take My Seat" }).first().click();
+  await takeSeat(page);
   const panel = page.getByTestId("scheduled-start-panel");
   await expect(panel).toBeVisible({ timeout: 20_000 });
 
