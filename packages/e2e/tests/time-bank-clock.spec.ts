@@ -62,7 +62,7 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
         // The stub posts blinds without recording them, so the turn clock's
         // anchor is a big blind recorded `turnAgoMs` ago.
         const bot = s.gameState.players.find(p => p.seat !== SEAT)!;
-        const last: Action = { playerId: bot.address, seat: bot.seat, action: "post-big-blind", amount: "20000000", round: "preflop", index: 1, timestamp: now - turnAgoMs };
+        const last: Action = { playerId: bot.address, seat: bot.seat, action: "post-big-blind", amount: "20000000", round: "preflop", index: 1, timestamp: now - turnAgoMs - 5_000 }; // the clock starts 5s after the stamp (ui#944)
         // `turnNo` adds earlier actions so each step is a NEW turn: the timer
         // keeps one turn's anchor steady across re-stamped frames (#561).
         const earlier = Array.from({ length: bank.turnNo ?? 0 }, (_, i): Action => ({ ...last, action: "post-small-blind", amount: "10000000", index: 0, timestamp: last.timestamp - 1_000 - i }));
@@ -112,21 +112,21 @@ test("the alarm clock arms the bank, the turn clock runs out first, then the ban
         }
     });
 
-    await test.step("armed: tapped with 21s left; the 25s pre-flop clock keeps counting, it does not jump to 70", async () => {
+    await test.step("armed: tapped with 11s left; the 15s pre-flop clock keeps counting, it does not jump to 60", async () => {
         await inject(turn(4_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 500, offered: false, turnNo: 1 }));
         await expect(clock).toHaveAttribute("data-state", "armed");
-        await expect(countdown).toHaveText(/^(2[01]|19)$/);
+        await expect(countdown).toHaveText(/^(1[01]|9)$/);
         await shot("2-armed");
     });
 
     await test.step("running: the turn clock is spent; a fresh 45s countdown runs on the bank", async () => {
-        await inject(turn(35_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 14_000, offered: false, turnNo: 2 }));
+        await inject(turn(25_000, { remainingMs: 30_000, lastGrantMs: 45_000, tappedAgoMs: 14_000, offered: false, turnNo: 2 }));
         await expect(clock).toHaveAttribute("data-state", "running");
         await expect(countdown).toHaveText(/^3[3-5]$/);
         await shot("3-running");
     });
 
-    await test.step("flop: the table's full 25s clock, the same as pre-flop", async () => {
+    await test.step("flop: the table's full 25s clock (pre-flop is 15s)", async () => {
         await inject(turn(1_000, { remainingMs: 45_000, offered: true, turnNo: 4, round: "flop" }));
         await expect(clock).toHaveAttribute("data-state", "ready");
         await expect(countdown).toHaveText(/^2[34]$/);

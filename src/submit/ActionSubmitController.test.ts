@@ -383,18 +383,54 @@ describe("ActionSubmitController", () => {
         expect(onError).toHaveBeenCalledWith(expect.objectContaining({ kind: "terminal", actionName: "bet" }));
     });
 
-    it("drops a submit when the queue is already full", async () => {
+    it("drops an automatic job when the queue is already full", async () => {
         const warn = jest.spyOn(console, "warn").mockImplementation(() => {});
         const { controller } = makeController();
-        controller.submit({ actionName: "fold", run: jest.fn().mockResolvedValue(ok()) });
-        controller.submit({ actionName: "call", run: jest.fn().mockResolvedValue(ok()) });
-        const raiseRun = jest.fn().mockResolvedValue(ok());
-        controller.submit({ actionName: "raise", run: raiseRun });
+        controller.submit({ actionName: "new-hand", run: jest.fn().mockResolvedValue(ok()) });
+        controller.submit({ actionName: "big-blind", run: jest.fn().mockResolvedValue(ok()) });
+        const dealRun = jest.fn().mockResolvedValue(ok());
+        controller.submit({ actionName: "deal", run: dealRun });
         await flush();
 
-        expect(raiseRun).not.toHaveBeenCalled();
+        expect(dealRun).not.toHaveBeenCalled();
         expect(controller.getSnapshot().queueDepth).toBe(1);
         warn.mockRestore();
+    });
+
+    // ui#944: at the start of a hand the automatic jobs filled the queue and the
+    // player's click was dropped, leaving a dead button.
+    it("never drops a player's decision behind automatic jobs", async () => {
+        const { controller } = makeController();
+        controller.submit({ actionName: "big-blind", run: jest.fn().mockResolvedValue(ok()) });
+        controller.submit({ actionName: "deal", run: jest.fn().mockResolvedValue(ok()) });
+        controller.submit({ actionName: "check", run: jest.fn().mockResolvedValue(ok()) });
+        await flush();
+
+        expect(controller.getSnapshot().queueDepth).toBe(2);
+    });
+
+    it("still runs a queued decision when our own automatic blind lands (ui#944)", async () => {
+        const { controller, authoritative, onError } = makeController();
+        const checkRun = jest.fn().mockResolvedValue(ok("0xcheck"));
+        controller.submit({ actionName: "big-blind", run: jest.fn().mockResolvedValue(ok("0xbb")) });
+        controller.submit({ actionName: "check", run: checkRun });
+        await flush();
+
+        authoritative(mine(PlayerActionType.BIG_BLIND));
+        await flush();
+
+        expect(checkRun).toHaveBeenCalledTimes(1);
+        expect(onError).not.toHaveBeenCalled();
+    });
+
+    it("keeps the player's latest decision when they change their mind", async () => {
+        const { controller } = makeController();
+        controller.submit({ actionName: "big-blind", run: jest.fn().mockResolvedValue(ok()) });
+        controller.submit({ actionName: "check", run: jest.fn().mockResolvedValue(ok()) });
+        controller.submit({ actionName: "fold", run: jest.fn().mockResolvedValue(ok()) });
+        await flush();
+
+        expect(controller.getSnapshot().queueDepth).toBe(1);
     });
 
     it("dedupes the same action within the dedupe window after it settles", async () => {

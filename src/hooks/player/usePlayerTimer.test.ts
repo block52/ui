@@ -14,6 +14,7 @@ import { renderHook, act } from "@testing-library/react";
 import { NonPlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usePlayerTimer } from "./usePlayerTimer";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
+import { TURN_CLOCK_START_ALLOWANCE_MS } from "../../utils/turnClock";
 import { hasValue } from "../../utils/guards";
 
 const mockUseGameData = jest.fn();
@@ -37,6 +38,9 @@ jest.mock("../playerActions/foldHand", () => ({ foldHand: (...a: unknown[]) => m
 jest.mock("../playerActions/checkHand", () => ({ checkHand: (...a: unknown[]) => mockCheck(...a) }));
 
 const TABLE = "0xtable";
+
+/** A stamp `ms` into the turn: the clock starts 5s after the stamp (ui#944). */
+const intoTurn = (ms: number) => Date.now() - ms - TURN_CLOCK_START_ALLOWANCE_MS;
 const ME = "b521me";
 
 /** A snapshot where `nextToAct` is seat 1, which is us. */
@@ -155,7 +159,7 @@ describe("usePlayerTimer", () => {
         const withTimeBank = (actionAgoMs: number, timeBankAgoMs: number | null) => {
             const now = Date.now();
             const snapshot = state();
-            const previousActions: { action?: string; playerId?: string; timestamp: number }[] = [{ action: "call", playerId: "b521them", timestamp: now - actionAgoMs }];
+            const previousActions: { action?: string; playerId?: string; timestamp: number }[] = [{ action: "call", playerId: "b521them", timestamp: intoTurn(actionAgoMs) }];
             if (hasValue(timeBankAgoMs)) {
                 previousActions.push({ action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - timeBankAgoMs });
             }
@@ -187,16 +191,23 @@ describe("usePlayerTimer", () => {
         });
     });
 
-    describe("street clock", () => {
-        it("counts down from the table's 25s on every street, pre-flop included", () => {
-            for (const round of [TexasHoldemRound.PREFLOP, TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
+    // poker-vm#2143: 15s to act pre-flop, the table's clock on later streets.
+    describe("street clock (poker-vm#2143)", () => {
+        it("counts down from 15s pre-flop", () => {
+            setState({ ...state(1, 25), round: TexasHoldemRound.PREFLOP });
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.timeoutValue).toBe(15);
+        });
+
+        it("counts down from the table's 25s on the flop, turn and river", () => {
+            for (const round of [TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
                 setState({ ...state(1, 25), round });
                 const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
                 expect(result.current.timeoutValue).toBe(25);
             }
         });
 
-        it("adds a time bank on top of the pre-flop clock", () => {
+        it("adds a time bank on top of the 15s pre-flop clock", () => {
             const now = Date.now();
             const base = state(1, 25);
             setState({
@@ -204,15 +215,15 @@ describe("usePlayerTimer", () => {
                 round: TexasHoldemRound.PREFLOP,
                 players: base.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 45_000 } : p)),
                 previousActions: [
-                    { action: "call", playerId: "b521them", timestamp: now - 10_000 },
+                    { action: "call", playerId: "b521them", timestamp: intoTurn(10_000) },
                     { action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - 1_000 }
                 ],
                 gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }
             });
             const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
-            // 25s pre-flop + 45s bank, 10s gone since the turn began
-            expect(result.current.timeoutValue).toBe(70);
-            expect(result.current.timeRemaining).toBe(60);
+            // 15s pre-flop + 45s bank, 10s gone since the turn began
+            expect(result.current.timeoutValue).toBe(60);
+            expect(result.current.timeRemaining).toBe(50);
         });
     });
 
@@ -227,26 +238,26 @@ describe("usePlayerTimer", () => {
                 round: TexasHoldemRound.PREFLOP,
                 players: base.players.map(p => (p.seat === 1 ? { ...p, timeBankLastGrantMs: 45_000 } : p)),
                 previousActions: [
-                    { action: "call", playerId: "b521them", timestamp: now - turnAgoMs },
+                    { action: "call", playerId: "b521them", timestamp: intoTurn(turnAgoMs) },
                     { action: NonPlayerActionType.TIME_BANK, playerId: ME, timestamp: now - Math.min(turnAgoMs, 1_000) }
                 ],
                 gameOptions: { ...base.gameOptions, timeBankMs: 45_000 }
             };
         };
 
-        it("keeps showing the 25s turn clock after the bank is tapped with time left", () => {
-            setState(banked(4_000)); // tapped with 21s of the 25s left
+        it("keeps showing the 15s turn clock after the bank is tapped with time left", () => {
+            setState(banked(4_000)); // tapped with 11s of the 15s left
             const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
             expect(result.current.isTimeBankArmed).toBe(true);
             expect(result.current.isInTimeBank).toBe(false);
-            expect(result.current.phaseTimeRemaining).toBe(21);
-            expect(result.current.phaseTimeoutValue).toBe(25);
+            expect(result.current.phaseTimeRemaining).toBe(11);
+            expect(result.current.phaseTimeoutValue).toBe(15);
             // the total left (what auto-fold waits on) still includes the bank
-            expect(result.current.timeRemaining).toBe(66);
+            expect(result.current.timeRemaining).toBe(56);
         });
 
         it("switches to a fresh 45s bank clock when the turn clock runs out", () => {
-            setState(banked(35_000)); // 25s turn clock spent, 10s into the bank
+            setState(banked(25_000)); // 15s turn clock spent, 10s into the bank
             const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
             expect(result.current.isTimeBankArmed).toBe(false);
             expect(result.current.isInTimeBank).toBe(true);
@@ -259,7 +270,38 @@ describe("usePlayerTimer", () => {
             const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
             expect(result.current.isTimeBankArmed).toBe(false);
             expect(result.current.isInTimeBank).toBe(false);
-            expect(result.current.phaseTimeoutValue).toBe(25);
+            expect(result.current.phaseTimeoutValue).toBe(15);
+        });
+    });
+
+    // ui#944: a projection stamps a pending move with the last block's time.
+    describe("a turn first seen on a relay projection", () => {
+        const projected = (stampAgoMs: number) => ({ ...state(1, 25), round: TexasHoldemRound.FLOP, previousActions: [{ action: "check", playerId: "b521them", timestamp: Date.now() - stampAgoMs }] });
+        const setProjected = (snapshot: unknown, isOptimistic: boolean) => {
+            setState(snapshot);
+            mockUseGameData.mockReturnValue({ gameState: snapshot, isOptimistic });
+        };
+
+        it("shows the full clock, not the time since the stale stamp", () => {
+            setProjected(projected(12_000), true);
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.phaseTimeRemaining).toBe(25);
+            expect(result.current.timeRemaining).toBe(25);
+        });
+
+        it("keeps that start when the committed frame of the same turn arrives", () => {
+            const snapshot = projected(12_000);
+            setProjected(snapshot, true);
+            const { result, rerender } = renderHook(() => usePlayerTimer(TABLE, 1));
+            setProjected({ ...snapshot, previousActions: [{ ...snapshot.previousActions[0], timestamp: Date.now() - 1_000 }] }, false);
+            rerender();
+            expect(result.current.phaseTimeRemaining).toBe(25);
+        });
+
+        it("counts a committed turn from the chain's clock start, as before", () => {
+            setProjected(projected(9_000), false); // 4s into the clock
+            const { result } = renderHook(() => usePlayerTimer(TABLE, 1));
+            expect(result.current.phaseTimeRemaining).toBe(21);
         });
     });
 

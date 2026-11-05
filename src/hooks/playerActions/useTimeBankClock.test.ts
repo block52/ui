@@ -62,6 +62,14 @@ describe("useTimeBankClock", () => {
         expect(mockSubmit).not.toHaveBeenCalled();
     });
 
+    it("goes quiet the moment the player acts, even mid-bank (ui#944)", () => {
+        mockLoadingAction = "check";
+        mockLegal = { legalActions: [], isPlayerTurn: true };
+        mockTimer = { isTimeBankArmed: false, isInTimeBank: true };
+        const { result } = renderHook(() => useTimeBankClock("0xtable", 1));
+        expect(result.current.state).toBe("idle");
+    });
+
     it("rings once the turn clock is spent and the bank runs", () => {
         mockLegal = { legalActions: [], isPlayerTurn: true };
         mockTimer = { isTimeBankArmed: false, isInTimeBank: true };

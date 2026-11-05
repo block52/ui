@@ -54,8 +54,13 @@ const ACTION_DISPLAY_MAP: Record<string, string> = {
   "winner": "WINNER"
 };
 
-// Actions that should NOT trigger the display (too frequent/not relevant)
-const FILTERED_ACTIONS = ["join", "deal", "new-hand"];
+// Actions that should NOT trigger the display (too frequent/not relevant).
+// A time-bank use is not a move: the seat's countdown must stay on screen, and
+// the alarm clock on the pill already shows the bank is armed (ui#944).
+const FILTERED_ACTIONS: string[] = ["join", "deal", "new-hand", NonPlayerActionType.TIME_BANK];
+
+/** Whether a recorded action shows the action badge on its seat. */
+export const showsActionBadge = (action: string): boolean => !FILTERED_ACTIONS.includes(action.toLowerCase());
 
 // Format an action's amount for the badge under a player's avatar.
 // Tournaments carry raw whole chips on the wire (e.g. "5" → " 5"); cash carries
@@ -150,7 +155,7 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
   const latestAction = useMemo(() => {
     if (isEmpty(playerActedEvents)) return null;
     const newest = playerActedEvents[playerActedEvents.length - 1].action;
-    if (FILTERED_ACTIONS.includes(newest.action.toLowerCase())) return null;
+    if (!showsActionBadge(newest.action)) return null;
     return newest;
   }, [playerActedEvents]);
 

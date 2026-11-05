@@ -6,14 +6,14 @@ import { useNetwork } from "../../context/NetworkContext";
 import { isConnectionLive } from "../../context/gameState/connection";
 import { usePlayerLegalActions } from "./usePlayerLegalActions";
 import { usePlayerTimer } from "../player/usePlayerTimer";
-import { getActionFlags, getUserPlayer, timeBankButtonSeconds, timeBankClockState, TimeBankClockState } from "../../utils/pockerActionUtils";
+import { getActionFlags, getUserPlayer, isTurnEndingSubmit, timeBankButtonSeconds, timeBankClockState, TimeBankClockState } from "../../utils/pockerActionUtils";
 import { nextTimeBankMs } from "../../utils/turnClock";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { timeBank } from "./timeBank";
 
 export interface TimeBankClock {
     state: TimeBankClockState;
-    /** What a tap grants now (45s, then 30s, then what has refilled); null when it can't be tapped. */
+    /** What a tap grants now: whatever is left in the bank (ui#944); null when it can't be tapped. */
     seconds: number | null;
     /** Arms the time bank; a no-op unless the state is `ready`. */
     onUse: () => void;
@@ -49,6 +49,7 @@ export const useTimeBankClock = (tableId: string | undefined, seat: number): Tim
         tableHasTimeBank: (gameState?.gameOptions?.timeBankMs ?? 0) > 0,
         timeBankSeconds: seconds,
         isSubmitting: loadingAction === NonPlayerActionType.TIME_BANK,
+        isEndingTurn: isPlayerTurn && isTurnEndingSubmit(loadingAction),
         isArmed: isTimeBankArmed,
         isInTimeBank
     });
