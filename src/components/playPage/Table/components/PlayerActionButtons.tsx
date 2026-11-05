@@ -8,7 +8,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 
-import { GameFormat, LegalActionDTO, NonPlayerActionType } from "@block52/poker-vm-sdk";
+import { LegalActionDTO, NonPlayerActionType, isTournamentFormat } from "@block52/poker-vm-sdk";
 // Raw sit-in/out hooks THROW on failure (unlike the swallowing handleSitIn/Out
 // wrappers) so the ActionSubmitController can classify + surface the error.
 import { SIT_IN_METHOD_POST_NOW, sitIn, sitOut, useAutoSitOutNextBB } from "../../../../hooks/playerActions";
@@ -118,7 +118,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
     }, [display.kind, tableId, currentNetwork, submit]);
 
     // Top-up: never available in SNG games
-    const isSNG = gameFormat === GameFormat.SIT_AND_GO;
+    const isSNG = isTournamentFormat(gameFormat);
     const { topUp } = useTableTopUp(tableId || "", currentNetwork);
 
     const handleTopUp = async (amount: string) => {

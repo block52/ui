@@ -12,7 +12,7 @@
  */
 
 import React from "react";
-import { isSitAndGoFormat } from "../../../../utils/gameFormatUtils";
+import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
@@ -86,7 +86,7 @@ export const TableModals: React.FC<TableModalsProps> = ({
             )}
 
             {/* Sit & Go Auto-Join Modal - Shows for Sit & Go games when user is not playing */}
-            {gameState && gameFormat && isSitAndGoFormat(gameFormat) && !isUserAlreadyPlaying && tableId && (
+            {gameState && gameFormat && isTournamentFormat(gameFormat) && !isUserAlreadyPlaying && tableId && (
                 <SitAndGoAutoJoinModal tableId={tableId} onJoinSuccess={onAutoJoinSuccess} />
             )}
 
@@ -105,7 +105,7 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 acknowledged the result by clicking "Leave Table", and the
                 table is finished — no balance-still-on-table concern.
                 block52/ui#371. */}
-            {gameFormat && isSitAndGoFormat(gameFormat) && (
+            {gameFormat && isTournamentFormat(gameFormat) && (
                 <SitAndGoResultModal tableId={tableId} onLeave={handleLeaveTableConfirm} onClaim={handleClaimWinnings} held={holdResults} />
             )}
 
@@ -124,7 +124,7 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 re-trigger the waiting modal for everyone (block52/ui#465). SNG
                 leave/terminal flows are handled by SitAndGoWaitingModal
                 (pre-start un-join) and SitAndGoResultModal (post-finish claim). */}
-            {!(gameFormat && isSitAndGoFormat(gameFormat)) && (
+            {!(gameFormat && isTournamentFormat(gameFormat)) && (
                 <LeaveTableModal
                     isOpen={isLeaveModalOpen}
                     onClose={handleLeaveModalClose}

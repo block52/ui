@@ -45,7 +45,7 @@
 
 import { buildHandShareUrl } from "../../utils/handReplay";
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
-import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
+import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
 // Position arrays now come from useTableLayout hook
 // // Position arrays now come from useTableLayout hook
@@ -118,7 +118,7 @@ import { useGameResults } from "../../hooks/game/useGameResults"; // Game result
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
-import { hasTournamentStarted } from "../../utils/scheduledSng";
+import { isAwaitingTournamentStart } from "../../utils/scheduledSng";
 import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimeline";
 import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
 import { ReplayTransport } from "./ReplayTransport";
@@ -767,17 +767,13 @@ const Table = React.memo(() => {
     // Update to use the imported hook
     const tableDataValues = useTableData();
     const { isUserAlreadyPlaying, emptySeatIndexes } = useVacantSeatData();
-    // Determine if we're in a Sit & Go waiting for players state: it's a
-    // sit-and-go, the user is seated, seats are still empty, and the tournament
-    // has not started. A scheduled sit-and-go (poker-vm#2680) starts with empty
-    // seats, so "started" is read from the state, not from the seat count.
-    const isSitAndGoWaitingForPlayers = useMemo(() => {
-        const isSitAndGo = isSitAndGoFormat(gameFormat);
-        const hasEmptySeats = hasElements(emptySeatIndexes);
-        const result = isSitAndGo && isUserAlreadyPlaying && hasEmptySeats && !hasTournamentStarted(gameState);
-
-        return result;
-    }, [gameFormat, isUserAlreadyPlaying, emptySeatIndexes.length, gameState]);
+    // Determine if we're waiting for the first hand. "Started" is read from the
+    // state, not from the seat count: a tournament starts with empty seats and
+    // holds a full table for its start time (poker-vm#2680, #2776).
+    const isSitAndGoWaitingForPlayers = useMemo(
+        () => isAwaitingTournamentStart({ gameFormat, gameState, isUserAlreadyPlaying, hasEmptySeats: hasElements(emptySeatIndexes) }),
+        [gameFormat, isUserAlreadyPlaying, emptySeatIndexes.length, gameState]
+    );
 
     // invoke hook for seat loop
     const { winnerInfo } = useWinnerInfo();
@@ -951,7 +947,7 @@ const Table = React.memo(() => {
         }
 
         // Check if this is a tournament-style game (tournament or sit-and-go)
-        const isTournamentStyle = isTournamentFormat(gameFormat) || isSitAndGoFormat(gameFormat);
+        const isTournamentStyle = isTournamentFormat(gameFormat);
 
         if (isTournamentStyle) {
             // Tournament: blinds are chip counts, display with commas
@@ -1625,7 +1621,7 @@ const Table = React.memo(() => {
                         <div className="w-full flex justify-center items-center h-full max-w-[700px]">
                             <PokerActionPanel onTransactionSubmitted={handleTransactionSubmitted} />
                         </div>
-                        {gameFormat && isSitAndGoFormat(gameFormat) && (
+                        {gameFormat && isTournamentFormat(gameFormat) && (
                             <div className="absolute right-4 bottom-3 z-20">
                                 <SngPayoutPanel />
                             </div>

@@ -10,3 +10,29 @@
 .runnersUp {
     border-top: 1px solid color-mix(in srgb, var(--brand-primary) 15%, transparent);
 }
+
+/* Circle crop matches seat avatars: fixed box, overflow hidden, image covers. */
+.avatar {
+    border-radius: 9999px;
+    overflow: hidden;
+    flex-shrink: 0;
+    border: 1px solid color-mix(in srgb, var(--brand-primary) 45%, transparent);
+    box-sizing: border-box;
+}
+
+.avatarWinner {
+    width: 28px;
+    height: 28px;
+}
+
+.avatarRunner {
+    width: 20px;
+    height: 20px;
+}
+
+.avatarImage {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}

@@ -1,15 +1,19 @@
-import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, lateRegistrationClosesAt, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, isTournamentFormat, lateRegistrationClosesAt, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { hasValue, isNullish } from "./guards";
 
 /**
- * Scheduled single-table tournaments (poker-vm#2680).
+ * Single-table tournaments (poker-vm#2680, #2776).
  *
- * A sit-and-go with gameOptions.scheduledStartTime (epoch ms) starts when the
- * table fills OR at that time with at least minPlayers registered (any
- * registered player sends START; the engine offers it in legalActions once it
- * is due). If fewer than minPlayers have registered SCHEDULED_SNG_GRACE_MS after
- * the start time, the table is cancelled: joins are refused and players leave
- * with a refund. These helpers are pure so the lobby and the table page agree.
+ * A tournament has gameOptions.scheduledStartTime (epoch ms) and starts at that
+ * time with at least minPlayers registered, never earlier, however full it is
+ * (any registered player sends START; the engine offers it in legalActions once
+ * it is due). If fewer than minPlayers have registered SCHEDULED_SNG_GRACE_MS
+ * after the start time, the table is cancelled: joins are refused and players
+ * leave with a refund. A sit-and-go has no start time: it starts when full.
+ *
+ * Older tables are sit-and-gos with a start time and no waitForStartTime: they
+ * start at that time or as soon as they fill. These helpers are pure so the
+ * lobby and the table page agree.
  */
 
 /** The engine's grace window after a scheduled start before cancellation. */
@@ -31,6 +35,21 @@ export interface ScheduledSngInput {
 
 export const isScheduledSng = (options: Pick<GameOptionsDTO, "scheduledStartTime"> | null | undefined): boolean =>
     hasValue(options?.scheduledStartTime) && options.scheduledStartTime > 0;
+
+/** Whether a table holds for its start time however full it is: every tournament does (poker-vm#2760, #2776). */
+export const waitsForStartTime = (options: Pick<GameOptionsDTO, "waitForStartTime"> | null | undefined): boolean =>
+    options?.waitForStartTime === true;
+
+/** How often an open table page resends START until it lands. The chain checks its block time, which can lag this clock. */
+export const AUTO_START_RETRY_MS = 6000;
+
+/**
+ * Whether an open table page should send START by itself: the start time has
+ * passed with the minimum registered, or the engine is offering it. The chain has
+ * no timer, so a registered player's page does this. The chain checks the time and
+ * the field, and the first START wins; any others are refused, which is harmless.
+ */
+export const shouldAutoStart = (phase: ScheduledSngPhase, startOffered: boolean): boolean => phase === "ready" || startOffered;
 
 export const scheduledSngPhase = ({ scheduledStartTime, minPlayers, registered, nowMs }: ScheduledSngInput): ScheduledSngPhase => {
     if (isNullish(scheduledStartTime) || scheduledStartTime <= 0) return "unscheduled";
@@ -56,6 +75,50 @@ export const hasTournamentStarted = (gameState: Pick<TexasHoldemStateDTO, "handN
     if (gameState.handNumber > 1) return true;
     const actions: ActionDTO[] = Array.isArray(gameState.previousActions) ? gameState.previousActions : [];
     return actions.some(a => STARTED_ACTIONS.has(a.action));
+};
+
+export interface AwaitingStartInput {
+    gameFormat: string | undefined;
+    gameState: Pick<TexasHoldemStateDTO, "handNumber" | "previousActions" | "gameOptions"> | null | undefined;
+    isUserAlreadyPlaying: boolean;
+    hasEmptySeats: boolean;
+}
+
+/**
+ * Whether a seated player is still waiting for the first hand. A full table
+ * usually deals at once, so empty seats are what keep it waiting. A table that
+ * holds for its start time stays waiting when full, and it has to: the waiting
+ * modal is what sends START, and the chain has no timer to do it instead.
+ */
+export const isAwaitingTournamentStart = ({ gameFormat, gameState, isUserAlreadyPlaying, hasEmptySeats }: AwaitingStartInput): boolean =>
+    isTournamentFormat(gameFormat) &&
+    isUserAlreadyPlaying &&
+    !hasTournamentStarted(gameState) &&
+    (hasEmptySeats || waitsForStartTime(gameState?.gameOptions));
+
+/** The one line telling a player when this table starts. */
+export const tournamentStartRule = (options: Pick<GameOptionsDTO, "scheduledStartTime" | "waitForStartTime"> | null | undefined): string => {
+    if (!isScheduledSng(options)) return "Tournament starts when all players are seated";
+    return waitsForStartTime(options)
+        ? "Starts at the start time with at least the minimum"
+        : "Starts when the table is full, or at the start time with at least the minimum";
+};
+
+export interface WaitingProgressInput {
+    waits: boolean;
+    phase: ScheduledSngPhase;
+    registered: number;
+    minPlayers: number;
+    maxPlayers: number;
+}
+
+/** The waiting modal's progress line: a table that holds for its start time waits on the minimum, not on a full table. */
+export const waitingProgressText = ({ waits, phase, registered, minPlayers, maxPlayers }: WaitingProgressInput): string => {
+    if (phase === "ready") return "Minimum reached, ready to start";
+    const missing = (waits ? minPlayers : maxPlayers) - registered;
+    if (waits && missing <= 0) return "Minimum reached, waiting for the start time";
+    const more = `${missing} more ${missing === 1 ? "player" : "players"}`;
+    return waits ? `Waiting for ${more} to reach the minimum` : `Waiting for ${more}`;
 };
 
 /**

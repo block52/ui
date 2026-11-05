@@ -1,8 +1,94 @@
 import { NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentFinished, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase } from "./scheduledSng";
-import type { GameOptionsDTO, ResultDTO } from "@block52/poker-vm-sdk";
+import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentFinished, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase, isAwaitingTournamentStart, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "./scheduledSng";
+import type { ActionDTO, GameOptionsDTO, ResultDTO } from "@block52/poker-vm-sdk";
+import type { ScheduledSngPhase } from "./scheduledSng";
 
 const start = 1_700_000_000_000;
+
+describe("waitsForStartTime", () => {
+    it("is true only when the table says so", () => {
+        expect(waitsForStartTime({ waitForStartTime: true })).toBe(true);
+        expect(waitsForStartTime({ waitForStartTime: false })).toBe(false);
+        expect(waitsForStartTime({})).toBe(false);
+        expect(waitsForStartTime(null)).toBe(false);
+        expect(waitsForStartTime(undefined)).toBe(false);
+    });
+});
+
+describe("isAwaitingTournamentStart", () => {
+    const opts = (extra: Partial<GameOptionsDTO> = {}) => ({ scheduledStartTime: start, ...extra }) as GameOptionsDTO;
+    const notStarted = (extra: Partial<GameOptionsDTO> = {}) => ({ handNumber: 1, previousActions: [], gameOptions: opts(extra) });
+    const started = (extra: Partial<GameOptionsDTO> = {}) => ({
+        handNumber: 1,
+        previousActions: [{ action: NonPlayerActionType.START }] as unknown as ActionDTO[],
+        gameOptions: opts(extra)
+    });
+    const input = { isUserAlreadyPlaying: true, hasEmptySeats: true };
+
+    it.each(["sit-and-go", "tournament"])("waits on empty seats for a %s", gameFormat => {
+        expect(isAwaitingTournamentStart({ ...input, gameFormat, gameState: notStarted() })).toBe(true);
+    });
+
+    it("keeps a full table that holds for its start time waiting, so START still gets sent", () => {
+        expect(isAwaitingTournamentStart({ ...input, hasEmptySeats: false, gameFormat: "tournament", gameState: notStarted({ waitForStartTime: true }) })).toBe(true);
+    });
+
+    it("lets a full table without the hold go, because the engine deals it at once", () => {
+        expect(isAwaitingTournamentStart({ ...input, hasEmptySeats: false, gameFormat: "sit-and-go", gameState: notStarted() })).toBe(false);
+    });
+
+    it("stops waiting once it has started, full or not", () => {
+        expect(isAwaitingTournamentStart({ ...input, gameFormat: "tournament", gameState: started({ waitForStartTime: true }) })).toBe(false);
+        expect(isAwaitingTournamentStart({ ...input, hasEmptySeats: false, gameFormat: "tournament", gameState: started({ waitForStartTime: true }) })).toBe(false);
+    });
+
+    it("is never true for cash, or for someone not seated", () => {
+        expect(isAwaitingTournamentStart({ ...input, gameFormat: "cash", gameState: notStarted({ waitForStartTime: true }) })).toBe(false);
+        expect(isAwaitingTournamentStart({ ...input, isUserAlreadyPlaying: false, gameFormat: "tournament", gameState: notStarted({ waitForStartTime: true }) })).toBe(false);
+    });
+});
+
+describe("shouldAutoStart", () => {
+    it("sends START once the start time has come with the minimum registered", () => {
+        expect(shouldAutoStart("ready", false)).toBe(true);
+    });
+    it("sends START when the engine offers it", () => {
+        expect(shouldAutoStart("registering", true)).toBe(true);
+    });
+    it.each(["unscheduled", "registering", "short", "cancelled"] as const)("does not send it while %s", phase => {
+        expect(shouldAutoStart(phase, false)).toBe(false);
+    });
+});
+
+describe("tournamentStartRule", () => {
+    it("says what each kind of table does", () => {
+        expect(tournamentStartRule({})).toBe("Tournament starts when all players are seated");
+        expect(tournamentStartRule({ scheduledStartTime: start, waitForStartTime: true })).toBe("Starts at the start time with at least the minimum");
+        expect(tournamentStartRule({ scheduledStartTime: start })).toBe("Starts when the table is full, or at the start time with at least the minimum");
+    });
+});
+
+describe("waitingProgressText", () => {
+    const text = (waits: boolean, registered: number, minPlayers: number, maxPlayers: number, phase: ScheduledSngPhase = "registering") =>
+        waitingProgressText({ waits, phase, registered, minPlayers, maxPlayers });
+
+    it("counts up to a full table when it starts on filling", () => {
+        expect(text(false, 3, 6, 6, "unscheduled")).toBe("Waiting for 3 more players");
+        expect(text(false, 5, 6, 6, "unscheduled")).toBe("Waiting for 1 more player");
+    });
+    it("counts up to the minimum when it holds for its start time", () => {
+        expect(text(true, 1, 3, 9)).toBe("Waiting for 2 more players to reach the minimum");
+        expect(text(true, 2, 3, 9)).toBe("Waiting for 1 more player to reach the minimum");
+    });
+    it("says so once the minimum is reached, full or not", () => {
+        expect(text(true, 3, 3, 9)).toBe("Minimum reached, waiting for the start time");
+        expect(text(true, 9, 3, 9)).toBe("Minimum reached, waiting for the start time");
+    });
+    it("stops talking about waiting once the start time has come", () => {
+        expect(text(true, 9, 3, 9, "ready")).toBe("Minimum reached, ready to start");
+        expect(text(false, 3, 2, 9, "ready")).toBe("Minimum reached, ready to start");
+    });
+});
 
 describe("scheduledSngPhase", () => {
     it("is unscheduled without a start time", () => {

@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { ResultDTO, GameFormat } from "@block52/poker-vm-sdk";
+import { ResultDTO, isTournamentFormat } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { usePlayersBySeat } from "./usePlayersBySeat";
 import { hasElements } from "../../utils/guards";
@@ -35,7 +35,7 @@ export const useSitAndGoPlayerResults = (): SitAndGoPlayerResultsReturn => {
 
     // Check if it's a sit and go game
     const isSitAndGo = useMemo(() => {
-        return gameFormat === GameFormat.SIT_AND_GO;
+        return isTournamentFormat(gameFormat);
     }, [gameFormat]);
 
     // Get all results

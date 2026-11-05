@@ -15,8 +15,8 @@ describe("createGameType (ui#823)", () => {
         expect(toCreateGameType(undefined)).toBeUndefined();
     });
 
-    it("creates a Tournament as a sit-and-go on chain — the only format the chain accepts for it today", () => {
-        expect(createGameTypeFormat("tournament")).toBe(GameFormat.SIT_AND_GO);
+    it("creates each type as its own format on chain (poker-vm#2776)", () => {
+        expect(createGameTypeFormat("tournament")).toBe(GameFormat.TOURNAMENT);
         expect(createGameTypeFormat("sit-and-go")).toBe(GameFormat.SIT_AND_GO);
         expect(createGameTypeFormat("cash")).toBe(GameFormat.CASH);
     });
@@ -34,6 +34,7 @@ describe("createGameType (ui#823)", () => {
 
         it("leaves an unscheduled sit-and-go, a cash game and a legacy tournament to the SDK label", () => {
             expect(displayGameFormat(GameFormat.SIT_AND_GO, undefined, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.SIT_AND_GO));
+            expect(displayGameFormat(GameFormat.TOURNAMENT, 1_700_000_000_000, formatGameFormatDisplay)).toBe("Tournament");
             expect(displayGameFormat(GameFormat.SIT_AND_GO, 0, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.SIT_AND_GO));
             expect(displayGameFormat(GameFormat.CASH, 1_700_000_000_000, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.CASH));
             expect(displayGameFormat(GameFormat.TOURNAMENT, undefined, formatGameFormatDisplay)).toBe(formatGameFormatDisplay(GameFormat.TOURNAMENT));

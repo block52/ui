@@ -4,9 +4,9 @@
  * Displays a modal for players who have joined a Sit & Go tournament
  * and are waiting for more players to fill the table before the game starts.
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
-import { hasValue, isNullish } from "../../utils/guards";
+import { hasValue, isEmpty, isNullish } from "../../utils/guards";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { useGameStateContext } from "../../context/GameStateContext";
@@ -15,7 +15,7 @@ import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalA
 import { startTournament } from "../../hooks/playerActions/startTournament";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { formatSitAndGoStackString } from "../../utils/numberUtils";
-import { formatCountdown, formatStartsAt, isScheduledSng, scheduledSngPhase } from "../../utils/scheduledSng";
+import { AUTO_START_RETRY_MS, formatCountdown, formatStartsAt, isScheduledSng, scheduledSngPhase, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "../../utils/scheduledSng";
 import styles from "./SitAndGoWaitingModal.module.css";
 
 interface SitAndGoWaitingModalProps {
@@ -32,15 +32,12 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
     const { legalActions } = usePlayerLegalActions();
 
     // Scheduled start (poker-vm#2680): a clock for the countdown and the phase.
-    // Once the start time has passed with the minimum registered ("ready"),
-    // ANY registered player may press "Start now" (ui#830): the chain checks
-    // the block time and the field when the action lands, and a refusal shows
-    // under the button. The button is NOT gated on the engine offering START
-    // in legalActions — the chain stores the legal actions as of the last
-    // transaction, so while everyone waits they never include START. If a
-    // refresh does carry the offer, the client sends START by itself. The
-    // first START in a block wins; the rest are refused as already started,
-    // which is harmless.
+    // Once the start time has passed with the minimum registered ("ready"), this
+    // page sends START by itself and retries until it lands (poker-vm#2776): the
+    // chain has no timer, and the legal actions it stores date from the last
+    // transaction, so they don't carry START while everyone waits. "Start now" is
+    // there as well, and shows why if the chain refuses. The chain checks the
+    // block time and the field when the action lands.
     const scheduled = isScheduledSng(gameOptions);
     const [nowMs, setNowMs] = useState(() => Date.now());
     useEffect(() => {
@@ -58,7 +55,6 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
     const startOffered = legalActions.some(a => a.action === NonPlayerActionType.START);
     const [isStarting, setIsStarting] = useState(false);
     const [startError, setStartError] = useState<string | null>(null);
-    const autoStartFired = useRef(false);
     const sendStart = useCallback(async () => {
         if (!tableId) return;
         setIsStarting(true);
@@ -71,12 +67,16 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
             setIsStarting(false);
         }
     }, [tableId, currentNetwork]);
+    const autoStart = shouldAutoStart(phase, startOffered);
     useEffect(() => {
-        if (startOffered && !autoStartFired.current) {
-            autoStartFired.current = true;
-            void sendStart();
-        }
-    }, [startOffered, sendStart]);
+        if (!autoStart || !tableId) return;
+        const attempt = () => {
+            startTournament(tableId, currentNetwork).catch(err => console.warn("Auto-start not accepted yet:", err));
+        };
+        attempt();
+        const id = setInterval(attempt, AUTO_START_RETRY_MS);
+        return () => clearInterval(id);
+    }, [autoStart, tableId, currentNetwork]);
 
     const [isConfirming, setIsConfirming] = useState(false);
     const [isLeaving, setIsLeaving] = useState(false);
@@ -116,6 +116,9 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
     }, [gameOptions?.maxPlayers, emptySeatIndexes.length]);
 
     const maxPlayers = gameOptions?.maxPlayers;
+    // A table that holds for its start time counts up to its minimum and can sit full (poker-vm#2776).
+    const waits = waitsForStartTime(gameOptions);
+    const isFull = isEmpty(emptySeatIndexes);
 
     const playerCountLabel = getGameTypeMnemonic(scheduled ? gameOptions?.maxPlayers : gameOptions?.minPlayers);
 
@@ -153,12 +156,16 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
                     </div>
 
                     <h2 className="text-2xl font-bold text-white text-center mb-2 text-shadow">
-                        {phase === "cancelled" ? "Tournament Cancelled" : phase === "ready" ? "Starting" : "Waiting for Players"}
+                        {phase === "cancelled" ? "Tournament Cancelled" : phase === "ready" ? "Starting" : waits && isFull ? "Table Full" : "Waiting for Players"}
                     </h2>
                     <p className="text-gray-300 text-center mb-6 text-sm">
                         {phase === "cancelled"
                             ? "Not enough players registered by the start time. Leave to get your buy-in back."
-                            : `${playerCountLabel} tournament is filling up...`}
+                            : phase === "ready"
+                              ? "The start time has arrived."
+                              : waits && isFull
+                                ? "Every seat is taken."
+                                : `${playerCountLabel} tournament is filling up...`}
                     </p>
 
                     {/* Scheduled start (poker-vm#2680) */}
@@ -169,7 +176,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
                                     <div className="text-xs text-blue-300 font-semibold">STARTS IN</div>
                                     <div className="text-2xl text-white font-mono font-bold">{formatCountdown(gameOptions.scheduledStartTime, nowMs)}</div>
                                     <div className="text-xs text-gray-400">
-                                        {formatStartsAt(gameOptions.scheduledStartTime, nowMs)} · needs {gameOptions.minPlayers} of {maxPlayers}, or starts early when full
+                                        {formatStartsAt(gameOptions.scheduledStartTime, nowMs)} · needs {gameOptions.minPlayers} of {maxPlayers}{waits ? "" : ", or starts early when full"}
                                     </div>
                                 </>
                             ) : phase === "short" ? (
@@ -226,7 +233,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
                                     <div className={`w-2 h-2 bg-blue-400 rounded-full animate-bounce ${styles.waitingDotDelay300}`}></div>
                                 </div>
                                 <span className="text-gray-400 text-sm">
-                                    Waiting for {maxPlayers - playersJoined} more {maxPlayers - playersJoined === 1 ? "player" : "players"}
+                                    {waitingProgressText({ waits, phase, registered: playersJoined, minPlayers: gameOptions?.minPlayers ?? 2, maxPlayers })}
                                 </span>
                             </div>
                         </div>
@@ -237,7 +244,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
                         <div className="flex items-center justify-center gap-2">
                             <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
                             <span className="text-green-400 font-semibold text-sm">
-                                Waiting for players, you are {playersJoined} of {maxPlayers}
+                                {waits ? `You are registered: ${playersJoined} of ${maxPlayers} seats taken` : `Waiting for players, you are ${playersJoined} of ${maxPlayers}`}
                             </span>
                         </div>
                     </div>
@@ -297,9 +304,7 @@ const SitAndGoWaitingModal: React.FC<SitAndGoWaitingModalProps> = ({ tableId, on
 
                     <div className="text-center">
                         <p className="text-xs text-gray-400">
-                            {scheduled
-                                ? "Starts when the table is full, or at the start time with at least the minimum"
-                                : "Tournament starts automatically when all players are seated"}
+                            {tournamentStartRule(gameOptions)}
                         </p>
                         <div className="flex items-center justify-center gap-1 mt-2">
                             <div className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>

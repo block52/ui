@@ -43,4 +43,12 @@ describe("NftAvatarImage IPFS fallback chain (#625)", () => {
         fireEvent.error(img);
         expect(screen.getByText("NFT")).toBeInTheDocument();
     });
+
+    it("renders nothing when hideOnExhausted and every source has failed", () => {
+        const cdn = "https://nft2-cdn.alchemy.com/eth-mainnet/abc123";
+        render(<NftAvatarImage src={cdn} alt="Player avatar" imgClassName="img" chipClassName="chip" fallbackClassName="fallback" hideOnExhausted />);
+        fireEvent.error(screen.getByAltText("Player avatar"));
+        expect(screen.queryByAltText("Player avatar")).toBeNull();
+        expect(screen.queryByText("NFT")).toBeNull();
+    });
 });

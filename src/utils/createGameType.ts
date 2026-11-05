@@ -1,15 +1,11 @@
 /**
  * The game types a player can CREATE (ui#823): Cash Game, Sit & Go and
- * Tournament. The chain knows only two creatable formats today — `cash` and
- * `sit-and-go` (`tournament` is reserved for the multi-table layer,
- * poker-vm#2613, and refused by MsgCreateGame) — so the UI's **Tournament** is
- * a sit-and-go with a scheduled start time (poker-vm#2680): it starts at that
- * time with whoever has registered, or earlier when full. A plain Sit & Go
- * starts only when full.
+ * Tournament, each its own format on chain (poker-vm#2776). A **Sit & Go** starts
+ * when the table fills and has no start time. A **Tournament** starts at its start
+ * time with at least the minimum registered, never earlier.
  *
- * Keeping the distinction here, in one tested place, means the create forms,
- * the lobby and the table header agree on what to call a table, and when MTTs
- * land only {@link createGameTypeFormat} has to change.
+ * Keeping the distinction here, in one tested place, means the create forms, the
+ * lobby and the table header agree on what to call a table.
  */
 import { GameFormat } from "@block52/poker-vm-sdk";
 import { hasValue } from "./guards";
@@ -35,16 +31,25 @@ export const createGameTypeLabel = (type: CreateGameType): string => {
     }
 };
 
-/** The chain format a type is created as: a Tournament is a (scheduled) sit-and-go today. */
-export const createGameTypeFormat = (type: CreateGameType): GameFormat => (type === "cash" ? GameFormat.CASH : GameFormat.SIT_AND_GO);
+/** The chain format a type is created as. */
+export const createGameTypeFormat = (type: CreateGameType): GameFormat => {
+    switch (type) {
+        case "cash":
+            return GameFormat.CASH;
+        case "sit-and-go":
+            return GameFormat.SIT_AND_GO;
+        case "tournament":
+            return GameFormat.TOURNAMENT;
+    }
+};
 
 /** Whether a type carries a start time (the Tournament type always does). */
 export const isScheduledCreateType = (type: CreateGameType): boolean => type === "tournament";
 
 /**
- * What to call a table the lobby and the table header are showing: a
- * sit-and-go with a scheduled start is a **Tournament**; everything else keeps
- * the SDK's format display ("Sit And Go", "Cash", and legacy "Tournament").
+ * What to call a table the lobby and the table header are showing. A sit-and-go
+ * with a start time is an older **Tournament**, from before the two had separate
+ * formats; everything else keeps the SDK's format display.
  */
 export const displayGameFormat = (format: GameFormat | "unknown" | null | undefined, scheduledStartTime: number | undefined, fallback: (format: GameFormat | "unknown") => string): string => {
     if (!hasValue(format)) return "";
