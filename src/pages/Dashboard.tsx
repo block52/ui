@@ -120,7 +120,7 @@ const Dashboard: React.FC = () => {
     const [modalStartingStack, setModalStartingStack] = useState(1500);
     const [modalBlindLevelDuration, setModalBlindLevelDuration] = useState(DEFAULT_SNG_BLIND_LEVEL_MINUTES);
     // Tournament start (poker-vm#2680): starts at the start time with at least
-    // modalSngMinPlayers registered, or earlier when full.
+    // modalSngMinPlayers registered, never earlier.
     const [modalScheduledStart, setModalScheduledStart] = useState(""); // datetime-local value
     const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
     const [modalLateRegLevels, setModalLateRegLevels] = useState(0); // poker-vm#2731; 0 = off
@@ -1007,7 +1007,7 @@ const Dashboard: React.FC = () => {
                                                         </select>
                                                     </div>
                                                     <p className="col-span-2 text-gray-400 text-xs">
-                                                        Starts when the table fills, or at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
+                                                        Starts at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
                                                         {modalLateRegLevels > 0 && " Late entrants take an empty seat with a full starting stack until the window closes or someone finishes in the money."}
                                                     </p>
                                                 </div>

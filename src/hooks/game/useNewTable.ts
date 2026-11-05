@@ -22,7 +22,7 @@ export interface SNGOptions {
     blindLevelDuration?: number; // Minutes per blind level (default: 10)
     blindStructure?: BlindStructureDTO; // Blind structure (poker-vm#1734, ui#860): a preset or a custom structure; omitted = the blinds double every blindLevelDuration minutes
     entryFee?: number;           // Flat entry fee in USDC dollars (2dp), skimmed to the creator; omitted/0 = no fee (poker-vm#2118)
-    startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): starts when full OR then with >= minPlayers; omitted = starts only when full
+    startTime?: number;          // Scheduled start, unix seconds (poker-vm#2680): a tournament starts then with >= minPlayers, never earlier; a sit-and-go has none
     lateRegistrationLevels?: number; // Late registration (poker-vm#2731): joins stay open after the start for this many blind levels; needs startTime; omitted = the field is fixed at the start
 }
 

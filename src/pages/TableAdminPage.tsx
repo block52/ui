@@ -78,7 +78,7 @@ export default function TableAdminPage() {
     const [minPlayers] = useState(2);
     const [maxPlayers, setMaxPlayers] = useState(9);
     // Tournament start (poker-vm#2680): starts at the start time with at least
-    // sngMinPlayers registered, or earlier when full.
+    // sngMinPlayers registered, never earlier.
     const scheduled = isScheduledCreateType(gameType);
     const [scheduledStart, setScheduledStart] = useState(""); // datetime-local value
     const [sngMinPlayers, setSngMinPlayers] = useState(2);
@@ -625,7 +625,7 @@ export default function TableAdminPage() {
                                         </select>
                                     </div>
                                     <p className="col-span-2 text-gray-500 text-xs">
-                                        Starts when the table fills, or at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
+                                        Starts at the start time with at least the minimum. Cancelled with refunds if fewer have registered 15 minutes after the start time.
                                         {lateRegLevels > 0 && " Late entrants take an empty seat with a full starting stack until the window closes or someone finishes in the money."}
                                     </p>
                                 </div>
