@@ -1,5 +1,5 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isTurnEndingSubmit, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, timeBankClockState, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isTurnEndingSubmit, playerMoveInFlight, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, timeBankClockState, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -279,6 +279,24 @@ describe("pockerActionUtils", () => {
             expect(flags.hasBetAction).toBe(false);
             expect(flags.hasRaiseAction).toBe(false);
             expect(flags.hasCheckAction).toBe(false);
+        });
+    });
+
+    describe("playerMoveInFlight (ui#944)", () => {
+        it("is the player's own move, which holds the buttons", () => {
+            expect(playerMoveInFlight(PlayerActionType.CHECK)).toBe(PlayerActionType.CHECK);
+            expect(playerMoveInFlight(PlayerActionType.RAISE)).toBe(PlayerActionType.RAISE);
+        });
+
+        it("is null for background jobs, which must never disable the buttons", () => {
+            for (const job of ["new-hand", "deal", "small-blind", "big-blind", PlayerActionType.BIG_BLIND, NonPlayerActionType.TIME_BANK]) {
+                expect(playerMoveInFlight(job)).toBeNull();
+            }
+        });
+
+        it("is null when nothing is in flight", () => {
+            expect(playerMoveInFlight(null)).toBeNull();
+            expect(playerMoveInFlight(undefined)).toBeNull();
         });
     });
 

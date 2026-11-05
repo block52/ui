@@ -6,6 +6,7 @@ import { NonPlayerActionType, PlayerStatus, PlayerDTO } from "@block52/poker-vm-
 import { PlayerTimerReturn } from "../../types/index";
 import { useGameOptions } from "../game/useGameOptions";
 import { usePlayersBySeat } from "../game/usePlayersBySeat";
+import { setBankClockStart } from "../../utils/bankClockReport";
 import { isNullish, safeLength } from "../../utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
@@ -26,7 +27,7 @@ import { timeBankGrantedMs, turnClockPhase, turnCountdownStartMs, turnTimeoutSec
  * that broadcast on its own — dead since the initial open-source commit, and
  * deleted in ui#644.
  *
- * @param _tableId The ID of the table (unused; kept for call-site compatibility)
+ * @param _tableId The ID of the table
  * @param playerSeat The seat number of the player to check (1-based)
  * @returns Object containing player status and timer information
  */
@@ -120,6 +121,16 @@ export const usePlayerTimer = (_tableId?: string, playerSeat?: number): PlayerTi
         () => turnClockPhase({ nowMs: currentTime, anchorMs: anchoredActionTimestamp, baseMs: TIMEOUT_DURATION, bankGrantedMs: timeBankMs }),
         [currentTime, anchoredActionTimestamp, TIMEOUT_DURATION, timeBankMs]
     );
+
+    // Tell the move funnel when our bank starts counting, so a move can report
+    // what the countdown spent of it (ui#944).
+    const bankClockStart = isCurrentUser && isNextToAct && timeBankMs > 0 ? anchoredActionTimestamp + TIMEOUT_DURATION : null;
+    useEffect(() => {
+        if (isNullish(_tableId) || !isCurrentUser) {
+            return;
+        }
+        setBankClockStart(_tableId, bankClockStart);
+    }, [_tableId, isCurrentUser, bankClockStart]);
 
     // Update current time every second - ONLY for active players
     useEffect(() => {

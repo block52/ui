@@ -6,6 +6,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import {
     getActionFlags,
+    playerMoveInFlight,
     getFormattedMaxBetAmount,
     getInitialRaiseAmount,
     getTotalPotMicro,
@@ -703,7 +704,7 @@ export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, net
                                     raiseAmount={raiseAmount}
                                     isRaiseAmountInvalid={isRaiseAmountInvalid}
                                     playerStatus={userPlayer?.status || PlayerStatus.SEATED}
-                                    loading={loadingAction}
+                                    loading={playerMoveInFlight(loadingAction)}
                                     isAllIn={maxIsAllIn && raiseAmount >= (hasBetAction ? maxBet : maxRaise)}
                                     isMobileLandscape={isMobileLandscape}
                                     currentRound={gameState?.round || TexasHoldemRound.ANTE}

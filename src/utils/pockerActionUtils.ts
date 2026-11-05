@@ -1,7 +1,7 @@
 import { hasAction, LegalActionDTO, PlayerActionType, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
 import { formatDisplayAmount } from "./numberUtils";
-import { hasValue } from "./guards";
+import { hasValue, isNullish } from "./guards";
 
 export const getTotalPotMicro = (totalPot: string): bigint => parseMicroToBigInt(totalPot);
 
@@ -110,6 +110,16 @@ export const timeBankButtonSeconds = (args: { hasTimeBankAction: boolean; isUser
     return args.hasTimeBankAction && args.isUsersTurn && seconds > 0 ? seconds : null;
 };
 
+const BACKGROUND_ACTIONS: ReadonlySet<string> = new Set([
+    "small-blind",
+    "big-blind",
+    PlayerActionType.SMALL_BLIND,
+    PlayerActionType.BIG_BLIND,
+    NonPlayerActionType.DEAL,
+    NonPlayerActionType.NEW_HAND,
+    NonPlayerActionType.TIME_BANK
+]);
+
 /**
  * Whether the submission in flight ends the player's turn (ui#944): any action
  * but the time bank, which extends the turn instead. The chain takes up to a
@@ -117,6 +127,19 @@ export const timeBankButtonSeconds = (args: { hasTimeBankAction: boolean; isUser
  */
 export const isTurnEndingSubmit = (loadingAction: string | null | undefined): boolean =>
     hasValue(loadingAction) && loadingAction !== NonPlayerActionType.TIME_BANK;
+
+/**
+ * The player's own move in flight, or null (ui#944). The bar's buttons wait on
+ * this alone. A background job (the automatic blind, deal or new hand, or a time
+ * bank tap) must not disable them: a click then did nothing, on a button that
+ * was right there. A click made during one is queued behind it instead.
+ */
+export const playerMoveInFlight = (loadingAction: string | null | undefined): string | null => {
+    if (isNullish(loadingAction) || BACKGROUND_ACTIONS.has(loadingAction)) {
+        return null;
+    }
+    return loadingAction;
+};
 
 /**
  * How the alarm-clock time bank button on the player's own pill looks (ui#19):
