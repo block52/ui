@@ -29,6 +29,7 @@ const LS_KEY_PRE_SELECT_CHECK = "setting_preselectcheck";
 const LS_KEY_WIN_CELEBRATION = "setting_wincelebration";
 const LS_KEY_POT_AS_CHIPS = "setting_potaschips";
 const LS_KEY_CHIP_STYLE = "setting_chipstyle";
+const LS_KEY_SHOW_LEADERBOARD = "setting_showleaderboard";
 
 function readBoolSetting(key: string, fallback: boolean): boolean {
     const stored = localStorage.getItem(key);
@@ -75,6 +76,11 @@ export interface GameSettings {
     // sizes. Either way cash games show $/¢ chips and SNG/tournaments show point
     // chips.
     chipStyle: string;
+    // When OFF (default), the live chip leaderboard is hidden. When ON, tournament
+    // and sit-and-go tables show the standings overlay (rank, chips, % of chips in
+    // play). The toggle is only surfaced for tournament/SNG formats — chip share is
+    // meaningless for cash games (ui#280).
+    showLeaderboard: boolean;
 }
 
 export interface GameSettingsContextValue extends GameSettings {
@@ -94,6 +100,7 @@ export interface GameSettingsContextValue extends GameSettings {
     toggleWinCelebration: () => void;
     togglePotAsChips: () => void;
     setChipStyle: (id: string) => void;
+    toggleShowLeaderboard: () => void;
 }
 
 const GameSettingsContext = createContext<GameSettingsContextValue | null>(null);
@@ -142,6 +149,9 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
     );
     // An unknown or retired id falls back to the configured default.
     const [chipStyle, setChipStyleState] = useState<string>(() => findChipStyle(localStorage.getItem(LS_KEY_CHIP_STYLE)).id);
+    const [showLeaderboard, setShowLeaderboard] = useState<boolean>(() =>
+        readBoolSetting(LS_KEY_SHOW_LEADERBOARD, false)
+    );
 
     const toggleAutoDeal = useCallback(() => {
         setAutoDeal(prev => {
@@ -269,6 +279,14 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
         setChipStyleState(next);
     }, []);
 
+    const toggleShowLeaderboard = useCallback(() => {
+        setShowLeaderboard(prev => {
+            const next = !prev;
+            localStorage.setItem(LS_KEY_SHOW_LEADERBOARD, String(next));
+            return next;
+        });
+    }, []);
+
     const value = useMemo<GameSettingsContextValue>(
         () => ({
             autoDeal,
@@ -287,6 +305,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             winCelebration,
             potAsChips,
             chipStyle,
+            showLeaderboard,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -302,7 +321,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePreSelectCheck,
             toggleWinCelebration,
             togglePotAsChips,
-            setChipStyle
+            setChipStyle,
+            toggleShowLeaderboard
         }),
         [
             autoDeal,
@@ -321,6 +341,7 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             winCelebration,
             potAsChips,
             chipStyle,
+            showLeaderboard,
             toggleAutoDeal,
             toggleAutoPostBlinds,
             toggleAutoNewHand,
@@ -335,7 +356,8 @@ export const GameSettingsProvider: React.FC<{ children: React.ReactNode }> = ({ 
             togglePreSelectCheck,
             toggleWinCelebration,
             togglePotAsChips,
-            setChipStyle
+            setChipStyle,
+            toggleShowLeaderboard
         ]
     );
 
