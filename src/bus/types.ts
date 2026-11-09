@@ -209,7 +209,13 @@ export interface BusIntrospection {
      * track — what useAutoNewHand waits on before dealing the next hand.
      */
     suspense: boolean;
-    commitLog: Array<{ seq: number; committedAt: number; eventCount: number }>;
+    /**
+     * One entry per rendered-track commit. `nextToAct`/`actionCount` are copied
+     * from the committed snapshot (undefined for non-state commits) so e2e can
+     * assert per-frame turn pointers numerically — e.g. that no frame carrying a
+     * closing fold still points at the folded seat (ui#968).
+     */
+    commitLog: Array<{ seq: number; committedAt: number; eventCount: number; nextToAct?: number; actionCount?: number }>;
 }
 
 declare global {

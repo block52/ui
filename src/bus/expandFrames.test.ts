@@ -232,6 +232,73 @@ describe("expandFrames", () => {
         });
     });
 
+    describe("betting is closed on every beat (ui#968)", () => {
+        // Production fingerprint (Texas HODL SNG 0xaafb…e1db, hands 10 & 12):
+        // seat 1 bets all-in, seat 4 calls all-in for less, and seat 7 — still
+        // to act — folds. The fold closes the betting, so the engine sends the
+        // fold, the runout and the winner in ONE snapshot. No beat of the
+        // expansion may keep prev's turn pointer: the seat it names has folded.
+        const CAROL = "b521qqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqqq968";
+        const callLegal = [{ action: PlayerActionType.CALL, min: "900", max: "900", index: 301 }];
+
+        const threeWayFlop = snapshot({
+            round: TexasHoldemRound.FLOP,
+            communityCards: BOARD.slice(0, 3),
+            previousActions: [action(10)],
+            actionCount: 11,
+            nextToAct: 7,
+            legalActions: callLegal,
+            players: [
+                player(1, { status: PlayerStatus.ALL_IN }),
+                player(4, { address: BOB, status: PlayerStatus.ALL_IN }),
+                player(7, { address: CAROL, legalActions: callLegal })
+            ]
+        });
+
+        const foldClosesIt = runoutResult({
+            previousActions: [action(10), action(11, { seat: 7, playerId: CAROL, action: PlayerActionType.FOLD })],
+            actionCount: 12,
+            nextToAct: -1,
+            legalActions: [],
+            players: [
+                player(1, { status: PlayerStatus.SHOWING, holeCards: ["AH", "AD"], stack: "2000000" }),
+                player(4, { address: BOB, status: PlayerStatus.SHOWING, holeCards: ["KS", "KC"], stack: "0" }),
+                player(7, { address: CAROL, status: PlayerStatus.FOLDED })
+            ]
+        });
+
+        it("every sub-frame carries next's turn pointer, never prev's", () => {
+            const frames = expandFrames(threeWayFlop, foldClosesIt);
+            expect(frames.length).toBeGreaterThanOrEqual(3);
+            for (const frame of frames) {
+                expect(frame.nextToAct).toBe(-1);
+            }
+        });
+
+        it("every sub-frame carries next's legal actions, table-level and per seat", () => {
+            const frames = expandFrames(threeWayFlop, foldClosesIt);
+            for (const frame of frames) {
+                expect(frame.legalActions).toEqual([]);
+                expect(frame.players.find(p => p.seat === 7)?.legalActions).toEqual([]);
+            }
+        });
+
+        it("the seat whose fold closed the betting is folded from the first beat", () => {
+            const frames = expandFrames(threeWayFlop, foldClosesIt);
+            for (const frame of frames) {
+                expect(frame.players.find(p => p.seat === 7)?.status).toBe(PlayerStatus.FOLDED);
+            }
+        });
+
+        it("closing the betting leaks no result: stacks stay pre-payout until the final frame", () => {
+            const frames = expandFrames(threeWayFlop, foldClosesIt);
+            for (const frame of frames.slice(0, -1)) {
+                expect(frame.players.find(p => p.seat === 1)?.stack).toBe("1000000");
+                expect(frame.winners).toEqual([]);
+            }
+        });
+    });
+
     describe("hole-card reveal beat", () => {
         const maskedPrev = preflopAllIn({
             players: [player(1, { holeCards: ["AH", "AD"] }), player(4, { address: BOB, holeCards: ["X", "X"] })]
