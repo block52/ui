@@ -653,7 +653,14 @@ export class GameMessageBus {
         this.introspection.committed += 1;
         this.introspection.lastEventCount = item.events.length;
         this.introspection.totalEvents += item.events.length;
-        this.introspection.commitLog.push({ seq: item.seq, committedAt: this.now(), eventCount: item.events.length });
+        const snapshot = item.classified.kind === "state" ? item.classified.snapshot : undefined;
+        this.introspection.commitLog.push({
+            seq: item.seq,
+            committedAt: this.now(),
+            eventCount: item.events.length,
+            nextToAct: snapshot?.nextToAct,
+            actionCount: snapshot?.actionCount
+        });
         if (this.introspection.commitLog.length > COMMIT_LOG_CAP) {
             this.introspection.commitLog.splice(0, this.introspection.commitLog.length - COMMIT_LOG_CAP);
         }
