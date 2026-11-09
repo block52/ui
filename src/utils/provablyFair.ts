@@ -71,7 +71,7 @@ export function boardStartIndex(players: number, holeCardsPerPlayer: number): nu
 export function dealReproduces(deck: string[], players: number, holeCardsPerPlayer: number, board: string[], shownHands: string[][]): boolean {
     const start = boardStartIndex(players, holeCardsPerPlayer);
     if (!board.every((card, i) => deck[start + i] === card)) return false;
-    return shownHands.every(hand => positionOfHand(deck, players, holeCardsPerPlayer, hand) !== null);
+    return shownHands.every(hand => hasValue(positionOfHand(deck, players, holeCardsPerPlayer, hand)));
 }
 
 /** The deal position (0-based, in seat order) whose cards are `hand`; null when none. */
@@ -218,7 +218,7 @@ export function verifyHand(evidence: HandEvidence): HandVerification {
     if (isEmpty(shownHands)) {
         checks.push({ id: "shown", status: "skipped", title: SHOWN_CHECK_TITLE, detail: "No hands were shown." });
     } else {
-        const matched = isNullish(players) ? 0 : shownHands.filter(hand => positionOfHand(deck, players, hc, hand) !== null).length;
+        const matched = isNullish(players) ? 0 : shownHands.filter(hand => hasValue(positionOfHand(deck, players, hc, hand))).length;
         checks.push(
             matched === shownHands.length
                 ? { id: "shown", status: "pass", title: SHOWN_CHECK_TITLE, detail: `${plural(shownHands.length, "hand shown at showdown is", "hands shown at showdown are")} exactly what the deal gave those seats.` }
