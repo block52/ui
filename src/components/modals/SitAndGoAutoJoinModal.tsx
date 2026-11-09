@@ -22,6 +22,7 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { sitAndGoJoinTitle } from "../../utils/createGameType";
 import { isEmpty, hasElements, isBlank, hasValue } from "../../utils/guards";
+import { SEAT_DRAW_NOTE } from "../../utils/vacantSeatText";
 import { formatStartsAt, lateRegistrationEndsAt, lateRegistrationPhase, scheduledSngPhase, tournamentStartRule, waitsForStartTime } from "../../utils/scheduledSng";
 
 import type { SitAndGoAutoJoinModalProps } from "./types";
@@ -44,7 +45,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const { emptySeatIndexes, isUserAlreadyPlaying } = useVacantSeatData();
 
     // Get the game state context to force refresh after joining
-    const { subscribeToTable, gameState } = useGameStateContext();
+    const { subscribeToTable, gameState, gameFormat } = useGameStateContext();
 
     // Scheduled start (poker-vm#2680): say when it starts, and refuse a seat at
     // a cancelled table (the chain refuses the join too).
@@ -206,16 +207,14 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             // string — joinTable converts back to microunits internally.
             const buyInAmountInDollars = microToUsdc(gameOptions.maxBuyIn);
 
-            // Route the join through joinTable so it uses the active transport
-            // (gateway by default, ui#440). The previous path
-            // (useSitAndGoPlayerJoinRandomSeat) submitted chain-direct with
-            // seat 0 — invisible to the gateway the UI reads from, and
-            // mis-seated by the SNG engine. Claim a concrete empty seat.
+            // Route the join through joinTable, which draws the seat at random
+            // from the empty seats (ui#969) and redraws if another join takes
+            // it first. Never seat 0: the SNG engine mis-seats it (ui#440).
             await joinTable(
                 tableId,
                 {
                     amount: String(buyInAmountInDollars),
-                    seatNumber: emptySeatIndexes[0]
+                    format: gameFormat
                 },
                 currentNetwork
             );
@@ -250,7 +249,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         } finally {
             setIsJoining(false);
         }
-    }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess]);
+    }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess, gameFormat]);
 
     // Spectate: close the prompt and keep watching the table underneath.
     const handleSpectate = useCallback(() => {
@@ -503,6 +502,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             "Take My Seat"
                         )}
                     </button>
+                    <p className={`text-blue-300 text-center text-xs ${isCompact ? "mt-1" : "mt-2"}`} data-testid="seat-draw-note">
+                        {SEAT_DRAW_NOTE}
+                    </p>
 
                     {/* ui#837: always available so a late or underfunded
                         player is never trapped by the prompt. */}
