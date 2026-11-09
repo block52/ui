@@ -19,6 +19,7 @@ import { useParams } from "react-router-dom";
 import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
+import { useGameStateContext } from "../../../context/GameStateContext";
 import type { VacantPlayerProps } from "../../../types/index";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { joinTable } from "../../../hooks/playerActions/joinTable";
@@ -27,6 +28,8 @@ import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "../../..
 import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "../../../constants/currency";
 import { hasElements, isNullish } from "../../../utils/guards";
+import { seatsAreDrawn } from "../../../utils/seatDraw";
+import { joinSeatButtonLabel, SEAT_DRAW_NOTE, vacantSeatText } from "../../../utils/vacantSeatText";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
@@ -36,6 +39,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
         const { id: tableId } = useParams<{ id: string }>();
         const { gameOptions } = useGameOptions();
+        const { gameFormat } = useGameStateContext();
+        // A Sit & Go seat is drawn at random on join, not the one clicked (ui#969).
+        const seatDrawn = useMemo(() => seatsAreDrawn(gameFormat), [gameFormat]);
         const cosmosWallet = useCosmosWallet();
         const { currentNetwork } = useNetwork();
 
@@ -179,7 +185,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                     tableId,
                     {
                         amount: buyInDollars,
-                        seatNumber: index
+                        // Where seats are drawn, joinTable draws one; the clicked seat is not claimed.
+                        seatNumber: seatDrawn ? undefined : index,
+                        format: gameFormat
                     },
                     currentNetwork
                 );
@@ -202,7 +210,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                 setJoinError(err instanceof Error ? err.message : "Unknown error joining table");
                 setIsJoining(false);
             }
-        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork]);
+        }, [tableId, index, onJoin, gameOptions?.minBuyIn, gameOptions?.maxBuyIn, buyInAmount, isSitAndGo, currentNetwork, seatDrawn, gameFormat]);
 
         // Memoize container styles
         const containerStyle = useMemo(
@@ -215,11 +223,8 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
 
         // Memoize seat text
         const seatText = useMemo(
-            () => ({
-                title: isUserAlreadyPlaying ? "Vacant Seat" : `Seat ${index}`,
-                subtitle: !isUserAlreadyPlaying ? (canJoinThisSeat ? "Click to Join" : "Seat Taken") : null
-            }),
-            [isUserAlreadyPlaying, canJoinThisSeat, index]
+            () => vacantSeatText(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn),
+            [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn]
         );
 
         // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
@@ -272,6 +277,11 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                             <div className="text-xs text-gray-400 mb-1">Required Buy-In</div>
                                             <div className="text-3xl font-bold text-white">${formatUSDCToSimpleDollars(gameOptions.minBuyIn)}</div>
                                             <div className="text-xs text-gray-400 mt-1">Fixed amount for this tournament</div>
+                                            {seatDrawn && (
+                                                <div className="text-xs text-blue-300 mt-2" data-testid="seat-draw-note">
+                                                    {SEAT_DRAW_NOTE}
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ) : (
@@ -384,7 +394,7 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                                                 Joining...
                                             </>
                                         ) : (
-                                            `Confirm & Join Seat ${index}`
+                                            joinSeatButtonLabel(index, seatDrawn)
                                         )}
                                     </button>
                                     <button

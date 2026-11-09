@@ -193,11 +193,12 @@ Displays Sit & Go tournament results and prize distribution.
 const { results, prizes, isComplete } = useSitAndGoPlayerResults();
 ```
 
-> **Note:** Sit & Go joins go through the transport-aware `joinTable()`
-> (`hooks/playerActions/joinTable.ts`) like every other join, which resolves a
-> concrete empty seat and routes through the active transport (gateway by
-> default, ui#440). The old `useSitAndGoPlayerJoinRandomSeat` hook — chain-direct
-> with the seat-0 "random" sentinel — was removed.
+> **Note:** Sit & Go joins go through `joinTable()`
+> (`hooks/playerActions/joinTable.ts`) like every other join. At a Sit & Go or
+> tournament the seat is drawn at random from the empty seats
+> (`utils/seatDraw.ts`, ui#969) and redrawn if another join takes it first; a
+> requested seat is ignored. The old `useSitAndGoPlayerJoinRandomSeat` hook —
+> chain-direct with the seat-0 "random" sentinel — was removed.
 
 ### Winner Display
 
@@ -346,7 +347,7 @@ Available actions:
 - `callHand()` - Call current bet
 - `checkHand()` - Check (no bet)
 - `foldHand()` - Fold hand
-- `joinTable()` - Join table at specific seat
+- `joinTable()` - Join a table: the chosen seat at a cash table, a drawn seat at a Sit & Go
 - `leaveTable()` - Leave current table
 - `sitIn()` - Return from sitting out
 - `sitOut()` - Sit out from action
