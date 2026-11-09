@@ -20,8 +20,10 @@
  *
  *   base    = prev, with `previousActions`/`actionCount` carried forward from
  *             next (so the triggering CALL's badge and sound fire on the FIRST
- *             beat rather than after the river) and any newly-revealed hole
- *             cards applied.
+ *             beat rather than after the river), any newly-revealed hole cards
+ *             applied, and betting CLOSED from next — `nextToAct`,
+ *             `legalActions` and any closing fold — so no beat flashes a turn
+ *             at a seat that already acted (ui#968).
  *   frame_i = base, with `round` and `communityCards` advanced to street i.
  *   final   = next, VERBATIM (returned by identity).
  *
@@ -107,6 +109,33 @@ function mergeRevealedHoleCards(prev: TexasHoldemStateDTO, next: TexasHoldemStat
 }
 
 /**
+ * Project "betting is closed" onto a runout sub-frame's roster. A runout only
+ * exists because no further action is possible, and the action that closed the
+ * betting is already carried onto the first beat via `previousActions` — so
+ * every seat's `legalActions`, and a fold that closed the betting, are `next`'s
+ * facts, not `prev`'s. A sub-frame that kept prev's values flashed the
+ * next-to-act timer (and re-armed the action panel) on a seat whose fold was
+ * already committed on chain, for the whole runout choreography (ui#968).
+ * Stacks, bets and everything else keep their prev values — the payout still
+ * lands only with the final frame.
+ */
+function closeBetting(players: readonly PlayerDTO[], next: TexasHoldemStateDTO): PlayerDTO[] {
+    const nextBySeat = new Map<number, PlayerDTO>();
+    for (const player of next.players) {
+        nextBySeat.set(player.seat, player);
+    }
+
+    return players.map(player => {
+        const nextPlayer = nextBySeat.get(player.seat);
+        if (!nextPlayer) {
+            return player;
+        }
+        const status = nextPlayer.status === PlayerStatus.FOLDED ? nextPlayer.status : player.status;
+        return { ...player, status, legalActions: nextPlayer.legalActions };
+    });
+}
+
+/**
  * Split a multi-street snapshot jump into the frames it collapsed.
  *
  * @param prev - the last snapshot seen at ingest, or undefined for the first
@@ -159,9 +188,14 @@ export function expandFrames(
         // instead of after the river.
         previousActions: next.previousActions,
         actionCount: next.actionCount,
+        // Betting is closed on every beat of a runout: the turn pointer, the
+        // legal actions and any closing fold are next's — keeping prev's left
+        // the turn flash on a seat that had already folded (ui#968).
+        nextToAct: next.nextToAct,
+        legalActions: next.legalActions,
         // Applied to the base (not just the reveal frame) so the cards stay face
         // up for the rest of the runout instead of flipping back to "X".
-        ...(revealedPlayers ? { players: revealedPlayers } : {})
+        players: closeBetting(revealedPlayers ?? prev.players, next)
     };
 
     const frames: TexasHoldemStateDTO[] = [];

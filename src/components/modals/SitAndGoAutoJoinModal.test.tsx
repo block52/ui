@@ -24,7 +24,7 @@ jest.mock("../../hooks/playerActions/joinTable", () => ({ joinTable: (...args: u
 jest.mock("../../utils/cosmosAccountUtils", () => ({ getCosmosBalance: (...args: unknown[]) => mockBalance(...args) }));
 jest.mock("../../context/NetworkContext", () => ({ useNetwork: () => ({ currentNetwork: { name: "fixture" } }) }));
 jest.mock("../../context/GameStateContext", () => ({
-    useGameStateContext: () => ({ subscribeToTable: jest.fn(), gameState: { players: [], gameOptions: {} } })
+    useGameStateContext: () => ({ subscribeToTable: jest.fn(), gameState: { players: [], gameOptions: {} }, gameFormat: "sit-and-go" })
 }));
 jest.mock("../../utils/scheduledSng", () => ({
     ...jest.requireActual("../../utils/scheduledSng"),
@@ -96,4 +96,18 @@ it("ignores Escape and disables both exits while a join is in flight", async () 
     expect(screen.getByRole("button", { name: "Return to Lobby" })).toBeDisabled();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.getByRole("dialog")).toBeInTheDocument();
+});
+
+it("takes a drawn seat: joins without naming one and says the seat is random (ui#969)", async () => {
+    mockBalance.mockResolvedValue("50000000");
+    mockJoin.mockReturnValue(new Promise(() => {}));
+    renderModal();
+    expect(await screen.findByTestId("seat-draw-note")).toHaveTextContent("Your seat is drawn at random");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take My Seat" })).toBeEnabled());
+    fireEvent.click(screen.getByRole("button", { name: "Take My Seat" }));
+    await waitFor(() => expect(mockJoin).toHaveBeenCalledTimes(1));
+    const [tableId, options] = mockJoin.mock.calls[0];
+    expect(tableId).toBe("fixture-table");
+    expect(options).toEqual({ amount: "10", format: "sit-and-go" });
+    expect(options).not.toHaveProperty("seatNumber");
 });
