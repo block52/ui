@@ -29,7 +29,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     // Get Cosmos wallet hook and network context
     const cosmosWallet = useCosmosWallet();
     const { currentNetwork } = useNetwork();
-    const { gameState } = useGameStateContext();
+    const { gameState, gameFormat } = useGameStateContext();
 
     // Use props if provided, otherwise fall back to hook
     const hookBuyIns = useMinAndMaxBuyIns();
@@ -193,15 +193,16 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                 return;
             }
 
-            // Get a random empty seat
             if (isEmpty(emptySeatIndexes)) {
                 setBuyInError("No empty seats available.");
                 return;
             }
 
+            // No seat requested: joinTable picks one from the latest state — a
+            // random empty seat at a Sit & Go (ui#969), the lowest at a cash table.
             const joinOptions: JoinTableOptions = {
                 amount: buyInMicrounits.toString(),
-                seatNumber: undefined // Let the server handle random seat assignment
+                format: gameFormat
             };
 
             await joinTable(tableId || "default-game-id", joinOptions, currentNetwork);
@@ -224,7 +225,8 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
         tableId,
         minBuyInFormatted,
         maxBuyInFormatted,
-        currentNetwork
+        currentNetwork,
+        gameFormat
     ]);
 
     // Per Commandment 7: Show error if buy-in values are missing from chain
