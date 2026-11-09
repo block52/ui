@@ -3,7 +3,7 @@ import { serve } from "@hono/node-server";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { attachChainWs, broadcastRaw, disconnectGame } from "./chain-ws.js";
-import { handleCometRpc, restAccount } from "./comet-rpc.js";
+import { handleCometRpc, restAccount, restTx } from "./comet-rpc.js";
 import {
   CASH_GAME_ID,
   getGameState,
@@ -123,6 +123,10 @@ app.get("/cosmos/base/tendermint/v1beta1/blocks/latest", (c) =>
   c.json({ block: { header: { height: "1", time: "2026-07-11T00:00:00Z" } } })
 );
 app.get("/cosmos/tx/v1beta1/txs", (c) => c.json({ txs: [], tx_responses: [], total: "0" }));
+app.get("/cosmos/tx/v1beta1/txs/:hash", (c) => {
+  const tx = restTx(c.req.param("hash"));
+  return tx ? c.json(tx as Record<string, unknown>) : c.json({ code: 5, message: "tx not found" }, 404);
+});
 app.get("/pokerchain/poker/nft_avatar/:address", (c) => c.json({ avatar: "" }));
 
 // ---- control surface (test isolation) -----------------------------------
