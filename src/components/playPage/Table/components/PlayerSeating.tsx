@@ -31,6 +31,8 @@ export interface PlayerSeatingProps {
     // Table configuration
     tableLayout: UseTableLayoutReturn;
     tableSize: number;
+    /** The table's real seat count; layout positions past it stay empty (ui#877). */
+    maxPlayers: number;
     startIndex: number;
 
     // Player data
@@ -54,6 +56,7 @@ export interface PlayerSeatingProps {
 export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     tableLayout,
     tableSize,
+    maxPlayers,
     startIndex,
     tableActivePlayers,
     tableDataPlayers,
@@ -150,6 +153,13 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 onJoin: updateBalanceOnPlayerJoin
             };
 
+            // A spare layout position on a table with fewer seats than its layout
+            // (a 3-seat table drawn on the 4-seat ring): no seat exists there, so
+            // nothing is drawn and nobody is offered "Click to join" (ui#877).
+            if (!playerAtThisSeat && seatNumber > maxPlayers) {
+                return null;
+            }
+
             // CASE 1: No player at this seat - render vacant position
             if (!playerAtThisSeat) {
                 return (
@@ -171,7 +181,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
+        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, maxPlayers, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
     );
 
     // Render all player positions
