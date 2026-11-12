@@ -47,6 +47,9 @@ export interface PlayerSeatingProps {
     // Card back style
     cardBackStyle: CardBackStyle;
 
+    /** The tournament is over: an empty seat is not drawn at all (nothing to join, nothing to say). */
+    tournamentOver: boolean;
+
     // Handlers
     updateBalanceOnPlayerJoin: () => void;
 }
@@ -63,6 +66,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
     isSitAndGoWaitingForPlayers,
     winnerInfo,
     cardBackStyle,
+    tournamentOver,
     updateBalanceOnPlayerJoin
 }) => {
     // Seat-indexed lookups built once per update (#2455). The render loop below
@@ -152,6 +156,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
 
             // CASE 1: No player at this seat - render vacant position
             if (!playerAtThisSeat) {
+                if (tournamentOver) return null;
                 return (
                     <VacantPlayer
                         index={seatNumber}
@@ -171,7 +176,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                 <OppositePlayer {...playerProps} uiPosition={positionIndex} cardBackStyle={cardBackStyle} />
             );
         },
-        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber]
+        [activePlayerBySeat, userWalletAddress, currentIndex, dataPlayerBySeat, tableSize, startIndex, updateBalanceOnPlayerJoin, tableLayout, cardBackStyle, seatColorByNumber, tournamentOver]
     );
 
     // Render all player positions

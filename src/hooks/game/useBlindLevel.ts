@@ -109,7 +109,8 @@ export const useBlindLevel = (): BlindLevelInfo => {
     // Timer: compute seconds remaining in current level. A finished tournament
     // has no next level: levelStartTime stops advancing, so without this the
     // countdown would run on into red overtime forever.
-    const isFinished = hasTournamentFinished(gameState);
+    // On a directed table the finish is on the tournament record (the table has no results[]).
+    const isFinished = hasTournamentFinished(gameState) || tournament?.status === "finished";
     const hasTimer = isActive && !isFinished && levelDurationSeconds > 0 && hasValue(startTime) && startTime > 0;
 
     const secondsRemaining = useMemo(() => {

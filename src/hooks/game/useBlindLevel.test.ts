@@ -181,6 +181,14 @@ describe("useBlindLevel — directed tournament table (ui#979)", () => {
         expect(result.current.secondsRemaining).toBe(240);
     });
 
+    it("has no timer once the tournament record says it is finished (a directed table has no results[])", () => {
+        jest.spyOn(Date, "now").mockReturnValue(1_000_000_000_000 + 60_000);
+        setDirected({ status: "finished", options: { blindStructure: structure } });
+        const { result } = renderHook(() => useBlindLevel());
+        expect(result.current.hasTimer).toBe(false);
+        expect(result.current.secondsRemaining).toBe(-1);
+    });
+
     it("shows no next level and no timer while the tournament record is loading, without throwing", () => {
         setDirected(undefined);
         const { result } = renderHook(() => useBlindLevel());
