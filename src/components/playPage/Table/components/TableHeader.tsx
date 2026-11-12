@@ -9,7 +9,7 @@
  */
 
 import React, { useState } from "react";
-import { FaCopy, FaShare, FaQrcode, FaRedo } from "react-icons/fa";
+import { FaCopy, FaShare, FaQrcode, FaRedo, FaLayerGroup } from "react-icons/fa";
 import { RxExit } from "react-icons/rx";
 import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
@@ -25,6 +25,8 @@ import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { tableTitle } from "../../../../utils/tableTitle";
 import { tableUrl } from "../../../../utils/tableUrl";
+import BlindsButton from "../../BlindsButton";
+import { playersLabel, type TournamentRunners } from "../../../../utils/tournamentResult";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
 // itself now lives in utils/blindStructure so the Blinds panel can share it.
@@ -42,6 +44,8 @@ export interface TableHeaderProps {
     gameVariant: GameVariant | undefined;
     gameOptions: GameOptionsDTO | null;
     tableActivePlayers: PlayerDTO[];
+    /** Runners left out of the field, on a multi-table tournament table (replaces the seat count). */
+    runners?: TournamentRunners;
 
     // Wallet data
     publicKey: string | null;
@@ -84,6 +88,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     gameVariant,
     gameOptions,
     tableActivePlayers,
+    runners,
     publicKey,
     formattedAddress,
     isBalanceLoading,
@@ -135,7 +140,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                 {/* Left Section - Table button and Network selector */}
                 <div className="flex items-center space-x-2 sm:space-x-4 z-[9999] relative">
                     <span
-                        className="text-white text-sm sm:text-[24px] cursor-pointer hover:text-[#ffffff] transition-colors duration-300 font-bold"
+                        className="text-white text-sm sm:text-[24px] cursor-pointer hover:text-[#ffffff] transition-colors duration-300 font-bold whitespace-nowrap"
                         onClick={handleLobbyClick}
                     >
                         {/* Named tables (poker-vm#337) show their name; unnamed fall back to the truncated id. */}
@@ -149,8 +154,8 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         title="Copy table link to clipboard"
                     >
                         <FaCopy size={12} />
-                        <span className="hidden sm:inline">Copy Table Link</span>
-                        <span className="sm:hidden">Copy Link</span>
+                        <span className="hidden 2xl:inline">Copy Table Link</span>
+                        <span className="hidden max-sm:inline">Copy Link</span>
                     </button>
                     {/* QR Code Button */}
                     <button
@@ -159,7 +164,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         title="Show QR code for table link"
                     >
                         <FaQrcode size={12} />
-                        <span className="hidden sm:inline">Share via QR Code</span>
+                        <span className="hidden 2xl:inline">Share via QR Code</span>
                     </button>
                     {/* Replay (ui#816): the previous hand, in a new tab, with media controls */}
                     {handleOpenReplay && (
@@ -171,23 +176,28 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                             data-testid="open-replay"
                         >
                             <FaRedo size={12} />
-                            <span className="hidden sm:inline">Replay</span>
+                            <span className="hidden 2xl:inline">Replay</span>
                         </button>
                     )}
                     {/* Game Format & Variant Display - Desktop Only */}
                     {gameOptions && (
-                        <div className={`hidden md:flex items-center ml-4 px-3 py-1 rounded-lg ${styles.gameFormatContainer}`}>
+                        <div className={`hidden md:flex items-center ml-2 px-3 py-1 rounded-lg whitespace-nowrap ${styles.gameFormatContainer}`}>
                             <span className={`text-sm font-semibold ${styles.brandText}`}>
                                 {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
                                 {formatTableGameDisplay(gameVariant, gameOptions.bettingLimit)}
                                 {gameOptions.minPlayers && gameOptions.maxPlayers && (
                                     <span className={`ml-1 ${styles.secondaryText}`}>
-                                        ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
+                                        ({playersLabel(tableActivePlayers.length, gameOptions.maxPlayers, runners)})
                                     </span>
                                 )}
                             </span>
                         </div>
                     )}
+                    {/* Blind schedule (ui#794): a modal, opened from here, to the right of the tournament details */}
+                    <BlindsButton className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 hover:opacity-80 border ${styles.copyTableButton}`}>
+                        <FaLayerGroup size={12} />
+                        <span>Blinds</span>
+                    </BlindsButton>
                 </div>
 
                 {/* Right Section - Wallet info */}

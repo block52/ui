@@ -1,7 +1,13 @@
 import React from "react";
 import { render, screen, fireEvent } from "@testing-library/react";
-import BlindsPanel from "./BlindsPanel";
+import BlindsButton from "./BlindsButton";
 import type { BlindLevelInfo } from "../../hooks/game/useBlindLevel";
+
+// The shared Modal pulls colorConfig, which reads import.meta.env (not available
+// under Jest). Stub the shell; it owns Escape / backdrop closing, tested with it.
+jest.mock("../common/Modal", () => ({
+    Modal: ({ isOpen, children }: { isOpen: boolean; children?: React.ReactNode }) => (isOpen ? <div>{children}</div> : null)
+}));
 
 const mockUseBlindLevel = jest.fn<BlindLevelInfo, []>();
 
@@ -24,7 +30,7 @@ const activeInfo = (overrides: Partial<BlindLevelInfo> = {}): BlindLevelInfo => 
     ...overrides
 });
 
-describe("BlindsPanel", () => {
+describe("BlindsButton", () => {
     beforeEach(() => {
         jest.clearAllMocks();
         try {
@@ -36,57 +42,40 @@ describe("BlindsPanel", () => {
 
     it("renders nothing for cash games (not SNG/tournament)", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo({ isActive: false }));
-        const { container } = render(<BlindsPanel />);
+        const { container } = render(<BlindsButton className="btn" />);
         expect(container.firstChild).toBeNull();
     });
 
     it("shows the tab for SNG/tournament, closed by default", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo());
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
         expect(screen.getByTestId("blinds-panel-tab")).toBeInTheDocument();
         expect(screen.queryByTestId("blinds-panel")).not.toBeInTheDocument();
     });
 
-    it("opens on tab click and closes on a second click (AC-2)", () => {
+    it("opens the schedule in a modal on click and closes it with the Close button (AC-2)", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo());
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
+
+        fireEvent.click(screen.getByTestId("blinds-panel-tab"));
+        expect(screen.getByTestId("blinds-panel")).toBeInTheDocument();
+        expect(screen.getByRole("dialog", { name: "Blind structure" })).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole("button", { name: "Close" }));
+        expect(screen.queryByTestId("blinds-panel")).not.toBeInTheDocument();
+    });
+
+    it("uses the classes and text the header gives it", () => {
+        mockUseBlindLevel.mockReturnValue(activeInfo());
+        render(<BlindsButton className="header-btn">Show blinds</BlindsButton>);
         const tab = screen.getByTestId("blinds-panel-tab");
-
-        fireEvent.click(tab);
-        expect(screen.getByTestId("blinds-panel")).toBeInTheDocument();
-
-        fireEvent.click(tab);
-        expect(screen.queryByTestId("blinds-panel")).not.toBeInTheDocument();
-    });
-
-    it("closes on Escape (AC-2)", () => {
-        mockUseBlindLevel.mockReturnValue(activeInfo());
-        render(<BlindsPanel />);
-        fireEvent.click(screen.getByTestId("blinds-panel-tab"));
-        expect(screen.getByTestId("blinds-panel")).toBeInTheDocument();
-
-        fireEvent.keyDown(window, { key: "Escape" });
-        expect(screen.queryByTestId("blinds-panel")).not.toBeInTheDocument();
-    });
-
-    it("closes on an outside click (AC-2)", () => {
-        mockUseBlindLevel.mockReturnValue(activeInfo());
-        render(
-            <div>
-                <button data-testid="outside">felt</button>
-                <BlindsPanel />
-            </div>
-        );
-        fireEvent.click(screen.getByTestId("blinds-panel-tab"));
-        expect(screen.getByTestId("blinds-panel")).toBeInTheDocument();
-
-        fireEvent.mouseDown(screen.getByTestId("outside"));
-        expect(screen.queryByTestId("blinds-panel")).not.toBeInTheDocument();
+        expect(tab).toHaveClass("header-btn");
+        expect(tab).toHaveTextContent("Show blinds");
     });
 
     it("highlights the current level and counts down to the next (AC-4)", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo());
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getByTestId("blinds-row-current")).toHaveTextContent("1");
@@ -100,7 +89,7 @@ describe("BlindsPanel", () => {
 
     it("lists every level of this game's schedule with its minutes", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo({ secondsRemaining: 120, levelDurationSeconds: 300 }));
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         // Every level is 5 minutes: said once, no Min column.
@@ -116,7 +105,7 @@ describe("BlindsPanel", () => {
         mockUseBlindLevel.mockReturnValue(
             activeInfo({ level: 2, smallBlind: 200, bigBlind: 400, nextSmallBlind: 400, nextBigBlind: 800 })
         );
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getAllByTestId("blinds-row-past").map(el => el.textContent)).toEqual(["1", "2"]);
@@ -128,7 +117,7 @@ describe("BlindsPanel", () => {
         mockUseBlindLevel.mockReturnValue(
             activeInfo({ blindStructure: { preset: "turbo" }, smallBlind: 25, bigBlind: 50, nextSmallBlind: 50, nextBigBlind: 100 })
         );
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getByText("Ante")).toBeInTheDocument();
@@ -148,7 +137,7 @@ describe("BlindsPanel", () => {
                 }
             })
         );
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getByText("Min")).toBeInTheDocument();
@@ -157,7 +146,7 @@ describe("BlindsPanel", () => {
 
     it("says only current + next are known when the schedule can't be derived", () => {
         mockUseBlindLevel.mockReturnValue(activeInfo({ nextSmallBlind: 75, nextBigBlind: 150 }));
-        render(<BlindsPanel />);
+        render(<BlindsButton className="btn" />);
         fireEvent.click(screen.getByTestId("blinds-panel-tab"));
 
         expect(screen.getByTestId("blinds-panel-partial")).toHaveTextContent("Only the current and next levels are known");

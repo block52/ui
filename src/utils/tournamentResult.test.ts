@@ -1,6 +1,6 @@
 import type { ResultDTO } from "@block52/poker-vm-sdk";
 import type { TournamentStateDTO } from "../types/tournament";
-import { finisherResult, tournamentSize } from "./tournamentResult";
+import { finisherResult, playersLabel, tournamentRunners, tournamentSize } from "./tournamentResult";
 
 const ME = "b521rzpgz9rcmg9t383kyal6ufmzvarhkfx9aazncg";
 
@@ -42,5 +42,22 @@ describe("tournamentSize", () => {
 
     it("is undefined until the tournament record has loaded", () => {
         expect(tournamentSize(undefined)).toBeUndefined();
+    });
+});
+
+describe("tournamentRunners / playersLabel", () => {
+    const withEntrants = (statuses: string[]) => ({ entrants: statuses.map(status => ({ status })) }) as unknown as TournamentStateDTO;
+
+    it("counts the runners still playing out of the field that started", () => {
+        expect(tournamentRunners(withEntrants(["busted", "busted", "playing", "playing", "unregistered"]))).toEqual({ left: 2, total: 4 });
+    });
+
+    it("is undefined until the tournament record has loaded", () => {
+        expect(tournamentRunners(undefined)).toBeUndefined();
+    });
+
+    it("labels a tournament table by its runners and any other table by its seats", () => {
+        expect(playersLabel(1, 9, { left: 21, total: 27 })).toBe("21/27 Runners");
+        expect(playersLabel(4, 9, undefined)).toBe("4/9 Players");
     });
 });

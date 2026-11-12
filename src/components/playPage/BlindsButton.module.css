@@ -1,69 +1,13 @@
-/* Blinds panel (ui#794) — a small, non-modal blind-structure panel for
-   SNG/tournament tables. The wrapper never paints a backdrop, so gameplay
-   underneath stays clickable. */
+/* Blinds modal (ui#794): the schedule sits in a solid card inside the shared
+   Modal, so it reads on any theme. */
 
-.root {
-    position: fixed;
-    top: 104px; /* clears the desktop header (≈65px) + sub-header (≈35px) */
-    left: 8px;
-    z-index: 40; /* above the felt, below modals/overlays (which sit ≥100) */
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 6px;
-    pointer-events: none; /* only the tab/panel below opt back in */
-}
-
-.tab {
-    pointer-events: auto;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--brand-primary, #3b82f6);
-    background-color: color-mix(in srgb, var(--ui-bg-dark, #0b0f14) 70%, transparent);
-    color: var(--brand-primary, #3b82f6);
-    font-size: 12px;
-    font-weight: 700;
-    cursor: pointer;
-    backdrop-filter: blur(4px);
-    transition: opacity 0.15s ease, background-color 0.15s ease;
-}
-
-.tab:hover {
-    opacity: 0.85;
-}
-
-.tabOpen {
-    background-color: color-mix(in srgb, var(--brand-primary, #3b82f6) 25%, transparent);
-    color: #fff;
-}
-
-.panel {
-    pointer-events: auto;
-    width: 200px;
-    max-width: calc(100vw - 16px);
+.schedule {
     border-radius: 12px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    background-color: #0d141c; /* solid: readable over any felt */
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
+    background-color: #0d141c;
     color: #fff;
     overflow: hidden;
-    transform-origin: top left;
-    animation: panelIn 0.15s ease;
     font-variant-numeric: tabular-nums;
-}
-
-@keyframes panelIn {
-    from {
-        opacity: 0;
-        transform: scale(0.96) translateY(-4px);
-    }
-    to {
-        opacity: 1;
-        transform: none;
-    }
 }
 
 /* Current level, big. */
@@ -182,40 +126,4 @@
     letter-spacing: 0.04em;
     color: rgba(255, 255, 255, 0.55);
     text-align: center;
-}
-
-/* Mobile: open as a compact bottom sheet rather than a corner box (AC-5). */
-@media (max-width: 640px) {
-    .root {
-        top: auto;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        align-items: stretch;
-    }
-
-    .tab {
-        align-self: flex-start;
-        margin-left: 8px;
-    }
-
-    .panel {
-        width: 100%;
-        max-width: 100%;
-        max-height: 45vh;
-        overflow-y: auto;
-        border-radius: 14px 14px 0 0;
-        transform-origin: bottom center;
-    }
-}
-
-/* Honour reduced-motion: no scale/translate entrance. */
-@media (prefers-reduced-motion: reduce) {
-    .panel {
-        animation: none;
-    }
-
-    .tab {
-        transition: none;
-    }
 }

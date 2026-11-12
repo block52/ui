@@ -79,7 +79,7 @@ import { useTournament } from "../../hooks/tournament/useTournament";
 import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { followTarget, type MyTournamentTable } from "../../utils/tournamentFollow";
 import { tableUrl } from "../../utils/tableUrl";
-import { tournamentSize } from "../../utils/tournamentResult";
+import { tournamentRunners, tournamentSize } from "../../utils/tournamentResult";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
@@ -137,7 +137,6 @@ import LiveHandStrengthDisplay from "./LiveHandStrengthDisplay";
 import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds";
 import NoWalletOverlay from "./NoWalletOverlay";
 import SngPayoutPanel from "./SngPayoutPanel";
-import BlindsPanel from "./BlindsPanel";
 import ProvablyFairPanel from "./ProvablyFair/ProvablyFairPanel";
 
 // Table Error Page
@@ -1426,6 +1425,7 @@ const Table = React.memo(() => {
                     gameFormat={gameFormat || null}
                     gameOptions={gameOptions}
                     tableActivePlayers={tableActivePlayers}
+                    runners={tournamentRunners(tournamentRecord)}
                     publicKey={publicKey}
                     formattedAddress={formattedAddress}
                     isBalanceLoading={isBalanceLoading}
@@ -1464,6 +1464,7 @@ const Table = React.memo(() => {
                     gameVariant={gameVariant}
                     gameOptions={gameOptions}
                     tableActivePlayers={tableActivePlayers}
+                    runners={tournamentRunners(tournamentRecord)}
                     publicKey={publicKey}
                     formattedAddress={formattedAddress}
                     isBalanceLoading={isBalanceLoading}
@@ -1486,7 +1487,6 @@ const Table = React.memo(() => {
             {/* Blinds structure panel (ui#794) — self-gates to SNG/tournament;
                 non-modal floating tab + panel in the top-left of the table.
                 Hidden in replay mode (read-only view of a past hand). */}
-            {!isReplayMode && <BlindsPanel />}
 
             {/* Provably fair tab + verify window (ui#972) — beside the Blinds tab.
                 Hidden in replay mode, like the Blinds panel. */}
