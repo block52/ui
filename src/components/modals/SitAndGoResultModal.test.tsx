@@ -338,9 +338,9 @@ describe("SitAndGoResultModal", () => {
         });
 
         it("shows the finisher's place and prize from the tournament results, not the table", () => {
-            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} tournamentResults={results as never} />);
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} tournamentResults={results as never} tournamentSize={27} />);
 
-            expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You finished 2nd!");
+            expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You finished 2nd out of 27!");
             expect(screen.getByTestId("sng-result-payout")).toHaveTextContent("6561000");
             expect(mockGetPlayerResult).not.toHaveBeenCalled();
         });
@@ -358,9 +358,9 @@ describe("SitAndGoResultModal", () => {
         it("offers spectate and the lobby, never the chain leave, to a player who busted unpaid", () => {
             const onLeave = jest.fn();
             const busted = [{ place: 13, playerId: USER_ADDRESS, payout: "0" }];
-            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={jest.fn()} held={false} tournamentResults={busted as never} />);
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={jest.fn()} held={false} tournamentResults={busted as never} tournamentSize={27} />);
 
-            expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You busted out — finished 13th.");
+            expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You busted out — finished 13th out of 27.");
             expect(screen.queryByTestId("sng-result-leave-btn")).not.toBeInTheDocument();
             fireEvent.click(screen.getByTestId("sng-result-return-to-lobby-btn"));
             expect(mockNavigate).toHaveBeenCalledWith("/");

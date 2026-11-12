@@ -40,6 +40,8 @@ export interface TableModalsProps {
     onAutoJoinSuccess: () => void;
     /** The tournament record's results, on a directed table of a multi-table tournament (it has none of its own). */
     tournamentResults?: ResultDTO[];
+    /** How many players that tournament started with. */
+    tournamentSize?: number;
 
     // Sit & Go Waiting Modal
     isSitAndGoWaitingForPlayers: boolean;
@@ -69,6 +71,7 @@ export const TableModals: React.FC<TableModalsProps> = ({
     tableId,
     onAutoJoinSuccess,
     tournamentResults,
+    tournamentSize,
     isSitAndGoWaitingForPlayers,
     recentTxHash,
     handleCloseTransactionPopup,
@@ -121,6 +124,7 @@ export const TableModals: React.FC<TableModalsProps> = ({
                     onClaim={handleClaimWinnings}
                     held={holdResults}
                     tournamentResults={tournamentResults}
+                    tournamentSize={tournamentSize}
                 />
             )}
 

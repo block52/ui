@@ -1,5 +1,6 @@
 import type { ResultDTO } from "@block52/poker-vm-sdk";
-import { finisherResult } from "./tournamentResult";
+import type { TournamentStateDTO } from "../types/tournament";
+import { finisherResult, tournamentSize } from "./tournamentResult";
 
 const ME = "b521rzpgz9rcmg9t383kyal6ufmzvarhkfx9aazncg";
 
@@ -28,5 +29,18 @@ describe("finisherResult", () => {
     it("gives a player who busted with others the shared place and no prize", () => {
         const results = [result(13, ME, "0"), result(13, "b521other", "0")];
         expect(finisherResult(results, ME)).toEqual({ place: 13, payout: "0", isWinner: false });
+    });
+});
+
+describe("tournamentSize", () => {
+    const withEntrants = (statuses: string[]) => ({ entrants: statuses.map(status => ({ status })) }) as unknown as TournamentStateDTO;
+
+    it("counts everyone who started, not those who unregistered", () => {
+        expect(tournamentSize(withEntrants(["busted", "busted", "playing", "unregistered"]))).toBe(3);
+        expect(tournamentSize(withEntrants(["registered", "registered"]))).toBe(2);
+    });
+
+    it("is undefined until the tournament record has loaded", () => {
+        expect(tournamentSize(undefined)).toBeUndefined();
     });
 });

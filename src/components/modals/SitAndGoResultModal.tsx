@@ -81,9 +81,11 @@ interface SitAndGoResultModalProps {
      * wallet, so there is nothing to collect, claim or leave.
      */
     tournamentResults?: ResultDTO[];
+    /** How many players the multi-table tournament started with, for "2nd out of 27". */
+    tournamentSize?: number;
 }
 
-export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableId, onLeave, onClaim, held, tournamentResults }) => {
+export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableId, onLeave, onClaim, held, tournamentResults, tournamentSize }) => {
     const navigate = useNavigate();
     const { isSitAndGo, getPlayerResult } = useSitAndGoPlayerResults();
     const { gameState } = useGameStateContext();
@@ -226,11 +228,12 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
     // Copy: paid finishers get the celebratory variant (with payout
     // line). Unpaid finishers get a softer message with no dollar
     // amount. Winners get a small celebratory swap.
+    const outOf = directed && hasValue(tournamentSize) ? ` out of ${tournamentSize}` : "";
     const heading = isWinner
         ? "🏆 You won the tournament!"
         : isPaid
-            ? `You finished ${ordinal(place)}!`
-            : `You busted out — finished ${ordinal(place)}.`;
+            ? `You finished ${ordinal(place)}${outOf}!`
+            : `You busted out — finished ${ordinal(place)}${outOf}.`;
 
     const subtext = isPaid
         ? null

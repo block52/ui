@@ -79,6 +79,7 @@ import { useTournament } from "../../hooks/tournament/useTournament";
 import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { followTarget, type MyTournamentTable } from "../../utils/tournamentFollow";
 import { tableUrl } from "../../utils/tableUrl";
+import { tournamentSize } from "../../utils/tournamentResult";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
@@ -1704,6 +1705,7 @@ const Table = React.memo(() => {
                 tableId={id}
                 onAutoJoinSuccess={() => window.location.reload()}
                 tournamentResults={tournamentRecord?.results}
+                tournamentSize={tournamentSize(tournamentRecord)}
                 isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
                 handleLeaveTableClick={handleLeaveTableClick}
                 recentTxHash={recentTxHash}
