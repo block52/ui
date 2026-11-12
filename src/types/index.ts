@@ -336,6 +336,8 @@ export interface NextToActInfoReturn extends BaseHookReturn {
 export interface PlayerChipDataReturn extends BaseHookReturn {
     chipAmount: string;
     chipActions: string[];
+    /** True while a closing bet is flying from the seat into the pot. */
+    collecting?: boolean;
 }
 
 // Type for the return value of usePlayerData hook
