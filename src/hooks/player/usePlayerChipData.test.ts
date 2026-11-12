@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usePlayerChipData } from "./usePlayerChipData";
+import { resetClosingClock } from "./closingBetClock";
 import { useGameStateContext } from "../../context/GameStateContext";
 
 // Mock the GameStateContext and the slice hooks the migrated usePlayerChipData reads from.
@@ -26,6 +27,7 @@ jest.mock("../../context/gameState/GameUIContext", () => ({
 describe("usePlayerChipData", () => {
     beforeEach(() => {
         jest.clearAllMocks();
+        resetClosingClock();
     });
 
     describe("Player Status Filtering", () => {

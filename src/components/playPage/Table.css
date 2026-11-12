@@ -335,6 +335,19 @@
     position: absolute;
 }
 
+/* Closing bet flying into the pot. Direction is toward the table centre. */
+.chip-collecting[data-collect-dir="up"] { animation: chip-collect-up var(--chip-collect-ms, 400ms) ease-in forwards; }
+.chip-collecting[data-collect-dir="down"] { animation: chip-collect-down var(--chip-collect-ms, 400ms) ease-in forwards; }
+.chip-collecting[data-collect-dir="left"] { animation: chip-collect-left var(--chip-collect-ms, 400ms) ease-in forwards; }
+.chip-collecting[data-collect-dir="right"] { animation: chip-collect-right var(--chip-collect-ms, 400ms) ease-in forwards; }
+@keyframes chip-collect-up { to { transform: translateY(-56px) scale(0.35); opacity: 0; } }
+@keyframes chip-collect-down { to { transform: translateY(56px) scale(0.35); opacity: 0; } }
+@keyframes chip-collect-left { to { transform: translateX(-56px) scale(0.35); opacity: 0; } }
+@keyframes chip-collect-right { to { transform: translateX(56px) scale(0.35); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+    .chip-collecting { animation: none; }
+}
+
 /* Floating card panel (History + Settings tabs, ui#752). Always visible, inset
    from the right edge so it reads as a card floating above the felt (rounded +
    shadow on the inner element) rather than an edge-docked panel. */

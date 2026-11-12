@@ -47,6 +47,7 @@ import { buildHandShareUrl } from "../../utils/handReplay";
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
+import { useClosingBetPresentation } from "../../hooks/player/useClosingBetPresentation";
 // Position arrays now come from useTableLayout hook
 // // Position arrays now come from useTableLayout hook
 // import { playerPosition, dealerPosition, vacantPlayerPosition } from "../../utils/PositionArray";
@@ -1174,10 +1175,13 @@ const Table = React.memo(() => {
     // Memoize formatted balance - Cosmos returns microunits (6 decimals)
     const balanceFormatted = useMemo(() => (accountBalance ? formatUSDCToSimpleDollars(accountBalance) : "0.00"), [accountBalance]);
 
+    const closingBets = useClosingBetPresentation();
     const potDisplayValues = useMemo(() => {
         const pots = Array.isArray(gameState?.pots) ? (gameState?.pots as string[]) : [];
-        return formatPotDisplay(pots, gameState?.totalPot, gameFormat, gameState?.round, gameState?.potDetails);
-    }, [gameState?.pots, gameState?.totalPot, gameFormat, gameState?.round, gameState?.potDetails]);
+        const shownPots = closingBets.phase === "off" ? pots : closingBets.pots;
+        const shownTotal = closingBets.phase === "off" ? gameState?.totalPot : closingBets.totalPot;
+        return formatPotDisplay(shownPots, shownTotal, gameFormat, gameState?.round, gameState?.potDetails);
+    }, [gameState?.pots, gameState?.totalPot, gameFormat, gameState?.round, gameState?.potDetails, closingBets]);
 
     const copyToClipboard = useCallback((text: string) => {
         navigator.clipboard.writeText(text);
