@@ -25,6 +25,7 @@
  * Busy releases at `accepted` or `committed`, never on the SDK sync return
  * (the ui#364 invariant), so a submission never acts on a stale index.
  */
+import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { PlayerActionResult } from "../types";
 import { snapshotConfirmationSignals } from "./confirmationGate";
@@ -46,7 +47,9 @@ import type {
 const QUEUE_CAP = 1;
 
 /** Actions that legitimately form a queued next-step chain across state changes. */
-const PROGRESSION_ACTIONS = new Set(["new-hand", "small-blind", "big-blind", "deal"]);
+const PROGRESSION_ACTIONS = new Set(["new-hand", "small-blind", "big-blind", "post-small-blind", "post-big-blind", "deal"]);
+
+const isProgressionAction = (actionName: string): boolean => PROGRESSION_ACTIONS.has(actionName);
 
 /**
  * Jobs that released busy but have no final verdict are kept for late evidence
@@ -199,11 +202,10 @@ export class ActionSubmitController {
         };
 
         if (this.activeJob) {
-            if (this.queue.length >= QUEUE_CAP) {
+            if (!this.enqueue(job)) {
                 console.warn(`[submit] queue full; dropping "${request.actionName}"`);
                 return;
             }
-            this.queue.push(job);
             this.emit();
             return;
         }
@@ -301,6 +303,32 @@ export class ActionSubmitController {
         }
         const settledAt = this.lastSettledAt.get(dedupeKey);
         return hasValue(settledAt) && at - settledAt < window;
+    }
+
+    /**
+     * Queue a job behind the one in flight, or return false to drop it. A
+     * player's decision is never dropped (ui#944): at the start of a hand the
+     * automatic blind, deal and new-hand jobs fill the queue, and dropping the
+     * click left a dead button. It goes behind them; a newer decision replaces
+     * an older queued one, because the player's latest click is what they meant.
+     */
+    private enqueue(job: SubmitJob): boolean {
+        if (isProgressionAction(job.request.actionName)) {
+            if (this.queue.length >= QUEUE_CAP) {
+                return false;
+            }
+            // Ahead of any queued decision: the hand has to progress first.
+            const firstDecision = this.queue.findIndex(queued => !isProgressionAction(queued.request.actionName));
+            this.queue.splice(firstDecision < 0 ? this.queue.length : firstDecision, 0, job);
+            return true;
+        }
+        const queuedDecision = this.queue.findIndex(queued => !isProgressionAction(queued.request.actionName));
+        if (queuedDecision >= 0) {
+            this.queue[queuedDecision] = job;
+        } else {
+            this.queue.push(job);
+        }
+        return true;
     }
 
     private startJob(job: SubmitJob): void {
@@ -523,7 +551,7 @@ export class ActionSubmitController {
      * chain even though its action index and hand number advance.
      */
     private isStaleQueuedDecision(job: SubmitJob): boolean {
-        if (PROGRESSION_ACTIONS.has(job.request.actionName)) {
+        if (isProgressionAction(job.request.actionName)) {
             return false;
         }
         const state = this.getState();
@@ -534,7 +562,15 @@ export class ActionSubmitController {
         if (state.handNumber !== job.queuedBaseline.handNumber) {
             return true;
         }
-        return state.previousActions.some(action => action.playerId === localAddress && action.index >= job.queuedBaseline.actionIndex);
+        // Only another DECISION of ours makes this one stale. Our own automatic
+        // blind or a time bank tap landing does not: neither ends the decision.
+        return state.previousActions.some(
+            action =>
+                action.playerId === localAddress &&
+                action.index >= job.queuedBaseline.actionIndex &&
+                !isProgressionAction(action.action) &&
+                action.action !== NonPlayerActionType.TIME_BANK
+        );
     }
 
     private rejectStaleQueuedDecision(job: SubmitJob): void {

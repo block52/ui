@@ -1,7 +1,10 @@
 import { ActionDTO } from "@block52/poker-vm-sdk";
 import { hasElements } from "./guards";
 
-/** Default timeout in seconds for game creation */
+/**
+ * Default timeout in seconds for game creation: the flop, turn and river
+ * clock. Pre-flop is 15s (`PREFLOP_TIMEOUT_SECONDS`, poker-vm#2143).
+ */
 export const DEFAULT_TIMEOUT_SECONDS = 25;
 
 /** Default timeout in milliseconds — used when gameOptions hasn't loaded yet */
@@ -105,7 +108,9 @@ export const calcTimeRemaining = (
     baseTimeoutMs: number,
     hasExtension: boolean
 ): number => {
-    const elapsed = currentTimeMs - lastActionMs;
+    // Never negative: before the clock starts (ui#944 start allowance) a turn
+    // shows its full time, not more.
+    const elapsed = Math.max(0, currentTimeMs - lastActionMs);
     const totalTimeout = getTotalTimeoutMs(baseTimeoutMs, hasExtension);
     const remaining = Math.max(0, totalTimeout - elapsed);
     return Math.ceil(remaining / 1000);
@@ -122,7 +127,7 @@ export const calcProgressPercent = (
     baseTimeoutMs: number,
     hasExtension: boolean
 ): number => {
-    const elapsed = currentTimeMs - lastActionMs;
+    const elapsed = Math.max(0, currentTimeMs - lastActionMs);
     const totalTimeout = getTotalTimeoutMs(baseTimeoutMs, hasExtension);
     return Math.min((elapsed / totalTimeout) * 100, 100);
 };

@@ -1,7 +1,7 @@
 import { hasAction, LegalActionDTO, PlayerActionType, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
 import { formatDisplayAmount } from "./numberUtils";
-import { hasValue } from "./guards";
+import { hasValue, isNullish } from "./guards";
 
 export const getTotalPotMicro = (totalPot: string): bigint => parseMicroToBigInt(totalPot);
 
@@ -110,6 +110,37 @@ export const timeBankButtonSeconds = (args: { hasTimeBankAction: boolean; isUser
     return args.hasTimeBankAction && args.isUsersTurn && seconds > 0 ? seconds : null;
 };
 
+const BACKGROUND_ACTIONS: ReadonlySet<string> = new Set([
+    "small-blind",
+    "big-blind",
+    PlayerActionType.SMALL_BLIND,
+    PlayerActionType.BIG_BLIND,
+    NonPlayerActionType.DEAL,
+    NonPlayerActionType.NEW_HAND,
+    NonPlayerActionType.TIME_BANK
+]);
+
+/**
+ * Whether the submission in flight ends the player's turn (ui#944): any action
+ * but the time bank, which extends the turn instead. The chain takes up to a
+ * block to confirm it, and the player's clock should stop the moment they act.
+ */
+export const isTurnEndingSubmit = (loadingAction: string | null | undefined): boolean =>
+    hasValue(loadingAction) && loadingAction !== NonPlayerActionType.TIME_BANK;
+
+/**
+ * The player's own move in flight, or null (ui#944). The bar's buttons wait on
+ * this alone. A background job (the automatic blind, deal or new hand, or a time
+ * bank tap) must not disable them: a click then did nothing, on a button that
+ * was right there. A click made during one is queued behind it instead.
+ */
+export const playerMoveInFlight = (loadingAction: string | null | undefined): string | null => {
+    if (isNullish(loadingAction) || BACKGROUND_ACTIONS.has(loadingAction)) {
+        return null;
+    }
+    return loadingAction;
+};
+
 /**
  * How the alarm-clock time bank button on the player's own pill looks (ui#19):
  *
@@ -128,8 +159,11 @@ export const timeBankClockState = (args: {
     isSubmitting: boolean;
     isArmed: boolean;
     isInTimeBank: boolean;
+    /** The player has acted: the turn is over, even before the chain confirms it. */
+    isEndingTurn?: boolean;
 }): TimeBankClockState => {
     if (!args.tableHasTimeBank) return "hidden";
+    if (args.isEndingTurn) return "idle";
     if (args.isInTimeBank) return "running";
     if (args.isArmed || args.isSubmitting) return "armed";
     if (hasValue(args.timeBankSeconds)) return "ready";

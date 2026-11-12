@@ -18,6 +18,14 @@
   transition: transform 150ms ease, box-shadow 200ms ease, opacity 200ms ease;
 }
 
+/* A bigger target than the icon: a small button on a table is easy to miss. */
+.time-bank-clock::before {
+  content: "";
+  position: absolute;
+  inset: -0.5rem;
+  border-radius: 9999px;
+}
+
 .time-bank-clock-icon {
   width: 1.15rem;
   height: 1.15rem;
@@ -54,12 +62,14 @@
   box-shadow: 0 0 0 2px #facc15;
   animation: tbc-nudge 2.4s ease-in-out infinite;
 }
-.time-bank-clock-ready:hover { transform: scale(1.12); }
+.time-bank-clock-ready:hover { transform: scale(1.12); animation: none; }
 .time-bank-clock-ready:active { transform: scale(0.95); }
 
 /* Tapped: glows while your own clock keeps running. */
 .time-bank-clock-armed {
   background: #78350f;
+  /* Lit the instant it is tapped: no fade in, and the pulse starts at its brightest. */
+  transition: none;
   animation: tbc-glow 1.2s ease-in-out infinite;
 }
 
@@ -98,8 +108,8 @@
 }
 
 @keyframes tbc-glow {
-  0%, 100% { box-shadow: 0 0 4px 1px rgba(251, 191, 36, 0.55), 0 0 0 2px #fbbf24; }
-  50% { box-shadow: 0 0 14px 5px rgba(251, 191, 36, 0.95), 0 0 0 2px #fde68a; }
+  0%, 100% { box-shadow: 0 0 14px 5px rgba(251, 191, 36, 0.95), 0 0 0 2px #fde68a; }
+  50% { box-shadow: 0 0 4px 1px rgba(251, 191, 36, 0.55), 0 0 0 2px #fbbf24; }
 }
 
 @keyframes tbc-ring {

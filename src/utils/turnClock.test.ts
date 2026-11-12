@@ -15,9 +15,17 @@ import {
     clockCallDueAtMs,
     clockCallOpportunity,
     clockCallerRank,
+    PREFLOP_TIMEOUT_SECONDS,
+    TURN_CLOCK_START_ALLOWANCE_MS,
+    timeBankGrantedMs,
     turnClockPhase,
+    turnCountdownStartMs,
     turnDeadlineMs,
+    turnTimeoutSeconds
 } from "./turnClock";
+
+/** The turn clock starts one block interval after its anchor (ui#944). */
+const A = TURN_CLOCK_START_ALLOWANCE_MS;
 
 const WAIT = TIMEOUT_INCLUSION_GRACE_MS + TIMEOUT_BLOCK_TIME_MARGIN_MS;
 
@@ -89,33 +97,52 @@ function state(over: Partial<TexasHoldemStateDTO> = {}): TexasHoldemStateDTO {
     };
 }
 
-describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
-    it("runs the table's full timeout on every street, pre-flop included", () => {
-        expect(turnDeadlineMs(state({ round: TexasHoldemRound.PREFLOP }))).toBe(T0 + 30_000);
-        expect(turnDeadlineMs(state({ round: TexasHoldemRound.FLOP }))).toBe(T0 + 30_000);
+describe("turnTimeoutSeconds — 15s pre-flop, the table's clock after (poker-vm#2143)", () => {
+    it("caps the pre-flop clock at 15s", () => {
+        expect(PREFLOP_TIMEOUT_SECONDS).toBe(15);
+        expect(turnTimeoutSeconds(25, TexasHoldemRound.PREFLOP)).toBe(15);
+        expect(turnTimeoutSeconds(30, TexasHoldemRound.PREFLOP)).toBe(15);
     });
 
-    it("adds the time bank on top of the pre-flop clock", () => {
+    it("gives the flop, turn and river the table's full clock", () => {
+        for (const round of [TexasHoldemRound.FLOP, TexasHoldemRound.TURN, TexasHoldemRound.RIVER]) {
+            expect(turnTimeoutSeconds(25, round)).toBe(25);
+        }
+    });
+
+    it("keeps a table's own clock pre-flop when it is already 15s or shorter", () => {
+        expect(turnTimeoutSeconds(15, TexasHoldemRound.PREFLOP)).toBe(15);
+        expect(turnTimeoutSeconds(10, TexasHoldemRound.PREFLOP)).toBe(10);
+    });
+});
+
+describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
+    it("runs 15s pre-flop and the full timeout on the flop", () => {
+        expect(turnDeadlineMs(state({ round: TexasHoldemRound.PREFLOP }))).toBe(T0 + A + 15_000);
+        expect(turnDeadlineMs(state({ round: TexasHoldemRound.FLOP }))).toBe(T0 + A + 30_000);
+    });
+
+    it("adds the time bank on top of the 15s pre-flop clock", () => {
         const s = state({
             round: TexasHoldemRound.PREFLOP,
             players: [player(P1, 1), withGrant(player(P2, 2), 45_000), player(P3, 3), player(P5, 5)],
             previousActions: [action(1, T0), action(2, T0 + 10_000, { action: NonPlayerActionType.TIME_BANK, playerId: P2, seat: 2 })]
         });
-        expect(turnDeadlineMs(s)).toBe(T0 + 30_000 + 45_000);
+        expect(turnDeadlineMs(s)).toBe(T0 + A + 15_000 + 45_000);
     });
 
     it("is the latest recorded action plus the timeout in seconds", () => {
-        expect(turnDeadlineMs(state())).toBe(T0 + 30_000);
+        expect(turnDeadlineMs(state())).toBe(T0 + A + 30_000);
     });
 
     it("anchors on the LATEST action, not the last in the array", () => {
         const s = state({ previousActions: [action(1, T0), action(2, T0 - 5000)] });
-        expect(turnDeadlineMs(s)).toBe(T0 + 30_000);
+        expect(turnDeadlineMs(s)).toBe(T0 + A + 30_000);
     });
 
     it("normalises second-resolution timestamps to milliseconds", () => {
         const s = state({ previousActions: [action(1, Math.floor(T0 / 1000))] });
-        expect(turnDeadlineMs(s)).toBe(Math.floor(T0 / 1000) * 1000 + 30_000);
+        expect(turnDeadlineMs(s)).toBe(Math.floor(T0 / 1000) * 1000 + A + 30_000);
     });
 
     it("a time-bank extends the turn by what that use granted, without re-anchoring it", () => {
@@ -125,7 +152,19 @@ describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
             previousActions: [action(1, T0), action(2, T0 + 25_000, { action: NonPlayerActionType.TIME_BANK, playerId: P2, seat: 2 })]
         });
         // the second use grants 30s, not the table's 45s first extension
-        expect(turnDeadlineMs(s)).toBe(T0 + 30_000 + 30_000);
+        expect(turnDeadlineMs(s)).toBe(T0 + A + 30_000 + 30_000);
+    });
+
+    it("a tap in the same block as the move does not count against the next turn (ui#944)", () => {
+        const s = state({
+            players: [player(P1, 1), withGrant(player(P2, 2), 45_000), player(P3, 3), player(P5, 5)],
+            previousActions: [
+                action(1, T0, { action: NonPlayerActionType.TIME_BANK, playerId: P2, seat: 2 }),
+                action(2, T0, { action: PlayerActionType.CHECK, playerId: P2, seat: 2 })
+            ]
+        });
+        expect(timeBankGrantedMs(s)).toBe(0);
+        expect(turnDeadlineMs(s)).toBe(T0 + A + 30_000);
     });
 
     it("a time-bank from an EARLIER turn does not count", () => {
@@ -133,12 +172,12 @@ describe("turnDeadlineMs — mirrors the engine's TurnDeadlineMs", () => {
             gameOptions: { ...options, timeBankMs: 20_000 },
             previousActions: [action(1, T0 - 10_000, { action: NonPlayerActionType.TIME_BANK }), action(2, T0)]
         });
-        expect(turnDeadlineMs(s)).toBe(T0 + 30_000);
+        expect(turnDeadlineMs(s)).toBe(T0 + A + 30_000);
     });
 
     it("a time-bank with no grant recorded for its player extends by nothing", () => {
         const s = state({ previousActions: [action(1, T0), action(2, T0 + 1000, { action: NonPlayerActionType.TIME_BANK })] });
-        expect(turnDeadlineMs(s)).toBe(T0 + 30_000);
+        expect(turnDeadlineMs(s)).toBe(T0 + A + 30_000);
     });
 
     it("has no deadline with no action clock, after the hand, with nobody to act, or before any action", () => {
@@ -205,12 +244,12 @@ describe("clockCallerRank — the line of observers, clockwise from the button",
 
 describe("clockCallDueAtMs — deadline + inclusion grace + block-time margin + the caller's place in line", () => {
     it("the first in line fires one block interval after the grace", () => {
-        expect(clockCallDueAtMs(state(), P1)).toBe(T0 + 30_000 + WAIT);
+        expect(clockCallDueAtMs(state(), P1)).toBe(T0 + A + 30_000 + WAIT);
     });
 
     it("each further observer waits one more stagger", () => {
-        expect(clockCallDueAtMs(state(), P3)).toBe(T0 + 30_000 + WAIT + CLOCK_CALLER_STAGGER_MS);
-        expect(clockCallDueAtMs(state(), P5)).toBe(T0 + 30_000 + WAIT + 2 * CLOCK_CALLER_STAGGER_MS);
+        expect(clockCallDueAtMs(state(), P3)).toBe(T0 + A + 30_000 + WAIT + CLOCK_CALLER_STAGGER_MS);
+        expect(clockCallDueAtMs(state(), P5)).toBe(T0 + A + 30_000 + WAIT + 2 * CLOCK_CALLER_STAGGER_MS);
     });
 
     it("is null for the player on the clock, a stranger, or when no turn is on the clock", () => {
@@ -244,7 +283,7 @@ describe("clockCallOpportunity — no clock call before a tournament starts (ui#
 
 describe("clockCallOpportunity — the turn to call, keyed on the turn rather than the due time", () => {
     it("carries the turn key, the seat on the clock and the due time", () => {
-        expect(clockCallOpportunity(state(), P1, false)).toEqual({ key: "1:2:2", seat: 2, dueAtMs: T0 + 30_000 + WAIT });
+        expect(clockCallOpportunity(state(), P1, false)).toEqual({ key: "1:2:2", seat: 2, dueAtMs: T0 + A + 30_000 + WAIT });
     });
 
     it("keeps its key when the anchoring action is re-stamped (same turn, later due time)", () => {
@@ -289,5 +328,29 @@ describe("turnClockPhase — the turn clock runs out first, then the bank (ui#19
     it("reads 0, never negative, once everything is spent", () => {
         expect(turnClockPhase({ nowMs: anchorMs + 90_000, anchorMs, baseMs, bankGrantedMs: 45_000 })).toEqual({ phase: "bank", remainingMs: 0, totalMs: 45_000 });
         expect(turnClockPhase({ nowMs: anchorMs + 90_000, anchorMs, baseMs, bankGrantedMs: 0 })).toEqual({ phase: "base", remainingMs: 0, totalMs: 15_000 });
+    });
+});
+
+describe("turn clock start allowance (ui#944)", () => {
+    it("starts the clock one 5s block after the move's stamp", () => {
+        expect(TURN_CLOCK_START_ALLOWANCE_MS).toBe(5_000);
+        // pre-flop: 15s of clock that begins 5s after the stamp
+        expect(turnDeadlineMs(state({ round: TexasHoldemRound.PREFLOP }))).toBe(T0 + 5_000 + 15_000);
+    });
+});
+
+describe("turnClockPhase before the clock starts (ui#944)", () => {
+    it("shows the full turn clock, never more", () => {
+        expect(turnClockPhase({ nowMs: 7_000, anchorMs: 10_000, baseMs: 15_000, bankGrantedMs: 0 })).toEqual({ phase: "base", remainingMs: 15_000, totalMs: 15_000 });
+    });
+});
+
+describe("turnCountdownStartMs (ui#944)", () => {
+    it("counts a committed turn from the chain's clock start", () => {
+        expect(turnCountdownStartMs(10_000, false, 99_000)).toBe(15_000);
+    });
+
+    it("counts a turn first seen on a projection from now, because its stamp is stale", () => {
+        expect(turnCountdownStartMs(10_000, true, 12_345)).toBe(12_345);
     });
 });

@@ -151,3 +151,11 @@ describe("resolveTurnAnchor", () => {
         expect(calcTimeRemaining(13_000, anchor.anchorMs, baseTimeout, false)).toBe(29);
     });
 });
+
+describe("before the turn clock starts (ui#944 start allowance)", () => {
+    it("shows the full time, never more, and no progress", () => {
+        // the clock starts at 10_000; it is 7_000
+        expect(calcTimeRemaining(7_000, 10_000, 15_000, false)).toBe(15);
+        expect(calcProgressPercent(7_000, 10_000, 15_000, false)).toBe(0);
+    });
+});

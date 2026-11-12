@@ -1,5 +1,5 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerActionType, PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, timeBankClockState, userInTable, validRaiseAmount } from "./pockerActionUtils";
+import { getActionFlags, getFormattedMaxBetAmount, getInitialRaiseAmount, getTotalPotMicro, getUserPlayer, hasSingleBetAmount, isTurnEndingSubmit, playerMoveInFlight, isCappedAllInCall, isMaxAllIn, isShortShoveRaise, shouldShowShowdownBar, timeBankButtonSeconds, timeBankClockState, userInTable, validRaiseAmount } from "./pockerActionUtils";
 
 describe("pockerActionUtils", () => {
     const players: PlayerDTO[] = [
@@ -282,6 +282,37 @@ describe("pockerActionUtils", () => {
         });
     });
 
+    describe("playerMoveInFlight (ui#944)", () => {
+        it("is the player's own move, which holds the buttons", () => {
+            expect(playerMoveInFlight(PlayerActionType.CHECK)).toBe(PlayerActionType.CHECK);
+            expect(playerMoveInFlight(PlayerActionType.RAISE)).toBe(PlayerActionType.RAISE);
+        });
+
+        it("is null for background jobs, which must never disable the buttons", () => {
+            for (const job of ["new-hand", "deal", "small-blind", "big-blind", PlayerActionType.BIG_BLIND, NonPlayerActionType.TIME_BANK]) {
+                expect(playerMoveInFlight(job)).toBeNull();
+            }
+        });
+
+        it("is null when nothing is in flight", () => {
+            expect(playerMoveInFlight(null)).toBeNull();
+            expect(playerMoveInFlight(undefined)).toBeNull();
+        });
+    });
+
+    describe("isTurnEndingSubmit (ui#944)", () => {
+        it("is true for a move, which ends the turn", () => {
+            expect(isTurnEndingSubmit(PlayerActionType.CHECK)).toBe(true);
+            expect(isTurnEndingSubmit(PlayerActionType.FOLD)).toBe(true);
+        });
+
+        it("is false for the time bank, which extends the turn, and when nothing is in flight", () => {
+            expect(isTurnEndingSubmit(NonPlayerActionType.TIME_BANK)).toBe(false);
+            expect(isTurnEndingSubmit(null)).toBe(false);
+            expect(isTurnEndingSubmit(undefined)).toBe(false);
+        });
+    });
+
     describe("timeBankClockState — the alarm clock on the player's pill (ui#19)", () => {
         const base = { tableHasTimeBank: true, timeBankSeconds: 45, isSubmitting: false, isArmed: false, isInTimeBank: false };
 
@@ -303,6 +334,11 @@ describe("pockerActionUtils", () => {
 
         it("is dim when it isn't our turn or the bank is empty", () => {
             expect(timeBankClockState({ ...base, timeBankSeconds: null })).toBe("idle");
+        });
+
+        it("goes quiet the moment the player acts, even mid-bank (ui#944)", () => {
+            expect(timeBankClockState({ ...base, isInTimeBank: true, isEndingTurn: true })).toBe("idle");
+            expect(timeBankClockState({ ...base, isArmed: true, isEndingTurn: true })).toBe("idle");
         });
 
         it("is hidden on a table without a time bank", () => {

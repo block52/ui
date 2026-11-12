@@ -11,12 +11,13 @@
  * for callers that need to resolve state off the React tree (join seat
  * resolution, SNG finishing order).
  */
-import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { NonPlayerActionType, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { TrackMeta } from "../../bus/types";
 
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "../../types";
 import { getSigningClient } from "../../utils/cosmos/client";
+import { bankSpentData, withBankSpentData } from "../../utils/bankClockReport";
 import { hasElements } from "../../utils/guards";
 
 let latestGameState: TexasHoldemStateDTO | undefined;
@@ -126,7 +127,9 @@ export async function executeTransportAction(
     data?: string
 ): Promise<PlayerActionResult> {
     try {
-        return await broadcastAction(tableId, action, amount, network, data);
+        // A time bank tap is not the move that spends the bank.
+        const bankData = action === NonPlayerActionType.TIME_BANK ? undefined : bankSpentData(tableId, Date.now());
+        return await broadcastAction(tableId, action, amount, network, withBankSpentData(data, bankData));
     } catch (err) {
         // No account-sequence recovery here, deliberately. From SDK 1.4.1
         // performActionSync signs UNORDERED (poker-vm#2619): gameplay txs carry
