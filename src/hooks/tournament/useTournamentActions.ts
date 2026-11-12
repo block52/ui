@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { getTournamentTxClient, isSdkGapError, type CreateTournamentParams } from "../../utils/tournamentTx";
+import { hasValue } from "../../utils/guards";
 
 export interface UseTournamentActionsResult {
     busy: boolean;
@@ -40,8 +41,8 @@ export const useTournamentActions = (onDone: () => Promise<void> | void): UseTou
         [onDone]
     );
 
-    const register = useCallback(async (id: string) => (await run(() => getTournamentTxClient().registerTournament(id))) !== null, [run]);
-    const unregister = useCallback(async (id: string) => (await run(() => getTournamentTxClient().unregisterTournament(id))) !== null, [run]);
+    const register = useCallback(async (id: string) => hasValue(await run(() => getTournamentTxClient().registerTournament(id))), [run]);
+    const unregister = useCallback(async (id: string) => hasValue(await run(() => getTournamentTxClient().unregisterTournament(id))), [run]);
     const create = useCallback(
         async (params: CreateTournamentParams) => (await run(() => getTournamentTxClient().createTournament(params)))?.tournamentId ?? null,
         [run]

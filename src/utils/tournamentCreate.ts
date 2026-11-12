@@ -18,7 +18,7 @@
 import { type BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { parseUsdcToMicro } from "../constants/currency";
 import { CREATION_FEE_BIG_BLINDS } from "./tableCreationFee";
-import { isBlank, isNullish } from "./guards";
+import { hasElements, isBlank, isNullish } from "./guards";
 import { localDateTimeToUnixSeconds } from "./scheduledSng";
 import type { CreateTournamentParams } from "./tournamentTx";
 
@@ -174,7 +174,7 @@ export function validateTournamentForm(input: TournamentFormInput): TournamentFo
     else if (isNullish(blindStructure)) errors.blindStructure = "Choose a blind structure";
 
     if (
-        Object.keys(errors).length > 0 ||
+        hasElements(Object.keys(errors)) ||
         isNullish(buyIn) ||
         isNullish(entryFee) ||
         isNullish(startingStack) ||

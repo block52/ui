@@ -21,7 +21,7 @@ import {
     type TournamentFormField,
     type TournamentFormValues
 } from "../../utils/tournamentCreate";
-import { isNullish } from "../../utils/guards";
+import { hasElements, isBlank, isNullish } from "../../utils/guards";
 import { formatUsdc } from "../../utils/tournamentLobby";
 import { parseUsdcToMicro } from "../../constants/currency";
 import type { CreateTournamentParams } from "../../utils/tournamentTx";
@@ -72,7 +72,7 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({ is
     const creationFee = useMemo(() => {
         if (isNullish(plan.preview)) return null;
         try {
-            return tournamentCreationFeeMicro(parseUsdcToMicro(values.buyIn), BigInt(values.startingStack.trim() === "" ? "0" : values.startingStack), BigInt(openingBlindsOf(plan.preview).bigBlind));
+            return tournamentCreationFeeMicro(parseUsdcToMicro(values.buyIn), BigInt(isBlank(values.startingStack) ? "0" : values.startingStack), BigInt(openingBlindsOf(plan.preview).bigBlind));
         } catch {
             return null;
         }
@@ -150,10 +150,10 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({ is
                 </div>
 
                 <div className="text-xs text-gray-400 rounded-lg border border-gray-700 p-3" data-testid="tournament-create-fee">
-                    {creationFee === null ? "Creation fee: set the buy-in, starting stack and blinds to see it." : `Creating costs you ${formatUsdc(creationFee)} (10 big blinds of level 1, priced at the buy-in's chip value).`}
+                    {isNullish(creationFee) ? "Creation fee: set the buy-in, starting stack and blinds to see it." : `Creating costs you ${formatUsdc(creationFee)} (10 big blinds of level 1, priced at the buy-in's chip value).`}
                 </div>
 
-                {submitted && Object.keys(result.errors).length > 0 && (
+                {submitted && hasElements(Object.keys(result.errors)) && (
                     <p className="text-sm text-red-400" role="alert" data-testid="tournament-create-summary">
                         Fix the {Object.keys(result.errors).length === 1 ? "field" : `${Object.keys(result.errors).length} fields`} marked in red to create the tournament.
                     </p>
