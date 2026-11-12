@@ -7,6 +7,11 @@ jest.mock("../../context/GameStateContext", () => ({
     useGameStateContext: () => mockUseGameStateContext()
 }));
 
+const mockUseTournament = jest.fn((_id: string | undefined): { tournament: unknown } => ({ tournament: undefined }));
+jest.mock("../tournament/useTournament", () => ({
+    useTournament: (id: string | undefined) => mockUseTournament(id)
+}));
+
 // 3-minute blind levels (the scenario from poker-vm#2292).
 const LEVEL_MINUTES = 3;
 const LEVEL_SECONDS = LEVEL_MINUTES * 60; // 180
@@ -123,5 +128,63 @@ describe("useBlindLevel — the clock stops once the tournament has finished", (
         ]);
         expect(level.hasTimer).toBe(false);
         expect(level.secondsRemaining).toBe(-1);
+    });
+});
+
+describe("useBlindLevel — directed tournament table (ui#979)", () => {
+    // Real shape from the local chain: the table carries the current level only.
+    const directedOptions = (): GameOptionsDTO => ({
+        minBuyIn: "0",
+        maxBuyIn: "0",
+        minPlayers: 2,
+        maxPlayers: 9,
+        smallBlind: "100",
+        bigBlind: "200",
+        timeout: 5,
+        startingStack: "1500",
+        blindLevel: 2,
+        levelStartTime: 1_000_000_000_000
+    });
+    const TID = "0xf7c46fa0c66eb470c6ddf1e4797ec75839099f3cd8e31c2ad5ca5e2b4b344d81";
+    const structure = {
+        progression: "double",
+        startSmallBlind: "25",
+        startBigBlind: "50",
+        durationMinutes: 5,
+        ante: { startLevel: 4, bps: 1000 },
+        roundBlinds: true
+    };
+
+    afterEach(() => {
+        jest.restoreAllMocks();
+        jest.clearAllMocks();
+    });
+
+    const setDirected = (tournament: unknown) => {
+        mockUseGameStateContext.mockReturnValue({
+            gameState: { ...buildState(directedOptions()), tournamentId: TID },
+            gameFormat: GameFormat.TOURNAMENT
+        });
+        mockUseTournament.mockReturnValue({ tournament });
+    };
+
+    it("does not throw and reads the next level and timer from the tournament", () => {
+        jest.spyOn(Date, "now").mockReturnValue(1_000_000_000_000 + 60_000);
+        setDirected({ options: { blindStructure: structure } });
+        const { result } = renderHook(() => useBlindLevel());
+        expect(mockUseTournament).toHaveBeenCalledWith(TID);
+        expect(result.current.currentBlindsFormatted).toBe("100/200");
+        expect(result.current.nextSmallBlind).toBe(200);
+        expect(result.current.nextBigBlind).toBe(400);
+        expect(result.current.levelDurationSeconds).toBe(300);
+        expect(result.current.hasTimer).toBe(true);
+        expect(result.current.secondsRemaining).toBe(240);
+    });
+
+    it("shows no next level and no timer while the tournament record is loading, without throwing", () => {
+        setDirected(undefined);
+        const { result } = renderHook(() => useBlindLevel());
+        expect(result.current.nextBigBlind).toBe(0);
+        expect(result.current.hasTimer).toBe(false);
     });
 });

@@ -14,6 +14,7 @@ import Dashboard from "./pages/Dashboard";
 // avoids a Suspense flash on the most common entry point.
 const Table = lazy(() => import("./components/playPage/Table"));
 const CosmosWalletPage = lazy(() => import("./components/CosmosWalletPage"));
+const TournamentLobbyPage = lazy(() => import("./pages/TournamentLobbyPage"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
 const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
@@ -153,6 +154,7 @@ function AppContent() {
                 <Route path="/players" element={<PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
                 <Route path="/awards" element={<PlayerAwardsPage />} />
+                <Route path="/tournaments" element={<TournamentLobbyPage />} />
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
                 <Route path="/tech-notes" element={<TechNotesPage />} />

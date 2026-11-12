@@ -74,7 +74,11 @@ import { HexagonPattern } from "../common/Modal";
 // Use environment variable for club logo with fallback to default
 const clubLogo = import.meta.env.VITE_CLUB_LOGO || defaultLogo;
 
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
+import { useTournament } from "../../hooks/tournament/useTournament";
+import { tournamentIdOf } from "../../utils/tournamentBlinds";
+import { followTarget, type MyTournamentTable } from "../../utils/tournamentFollow";
+import { tableUrl } from "../../utils/tableUrl";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { toast } from "react-toastify";
@@ -750,6 +754,17 @@ const Table = React.memo(() => {
             }
         }
     }, [id, hasWallet, hasReplayParams, replayHandParam, replayActionParam, subscribeToTable, loadHistoricalState]);
+
+    // Follow my table (ui#980): when the tournament moves this wallet to another
+    // table (balance / table break), go to the new one.
+    const navigate = useNavigate();
+    const { myTable: myTournamentTable } = useTournament(tournamentIdOf(gameState));
+    const seatedAt = useRef<MyTournamentTable | undefined>(undefined);
+    useEffect(() => {
+        const target = followTarget(id, seatedAt.current, myTournamentTable);
+        seatedAt.current = myTournamentTable;
+        if (target) navigate(tableUrl(target));
+    }, [id, myTournamentTable, navigate]);
 
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG

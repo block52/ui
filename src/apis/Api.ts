@@ -1,6 +1,7 @@
 import HTTPClient from "./HTTPClient";
 import { hasContent, hasValue } from "../utils/guards";
 import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
+import type { TournamentResponse } from "../types/tournament";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
 
 export class PaymentApi extends HTTPClient {
@@ -59,11 +60,14 @@ export class CosmosApi extends HTTPClient {
         this.get(`/block52/pokerchain/poker/v1/game_state_public/${gameId}`, {
             headers: { "x-cosmos-block-height": String(blockHeight) }
         });
+    /** A multi-table tournament: `{ tournament: "<TournamentStateDTO JSON>", creator }` (404 when unknown). */
     public getWithdrawalRequests = () => this.get("/pokerchain/poker/withdrawal_requests");
     // A validator's signature for a pending withdrawal (read-only; pokerchain#392).
     public getWithdrawalSignature = (nonce: string) =>
         this.get<WithdrawalSignatureResponse>(`/block52/pokerchain/poker/v1/withdrawal_signature/${encodeURIComponent(nonce)}`);
-    public getIsTxProcessed = (txHash: string) => this.get(`/block52/pokerchain/poker/v1/is_tx_processed/${txHash}`);
+    /** A multi-table tournament's record (`tournament` = TournamentStateDTO JSON string). */
+    public getTournament = (tournamentId: string) => this.get<TournamentResponse>(`/block52/pokerchain/poker/v1/tournament/${encodeURIComponent(tournamentId)}`);
+    public getIsTxProcessed =(txHash: string) => this.get(`/block52/pokerchain/poker/v1/is_tx_processed/${txHash}`);
     public getNftAvatar = (cosmosAddress: string) => this.get(`/pokerchain/poker/nft_avatar/${cosmosAddress}`);
     // Tendermint base endpoints (used for node status / block-height probes across arbitrary node URLs)
     public getLatestBlock = (signal?: AbortSignal) => this.get("/cosmos/base/tendermint/v1beta1/blocks/latest", { signal });
