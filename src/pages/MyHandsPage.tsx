@@ -15,6 +15,7 @@ import { getCardImageUrl } from "../utils/cardImages";
 import { hasElements, isEmpty } from "../utils/guards";
 import type { PlayerHand } from "../types/players";
 import styles from "./explorer/AllAccountsPage.module.css";
+import { tableUrl } from "../utils/tableUrl";
 
 const PAGE_SIZE = 25;
 
@@ -114,7 +115,7 @@ export default function MyHandsPage() {
 }
 
 function HandRow({ hand, outcome }: { hand: PlayerHand; outcome: { label: string; tone: HandOutcomeTone } }) {
-    const replayUrl = `/table/${hand.game_id}?hand=${hand.hand_number}`;
+    const replayUrl = `${tableUrl(hand.game_id)}?hand=${hand.hand_number}`;
     return (
         <li className="px-3 sm:px-4 py-3 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
             <div className="flex-1 min-w-0">

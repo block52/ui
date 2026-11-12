@@ -6,6 +6,7 @@ import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
 import { hasElements } from "../utils/guards";
 import styles from "./GlobalHeader.module.css";
+import { isTournamentTablePath } from "../utils/tableUrl";
 
 interface MenuItem {
     path: string;
@@ -73,7 +74,8 @@ export const GlobalHeader: React.FC = () => {
     // Don't show header on game table pages (they have their own layout)
     // But DO show it on /table/admin
     const hideOnPaths = ["/table/"];
-    const shouldHide = hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin";
+    const shouldHide =
+        (hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin") || isTournamentTablePath(location.pathname);
 
     // Fetch latest block height
     useEffect(() => {

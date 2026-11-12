@@ -74,7 +74,7 @@ import { HexagonPattern } from "../common/Modal";
 // Use environment variable for club logo with fallback to default
 const clubLogo = import.meta.env.VITE_CLUB_LOGO || defaultLogo;
 
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useTournament } from "../../hooks/tournament/useTournament";
 import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { followTarget, type MyTournamentTable } from "../../utils/tournamentFollow";
@@ -169,6 +169,7 @@ import ConnectionBanner from "./ConnectionBanner";
 
 import { hasElements, hasValue, isNullish } from "../../utils/guards";
 import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
+import { useTableId } from "../../hooks/game/useTableId";
 
 //* Here's the typical sequence of a poker hand:
 //* ANTE - Initial forced bets
@@ -711,7 +712,7 @@ const GeometryToggleButton: React.FC = () => {
 };
 
 const Table = React.memo(() => {
-    const { id } = useParams<{ id: string }>();
+    const id = useTableId();
     // Game state context and subscription
     const { subscribeToTable, unsubscribeFromTable, gameState, gameFormat, gameVariant, gameName, validationError, error, loadHistoricalState, isReplayMode, replayHandNumber, connection } =
         useGameStateContext();
@@ -1206,8 +1207,8 @@ const Table = React.memo(() => {
     // Handler for copying table link
     const handleCopyTableLink = useCallback(async () => {
         try {
-            const tableUrl = `${window.location.origin}/table/${id}`;
-            await navigator.clipboard.writeText(tableUrl);
+            const link = `${window.location.origin}${tableUrl(id ?? "")}`;
+            await navigator.clipboard.writeText(link);
             toast.success("Table link copied to clipboard!", {
                 position: "top-right",
                 autoClose: 2000,

@@ -15,6 +15,7 @@ import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../context/NetworkContext";
 import { withWinnerDescriptions } from "./winnerDescriptions";
 import { isEmpty, isNumber, isString } from "./guards";
+import { tableUrl } from "./tableUrl";
 
 /** gRPC method path of the public (masked) game state query, as abci_query expects it. */
 export const GAME_STATE_PUBLIC_PATH = "/pokerchain.poker.v1.Query/GameStatePublic";
@@ -87,7 +88,7 @@ export function parseGameRecordResponse(response: unknown): ParsedGameState {
 
 /** Read-only share link for a hand: opens its final state (showdown or last action). */
 export function buildHandShareUrl(origin: string, tableId: string, handNumber: number): string {
-    return `${origin}/table/${tableId}?hand=${handNumber}`;
+    return `${origin}${tableUrl(tableId)}?hand=${handNumber}`;
 }
 
 /**

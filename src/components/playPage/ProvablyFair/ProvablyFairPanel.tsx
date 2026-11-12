@@ -10,7 +10,6 @@
  * Dismisses on a second tab click, a click elsewhere, or Esc.
  */
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { useParams } from "react-router-dom";
 import { holeCardsPerPlayer } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { useBlindLevel } from "../../../hooks/game/useBlindLevel";
@@ -19,9 +18,10 @@ import { hasValue, isNullish } from "../../../utils/guards";
 import VerifyHandModal from "./VerifyHandModal";
 import { ShieldIcon } from "./ShieldIcon";
 import styles from "./ProvablyFairPanel.module.css";
+import { useTableId } from "../../../hooks/game/useTableId";
 
 const ProvablyFairPanel: React.FC = () => {
-    const { id: tableId } = useParams<{ id: string }>();
+    const tableId = useTableId();
     const { gameState, gameVariant, gameName } = useGameStateContext();
     const { isActive: blindsTabShown } = useBlindLevel();
     const [isOpen, setIsOpen] = useState(false);

@@ -1,7 +1,5 @@
 import { hasContent } from "./guards";
-
-/** A directed table's game id: `<tournamentId>-t<n>`, the tournament id a 0x hash. */
-const TOURNAMENT_TABLE_ID = /^0x([0-9a-fA-F]+)-t(\d+)$/;
+import { parseTournamentGameId } from "./tableUrl";
 
 /** Hex characters of the tournament id shown in a table title. */
 export const TOURNAMENT_SHORT_ID_LENGTH = 4;
@@ -15,7 +13,7 @@ export const TOURNAMENT_SHORT_ID_LENGTH = 4;
 export const tableTitle = (tableId: string | undefined, tableName?: string): string => {
     if (hasContent(tableName)) return tableName;
     if (!hasContent(tableId)) return "Table ";
-    const tournament = TOURNAMENT_TABLE_ID.exec(tableId);
-    if (tournament) return `Table ${tournament[1].slice(0, TOURNAMENT_SHORT_ID_LENGTH).toLowerCase()}/${Number(tournament[2])}`;
+    const tournament = parseTournamentGameId(tableId);
+    if (tournament) return `Table ${tournament.tournamentId.slice(2, 2 + TOURNAMENT_SHORT_ID_LENGTH).toLowerCase()}/${tournament.tableNumber}`;
     return `Table ${tableId.slice(-5)}`;
 };

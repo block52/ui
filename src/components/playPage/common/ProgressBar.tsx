@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { useParams } from "react-router-dom";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
+import { useTableId } from "../../../hooks/game/useTableId";
 
 type ProgressBarProps = {
     index: number;
 };
 
 const ProgressBar: React.FC<ProgressBarProps> = React.memo(({ index }) => {
-    const { id } = useParams<{ id: string }>();
+    const id = useTableId();
     // The bar shows ONE clock at a time (ui#19): the turn clock, even once the
     // bank is armed, then a fresh countdown for the bank when it runs out.
     const { isActive, phaseTimeRemaining = 0, phaseTimeoutValue = 0, isInTimeBank } = usePlayerTimer(id, index);

@@ -10,6 +10,7 @@ import type { HandDetail, HandListItem, HandListResponse } from "./types";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import { useIndexerStatus } from "../../hooks/player/useIndexerStatus";
 import { describeHandLoadError } from "../../utils/handHistory";
+import { tableUrl } from "../../utils/tableUrl";
 
 export default function HandReplayPage() {
     const { gameId, handNumber } = useParams<{ gameId: string; handNumber: string }>();
@@ -144,7 +145,7 @@ export default function HandReplayPage() {
                             {gameId && handNumber && (
                                 <p className="mt-3 text-sm text-gray-300">
                                     The table replay reads the hand from the chain instead:{" "}
-                                    <Link to={`/table/${gameId}?hand=${handNumber}`} className="text-blue-300 hover:underline">
+                                    <Link to={`${tableUrl(gameId ?? "")}?hand=${handNumber}`} className="text-blue-300 hover:underline">
                                         open hand #{handNumber} on the table
                                     </Link>
                                 </p>
