@@ -91,6 +91,31 @@ export const hasPlayerBetInRound = (
 };
 
 /**
+ * The chip pile the seat draws for the round on screen, before any closing-bet
+ * recovery. Ante and preflop use `sumOfBets` once a real blind or bet is in the
+ * log. Later streets sum this round's chip actions. `SHOWING` and the other
+ * statuses {@link shouldShowChips} rejects draw nothing.
+ */
+export function seatBetChipAmount(
+    player: { address?: string; status: PlayerStatus; sumOfBets?: string } | null,
+    round: string | undefined,
+    previousActions: ActionDTO[]
+): string {
+    if (!player?.address) return "0";
+    if (!shouldShowChips(player.status)) return "0";
+
+    if (round === TexasHoldemRound.ANTE || round === TexasHoldemRound.PREFLOP) {
+        if (hasPlayerBetInRound(player.address, previousActions)) {
+            return player.sumOfBets || "0";
+        }
+        return "0";
+    }
+
+    if (!round) return "0";
+    return calculateCurrentRoundBetting(player.address, round, previousActions);
+}
+
+/**
  * Sum of a player's actual bet-placing actions in the current round.
  *
  * Excludes non-bet actions (TOP_UP, JOIN, LEAVE, FOLD, CHECK, etc.) so that

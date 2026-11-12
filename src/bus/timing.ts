@@ -97,6 +97,14 @@ export function holeCardDealAckTimeoutMs(seatCount: number): number {
 // ---- CSS bridge ----------------------------------------------------------------
 
 /**
+ * How long a closing bet's chips take to travel into the pot once the street
+ * collects them. The hold before that flight is the runout reveal pause
+ * ({@link RUNOUT_PAUSE_MS}), so a normal street close and a runout share one
+ * clock. Defined above the CSS bridge because the stylesheet reads it.
+ */
+export const CLOSING_BET_FLIGHT_MS = 400;
+
+/**
  * Custom properties the table root sets so stylesheets run the SAME durations
  * the bus budgets with (`.animate-fall`, `.deal-flight`, `.handcard-inner`).
  * Plain strings (bus convention); the React cast lives in utils/cssVars.
@@ -104,7 +112,8 @@ export function holeCardDealAckTimeoutMs(seatCount: number): number {
 export const ANIMATION_CSS_VARS: Readonly<Record<string, string>> = {
     "--card-drop-ms": `${CARD_DROP_MS}ms`,
     "--hole-card-flight-ms": `${HOLE_CARD_FLIGHT_MS}ms`,
-    "--hole-card-flip-ms": `${HOLE_CARD_FLIP_MS}ms`
+    "--hole-card-flip-ms": `${HOLE_CARD_FLIP_MS}ms`,
+    "--chip-collect-ms": `${CLOSING_BET_FLIGHT_MS}ms`
 };
 
 // ---- Tournament all-in run-out suspense (ui#873 / ui#874) ---------------------
@@ -142,6 +151,15 @@ export const RUNOUT_PAUSE_MS: Readonly<Record<RunoutBeat, number>> = {
     river: 1800,
     result: 3000
 };
+
+/**
+ * How long a closing bet stays in front of the seat before it flies into the
+ * pot, on a snapshot that has already collected the street (a call that deals
+ * the next card). The same length as the runout's face-up pause, so the chip
+ * beat matches the existing deal timing. A runout keeps the chips up until the
+ * result beat instead of using this hold.
+ */
+export const CLOSING_BET_HOLD_MS = RUNOUT_PAUSE_MS.reveal;
 
 /**
  * With `prefers-reduced-motion` the cards do not animate in (Table.css), so a
