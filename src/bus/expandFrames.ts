@@ -16,7 +16,10 @@
  * needs, and every decorator then works unchanged (§2.4).
  *
  * NOTHING IS INVENTED (Commandment 7). Every field of every intermediate frame
- * is copied from `prev` or `next` — no defaults, no coercion, no arithmetic:
+ * is copied from `prev` or `next` — no defaults, no coercion, no arithmetic —
+ * except the runout seat status below, which is a presentation of "this seat
+ * is still in the hand and face up" so win% can render before the result
+ * (ui#210):
  *
  *   base    = prev, with `previousActions`/`actionCount` carried forward from
  *             next (so the triggering CALL's badge and sound fire on the FIRST
@@ -39,6 +42,7 @@ import type { TexasHoldemStateDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { isMaskedHand, isRevealedHand } from "./deriveEvents";
 import type { RunoutBeat } from "./timing";
+import { runoutSubframeStatus } from "../utils/allInEquity";
 import { hasElements, isNullish } from "../utils/guards";
 
 export interface ExpandFramesOptions {
@@ -130,8 +134,14 @@ function closeBetting(players: readonly PlayerDTO[], next: TexasHoldemStateDTO):
         if (!nextPlayer) {
             return player;
         }
-        const status = nextPlayer.status === PlayerStatus.FOLDED ? nextPlayer.status : player.status;
-        return { ...player, status, legalActions: nextPlayer.legalActions };
+        // Face-up seats still in the pot read as all-in or showing for the
+        // runout, including the last caller (still ACTIVE) and a tournament
+        // loser (BUSTED + cardsShown). A fold that closed the betting stays
+        // folded. The result frame is `next` itself and is not passed through
+        // here (ui#210, ui#968).
+        const status = runoutSubframeStatus(player, nextPlayer);
+        const cardsShown = isNullish(nextPlayer.cardsShown) ? player.cardsShown : nextPlayer.cardsShown;
+        return { ...player, status, legalActions: nextPlayer.legalActions, cardsShown };
     });
 }
 
