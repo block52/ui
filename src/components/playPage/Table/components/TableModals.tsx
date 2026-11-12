@@ -12,7 +12,10 @@
  */
 
 import React from "react";
+import type { ResultDTO } from "@block52/poker-vm-sdk";
 import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { isNullish } from "../../../../utils/guards";
+import { tournamentIdOf } from "../../../../utils/tournamentBlinds";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
@@ -35,6 +38,8 @@ export interface TableModalsProps {
     isUserAlreadyPlaying: boolean;
     tableId: string | undefined;
     onAutoJoinSuccess: () => void;
+    /** The tournament record's results, on a directed table of a multi-table tournament (it has none of its own). */
+    tournamentResults?: ResultDTO[];
 
     // Sit & Go Waiting Modal
     isSitAndGoWaitingForPlayers: boolean;
@@ -63,6 +68,7 @@ export const TableModals: React.FC<TableModalsProps> = ({
     isUserAlreadyPlaying,
     tableId,
     onAutoJoinSuccess,
+    tournamentResults,
     isSitAndGoWaitingForPlayers,
     recentTxHash,
     handleCloseTransactionPopup,
@@ -85,8 +91,11 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 <GameStartCountdown gameStartTime={gameStartTime} onCountdownComplete={handleCountdownComplete} onSkip={handleSkipCountdown} />
             )}
 
-            {/* Sit & Go Auto-Join Modal - Shows for Sit & Go games when user is not playing */}
-            {gameState && gameFormat && isTournamentFormat(gameFormat) && !isUserAlreadyPlaying && tableId && (
+            {/* Sit & Go Auto-Join Modal - Shows for Sit & Go games when user is not playing.
+                Never on a directed table of a multi-table tournament: the director seats
+                the players, nobody joins mid-event, and a busted player must not be
+                offered a seat (they see the result banner instead). */}
+            {gameState && gameFormat && isTournamentFormat(gameFormat) && !isUserAlreadyPlaying && tableId && isNullish(tournamentIdOf(gameState)) && (
                 <SitAndGoAutoJoinModal tableId={tableId} onJoinSuccess={onAutoJoinSuccess} />
             )}
 
@@ -106,7 +115,13 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 table is finished — no balance-still-on-table concern.
                 block52/ui#371. */}
             {gameFormat && isTournamentFormat(gameFormat) && (
-                <SitAndGoResultModal tableId={tableId} onLeave={handleLeaveTableConfirm} onClaim={handleClaimWinnings} held={holdResults} />
+                <SitAndGoResultModal
+                    tableId={tableId}
+                    onLeave={handleLeaveTableConfirm}
+                    onClaim={handleClaimWinnings}
+                    held={holdResults}
+                    tournamentResults={tournamentResults}
+                />
             )}
 
             {/* Tournament-winner moment (ui#874): winner, prize, winning hand and

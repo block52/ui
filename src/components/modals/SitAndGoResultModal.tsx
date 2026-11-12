@@ -24,7 +24,11 @@ import { useFetchSngClaimSignature } from "../../hooks/game/useFetchSngClaimSign
 import { useClaimSngWinNFT } from "../../hooks/wallet/useClaimSngWinNFT";
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
-import { isNullish } from "../../utils/guards";
+import type { ResultDTO } from "@block52/poker-vm-sdk";
+import { useGameStateContext } from "../../context/GameStateContext";
+import { hasValue, isNullish } from "../../utils/guards";
+import { finisherResult } from "../../utils/tournamentResult";
+import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
 type ClaimState =
@@ -70,11 +74,20 @@ interface SitAndGoResultModalProps {
      * waits, so the player sees the hand play out before "You finished 2nd".
      */
     held: boolean;
+    /**
+     * The results of the multi-table tournament this table belongs to, from the
+     * tournament record. On a directed table the table state carries no results
+     * (the director owns the placings), and the prize is paid straight to the
+     * wallet, so there is nothing to collect, claim or leave.
+     */
+    tournamentResults?: ResultDTO[];
 }
 
-export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableId, onLeave, onClaim, held }) => {
+export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableId, onLeave, onClaim, held, tournamentResults }) => {
     const navigate = useNavigate();
     const { isSitAndGo, getPlayerResult } = useSitAndGoPlayerResults();
+    const { gameState } = useGameStateContext();
+    const directed = hasValue(tournamentIdOf(gameState));
 
     // Read the user address fresh on mount only. The active wallet
     // never changes mid-session for a given table view.
@@ -84,9 +97,11 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
     );
 
     const playerResult = useMemo(() => {
-        if (!isSitAndGo || isNullish(userAddress)) return null;
+        if (isNullish(userAddress)) return null;
+        if (directed) return finisherResult(tournamentResults, userAddress);
+        if (!isSitAndGo) return null;
         return getPlayerResult(userAddress);
-    }, [isSitAndGo, getPlayerResult, userAddress]);
+    }, [directed, tournamentResults, isSitAndGo, getPlayerResult, userAddress]);
 
     // Seed dismissed state from localStorage so a page refresh after
     // the user explicitly closed the modal doesn't re-pop it.
@@ -182,8 +197,9 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
     // a stuck "Paid" (ui#737). Mirrors TexasHODL/ui: "Spectate table" (closes
     // the modal so they keep watching) for 3rd place and below, plus
     // "Return to lobby".
-    const prizeCollected = prizeClaim.kind === "done";
-    const canSpectate = place > 2;
+    // A directed table pays the prize straight to the wallet: it is collected from the start.
+    const prizeCollected = directed || prizeClaim.kind === "done";
+    const canSpectate = directed || place > 2;
     const handleReturnToLobby = () => {
         handleDismiss();
         navigate("/");
@@ -250,7 +266,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
                     {isPaid && (
                         <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 mb-6 text-center">
                             <div className="text-xs text-green-300 font-semibold mb-1">
-                                {prizeCollected ? "WINNINGS COLLECTED" : "YOUR PAYOUT"}
+                                {directed ? "WINNINGS PAID TO YOUR WALLET" : prizeCollected ? "WINNINGS COLLECTED" : "YOUR PAYOUT"}
                             </div>
                             <div
                                 className="text-3xl text-white font-bold"
@@ -276,9 +292,11 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
 
                     {prizeCollected && (
                         <>
-                            <p className="text-sm text-green-300 text-center mb-3" role="status" data-testid="sng-result-prize-collected">
-                                Your winnings have been collected.
-                            </p>
+                            {isPaid && (
+                                <p className="text-sm text-green-300 text-center mb-3" role="status" data-testid="sng-result-prize-collected">
+                                    {directed ? "Your winnings were paid to your wallet." : "Your winnings have been collected."}
+                                </p>
+                            )}
                             {canSpectate && (
                                 <button
                                     type="button"
@@ -306,7 +324,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
                         </p>
                     )}
 
-                    {isPaid && (
+                    {isPaid && !directed && (
                         <button
                             onClick={handleClaimClick}
                             disabled={
@@ -349,7 +367,7 @@ export const SitAndGoResultModal: React.FC<SitAndGoResultModalProps> = ({ tableI
 
                     {/* Paid finishers collect (above), then spectate / return to lobby —
                         no Leave. Unpaid finishers have no prize, so keep a dismiss. */}
-                    {!isPaid && (
+                    {!isPaid && !directed && (
                         <button
                             onClick={handleLeaveClick}
                             data-testid="sng-result-leave-btn"

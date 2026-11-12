@@ -4,6 +4,7 @@ import { PlayerDTO } from "@block52/poker-vm-sdk";
 import { VacantSeatResponse } from "../../types/index";
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { isEmpty, isNullish, hasElements } from "../../utils/guards";
+import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
 /**
@@ -67,19 +68,23 @@ export const useVacantSeatData = (): VacantSeatResponse => {
     }, [players, maxPlayers]);
 
     // Function to check if a user can join a specific seat
+    // A directed table of a multi-table tournament is seated by the director: nobody
+    // buys into a vacant seat there (a busted player's seat is empty for good).
+    const isDirectedTable = !isNullish(tournamentIdOf(gameState));
+
     const canJoinSeat = React.useCallback(
         (seatIndex: number) => {
             const vacant = isSeatVacant(seatIndex);
-            const canJoin = !isUserAlreadyPlaying && vacant;
+            const canJoin = !isDirectedTable && !isUserAlreadyPlaying && vacant;
             return canJoin;
         },
-        [isSeatVacant, isUserAlreadyPlaying]
+        [isSeatVacant, isUserAlreadyPlaying, isDirectedTable]
     );
 
     // Get array of all empty seat indexes that the user can join
     const availableSeatIndexes = React.useMemo(() => {
-        return isUserAlreadyPlaying ? [] : emptySeatIndexes;
-    }, [emptySeatIndexes, isUserAlreadyPlaying]);
+        return isUserAlreadyPlaying || isDirectedTable ? [] : emptySeatIndexes;
+    }, [emptySeatIndexes, isUserAlreadyPlaying, isDirectedTable]);
 
     return {
         isUserAlreadyPlaying,

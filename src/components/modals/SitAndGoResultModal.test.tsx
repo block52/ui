@@ -21,6 +21,13 @@ jest.mock("../../hooks/game/useSitAndGoPlayerResults", () => ({
     }),
 }));
 
+// The modal reads the table state only to tell a directed table (multi-table
+// tournament) from a single-table one: a root tournamentId marks it.
+let mockGameState: { tournamentId?: string } | undefined;
+jest.mock("../../context/GameStateContext", () => ({
+    useGameStateContext: () => ({ gameState: mockGameState }),
+}));
+
 // USDC formatter — fixed for this test suite. We don't care about
 // exact formatting precision; we just need the payout to be a string
 // that doesn't collide with "$0.00" when present.
@@ -70,6 +77,7 @@ beforeEach(() => {
     mockFetchSignature.mockReset();
     mockClaim.mockReset();
     mockNavigate.mockReset();
+    mockGameState = {};
     mockIsSitAndGo.mockReturnValue(true);
     setStoredAddress(USER_ADDRESS);
 });
@@ -314,6 +322,56 @@ describe("SitAndGoResultModal", () => {
                 /not yet deployed/i,
             );
             expect(mockClaim).not.toHaveBeenCalled();
+        });
+    });
+
+    // A directed table of a multi-table tournament: the table state has no results
+    // (the director owns the placings) and the prize is paid straight to the wallet.
+    describe("directed table (multi-table tournament)", () => {
+        const results = [
+            { place: 2, playerId: USER_ADDRESS, payout: "6561000" },
+            { place: 1, playerId: "b521winner", payout: "9720000" },
+        ];
+
+        beforeEach(() => {
+            mockGameState = { tournamentId: "0xtournament" };
+        });
+
+        it("shows the finisher's place and prize from the tournament results, not the table", () => {
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} tournamentResults={results as never} />);
+
+            expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You finished 2nd!");
+            expect(screen.getByTestId("sng-result-payout")).toHaveTextContent("6561000");
+            expect(mockGetPlayerResult).not.toHaveBeenCalled();
+        });
+
+        it("says the prize was paid to the wallet, with nothing to collect, claim or leave", () => {
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} tournamentResults={results as never} />);
+
+            expect(screen.getByTestId("sng-result-prize-collected")).toHaveTextContent("paid to your wallet");
+            expect(screen.queryByTestId("sng-result-claim-winnings-btn")).not.toBeInTheDocument();
+            expect(screen.queryByTestId("sng-result-claim-btn")).not.toBeInTheDocument();
+            expect(screen.queryByTestId("sng-result-leave-btn")).not.toBeInTheDocument();
+            expect(screen.getByTestId("sng-result-spectate-btn")).toBeInTheDocument();
+        });
+
+        it("offers spectate and the lobby, never the chain leave, to a player who busted unpaid", () => {
+            const onLeave = jest.fn();
+            const busted = [{ place: 13, playerId: USER_ADDRESS, payout: "0" }];
+            render(<SitAndGoResultModal tableId={TABLE_ID} onLeave={onLeave} onClaim={jest.fn()} held={false} tournamentResults={busted as never} />);
+
+            expect(screen.getByTestId("sng-result-heading")).toHaveTextContent("You busted out — finished 13th.");
+            expect(screen.queryByTestId("sng-result-leave-btn")).not.toBeInTheDocument();
+            fireEvent.click(screen.getByTestId("sng-result-return-to-lobby-btn"));
+            expect(mockNavigate).toHaveBeenCalledWith("/");
+            expect(onLeave).not.toHaveBeenCalled();
+        });
+
+        it("renders nothing while the wallet has no result in the tournament", () => {
+            const { container } = render(
+                <SitAndGoResultModal tableId={TABLE_ID} onLeave={jest.fn()} onClaim={jest.fn()} held={false} tournamentResults={[{ place: 5, playerId: "b521other", payout: "0" }] as never} />,
+            );
+            expect(container).toBeEmptyDOMElement();
         });
     });
 });

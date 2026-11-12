@@ -758,7 +758,7 @@ const Table = React.memo(() => {
     // Follow my table (ui#980): when the tournament moves this wallet to another
     // table (balance / table break), go to the new one.
     const navigate = useNavigate();
-    const { myTable: myTournamentTable } = useTournament(tournamentIdOf(gameState));
+    const { myTable: myTournamentTable, tournament: tournamentRecord } = useTournament(tournamentIdOf(gameState));
     const seatedAt = useRef<MyTournamentTable | undefined>(undefined);
     useEffect(() => {
         const target = followTarget(id, seatedAt.current, myTournamentTable);
@@ -1703,6 +1703,7 @@ const Table = React.memo(() => {
                 isUserAlreadyPlaying={isUserAlreadyPlaying}
                 tableId={id}
                 onAutoJoinSuccess={() => window.location.reload()}
+                tournamentResults={tournamentRecord?.results}
                 isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
                 handleLeaveTableClick={handleLeaveTableClick}
                 recentTxHash={recentTxHash}
