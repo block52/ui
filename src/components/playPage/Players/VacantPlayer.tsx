@@ -36,7 +36,7 @@ import { useTableId } from "../../../hooks/game/useTableId";
 import { isRegistrationClosed } from "../../../utils/scheduledSng";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
-    ({ left, top, index, onJoin, uiPosition }) => {
+    ({ left, top, index, onJoin, uiPosition, tournamentOver = false }) => {
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
         const tableId = useTableId();
         const { gameOptions } = useGameOptions();
@@ -249,10 +249,13 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                     <div className="flex justify-center mb-2">
                         <img src={PokerProfile} className="w-12 h-12" alt="Vacant Seat" />
                     </div>
-                    <div className={`text-center ${styles.seatText}`}>
-                        <div className="text-lg sm:text-sm mb-1 whitespace-nowrap font-medium">{seatText.title}</div>
-                        {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
-                    </div>
+                    {/* The seat stays where it is when the tournament is over, but says nothing. */}
+                    {!tournamentOver && (
+                        <div className={`text-center ${styles.seatText}`}>
+                            <div className="text-lg sm:text-sm mb-1 whitespace-nowrap font-medium">{seatText.title}</div>
+                            {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
+                        </div>
+                    )}
 
                     {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
                     {/* Dealer Button — rendered at table level using geometry positions */}
@@ -443,7 +446,12 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
     },
     (prevProps, nextProps) => {
         // Custom comparison function for memo
-        return prevProps.left === nextProps.left && prevProps.top === nextProps.top && prevProps.index === nextProps.index;
+        return (
+            prevProps.left === nextProps.left &&
+            prevProps.top === nextProps.top &&
+            prevProps.index === nextProps.index &&
+            prevProps.tournamentOver === nextProps.tournamentOver
+        );
     }
 );
 

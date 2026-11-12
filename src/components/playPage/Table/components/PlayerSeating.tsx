@@ -47,7 +47,7 @@ export interface PlayerSeatingProps {
     // Card back style
     cardBackStyle: CardBackStyle;
 
-    /** The tournament is over: an empty seat is not drawn at all (nothing to join, nothing to say). */
+    /** The tournament is over: an empty seat stays in place but carries no text. */
     tournamentOver: boolean;
 
     // Handlers
@@ -156,7 +156,6 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
 
             // CASE 1: No player at this seat - render vacant position
             if (!playerAtThisSeat) {
-                if (tournamentOver) return null;
                 return (
                     <VacantPlayer
                         index={seatNumber}
@@ -164,6 +163,7 @@ export const PlayerSeating: React.FC<PlayerSeatingProps> = ({
                         left={tableLayout.positions.vacantPlayers[positionIndex]?.left || "0px"}
                         top={tableLayout.positions.vacantPlayers[positionIndex]?.top || "0px"}
                         onJoin={updateBalanceOnPlayerJoin}
+                        tournamentOver={tournamentOver}
                     />
                 );
             }

@@ -241,6 +241,8 @@ export interface VacantPlayerProps {
     left: string;
     top: string;
     onJoin?: () => void;
+    /** The tournament is over: the seat position stays on the table, with no text on it. */
+    tournamentOver?: boolean;
 }
 
 export interface PlayerProps {
