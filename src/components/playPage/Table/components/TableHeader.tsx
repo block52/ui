@@ -23,6 +23,7 @@ import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
+import { tableTitle } from "../../../../utils/tableTitle";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
 // itself now lives in utils/blindStructure so the Blinds panel can share it.
@@ -137,7 +138,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         onClick={handleLobbyClick}
                     >
                         {/* Named tables (poker-vm#337) show their name; unnamed fall back to the truncated id. */}
-                        {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
+                        {tableTitle(tableId, tableName)}
                     </span>
                     <NetworkSelector />
                     {/* Copy Table Link Button */}
