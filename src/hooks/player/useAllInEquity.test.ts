@@ -205,3 +205,92 @@ describe("useAllInEquity at Omaha (ui#769)", () => {
         expect(mockedEquity).not.toHaveBeenCalled();
     });
 });
+
+/**
+ * The runout the table actually paints (ui#210): street frames, not showdown.
+ * The last caller is still ACTIVE, tournament losers are BUSTED with the hand
+ * tabled, and a folded seat stays out of the percentage.
+ */
+function runoutPlayers() {
+    return [
+        { seat: 1, address: "0xa", status: "active", holeCards: ["AH", "AD"] },
+        { seat: 2, address: "0xb", status: "busted", cardsShown: true, holeCards: ["KS", "KC"] },
+        { seat: 3, address: "0xc", status: "busted", cardsShown: true, holeCards: ["QS", "QC"] },
+        { seat: 4, address: "0xd", status: "folded", holeCards: ["7H", "2D"] }
+    ];
+}
+
+function runoutState(round: string, board: string[], nextToAct = -1) {
+    return { round, nextToAct, communityCards: board, players: runoutPlayers() };
+}
+
+describe("useAllInEquity all-in runout (ui#210)", () => {
+    beforeEach(() => {
+        jest.useFakeTimers();
+        mockedShowing.mockReturnValue({ showingPlayers: [], showingBySeat: new Map() } as any);
+        mockedEquity.mockReset();
+        mockedEquity.mockImplementation((_hands: unknown, board: string[]) => ({
+            winPercentages: board.length === 5 ? [100, 0, 0] : [50, 30, 20]
+        }));
+        resetEquityCache();
+    });
+    afterEach(() => {
+        mockedEquity.mockReset();
+        mockedEquity.mockReturnValue({ winPercentages: [60, 40] });
+        jest.clearAllTimers();
+        jest.useRealTimers();
+    });
+
+    it("shows a win% for a preflop all-in with an ACTIVE last caller and BUSTED losers", () => {
+        withState(runoutState("preflop", []));
+        const { result } = renderHook(() => useAllInEquity());
+        expect(result.current.shouldShow).toBe(true);
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+        expect(result.current.equities.get(1)).toBe(50);
+        expect(result.current.equities.get(2)).toBe(30);
+        expect(result.current.equities.get(3)).toBe(20);
+        expect(result.current.equities.has(4)).toBe(false);
+    });
+
+    it("updates on the flop and the turn", () => {
+        withState(runoutState("flop", ["2H", "7D", "9S"]));
+        const { result, rerender } = renderHook(() => useAllInEquity());
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+        expect(result.current.shouldShow).toBe(true);
+        expect(result.current.equities.get(1)).toBe(50);
+
+        withState(runoutState("turn", ["2H", "7D", "9S", "JC"]));
+        rerender();
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+        expect(result.current.shouldShow).toBe(true);
+        expect(mockedEquity).toHaveBeenCalledTimes(2);
+    });
+
+    it("shows 100% for the winner on the river", () => {
+        withState(runoutState("river", ["2H", "7D", "9S", "JC", "4D"]));
+        const { result } = renderHook(() => useAllInEquity());
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+        expect(result.current.equities.get(1)).toBe(100);
+        expect(result.current.equities.get(2)).toBe(0);
+        expect(result.current.equities.get(3)).toBe(0);
+    });
+
+    it("does not show while betting is still open", () => {
+        withState(runoutState("flop", ["2H", "7D", "9S"], 2));
+        const { result } = renderHook(() => useAllInEquity());
+        expect(result.current.shouldShow).toBe(false);
+        act(() => {
+            jest.advanceTimersByTime(300);
+        });
+        expect(mockedEquity).not.toHaveBeenCalled();
+        expect(result.current.equities.size).toBe(0);
+    });
+});

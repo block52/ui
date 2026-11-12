@@ -3,15 +3,12 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { useShowingCardsByAddress } from "./useShowingCardsByAddress";
 import { hasValue, isNullish } from "../../utils/guards";
 import {
-    PlayerStatus,
-    PlayerDTO,
-    TexasHoldemRound,
     PokerSolver,
     Deck,
     GameVariant,
     holeCardsPerPlayer
 } from "@block52/poker-vm-sdk";
-import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { equityHands, exactShowdownWinPercentages, shouldShowAllInEquity } from "../../utils/allInEquity";
 
 /**
  * Monte Carlo iterations per simulation. Each iteration copies and shuffles the
@@ -91,9 +88,13 @@ interface AllInEquityResult {
  *
  * Calculated client-side via SDK PokerSolver (Monte Carlo) — no HTTP call.
  *
- * Fires in two scenarios:
- *   A) All-in (issue #32): every active player is ALL_IN and all have visible cards.
- *   B) Showdown reveal (issue #313): round is SHOWDOWN/END and 2+ players have visible cards.
+ * Fires in three scenarios:
+ *   A) All-in (issue #32): every contesting player is ALL_IN or SHOWING, cards face up.
+ *   B) Showdown reveal (issue #313): round is SHOWDOWN/END and 2+ hands are face up.
+ *   C) Runout (ui#210): betting is closed (nextToAct is not a seat) and every
+ *      contesting hand is face up — including an ACTIVE last caller and
+ *      BUSTED losers with cardsShown. Folded players are excluded.
+ * A finished board shows 100% for the winner, or an equal split on a chop.
  */
 export function useAllInEquity(): AllInEquityResult {
     const { gameState, gameVariant } = useGameStateContext();
@@ -106,99 +107,28 @@ export function useAllInEquity(): AllInEquityResult {
     // Track last calculated state to avoid duplicate calls
     const lastCalculationRef = useRef<string>("");
 
-    /**
-     * Get active (non-folded) players
-     */
-    const activePlayers = useMemo(() => {
-        if (!gameState?.players) return [];
-        return gameState.players.filter(
-            (p: PlayerDTO) => !hasFoldedOrMucked(p.status)
-        );
-    }, [gameState?.players]);
+    // Two for Hold'em, four for Omaha (ui#769).
+    const holeCount = holeCardsPerPlayer(gameVariant);
 
     /**
-     * Check if all active players are effectively all-in.
-     * An all-in player whose cards have been revealed transitions to SHOWING, so
-     * we treat SHOWING as equivalent for gating purposes.
-     */
-    const allPlayersAllIn = useMemo(() => {
-        if (activePlayers.length < 2) return false;
-        return activePlayers.every(
-            (p: PlayerDTO) =>
-                p.status === PlayerStatus.ALL_IN ||
-                p.status === PlayerStatus.SHOWING
-        );
-    }, [activePlayers]);
-
-    /**
-     * Seat index of showingPlayers so the visible-cards loop below is O(1)
-     * per player instead of re-scanning showingPlayers per seat (#2455).
-     */
-    /**
-     * Get players with visible cards (from showingPlayers or game state)
+     * Face-up hands still in the pot. Folded seats are left out, and a
+     * tournament loser counts only while cardsShown tables the hand.
      */
     const playersWithVisibleCards = useMemo(() => {
         if (!gameState?.players) return [];
-        // Two for Hold'em, four for Omaha (ui#769).
-        const holeCount = holeCardsPerPlayer(gameVariant);
-
-        const visible: Array<{ seat: number; cards: string[] }> = [];
-
-        for (const player of activePlayers) {
-            // Check if player is showing cards
-            const showingPlayer = showingBySeat.get(player.seat);
-            if (showingPlayer?.holeCards && showingPlayer.holeCards.length === holeCount) {
-                visible.push({ seat: player.seat, cards: showingPlayer.holeCards });
-                continue;
-            }
-
-            // Check if player's hole cards are visible in game state
-            if (player.holeCards && player.holeCards.length === holeCount) {
-                // Only count if cards are actual cards, not hidden/masked
-                const hasRealCards = player.holeCards.every(
-                    (c: string) => c && c !== "??" && c !== "XX" && c.length >= 2
-                );
-                if (hasRealCards) {
-                    visible.push({ seat: player.seat, cards: player.holeCards });
-                }
-            }
-        }
-
-        return visible;
-    }, [activePlayers, showingBySeat, gameState?.players, gameVariant]);
-
-    /**
-     * Seats that have visible cards — membership test for the all-in gate
-     * below, O(1) instead of a per-player .some() scan (#2455).
-     */
-    const visibleSeats = useMemo(() => {
-        return new Set(playersWithVisibleCards.map(v => v.seat));
-    }, [playersWithVisibleCards]);
-
-    /**
-     * Round is at showdown / end.
-     */
-    const isShowdown = useMemo(() => {
-        return gameState?.round === TexasHoldemRound.SHOWDOWN ||
-               gameState?.round === TexasHoldemRound.END;
-    }, [gameState?.round]);
+        return equityHands(gameState.players, holeCount, showingBySeat);
+    }, [gameState?.players, holeCount, showingBySeat]);
 
     const shouldShow = useMemo(() => {
-        if (playersWithVisibleCards.length < 2) return false;
-
-        // Scenario A: all active players all-in with all hole cards visible.
-        if (allPlayersAllIn && activePlayers.length >= 2) {
-            const allHaveVisibleCards = activePlayers.every(
-                (p: PlayerDTO) => visibleSeats.has(p.seat)
-            );
-            if (allHaveVisibleCards) return true;
-        }
-
-        // Scenario B: showdown with 2+ revealed hands.
-        if (isShowdown) return true;
-
-        return false;
-    }, [allPlayersAllIn, activePlayers, visibleSeats, isShowdown, playersWithVisibleCards.length]);
+        if (!gameState?.players) return false;
+        return shouldShowAllInEquity({
+            players: gameState.players,
+            round: gameState.round,
+            nextToAct: gameState.nextToAct,
+            holeCount,
+            shownBySeat: showingBySeat
+        });
+    }, [gameState?.players, gameState?.round, gameState?.nextToAct, holeCount, showingBySeat]);
 
     /**
      * Get community cards from game state
@@ -255,18 +185,27 @@ export function useAllInEquity(): AllInEquityResult {
         setError(null);
 
         try {
-            const handsAsCards = playersWithVisibleCards.map(p =>
-                p.cards.map(c => Deck.fromString(c))
-            );
-            const boardAsCards = communityCards.map(c => Deck.fromString(c));
-
-            const isOmaha = gameVariant === GameVariant.OMAHA;
-            const { winPercentages } = PokerSolver.calculateMultiPlayerEquity(
-                handsAsCards,
-                boardAsCards,
-                isOmaha ? OMAHA_EQUITY_ITERATIONS : EQUITY_ITERATIONS,
+            const settled = exactShowdownWinPercentages(
+                playersWithVisibleCards.map(p => p.cards),
+                communityCards,
                 gameVariant
             );
+            let winPercentages: number[];
+            if (settled) {
+                winPercentages = settled;
+            } else {
+                const handsAsCards = playersWithVisibleCards.map(p =>
+                    p.cards.map(c => Deck.fromString(c))
+                );
+                const boardAsCards = communityCards.map(c => Deck.fromString(c));
+                const isOmaha = gameVariant === GameVariant.OMAHA;
+                winPercentages = PokerSolver.calculateMultiPlayerEquity(
+                    handsAsCards,
+                    boardAsCards,
+                    isOmaha ? OMAHA_EQUITY_ITERATIONS : EQUITY_ITERATIONS,
+                    gameVariant
+                ).winPercentages;
+            }
 
             const newEquities = new Map<number, number>();
             winPercentages.forEach((pct, idx) => {

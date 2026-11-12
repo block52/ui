@@ -1,4 +1,5 @@
 import { expandFrames, runoutBeats } from "./expandFrames";
+import { equityHands, shouldShowAllInEquity } from "../utils/allInEquity";
 import { deriveEvents } from "./deriveEvents";
 import { communityCardStagger } from "./decorators/communityCardStagger";
 import { DEFAULT_DECORATION } from "./types";
@@ -365,13 +366,18 @@ describe("expandFrames", () => {
                 const bob = frame.players.find(p => p.seat === 4);
                 expect(bob?.holeCards).toEqual(["KS", "KC"]);
                 expect(bob?.cardsShown).toBe(true);
-                expect(bob?.status).toBe(maskedPrev.players[1].status);
+                // BUSTED + cardsShown is still in the runout, so the street
+                // frames table the hand as SHOWING. The result frame keeps BUSTED.
+                expect(bob?.status).toBe(PlayerStatus.SHOWING);
             }
+            expect(frames[frames.length - 1].players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.BUSTED);
         });
 
-        it("keeps the previous status when next is not SHOWING", () => {
+        it("marks a face-up last caller SHOWING for the runout (ui#210)", () => {
             const frames = expandFrames(maskedPrev, revealedNext);
-            expect(frames[0].players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.ACTIVE);
+            for (const frame of frames.slice(0, -1)) {
+                expect(frame.players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.SHOWING);
+            }
         });
 
         it("does not disturb a seat that was already face up", () => {
@@ -493,6 +499,88 @@ describe("single-street run-outs (ui#873)", () => {
         const next = snapshot({ round: TexasHoldemRound.RIVER, communityCards: [...BOARD] });
         expect(expandFrames(turn(), next, SPLIT)).toEqual([next]);
     });
+});
+
+describe("all-in equity on runout frames (ui#210)", () => {
+    const CAROL = "b521carol000000000000000000000000000210";
+    const DAVE = "b521dave0000000000000000000000000000210";
+    const HOLE = {
+        1: ["AH", "AD"],
+        2: ["KS", "KC"],
+        4: ["QS", "QC"]
+    } as const;
+
+    function runout(start: "preflop" | "flop" | "turn") {
+        const communityCards = start === "preflop" ? [] : start === "flop" ? BOARD.slice(0, 3) : BOARD.slice(0, 4);
+        const round = start === "preflop"
+            ? TexasHoldemRound.PREFLOP
+            : start === "flop"
+                ? TexasHoldemRound.FLOP
+                : TexasHoldemRound.TURN;
+        const masked = ["X", "X"];
+        const prev = snapshot({
+            round,
+            communityCards,
+            nextToAct: 4,
+            players: [
+                player(1, { status: PlayerStatus.ALL_IN, holeCards: masked }),
+                player(2, { address: CAROL, status: PlayerStatus.ACTIVE, holeCards: masked }),
+                player(4, { address: BOB, status: PlayerStatus.ACTIVE, holeCards: masked }),
+                player(7, { address: DAVE, status: PlayerStatus.ACTIVE, holeCards: masked })
+            ]
+        });
+        const next = runoutResult({
+            nextToAct: -1,
+            legalActions: [],
+            players: [
+                player(1, { status: PlayerStatus.BUSTED, cardsShown: true, holeCards: [...HOLE[1]], stack: "0" }),
+                player(2, { address: CAROL, status: PlayerStatus.BUSTED, cardsShown: true, holeCards: [...HOLE[2]], stack: "0" }),
+                player(4, { address: BOB, status: PlayerStatus.ACTIVE, cardsShown: true, holeCards: [...HOLE[4]], stack: "5000000" }),
+                player(7, { address: DAVE, status: PlayerStatus.FOLDED, holeCards: ["7H", "2D"], stack: "1000000" })
+            ]
+        });
+        const options = start === "turn" ? { splitSingleStreetRunout: true } : undefined;
+        return expandFrames(prev, next, options);
+    }
+
+    it.each(["preflop", "flop", "turn"] as const)(
+        "a %s tournament runout shows win%% on every street and leaves the fold out",
+        start => {
+            const frames = runout(start);
+            expect(frames.length).toBeGreaterThanOrEqual(2);
+            const streets = frames.slice(0, -1);
+            expect(streets.length).toBeGreaterThanOrEqual(1);
+
+            for (const frame of streets) {
+                expect(frame.nextToAct).toBe(-1);
+                expect(frame.players.find(p => p.seat === 7)?.status).toBe(PlayerStatus.FOLDED);
+                // Already all-in stays all-in. The ACTIVE caller and the ACTIVE
+                // seat that busts are both painted SHOWING while the board runs out.
+                expect(frame.players.find(p => p.seat === 1)?.status).toBe(PlayerStatus.ALL_IN);
+                expect(frame.players.find(p => p.seat === 2)?.status).toBe(PlayerStatus.SHOWING);
+                expect(frame.players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.SHOWING);
+                expect(shouldShowAllInEquity({
+                    players: frame.players,
+                    round: frame.round,
+                    nextToAct: frame.nextToAct,
+                    holeCount: 2
+                })).toBe(true);
+                expect(equityHands(frame.players, 2).map(hand => hand.seat).sort()).toEqual([1, 2, 4]);
+            }
+
+            const result = frames[frames.length - 1];
+            expect(result.round).toBe(TexasHoldemRound.END);
+            expect(result.players.find(p => p.seat === 1)?.status).toBe(PlayerStatus.BUSTED);
+            expect(result.players.find(p => p.seat === 4)?.status).toBe(PlayerStatus.ACTIVE);
+            expect(shouldShowAllInEquity({
+                players: result.players,
+                round: result.round,
+                nextToAct: result.nextToAct,
+                holeCount: 2
+            })).toBe(true);
+            expect(equityHands(result.players, 2).map(hand => hand.seat)).not.toContain(7);
+        }
+    );
 });
 
 describe("runoutBeats (ui#873)", () => {
