@@ -132,6 +132,7 @@ import { useGameStateSounds } from "../../hooks/notifications/useGameStateSounds
 import NoWalletOverlay from "./NoWalletOverlay";
 import SngPayoutPanel from "./SngPayoutPanel";
 import BlindsPanel from "./BlindsPanel";
+import ProvablyFairPanel from "./ProvablyFair/ProvablyFairPanel";
 
 // Table Error Page
 import TableErrorPage from "./TableErrorPage";
@@ -1463,6 +1464,10 @@ const Table = React.memo(() => {
                 non-modal floating tab + panel in the top-left of the table.
                 Hidden in replay mode (read-only view of a past hand). */}
             {!isReplayMode && <BlindsPanel />}
+
+            {/* Provably fair tab + verify window (ui#972) — beside the Blinds tab.
+                Hidden in replay mode, like the Blinds panel. */}
+            {!isReplayMode && <ProvablyFairPanel />}
 
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">

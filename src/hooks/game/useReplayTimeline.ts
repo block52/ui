@@ -2,8 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import { useNetwork, NETWORK_PRESETS } from "../../context/NetworkContext";
 import { useCometRpcApiFactory } from "../../context/CosmosApiContext";
 import { useGameActions } from "../../context/gameState/GameActionsContext";
-import { GAME_STATE_PUBLIC_PATH, handEndedQuery, handStartedQuery, historyNetworks, parseGameStateJson, parseTxSearchHeight } from "../../utils/handReplay";
-import { encodeStringField1, parseAbciStringResponse } from "../../utils/abciQuery";
+import { handEndedQuery, handStartedQuery, historyNetworks, parseGameStateJson, parseTxSearchHeight } from "../../utils/handReplay";
+import { parseAbciStringResponse } from "../../utils/abciQuery";
+import { publicStateAt } from "../../utils/chainHistory";
 import { actionsQuery, buildTimeline, parseActionHeights } from "../../utils/replayTimeline";
 import {
     GAME_STATE_PATH,
@@ -40,9 +41,6 @@ interface UseReplayTimelineArgs {
     /** Only fetch in replay mode; a live table never asks. */
     active: boolean;
 }
-
-const publicStateAt = async (rpc: CometRpcApi, tableId: string, height: number) =>
-    parseGameStateJson(parseAbciStringResponse(await rpc.abciQuery(GAME_STATE_PUBLIC_PATH, encodeStringField1(tableId), height))).state;
 
 /**
  * The viewer's own hole cards in the hand, through the chain's authenticated
