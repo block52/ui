@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCosmosAddressSync } from "../../utils/cosmosAccountUtils";
+import { isNullish } from "../../utils/guards";
 import { parseTournamentState } from "../../utils/tournamentBlinds";
 import { tournamentProgress, type MyTournamentTable } from "../../utils/tournamentFollow";
 import type { TournamentStateDTO } from "../../types/tournament";
@@ -69,7 +70,7 @@ export const useTournament = (tournamentId: string | undefined): TournamentInfo 
 
     return {
         tournament: current,
-        isLoading: !!tournamentId && loadedFor !== tournamentId && error === null,
+        isLoading: !!tournamentId && loadedFor !== tournamentId && isNullish(error),
         error,
         playersRemaining: progress?.playersRemaining,
         myTable: progress?.myTable,

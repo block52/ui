@@ -1,6 +1,6 @@
 import { expandBlindLevel, resolveBlindPreset, type BlindLevelDTO, type BlindStructureDTO } from "@block52/poker-vm-sdk";
 import type { TournamentStateDTO } from "../types/tournament";
-import { isRecord } from "./guards";
+import { hasContent, isNumber, isRecord, isString } from "./guards";
 
 /**
  * Blind schedule of a directed (multi-table tournament) table.
@@ -50,9 +50,9 @@ export const directedBlinds = (blindStructure: BlindStructureDTO, level: number)
 export const parseTournamentState = (json: string): TournamentStateDTO => {
     const raw: unknown = JSON.parse(json);
     if (!isRecord(raw)) throw new Error("tournament state is not an object");
-    if (typeof raw.tournamentId !== "string") throw new Error("tournament state: tournamentId required");
-    if (typeof raw.status !== "string") throw new Error("tournament state: status required");
-    if (typeof raw.level !== "number") throw new Error("tournament state: level required");
+    if (!isString(raw.tournamentId)) throw new Error("tournament state: tournamentId required");
+    if (!isString(raw.status)) throw new Error("tournament state: status required");
+    if (!isNumber(raw.level)) throw new Error("tournament state: level required");
     if (!isRecord(raw.options) || !isRecord(raw.options.blindStructure)) throw new Error("tournament state: options.blindStructure required");
     if (!Array.isArray(raw.entrants)) throw new Error("tournament state: entrants required");
     if (!Array.isArray(raw.tables)) throw new Error("tournament state: tables required");
@@ -63,5 +63,5 @@ export const parseTournamentState = (json: string): TournamentStateDTO => {
 export const tournamentIdOf = (gameState: unknown): string | undefined => {
     if (!isRecord(gameState)) return undefined;
     const id = gameState.tournamentId;
-    return typeof id === "string" && id.length > 0 ? id : undefined;
+    return isString(id) && hasContent(id) ? id : undefined;
 };
