@@ -61,7 +61,6 @@ export class CosmosApi extends HTTPClient {
             headers: { "x-cosmos-block-height": String(blockHeight) }
         });
     /** A multi-table tournament: `{ tournament: "<TournamentStateDTO JSON>", creator }` (404 when unknown). */
-    public getTournament = (tournamentId: string) => this.get(`/block52/pokerchain/poker/v1/tournament/${encodeURIComponent(tournamentId)}`);
     public getWithdrawalRequests = () => this.get("/pokerchain/poker/withdrawal_requests");
     // A validator's signature for a pending withdrawal (read-only; pokerchain#392).
     public getWithdrawalSignature = (nonce: string) =>
