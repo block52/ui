@@ -192,6 +192,13 @@ describe("buildTournamentCard: where the viewer plays", () => {
         expect(card.canUnregister).toBe(false);
     });
 
+    it("has no table once the tournament is over, even though the winner's status is still playing", () => {
+        const winner = [{ address: ME, status: "playing", tableId: "0xabc/t1", stack: "40500" }];
+        expect(buildTournamentCard(record({ status: "finished", entrants: winner }), ME, START + 1000).myTable).toBeUndefined();
+        expect(buildTournamentCard(record({ status: "cancelled", entrants: winner }), ME, START + 1000).myTable).toBeUndefined();
+        expect(buildTournamentCard(record({ status: "running", entrants: winner }), ME, START + 1000).myTable).toEqual({ gameId: "0xabc-t1", number: 1 });
+    });
+
     it("has no table for a viewer who busted, never played, or has no wallet", () => {
         const entrants = [
             { address: ME, status: "busted", stack: "0" },

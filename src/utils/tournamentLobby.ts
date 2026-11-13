@@ -289,7 +289,9 @@ export function buildTournamentCard(record: TournamentRecord, viewer: string | u
     else if (phase === "full") registerBlockedReason = "The tournament is full";
     else if (!registering) registerBlockedReason = "Registration is closed";
 
-    const myTable = tablePlayedBy(mine);
+    // Only a running tournament has a seat to take: the chain leaves the winner's status as "playing"
+    // (with their table) after the finish, so the status alone would offer a seat in a finished tournament.
+    const myTable = state.status === "running" ? tablePlayedBy(mine) : undefined;
 
     return {
         tournamentId: state.tournamentId,
