@@ -124,7 +124,7 @@ import { useGameResults } from "../../hooks/game/useGameResults"; // Game result
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
-import { isAwaitingTournamentStart } from "../../utils/scheduledSng";
+import { hasTournamentFinished, isAwaitingTournamentStart } from "../../utils/scheduledSng";
 import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimeline";
 import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
 import { ReplayTransport } from "./ReplayTransport";
@@ -761,6 +761,8 @@ const Table = React.memo(() => {
     // table (balance / table break), go to the new one.
     const navigate = useNavigate();
     const { myTable: myTournamentTable, tournament: tournamentRecord } = useTournament(tournamentIdOf(gameState));
+    // A finished tournament: the record says so on a directed table, results[] on a single-table one.
+    const tournamentOver = tournamentRecord?.status === "finished" || hasTournamentFinished(gameState);
     const seatedAt = useRef<MyTournamentTable | undefined>(undefined);
     useEffect(() => {
         const target = followTarget(id, seatedAt.current, myTournamentTable);
@@ -1601,6 +1603,7 @@ const Table = React.memo(() => {
                             isSitAndGoWaitingForPlayers={isSitAndGoWaitingForPlayers}
                             winnerInfo={winnerInfo}
                             cardBackStyle={cardBackStyle}
+                            tournamentOver={tournamentOver}
                             updateBalanceOnPlayerJoin={updateBalanceOnPlayerJoin}
                         />
 
