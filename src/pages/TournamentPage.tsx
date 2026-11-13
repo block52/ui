@@ -8,6 +8,8 @@ import { formatUSDCToSimpleDollars } from "../utils/numberUtils";
 import { truncateMiddle } from "../utils/stringUtils";
 import { tableUrl } from "../utils/tableUrl";
 import { liveTournamentTables, tournamentStandings } from "../utils/tournamentTables";
+import { startCountdownText } from "../utils/tournamentStart";
+import { useNow } from "../hooks/tournament/useTournamentLobby";
 import { tournamentSize } from "../utils/tournamentResult";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 
@@ -18,6 +20,7 @@ import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 export default function TournamentPage() {
     const { tournamentId } = useParams<{ tournamentId: string }>();
     const { tournament, isLoading, error, playersRemaining, myTable, level } = useTournament(tournamentId);
+    const now = useNow(1000);
 
     useEffect(() => {
         document.title = "Tournament - Block52";
@@ -67,10 +70,19 @@ export default function TournamentPage() {
                                             : `${playersRemaining} left of ${tournamentSize(tournament)}`}
                                     </dd>
                                 </div>
-                                <div>
-                                    <dt className="text-gray-400">Level</dt>
-                                    <dd className="text-white">{isNullish(level) ? "-" : level + 1}</dd>
-                                </div>
+                                {tournament.status === "registering" ? (
+                                    <div>
+                                        <dt className="text-gray-400">Starts in</dt>
+                                        <dd className="text-white" data-testid="tournament-start-countdown">
+                                            {startCountdownText(tournament.options.startTime, now)}
+                                        </dd>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <dt className="text-gray-400">Level</dt>
+                                        <dd className="text-white">{isNullish(level) ? "-" : level + 1}</dd>
+                                    </div>
+                                )}
                                 <div>
                                     <dt className="text-gray-400">Prize pool</dt>
                                     <dd className="text-white">${formatUSDCToSimpleDollars(tournament.prizePool)}</dd>
