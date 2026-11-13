@@ -35,6 +35,7 @@ import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { tableTitle } from "../../../../utils/tableTitle";
+import { tableUrl } from "../../../../utils/tableUrl";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 
@@ -138,7 +139,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     const [menuOpen, setMenuOpen] = useState(false);
     const [showQR, setShowQR] = useState(false);
     const [showTopUp, setShowTopUp] = useState(false);
-    const tableUrl = `${window.location.origin}/table/${tableId}`;
+    const shareUrl = `${window.location.origin}${tableUrl(tableId)}`;
 
     const isSNG = hasValue(gameFormat) && isTournamentFormat(gameFormat);
     const canTopUp = legalActions.some(a => a.action === NonPlayerActionType.TOP_UP);
@@ -432,7 +433,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
             >
                 <div className="flex flex-col items-center gap-4">
                     <div className="bg-white p-4 rounded-xl">
-                        <QRCodeSVG value={tableUrl} size={240} />
+                        <QRCodeSVG value={shareUrl} size={240} />
                     </div>
                     <button
                         onClick={() => setShowQR(false)}

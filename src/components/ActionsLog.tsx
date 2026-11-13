@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useSyncExternalStore } from "react";
 import { buildHandShareUrl } from "../utils/handReplay";
-import { useParams } from "react-router-dom";
 import { useGameProgress } from "../hooks/game/useGameProgress";
 import { useWinnerInfo } from "../hooks/game/useWinnerInfo";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
@@ -13,10 +12,11 @@ import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
 import { isEmpty, hasElements } from "../utils/guards";
 import styles from "./ActionsLog.module.css";
+import { useTableId } from "../hooks/game/useTableId";
 
 // Simple component to display only the action log
 const ActionsLog: React.FC = () => {
-    const { id } = useParams<{ id: string }>();
+    const id = useTableId();
     const { previousActions } = useGameProgress(id);
     const { gameState, gameFormat, gameVariant } = useGameStateContext();
     const { winnerInfo } = useWinnerInfo();

@@ -24,6 +24,7 @@ import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { tableTitle } from "../../../../utils/tableTitle";
+import { tableUrl } from "../../../../utils/tableUrl";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
 // itself now lives in utils/blindStructure so the Blinds panel can share it.
@@ -110,7 +111,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
     const blindLevel = useBlindLevel();
 
     const [showQR, setShowQR] = useState(false);
-    const tableUrl = `${window.location.origin}/table/${tableId}`;
+    const shareUrl = `${window.location.origin}${tableUrl(tableId)}`;
 
     // Hidden in mobile landscape
     if (isMobileLandscape) {
@@ -344,7 +345,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
             >
                 <div className="flex flex-col items-center gap-4">
                     <div className="bg-white p-4 rounded-xl">
-                        <QRCodeSVG value={tableUrl} size={240} />
+                        <QRCodeSVG value={shareUrl} size={240} />
                     </div>
                     <button
                         onClick={() => setShowQR(false)}

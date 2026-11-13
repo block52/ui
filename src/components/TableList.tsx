@@ -15,6 +15,10 @@ import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
 import { hasContent, isNullish, isEmpty } from "../utils/guards";
+import { useTournamentLobby } from "../hooks/tournament/useTournamentLobby";
+import { TournamentListRows } from "./tournament/TournamentListRows";
+import { tournamentListRow } from "../utils/tournamentListRow";
+import { parseTournamentGameId } from "../utils/tableUrl";
 
 const PAGE_SIZE = 20;
 
@@ -139,7 +143,8 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
 
     // Filter by treasury toggle, game ID search, then sort
     const games = React.useMemo(() => {
-        let filtered = rawGames;
+        // A tournament's directed tables are not tables to join: the tournament is one row (below).
+        let filtered = rawGames.filter(g => isNullish(parseTournamentGameId(g.gameId)));
         if (showTreasuryOnly && treasuryAddress) {
             filtered = filtered.filter(g => g.creator === treasuryAddress);
         }
@@ -181,6 +186,13 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
     // Clubs can override by setting VITE_CLUB_LOGO and VITE_CLUB_NAME in .env
     const clubLogo = import.meta.env.VITE_CLUB_LOGO || "/poker.svg";
     const clubName = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
+
+    // Multi-table tournaments are rows of this list too: one row per tournament, with its runners.
+    const { cards: tournamentCards } = useTournamentLobby();
+    const tournamentRows = React.useMemo(() => {
+        const q = gameIdSearch.trim().toLowerCase();
+        return tournamentCards.map(tournamentListRow).filter(r => hasContent(q) ? r.tournamentId.toLowerCase().includes(q) : true);
+    }, [tournamentCards, gameIdSearch]);
 
     // Copy to clipboard utility with error handling
     const copyToClipboard = async (text: string) => {
@@ -360,7 +372,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-700">
-                        {isEmpty(games) ? (
+                        {isEmpty(games) && isEmpty(tournamentRows) ? (
                             <tr>
                                 {/* colSpan is the MAX column count; browsers clamp it to the
                                     columns actually rendered at the breakpoint, so with the
@@ -391,7 +403,9 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                 </td>
                             </tr>
                         ) : (
-                            pagedGames.map((game: GameWithFormat) => {
+                            <>
+                            <TournamentListRows rows={tournamentRows} hasCashGames={hasCashGames} clubName={clubName} clubLogo={clubLogo} />
+                            {pagedGames.map((game: GameWithFormat) => {
                                 const isTournament = isTournamentFormat(game.gameFormat);
                                 return (
                                     <tr key={game.gameId} className="hover:bg-gray-700/50 transition-colors">
@@ -534,7 +548,8 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                         </td>
                                     </tr>
                                 );
-                            })
+                            })}
+                            </>
                         )}
                     </tbody>
                 </table>

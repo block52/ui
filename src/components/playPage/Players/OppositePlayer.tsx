@@ -12,7 +12,6 @@
  */
 
 import * as React from "react";
-import { useParams } from "react-router-dom";
 import Badge from "../common/Badge";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
@@ -30,6 +29,7 @@ import { HoleCardRow } from "./HoleCardRow";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { useTableId } from "../../../hooks/game/useTableId";
 
 type OppositePlayerProps = {
     left?: string;
@@ -43,7 +43,7 @@ type OppositePlayerProps = {
 };
 
 const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
-    const { id } = useParams<{ id: string }>();
+    const id = useTableId();
     const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
     const { winnerInfo, winnerBySeat } = useWinnerInfo();
     const winnerCards = useWinnerCards();

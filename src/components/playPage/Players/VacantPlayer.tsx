@@ -15,7 +15,6 @@
 import * as React from "react";
 import { memo, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router-dom";
 import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
@@ -33,11 +32,12 @@ import { joinSeatButtonLabel, SEAT_DRAW_NOTE, vacantSeatText } from "../../../ut
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
+import { useTableId } from "../../../hooks/game/useTableId";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, onJoin, uiPosition }) => {
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
-        const { id: tableId } = useParams<{ id: string }>();
+        const tableId = useTableId();
         const { gameOptions } = useGameOptions();
         const { gameFormat } = useGameStateContext();
         // A Sit & Go seat is drawn at random on join, not the one clicked (ui#969).
