@@ -75,8 +75,8 @@ export const TableBoard: React.FC<TableBoardProps> = ({
         return Array.from({ length: 5 }).map((_, idx) => {
             const card = communityCards[idx];
             // A card shows only once its slot has been revealed by the staggered
-            // deal (see useCardAnimations); until then the slot is an empty
-            // placeholder, so the flop's cards drop in one after the other.
+            // deal (see useCardAnimations); until then the slot is empty (and
+            // invisible), so the flop's cards drop in one after the other.
             const isDealt = idx < contiguousCount && card && card !== "??" && card !== "XX";
             const isVisible = isDealt && revealedSlots[idx] === true;
             const isWinCard = isVisible && hasWinningCards && (winnerCards!.has(card));
@@ -94,13 +94,9 @@ export const TableBoard: React.FC<TableBoardProps> = ({
                     </div>
                 );
             } else {
-                return (
-                    <div
-                        key={idx}
-                        className="w-[85px] h-[127px] aspect-square border-[0.5px] border-dashed border-white rounded-[5px] "
-                        style={{ borderColor: "rgba(255,255,255,0.35)" }}
-                    />
-                );
+                // An empty slot draws nothing, but keeps its width so the row does not
+                // shift as each card is dealt into place.
+                return <div key={idx} className="w-[85px] h-[127px] aspect-square" aria-hidden="true" data-testid="board-slot-empty" />;
             }
         });
     }, [communityCards, cardBackStyle, winnerCards, revealedSlots]);
