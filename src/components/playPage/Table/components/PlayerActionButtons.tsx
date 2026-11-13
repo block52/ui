@@ -22,6 +22,8 @@ import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { useActionSubmit } from "../../../../context/ActionSubmitContext";
 import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
 import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
+import { isNullish } from "../../../../utils/guards";
+import { tournamentIdOf } from "../../../../utils/tournamentBlinds";
 
 export interface PlayerActionButtonsProps {
     isMobile: boolean;
@@ -231,7 +233,7 @@ export const PlayerActionButtons: React.FC<PlayerActionButtonsProps> = ({
                             <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
                             <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>You are spectating this table</span>
                         </div>
-                        {!isTableFull && (
+                        {!isTableFull && isNullish(tournamentIdOf(gameState)) && (
                             <div className="flex items-center gap-2">
                                 <div className="animate-pulse w-2 h-2 rounded-full bg-blue-400" />
                                 <span className={`text-blue-300 font-medium ${isCompact ? "text-xs" : "text-sm"}`}>

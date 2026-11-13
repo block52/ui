@@ -34,6 +34,7 @@ import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
+import { tableTitle } from "../../../../utils/tableTitle";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 
@@ -177,7 +178,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                     className="text-white text-sm font-bold cursor-pointer truncate min-w-0 flex-1 min-h-[44px] text-left"
                     onClick={handleLobbyClick}
                 >
-                    {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
+                    {tableTitle(tableId, tableName)}
                 </button>
                 <div className="flex items-center flex-shrink-0">
                     {/* Balance — money on the table, wanted at a glance; tap to refresh */}
