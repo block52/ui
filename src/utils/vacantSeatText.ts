@@ -4,7 +4,8 @@
  * At a Sit & Go the seat is drawn when you join (utils/seatDraw), so an empty
  * seat is an entry point, not a seat you claim: it reads "Open Seat" and the
  * button doesn't name a seat number. Cash tables name the seat you pick. Once
- * registration is over (a running tournament) an empty seat is only "Vacant".
+ * registration is over (a running tournament) an empty seat has no text at all:
+ * the table leaves the circle in place and says nothing (VacantPlayer).
  */
 
 export interface VacantSeatText {
@@ -15,10 +16,8 @@ export interface VacantSeatText {
 /** Shown on a Sit & Go buy-in so the player knows the clicked seat isn't theirs. */
 export const SEAT_DRAW_NOTE = "Your seat is drawn at random";
 
-export function vacantSeatText(seat: number, isUserAlreadyPlaying: boolean, canJoin: boolean, seatDrawn: boolean, registrationClosed: boolean): VacantSeatText {
-    // Seated at the table, or registration is over (a running tournament): the
-    // seat is just empty. It is not "Open", and "Seat Taken" would be a lie.
-    if (isUserAlreadyPlaying || registrationClosed) {
+export function vacantSeatText(seat: number, isUserAlreadyPlaying: boolean, canJoin: boolean, seatDrawn: boolean): VacantSeatText {
+    if (isUserAlreadyPlaying) {
         return { title: "Vacant Seat", subtitle: null };
     }
     return {

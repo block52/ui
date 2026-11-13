@@ -223,9 +223,12 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         );
 
         // Memoize seat text
+        // Registration is over: nobody can take this seat, so there is nothing to say about it.
+        const registrationClosed = useMemo(() => isRegistrationClosed(gameState, gameFormat, Date.now()), [gameState, gameFormat]);
+
         const seatText = useMemo(
-            () => vacantSeatText(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn, isRegistrationClosed(gameState, gameFormat, Date.now())),
-            [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn, gameState, gameFormat]
+            () => vacantSeatText(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn),
+            [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn]
         );
 
         // Memoized Deposit callback - always open modal; crypto payments don't need Web3 wallet
@@ -249,8 +252,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                     <div className="flex justify-center mb-2">
                         <img src={PokerProfile} className="w-12 h-12" alt="Vacant Seat" />
                     </div>
-                    {/* The seat stays where it is when the tournament is over, but says nothing. */}
-                    {!tournamentOver && (
+                    {/* Once registration is over (a running tournament) or the tournament is over, the
+                        seat stays where it is but says nothing: no "Open Seat", no "Vacant Seat". */}
+                    {!tournamentOver && !registrationClosed && (
                         <div className={`text-center ${styles.seatText}`}>
                             <div className="text-lg sm:text-sm mb-1 whitespace-nowrap font-medium">{seatText.title}</div>
                             {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
