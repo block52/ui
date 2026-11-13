@@ -1,5 +1,5 @@
 import type { TournamentStateDTO } from "../types/tournament";
-import { liveTournamentTables, tournamentStandings } from "./tournamentTables";
+import { isTournamentTableLive, liveTournamentTables, tournamentStandings } from "./tournamentTables";
 
 const T = "0xface4d5c";
 
@@ -44,5 +44,23 @@ describe("tournamentStandings", () => {
         const t = tournament({ results });
         tournamentStandings(t);
         expect((t.results as unknown as { place: number }[])[0].place).toBe(2);
+    });
+});
+
+describe("isTournamentTableLive", () => {
+    const t = tournament({
+        tables: [
+            { tableId: `${T}/t1`, ordinal: 1, players: ["a"], broken: false, handNumber: 3, atBoundary: false },
+            { tableId: `${T}/t2`, ordinal: 2, players: [], broken: true, handNumber: 9, atBoundary: true }
+        ]
+    });
+
+    it("is true for a table in play", () => {
+        expect(isTournamentTableLive(t, 1)).toBe(true);
+    });
+
+    it("is false for a table that was broken up, and for one that never existed", () => {
+        expect(isTournamentTableLive(t, 2)).toBe(false);
+        expect(isTournamentTableLive(t, 7)).toBe(false);
     });
 });
