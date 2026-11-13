@@ -1,7 +1,6 @@
 import type { TournamentStateDTO } from "../types/tournament";
 import { gameIdFromTableId } from "./tournamentFollow";
 import { tableUrl } from "./tableUrl";
-import { formatCountdown } from "./scheduledSng";
 
 export interface TournamentTableRow {
     /** The table's number in its route (`/tournament/<id>/table/<n>`): the `t<n>` of its id. */
@@ -38,10 +37,3 @@ export interface TournamentStandingRow {
 /** Finished places, best first; players who busted together share a place and keep the order the engine wrote them. */
 export const tournamentStandings = (t: TournamentStateDTO): TournamentStandingRow[] =>
     [...t.results].sort((a, b) => a.place - b.place).map(r => ({ place: r.place, address: r.playerId, payout: r.payout }));
-
-/**
- * The count down to a registering tournament's start ("4:32"), or "Starting…" once
- * the start time has passed and the chain has not run the start yet (it does at
- * the next block).
- */
-export const startCountdownText = (startsAtMs: number, nowMs: number): string => (nowMs >= startsAtMs ? "Starting…" : formatCountdown(startsAtMs, nowMs));
