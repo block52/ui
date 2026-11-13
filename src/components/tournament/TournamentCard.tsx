@@ -1,4 +1,6 @@
 import React from "react";
+import { Link } from "react-router-dom";
+import { tableUrl } from "../../utils/tableUrl";
 import { formatCountdown, formatStartsAt } from "../../utils/scheduledSng";
 import { formatUsdc, phaseLabel, type TournamentLobbyCard } from "../../utils/tournamentLobby";
 
@@ -92,7 +94,21 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({ card, nowMs, onR
                         Register · {formatUsdc(card.cost.gross)}
                     </button>
                 )}
-                {card.isRegistered && (
+                {card.myTable && (
+                    <>
+                        <Link
+                            to={tableUrl(card.myTable.gameId)}
+                            className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 text-white transition-colors"
+                            data-testid="tournament-take-seat"
+                        >
+                            Take my seat
+                        </Link>
+                        <span className="text-xs text-green-400" data-testid="tournament-my-table">
+                            You&apos;re at table {card.myTable.number}
+                        </span>
+                    </>
+                )}
+                {card.isRegistered && !card.myTable && (
                     <span className="text-xs text-green-400" data-testid="tournament-you-are-in">
                         You are registered
                     </span>

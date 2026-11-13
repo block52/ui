@@ -37,3 +37,9 @@ export interface TournamentStandingRow {
 /** Finished places, best first; players who busted together share a place and keep the order the engine wrote them. */
 export const tournamentStandings = (t: TournamentStateDTO): TournamentStandingRow[] =>
     [...t.results].sort((a, b) => a.place - b.place).map(r => ({ place: r.place, address: r.playerId, payout: r.payout }));
+
+/**
+ * Is table `tableNumber` still part of the tournament? False for a table that has
+ * been broken up and for one that never existed: its URL has nothing to show.
+ */
+export const isTournamentTableLive = (t: TournamentStateDTO, tableNumber: number): boolean => liveTournamentTables(t).some(row => row.number === tableNumber);
