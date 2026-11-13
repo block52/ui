@@ -102,10 +102,10 @@ export default function TournamentPage() {
                                 <ol className="divide-y divide-gray-700/50" data-testid="tournament-standings">
                                     {tournamentStandings(tournament).map(row => (
                                         <li key={`${row.place}-${row.address}`} className="flex items-center justify-between px-4 py-2 text-sm">
-                                            <span className={row.address.toLowerCase() === me ? "text-green-300 font-semibold" : "text-white"}>
-                                                {row.place}. <span className="font-mono">{truncateMiddle(row.address, 8, 6, "…")}</span>
+                                            <span className={`min-w-0 ${row.address.toLowerCase() === me ? "text-green-300 font-semibold" : "text-white"}`}>
+                                                {row.place}. <span className="font-mono break-all">{row.address}</span>
                                             </span>
-                                            <span className="text-gray-300">{row.payout !== "0" ? `$${formatUSDCToSimpleDollars(row.payout)}` : ""}</span>
+                                            <span className="ml-3 shrink-0 text-gray-300">{row.payout !== "0" ? `$${formatUSDCToSimpleDollars(row.payout)}` : ""}</span>
                                         </li>
                                     ))}
                                 </ol>

@@ -36,6 +36,8 @@ import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
 import { tableTitle } from "../../../../utils/tableTitle";
 import { tableUrl } from "../../../../utils/tableUrl";
+import BlindsButton from "../../BlindsButton";
+import { playersLabel, type TournamentRunners } from "../../../../utils/tournamentResult";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 
@@ -48,6 +50,8 @@ export interface MobileTableHeaderProps {
     gameFormat: GameFormat | null;
     gameOptions: GameOptionsDTO | null;
     tableActivePlayers: PlayerDTO[];
+    /** Runners left out of the field, on a multi-table tournament table (replaces the seat count). */
+    runners?: TournamentRunners;
 
     // Wallet data
     publicKey: string | null;
@@ -109,6 +113,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     gameFormat,
     gameOptions,
     tableActivePlayers,
+    runners,
     publicKey,
     formattedAddress,
     isBalanceLoading,
@@ -216,7 +221,8 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
             >
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>
                     {blindLevel.isActive ? (
-                        <>
+                        // Tapping the blinds opens the blind schedule (ui#794).
+                        <BlindsButton className="whitespace-nowrap underline decoration-dotted underline-offset-2">
                             {hasValue(blindLevel.level) && `L${blindLevel.level + 1} `}
                             {blindLevel.currentBlindsFormatted}
                             {blindLevel.hasTimer && (
@@ -228,7 +234,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                     {")"}
                                 </>
                             )}
-                        </>
+                        </BlindsButton>
                     ) : (
                         `$${formattedValues.smallBlindFormatted} / $${formattedValues.bigBlindFormatted}`
                     )}
@@ -269,7 +275,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                     {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
                                     Texas Hold'em
                                     <span className={`ml-1 ${styles.secondaryText}`}>
-                                        ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
+                                        ({playersLabel(tableActivePlayers.length, gameOptions.maxPlayers, runners)})
                                     </span>
                                 </span>
                             </div>
