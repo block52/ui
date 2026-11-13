@@ -1,5 +1,5 @@
 import type { TournamentStateDTO } from "../types/tournament";
-import { liveTournamentTables, tournamentStandings } from "./tournamentTables";
+import { liveTournamentTables, startCountdownText, tournamentStandings } from "./tournamentTables";
 
 const T = "0xface4d5c";
 
@@ -44,5 +44,20 @@ describe("tournamentStandings", () => {
         const t = tournament({ results });
         tournamentStandings(t);
         expect((t.results as unknown as { place: number }[])[0].place).toBe(2);
+    });
+});
+
+describe("startCountdownText", () => {
+    const START = 1_800_000_000_000;
+
+    it("counts down to the start", () => {
+        expect(startCountdownText(START, START - 272_000)).toBe("4:32");
+        expect(startCountdownText(START, START - 5_000)).toBe("0:05");
+        expect(startCountdownText(START, START - 3_725_000)).toBe("1:02:05");
+    });
+
+    it("says Starting once the time has passed", () => {
+        expect(startCountdownText(START, START)).toBe("Starting…");
+        expect(startCountdownText(START, START + 30_000)).toBe("Starting…");
     });
 });
