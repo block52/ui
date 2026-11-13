@@ -183,7 +183,33 @@ describe("buildTournamentCard", () => {
     });
 });
 
+describe("buildTournamentCard: where the viewer plays", () => {
+    const running = (entrants: unknown[]) => record({ status: "running", entrants });
+
+    it("names the table the viewer is playing at, by game id and number", () => {
+        const card = buildTournamentCard(running([{ address: ME, status: "playing", tableId: "0xabc/t3", stack: "1500" }]), ME, START + 1000);
+        expect(card.myTable).toEqual({ gameId: "0xabc-t3", number: 3 });
+        expect(card.canUnregister).toBe(false);
+    });
+
+    it("has no table for a viewer who busted, never played, or has no wallet", () => {
+        const entrants = [
+            { address: ME, status: "busted", stack: "0" },
+            { address: "b521other", status: "playing", tableId: "0xabc/t1", stack: "1500" }
+        ];
+        expect(buildTournamentCard(running(entrants), ME, START + 1000).myTable).toBeUndefined();
+        expect(buildTournamentCard(running(entrants), "b521nobody", START + 1000).myTable).toBeUndefined();
+        expect(buildTournamentCard(running(entrants), undefined, START + 1000).myTable).toBeUndefined();
+    });
+});
+
 describe("sortTournamentCards", () => {
+    it("puts the tournament the viewer is playing in first", () => {
+        const mine = buildTournamentCard(record({ tournamentId: "mine", status: "running", entrants: [{ address: ME, status: "playing", tableId: "0xabc/t1", stack: "1" }] }), ME, START + 1000);
+        const open = buildTournamentCard(record({ tournamentId: "open", status: "registering" }), ME, START - 100_000);
+        expect(sortTournamentCards([open, mine]).map(c => c.tournamentId)).toEqual(["mine", "open"]);
+    });
+
     it("puts open registrations first by start time, then running, then finished", () => {
         const mk = (id: string, status: string, startTime: number) => buildTournamentCard(record({ tournamentId: id, status }, { startTime }), undefined, START - 100_000);
         const sorted = sortTournamentCards([mk("fin", "finished", START), mk("late", "registering", START + 5_000), mk("run", "running", START), mk("soon", "registering", START)]);
