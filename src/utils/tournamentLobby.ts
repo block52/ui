@@ -23,6 +23,7 @@ import {
     type TournamentStatus
 } from "@block52/poker-vm-sdk";
 import { isNullish, isNumber, isRecord, isString } from "./guards";
+import { gameIdFromTableId } from "./tournamentFollow";
 
 export interface TournamentEntrantView {
     address: string;
@@ -234,6 +235,8 @@ export interface TournamentLobbyCard {
     atRiskOfCancelling: boolean;
     /** The viewer is registered (status "registered" or already "playing"). */
     isRegistered: boolean;
+    /** The viewer is playing right now: the game id of their table and its number (`<id>-t<n>`). */
+    myTable?: { gameId: string; number: number };
     canRegister: boolean;
     canUnregister: boolean;
     /** Why the viewer cannot register, for the disabled button; undefined when they can. */
@@ -259,6 +262,12 @@ export function tournamentPhase(state: TournamentStateDTO, nowMs: number): Tourn
     }
 }
 
+/** The table an entrant is playing at: its game id and number (the `n` of `<tournamentId>/t<n>`), or undefined when they are not seated. */
+function tablePlayedBy(entrant: TournamentEntrantView | undefined): { gameId: string; number: number } | undefined {
+    if (isNullish(entrant) || entrant.status !== "playing" || isNullish(entrant.tableId)) return undefined;
+    return { gameId: gameIdFromTableId(entrant.tableId), number: Number(entrant.tableId.slice(entrant.tableId.lastIndexOf("/") + 2)) };
+}
+
 /**
  * The lobby card for a tournament as seen by `viewer` (undefined = no wallet).
  * Registration closes at the start time, so the buttons follow the clock rather
@@ -280,6 +289,8 @@ export function buildTournamentCard(record: TournamentRecord, viewer: string | u
     else if (phase === "full") registerBlockedReason = "The tournament is full";
     else if (!registering) registerBlockedReason = "Registration is closed";
 
+    const myTable = tablePlayedBy(mine);
+
     return {
         tournamentId: state.tournamentId,
         creator,
@@ -298,6 +309,7 @@ export function buildTournamentCard(record: TournamentRecord, viewer: string | u
         blindLabel: openingLevelLabel(state.options.blindStructure),
         atRiskOfCancelling: registering && registered < state.options.minEntrants,
         isRegistered,
+        ...(isNullish(myTable) ? {} : { myTable }),
         canRegister: isNullish(registerBlockedReason),
         canUnregister: registering && !isNullish(mine) && mine.status === "registered",
         ...(isNullish(registerBlockedReason) ? {} : { registerBlockedReason })
@@ -307,6 +319,8 @@ export function buildTournamentCard(record: TournamentRecord, viewer: string | u
 /** Cards ordered for the lobby: open registration first (soonest start), then running, then finished/cancelled (in the order given, newest first). */
 export function sortTournamentCards(cards: TournamentLobbyCard[]): TournamentLobbyCard[] {
     const rank = (c: TournamentLobbyCard): number => {
+        // A tournament the viewer is playing in comes first.
+        if (!isNullish(c.myTable)) return -1;
         switch (c.phase) {
             case "open":
             case "full":
