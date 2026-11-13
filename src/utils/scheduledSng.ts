@@ -1,5 +1,6 @@
 import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, isTournamentFormat, lateRegistrationClosesAt, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { hasValue, isNullish } from "./guards";
+import { tournamentIdOf } from "./tournamentBlinds";
 
 /**
  * Single-table tournaments (poker-vm#2680, #2776).
@@ -190,3 +191,21 @@ export const LATE_REGISTRATION_LEVEL_OPTIONS: readonly number[] = [0, 1, 2, 3, 4
 /** The create form's label for a late-registration choice. */
 export const lateRegistrationOptionLabel = (levels: number): string =>
     levels === 0 ? "Off: the field is fixed at the start" : `Open for the first ${levels} blind level${levels === 1 ? "" : "s"}`;
+
+/**
+ * Registration is over: nobody can take a seat any more, so an empty seat is
+ * just empty. True on a directed table of a multi-table tournament (the director
+ * seats everyone, and there is no late registration there yet) and on a
+ * single-table tournament that has started with no late-registration window open.
+ * False before the start and while late registration is open (those seats are
+ * real entry points).
+ */
+export const isRegistrationClosed = (
+    gameState: Pick<TexasHoldemStateDTO, "gameOptions" | "results" | "handNumber" | "previousActions"> | null | undefined,
+    gameFormat: string | null | undefined,
+    nowMs: number
+): boolean => {
+    if (isNullish(gameState)) return false;
+    if (hasValue(tournamentIdOf(gameState))) return true;
+    return hasValue(gameFormat) && isTournamentFormat(gameFormat) && hasTournamentStarted(gameState) && lateRegistrationPhase(gameState, nowMs) !== "open";
+};
