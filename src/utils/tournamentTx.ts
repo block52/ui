@@ -1,38 +1,17 @@
 /**
- * The transaction side of multi-table tournaments (ui#980 slices 2-3).
+ * The transaction side of multi-table tournaments (ui#980 slices 2-3): create,
+ * register and unregister, signed by the player's Block52 wallet through the SDK's
+ * SigningCosmosClient (@block52/poker-vm-sdk 1.25.0).
  *
- * SDK GAP (block52/poker-vm sdk 1.24.0): the chain has MsgCreateTournament,
- * MsgRegisterTournament and MsgUnregisterTournament (pokerchain tx.proto), but the
- * published SDK neither generates those messages nor exposes `createTournament`,
- * `registerTournament` or `unregisterTournament` on SigningCosmosClient. The UI must
- * not hand-roll proto, so the three calls sit behind {@link TournamentTxClient}, and
- * {@link getTournamentTxClient} returns the one implementation that exists today:
- * one that refuses with {@link SdkGapError}. When the SDK ships the helpers, replace
- * that body with calls to `(await getSigningClient(network)).signingClient` and
- * delete the error class. Nothing else in the UI changes.
- *
- * The method shapes below are the proposal for the SDK: they mirror the messages
- * field for field (money in micro-USDC, chips as chips, start time in unix seconds).
+ * The three calls sit behind {@link TournamentTxClient} so hooks and components
+ * stay free of the signing client. The chain is gasless; a tx that the chain
+ * rejects throws with the chain's own message, which the caller shows as it comes.
  */
-import type { BlindStructureDTO } from "@block52/poker-vm-sdk";
+import type { CreateTournamentParams } from "@block52/poker-vm-sdk";
+import type { NetworkEndpoints } from "../context/NetworkContext";
+import { getSigningClient } from "./cosmos/client";
 
-export interface CreateTournamentParams {
-    /** Gross buy-in per entrant, micro-USDC. */
-    buyIn: bigint;
-    /** Flat entry fee inside the buy-in, to the creator, micro-USDC. 0 = none. */
-    entryFee: bigint;
-    startingStack: bigint;
-    /** 2..9 */
-    seatsPerTable: number;
-    /** >= 2; the tournament cancels at the start time with fewer. */
-    minEntrants: number;
-    /** min..180 */
-    maxEntrants: number;
-    /** Scheduled start, unix SECONDS, in the future. */
-    startTime: number;
-    blindStructure: BlindStructureDTO;
-    actionTimeoutSeconds: number;
-}
+export type { CreateTournamentParams };
 
 export interface TournamentTxClient {
     /** Resolves once the tx is committed and executed; `tournamentId` is the id the chain derived. */
@@ -41,24 +20,19 @@ export interface TournamentTxClient {
     unregisterTournament(tournamentId: string): Promise<{ txHash: string }>;
 }
 
-/** Thrown by the placeholder client: the SDK has no tournament transactions yet. */
-export class SdkGapError extends Error {
-    constructor(method: string) {
-        super(
-            `${method} needs an SDK release with the tournament transactions (MsgCreateTournament / MsgRegisterTournament / MsgUnregisterTournament). ` +
-                "The chain has them; @block52/poker-vm-sdk 1.24.0 does not."
-        );
-        this.name = "SdkGapError";
+/** The tournament transaction client for `network`, signing with the current Block52 wallet. */
+export const getTournamentTxClient = (network: NetworkEndpoints): TournamentTxClient => ({
+    createTournament: async params => {
+        const { signingClient } = await getSigningClient(network);
+        const { transactionHash, tournamentId } = await signingClient.createTournament(params);
+        return { txHash: transactionHash, tournamentId };
+    },
+    registerTournament: async tournamentId => {
+        const { signingClient } = await getSigningClient(network);
+        return { txHash: await signingClient.registerTournament(tournamentId) };
+    },
+    unregisterTournament: async tournamentId => {
+        const { signingClient } = await getSigningClient(network);
+        return { txHash: await signingClient.unregisterTournament(tournamentId) };
     }
-}
-
-export const isSdkGapError = (err: unknown): err is SdkGapError => err instanceof SdkGapError;
-
-const sdkGapClient: TournamentTxClient = {
-    createTournament: () => Promise.reject(new SdkGapError("Creating a tournament")),
-    registerTournament: () => Promise.reject(new SdkGapError("Registering for a tournament")),
-    unregisterTournament: () => Promise.reject(new SdkGapError("Unregistering from a tournament"))
-};
-
-/** The tournament transaction client. Today the SDK-gap placeholder; see the file header. */
-export const getTournamentTxClient = (): TournamentTxClient => sdkGapClient;
+});
