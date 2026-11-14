@@ -1,11 +1,11 @@
 import React from "react";
-import { ValidatorBond } from "@block52/poker-vm-sdk";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { truncateMiddle } from "../../utils/stringUtils";
 import { isEmpty } from "../../utils/guards";
+import type { ValidatorBond } from "../../utils/validatorBonds";
 
 interface ValidatorEarningsPanelProps {
-    /** Bonded-USDC weights per validator (SDK single source, poker-vm#2592). */
+    /** Bonded-USDC weights per validator (poker-vm#2592). */
     bonds: ValidatorBond[];
     /**
      * Whether bonded-USDC data has been fetched (from the standard Cosmos staking
@@ -61,8 +61,8 @@ const ValidatorEarningsPanel: React.FC<ValidatorEarningsPanelProps> = ({ bonds, 
                                             <span className="text-white font-mono text-sm">{truncateMiddle(bond.validator, 10, 8)}</span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
-                                            {/* bondedUsdc is a Long in micro-USDC (6dp); toString feeds the shared formatter. */}
-                                            <span className="text-white font-mono">${formatMicroAsUsdc(bond.bondedUsdc.toString(), 2)}</span>
+                                            {/* bondedUsdc is micro-USDC (6dp) as a string. */}
+                                            <span className="text-white font-mono">${formatMicroAsUsdc(bond.bondedUsdc, 2)}</span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             {/* No per-validator earnings query exists yet — do NOT fabricate a value. */}

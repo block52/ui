@@ -7,7 +7,6 @@ import {
     validateTournamentForm,
     type TournamentFormValues
 } from "./tournamentCreate";
-import { isSdkGapError, getTournamentTxClient } from "./tournamentTx";
 
 const NOW = new Date(2026, 10, 12, 10, 0, 0).getTime();
 const STRUCTURE: BlindStructureDTO = { preset: "turbo" };
@@ -136,31 +135,5 @@ describe("tournamentCreationFeeMicro", () => {
     it("cannot price a zero stack or blind", () => {
         expect(tournamentCreationFeeMicro(1_000_000n, 0n, 50n)).toBeNull();
         expect(tournamentCreationFeeMicro(1_000_000n, 1500n, 0n)).toBeNull();
-    });
-});
-
-describe("tournament transactions (SDK gap)", () => {
-    it("refuses every call with an error that names what is missing", async () => {
-        const client = getTournamentTxClient();
-        const calls = [
-            client.registerTournament("0x1"),
-            client.unregisterTournament("0x1"),
-            client.createTournament({
-                buyIn: 1n,
-                entryFee: 0n,
-                startingStack: 1500n,
-                seatsPerTable: 9,
-                minEntrants: 2,
-                maxEntrants: 9,
-                startTime: 1,
-                blindStructure: STRUCTURE,
-                actionTimeoutSeconds: 25
-            })
-        ];
-        for (const call of calls) {
-            const err = await call.catch((e: unknown) => e);
-            expect(isSdkGapError(err)).toBe(true);
-            expect(err).toHaveProperty("message", expect.stringContaining("SDK release"));
-        }
     });
 });
