@@ -78,8 +78,7 @@ function roundOrder(round: TexasHoldemRound): number {
 
 /** Highest action index present, or null when there are no actions. */
 function maxActionIndex(actions: readonly ActionDTO[] | undefined): number | null {
-    // readonly ActionDTO[] does not fit hasElements/isEmpty (they take a mutable T[]).
-    if (!actions || actions.length === 0) { // guards-ok
+    if (!hasElements(actions)) {
         return null;
     }
     let max = actions[0].index;
