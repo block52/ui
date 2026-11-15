@@ -1,3 +1,5 @@
+import { isEmpty } from "./guards";
+
 /**
  * Minimal protobuf codec for CometBFT `abci_query` of the chain's query messages:
  * the single-string requests (`string <name> = 1`, e.g. QueryGameStatePublicRequest)
@@ -67,7 +69,7 @@ export function encodeGameStateRequest(request: GameStateRequest): string {
 export function decodeStringField1(base64: string): string {
     const bin = atob(base64);
     const bytes = Uint8Array.from(bin, c => c.charCodeAt(0));
-    if (bytes.length === 0) return ""; // guards-ok
+    if (isEmpty(bytes)) return "";
     if (bytes[0] !== 0x0a) {
         throw new Error(`Unexpected protobuf tag 0x${bytes[0].toString(16)} (expected field 1, string)`);
     }

@@ -28,7 +28,7 @@ export function isNullish(value: unknown): value is null | undefined {
  * @example
  * if (isEmpty(actions)) { return; }
  */
-export function isEmpty<T>(arr: T[] | null | undefined): boolean {
+export function isEmpty(arr: ArrayLike<unknown> | null | undefined): boolean {
     return !arr || arr.length === 0;
 }
 
@@ -38,7 +38,7 @@ export function isEmpty<T>(arr: T[] | null | undefined): boolean {
  * @example
  * if (hasElements(players)) { startGame(); }
  */
-export function hasElements<T>(arr: T[] | null | undefined): arr is T[] {
+export function hasElements<A extends readonly unknown[]>(arr: A | null | undefined): arr is A {
     return arr !== null && arr !== undefined && arr.length > 0;
 }
 
@@ -49,7 +49,7 @@ export function hasElements<T>(arr: T[] | null | undefined): arr is T[] {
  * @example
  * const actionCount = safeLength(previousActions); // 0 when null/undefined
  */
-export function safeLength<T>(arr: T[] | null | undefined): number {
+export function safeLength(arr: ArrayLike<unknown> | null | undefined): number {
     return arr?.length ?? 0;
 }
 

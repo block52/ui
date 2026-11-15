@@ -24,6 +24,36 @@ describe("isEmpty / hasElements", () => {
     });
 });
 
+describe("readonly arrays and typed arrays (ui#943)", () => {
+    const readonlyList: readonly number[] = [1, 2];
+    const emptyReadonly: readonly number[] = [];
+
+    it("isEmpty / safeLength accept readonly arrays and Uint8Array", () => {
+        expect(isEmpty(emptyReadonly)).toBe(true);
+        expect(isEmpty(readonlyList)).toBe(false);
+        expect(isEmpty(new Uint8Array(0))).toBe(true);
+        expect(isEmpty(new Uint8Array([1]))).toBe(false);
+        expect(isEmpty(null)).toBe(true);
+        expect(isEmpty(undefined)).toBe(true);
+        expect(safeLength(readonlyList)).toBe(2);
+        expect(safeLength(new Uint8Array(3))).toBe(3);
+        expect(safeLength(undefined)).toBe(0);
+    });
+
+    it("hasElements accepts a readonly array and narrows to the caller's own type", () => {
+        const maybe: readonly number[] | undefined = readonlyList;
+        if (hasElements(maybe)) {
+            const first: number = maybe[0];
+            expect(first).toBe(1);
+        } else {
+            throw new Error("expected elements");
+        }
+        expect(hasElements(emptyReadonly)).toBe(false);
+        expect(hasElements(null)).toBe(false);
+        expect(hasElements(undefined)).toBe(false);
+    });
+});
+
 describe("safeLength", () => {
     it.each([null, undefined])("returns 0 for %s", arr => {
         expect(safeLength(arr as unknown[] | null | undefined)).toBe(0);
