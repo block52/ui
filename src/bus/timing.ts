@@ -148,7 +148,7 @@ export const RUNOUT_PAUSE_MS: Readonly<Record<RunoutBeat, number>> = {
     reveal: 1000,
     flop: 800,
     turn: 1200,
-    river: 1800,
+    river: 2600,
     result: 3000
 };
 
@@ -215,3 +215,12 @@ export const TOURNAMENT_WINNER_MOMENT_MS = 5000;
  * first. Matches the run-out's result beat.
  */
 export const FINISH_SHOWDOWN_HOLD_MS = RUNOUT_PAUSE_MS.result;
+
+/**
+ * A multi-table tournament's results come from the polled tournament record, not
+ * from the paced table snapshot, so they can land before the table has even
+ * ingested the hand that produced them (ui#994). The finish hold waits this long
+ * for the table to catch up, then waits for any run-out still playing, before it
+ * starts the deciding-hand beat.
+ */
+export const RECORD_FINISH_SETTLE_MS = 1500;
