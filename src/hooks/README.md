@@ -384,22 +384,6 @@ const {
 **Uses:** Game state + blockchain legal actions
 **Updates:** On every action and game state change
 
-#### `useOptimisticAction()`
-Implements optimistic UI updates for player actions.
-
-```typescript
-const {
-  executeAction,
-  isOptimistic,
-  revertAction
-} = useOptimisticAction();
-```
-
-**Pattern:**
-1. Update UI immediately (optimistic)
-2. Submit to blockchain
-3. Confirm or revert on response
-
 ---
 
 ## 💰 Wallet Hooks (`hooks/wallet/`)
