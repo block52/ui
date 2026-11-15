@@ -17,8 +17,6 @@ import { sitInAndWait } from "./sitInAndWait";
 import { sitOut, SIT_OUT_METHOD_NEXT_HAND, SIT_OUT_METHOD_NEXT_BB } from "./sitOut";
 import type { SitOutMethod } from "./sitOut";
 import { startNewHand } from "./startNewHand";
-import { useOptimisticAction, OptimisticAction } from "./useOptimisticAction";
-import type { OptimisticActionType } from "./useOptimisticAction";
 import { useAutoDeal } from "./useAutoDeal";
 import { useAutoPostBlinds } from "./useAutoPostBlinds";
 import { useAutoNewHand } from "./useAutoNewHand";
@@ -52,8 +50,6 @@ export {
     SIT_OUT_METHOD_NEXT_HAND,
     SIT_OUT_METHOD_NEXT_BB,
     startNewHand,
-    useOptimisticAction,
-    OptimisticAction,
     useAutoDeal,
     useAutoPostBlinds,
     useAutoNewHand,
@@ -66,4 +62,4 @@ export {
     usePreAction
 };
 
-export type { OptimisticActionType, SitInMethod, SitOutMethod };
+export type { SitInMethod, SitOutMethod };
