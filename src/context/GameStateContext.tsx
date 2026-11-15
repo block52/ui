@@ -64,7 +64,6 @@ export interface GameStateContextType {
     replayActionIndex: number | null;
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
-    sendAction: (action: string, amount?: string) => Promise<void>;
     /** actionIndex null = the hand's final state (showdown or last action). */
     loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
     /** One step of a hand replay (ui#816): the public state at a block height. */
@@ -568,37 +567,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         setPendingAction(null);
     }, [closeSocket]);
 
-    // Send action through WebSocket for immediate broadcast
-    const sendAction = useCallback(
-        async (action: string, amount?: string): Promise<void> => {
-            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-                throw new Error("WebSocket not connected");
-            }
-
-            if (!currentTableIdRef.current) {
-                throw new Error("Not subscribed to a table");
-            }
-
-            // Get Cosmos player address
-            const playerAddress = localStorage.getItem(STORAGE_KEYS.cosmosAddress);
-
-            if (!playerAddress) {
-                throw new Error("No Block52 wallet address found. Please connect your wallet.");
-            }
-
-            const actionMessage = {
-                type: "action",
-                gameId: currentTableIdRef.current,
-                playerAddress: playerAddress,
-                action: action,
-                amount: amount
-            };
-
-            wsRef.current.send(JSON.stringify(actionMessage));
-        },
-        []
-    );
-
     // Read-only replay for share links (no WebSocket, no actions):
     //   actionIndex = K    → GameStateAt (pokerchain#160): the current hand only, with
     //                        previousActions truncated at K.
@@ -791,7 +759,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         <GameActionsProvider
             subscribeToTable={subscribeToTable}
             unsubscribeFromTable={unsubscribeFromTable}
-            sendAction={sendAction}
             loadHistoricalState={loadHistoricalState}
             loadHistoricalStateAtHeight={loadHistoricalStateAtHeight}
         >
@@ -832,7 +799,7 @@ export const useGameStateContext = (): GameStateContextType => {
     const { gameFormat, gameVariant, gameName } = useGameMeta();
     const { isLoading, error, validationError, pendingAction, connection } = useGameUI();
     const { isReplayMode, replayHandNumber, replayActionIndex } = useReplay();
-    const { subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState, loadHistoricalStateAtHeight } = useGameActions();
+    const { subscribeToTable, unsubscribeFromTable, loadHistoricalState, loadHistoricalStateAtHeight } = useGameActions();
 
     return useMemo(
         () => ({
@@ -850,7 +817,6 @@ export const useGameStateContext = (): GameStateContextType => {
             replayActionIndex,
             subscribeToTable,
             unsubscribeFromTable,
-            sendAction,
             loadHistoricalState,
             loadHistoricalStateAtHeight
         }),
@@ -869,7 +835,6 @@ export const useGameStateContext = (): GameStateContextType => {
             replayActionIndex,
             subscribeToTable,
             unsubscribeFromTable,
-            sendAction,
             loadHistoricalState,
             loadHistoricalStateAtHeight
         ]

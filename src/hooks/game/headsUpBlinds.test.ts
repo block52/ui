@@ -126,8 +126,7 @@ function setMockContext(gameState: TexasHoldemStateDTO | undefined, gameFormat: 
         validationError: null,
         pendingAction: null,
         subscribeToTable: jest.fn(),
-        unsubscribeFromTable: jest.fn(),
-        sendAction: jest.fn()
+        unsubscribeFromTable: jest.fn()
     });
 }
 
