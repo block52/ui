@@ -65,11 +65,24 @@ export function tournamentFinishOf(state: TexasHoldemStateDTO | undefined): Tour
  * already there, where the modal should show straight away.
  */
 export function hasNewFinisher(prev: TexasHoldemStateDTO | undefined, next: TexasHoldemStateDTO): boolean {
-    if (!prev || !hasElements(next.results)) {
+    if (!prev) {
         return false;
     }
-    const before = new Set((prev.results ?? []).map(r => r.playerId.toLowerCase()));
-    return next.results.some(r => !before.has(r.playerId.toLowerCase()));
+    return hasNewResults(prev.results, next.results);
+}
+
+/**
+ * Did `next` add a finisher that `prev` did not have? Works on bare results
+ * lists, so the tournament record of a multi-table tournament (polled, not
+ * paced by the bus) is judged the same way as a table snapshot. An undefined
+ * `prev` is "nothing seen yet", never a live finish.
+ */
+export function hasNewResults(prev: ResultDTO[] | undefined, next: ResultDTO[] | undefined): boolean {
+    if (!prev || !hasElements(next)) {
+        return false;
+    }
+    const before = new Set(prev.map(r => r.playerId.toLowerCase()));
+    return next.some(r => !before.has(r.playerId.toLowerCase()));
 }
 
 /**
