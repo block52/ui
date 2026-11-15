@@ -106,7 +106,7 @@ export default function PlayerProfilePage() {
                             <StatCard label="Total Cash-Out" value={formatUsd(profile.total_cash_outs)} />
                             <StatCard label="Sessions" value={profile.session_count.toLocaleString()} />
                             <StatCard label="Total Actions" value={profile.total_actions.toLocaleString()} />
-                            <StatCard label="Rake Contributed" value={formatUsd(profile.total_rake_contributed)} />
+                            <StatCard label="Network Fees Paid" value={formatUsd(profile.total_rake_contributed)} />
                             <StatCard label="VIP Points" value={profile.vip_points.toLocaleString()} />
                         </div>
 

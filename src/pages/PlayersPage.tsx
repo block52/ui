@@ -120,7 +120,7 @@ export default function PlayersPage() {
                                             className="hidden sm:table-cell px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
                                             onClick={() => toggleSort("total_rake_contributed")}
                                         >
-                                            Rake{sortArrow("total_rake_contributed")}
+                                            Network fees{sortArrow("total_rake_contributed")}
                                         </th>
                                     </tr>
                                 </thead>
