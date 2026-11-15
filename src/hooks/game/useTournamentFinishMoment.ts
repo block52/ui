@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import type { ResultDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
+import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS, RECORD_FINISH_SETTLE_MS } from "../../bus/timing";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { finishPhaseAt, hasNewFinisher, nextFinishPhaseAtMs, tournamentFinishOf, type FinishPhase, type TournamentFinish } from "../../utils/tournamentFinish";
+import { finishPhaseAt, hasNewFinisher, hasNewResults, nextFinishPhaseAtMs, tournamentFinishOf, type FinishPhase, type TournamentFinish } from "../../utils/tournamentFinish";
 import { hasValue, isNullish } from "../../utils/guards";
 
 export interface TournamentFinishMoment {
@@ -25,8 +26,8 @@ const IDLE: TournamentFinishMoment = { phase: null, finish: null };
  * them through (`done`). A table opened after the finish has no live
  * transition, so its modal shows at once.
  */
-export function useTournamentFinishMoment(): TournamentFinishMoment {
-    const { latestItem } = useGameEventsContext();
+export function useTournamentFinishMoment(recordResults?: ResultDTO[]): TournamentFinishMoment {
+    const { latestItem, isPlayingSuspense } = useGameEventsContext();
     const prevSnapshotRef = useRef<TexasHoldemStateDTO | undefined>(undefined);
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const [moment, setMoment] = useState<TournamentFinishMoment>(IDLE);
@@ -59,6 +60,44 @@ export function useTournamentFinishMoment(): TournamentFinishMoment {
         }
         advance();
     }, [latestItem]);
+
+    // A multi-table tournament's results live on the polled tournament record, not
+    // on the table snapshot, so a bust-out can arrive before the table has even
+    // ingested the hand behind it (ui#994). Hold at once, give the table
+    // RECORD_FINISH_SETTLE_MS to catch up, wait for any run-out still playing,
+    // then give the deciding hand its result beat.
+    const prevRecordRef = useRef<ResultDTO[] | undefined>(undefined);
+    useLayoutEffect(() => {
+        const prev = prevRecordRef.current;
+        prevRecordRef.current = recordResults;
+        if (!hasNewResults(prev, recordResults)) {
+            return;
+        }
+        if (hasValue(timerRef.current)) {
+            clearTimeout(timerRef.current);
+        }
+        setMoment({ phase: "showdown", finish: null });
+        const detectedAt = Date.now();
+        const startBeat = () => {
+            const startedAt = Date.now();
+            const advance = () => {
+                const elapsed = Date.now() - startedAt;
+                setMoment({ phase: finishPhaseAt(elapsed, false), finish: null });
+                const nextAt = nextFinishPhaseAtMs(elapsed, false);
+                timerRef.current = isNullish(nextAt) ? null : setTimeout(advance, Math.max(0, nextAt - elapsed));
+            };
+            advance();
+        };
+        const waitForRunout = () => {
+            const waited = Date.now() - detectedAt;
+            if (isPlayingSuspense() && waited < MAX_AUTO_DEAL_DEFER_MS) {
+                timerRef.current = setTimeout(waitForRunout, AUTO_DEAL_DEFER_POLL_MS);
+                return;
+            }
+            startBeat();
+        };
+        timerRef.current = setTimeout(waitForRunout, RECORD_FINISH_SETTLE_MS);
+    }, [recordResults, isPlayingSuspense]);
 
     useEffect(
         () => () => {

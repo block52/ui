@@ -6,11 +6,12 @@ import { renderHook, act } from "@testing-library/react";
 import type { ResultDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { useTournamentFinishMoment } from "./useTournamentFinishMoment";
 import type { GameStreamItem } from "../../bus/types";
-import { FINISH_SHOWDOWN_HOLD_MS, TOURNAMENT_WINNER_MOMENT_MS } from "../../bus/timing";
+import { FINISH_SHOWDOWN_HOLD_MS, RECORD_FINISH_SETTLE_MS, TOURNAMENT_WINNER_MOMENT_MS } from "../../bus/timing";
 
 let mockItem: GameStreamItem | null = null;
+let mockSuspense = false;
 jest.mock("../../context/gameState/GameEventsContext", () => ({
-    useGameEventsContext: () => ({ latestItem: mockItem })
+    useGameEventsContext: () => ({ latestItem: mockItem, isPlayingSuspense: () => mockSuspense })
 }));
 
 let seq = 0;
@@ -36,6 +37,7 @@ describe("useTournamentFinishMoment", () => {
     beforeEach(() => {
         jest.useFakeTimers();
         mockItem = null;
+        mockSuspense = false;
     });
     afterEach(() => {
         jest.clearAllTimers();
@@ -88,5 +90,40 @@ describe("useTournamentFinishMoment", () => {
         commit(FINAL, "cash");
         rerender();
         expect(result.current.phase).toBeNull();
+    });
+
+    describe("a finisher that arrives on the tournament record (ui#994)", () => {
+        const BUST: ResultDTO[] = [{ place: 3, playerId: "b521c", payout: "0" }];
+
+        it("holds at once, waits out a playing run-out, then gives the deciding hand its beat", () => {
+            const { result, rerender } = renderHook(({ r }: { r: ResultDTO[] }) => useTournamentFinishMoment(r), { initialProps: { r: [] as ResultDTO[] } });
+            expect(result.current.phase).toBeNull();
+
+            mockSuspense = true;
+            rerender({ r: BUST });
+            expect(result.current.phase).toBe("showdown");
+
+            // Still playing the run-out: the hold does not start counting down.
+            act(() => {
+                jest.advanceTimersByTime(RECORD_FINISH_SETTLE_MS + FINISH_SHOWDOWN_HOLD_MS + 1000);
+            });
+            expect(result.current.phase).toBe("showdown");
+
+            mockSuspense = false;
+            act(() => {
+                jest.advanceTimersByTime(1000);
+            });
+            expect(result.current.phase).toBe("showdown");
+            act(() => {
+                jest.advanceTimersByTime(FINISH_SHOWDOWN_HOLD_MS);
+            });
+            expect(result.current.phase).toBe("done");
+        });
+
+        it("does not hold for results already on the record when the table opens", () => {
+            const { result, rerender } = renderHook(({ r }: { r?: ResultDTO[] }) => useTournamentFinishMoment(r), { initialProps: { r: undefined as ResultDTO[] | undefined } });
+            rerender({ r: BUST });
+            expect(result.current.phase).toBeNull();
+        });
     });
 });
