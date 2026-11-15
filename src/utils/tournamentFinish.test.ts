@@ -1,5 +1,5 @@
 import type { ResultDTO, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
-import { finishPhaseAt, hasNewFinisher, holdsResultModals, nextFinishPhaseAtMs, ordinalPlace, tournamentFinishOf, winnerMomentText } from "./tournamentFinish";
+import { finishPhaseAt, hasNewFinisher, hasNewResults, holdsResultModals, nextFinishPhaseAtMs, ordinalPlace, tournamentFinishOf, winnerMomentText } from "./tournamentFinish";
 import { FINISH_SHOWDOWN_HOLD_MS, TOURNAMENT_WINNER_MOMENT_MS } from "../bus/timing";
 
 const ALICE = "b521alice";
@@ -59,6 +59,19 @@ describe("hasNewFinisher (ui#874)", () => {
         expect(hasNewFinisher(undefined, FINAL)).toBe(false);
         expect(hasNewFinisher(FINAL, FINAL)).toBe(false);
         expect(hasNewFinisher(state([]), state([]))).toBe(false);
+    });
+});
+
+describe("hasNewResults (ui#994)", () => {
+    const BUST = [{ place: 3, playerId: BOB, payout: "0" }];
+    it("fires when a list gains a finisher, case-insensitively", () => {
+        expect(hasNewResults([], BUST)).toBe(true);
+        expect(hasNewResults([{ place: 3, playerId: BOB.toUpperCase(), payout: "0" }], BUST)).toBe(false);
+    });
+    it("is not a live finish before anything has been seen, or when nothing changed", () => {
+        expect(hasNewResults(undefined, BUST)).toBe(false);
+        expect(hasNewResults(BUST, BUST)).toBe(false);
+        expect(hasNewResults([], undefined)).toBe(false);
     });
 });
 
