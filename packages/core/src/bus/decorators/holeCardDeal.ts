@@ -20,8 +20,8 @@
  * Pure function; unit-tested in isolation.
  */
 import type { Decorator, Decoration, AnimationHint } from "../types";
-import { hasElements, isNullish } from "@block52/poker-ui-core/utils/guards";
-import { HOLE_CARD_STAGGER_MS } from "@block52/poker-ui-core/bus/timing";
+import { hasElements, isNullish } from "../../utils/guards";
+import { HOLE_CARD_STAGGER_MS } from "../timing";
 
 /** The `AnimationHint.kind` this decorator attaches and useHoleCardDeal consumes. */
 export const DEAL_HOLE_CARDS_KIND = "dealHoleCards";

@@ -15,7 +15,6 @@ import { makeRemoteActionSound } from "./remoteActionSound";
 import { coalesceCatchUp } from "./coalesceCatchUp";
 import { holeCardDeal } from "./holeCardDeal";
 import { makeRunoutSuspense } from "./runoutSuspense";
-import { prefersReducedMotion } from "../../utils/motion";
 
 export { showdownHold, SHOWDOWN_HOLD_MS } from "./showdownHold";
 export { communityCardStagger, CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "./communityCardStagger";
@@ -31,7 +30,7 @@ export { makeRunoutSuspense } from "./runoutSuspense";
  * @param getReducedMotion accessor for the viewer's reduced-motion preference,
  *   closed over by runoutSuspense (shorter run-out pauses).
  */
-export function buildDefaultDecorators(getLocalAddress: () => string | null, getReducedMotion: () => boolean = prefersReducedMotion): Decorator[] {
+export function buildDefaultDecorators(getLocalAddress: () => string | null, getReducedMotion: () => boolean): Decorator[] {
     return [
         showdownHold,
         communityCardStagger,

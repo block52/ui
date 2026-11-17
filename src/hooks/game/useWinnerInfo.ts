@@ -6,7 +6,7 @@ import { formatAmount } from "../../utils/accountUtils";
 import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { WinnerInfo, WinnerInfoReturn } from "@block52/poker-ui-core/types";
 import { hasElements } from "@block52/poker-ui-core/utils/guards";
-import { getWinType } from "../../utils/winnerDescriptions";
+import { getWinType } from "@block52/poker-ui-core/utils/winnerDescriptions";
 
 /**
  * Format a won amount the way the action log formats bets (ui#727): SNG and

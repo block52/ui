@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { ShowingCardsByAddressReturn, ShowingCardData } from "@block52/poker-ui-core/types";
-import { isRevealedHand } from "../../bus/deriveEvents";
+import { isRevealedHand } from "@block52/poker-ui-core/bus/deriveEvents";
 import { isTabledHand } from "@block52/poker-ui-core/utils/tabledHand";
 
 /**

@@ -71,9 +71,8 @@ import { GameStreamItem, BusIntrospection, DEFAULT_DECORATION, Decoration, GameE
 import { deriveEvents } from "./deriveEvents";
 import { expandFrames, runoutBeats } from "./expandFrames";
 import { buildDefaultDecorators } from "./decorators";
-import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
-import { hasValue, isEmpty, isNullish } from "@block52/poker-ui-core/utils/guards";
-import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { hasValue, isEmpty, isNullish } from "../utils/guards";
+import { isTournamentFormat } from "../utils/gameFormatUtils";
 
 /** Cap on the retained commit log so the dev handle never grows unbounded. */
 const COMMIT_LOG_CAP = 200;
@@ -104,8 +103,10 @@ export interface GameMessageBusOptions {
     now?: () => number;
     /** Decorators to run at ingest; defaults to {@link buildDefaultDecorators}. */
     decorators?: Decorator[];
-    /** Local cosmos address accessor for remoteActionSound; defaults to localStorage. */
+    /** Local cosmos address accessor for remoteActionSound. Injected so the bus holds no storage (the web app reads localStorage); defaults to "no local player", so no echo is suppressed. */
     getLocalAddress?: () => string | null;
+    /** Viewer's reduced-motion preference for runoutSuspense; defaults to "no preference". The web app reads matchMedia. */
+    getReducedMotion?: () => boolean;
 }
 
 export class GameMessageBus {
@@ -171,7 +172,7 @@ export class GameMessageBus {
     constructor(options: GameMessageBusOptions) {
         this.setLatestGameState = options.setLatestGameState;
         this.now = options.now ?? (() => performance.now());
-        this.decorators = options.decorators ?? buildDefaultDecorators(options.getLocalAddress ?? getCosmosAddressSync);
+        this.decorators = options.decorators ?? buildDefaultDecorators(options.getLocalAddress ?? (() => null), options.getReducedMotion ?? (() => false));
     }
 
     /** Subscribe to committed items. Returns an unsubscribe function. */

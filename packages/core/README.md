@@ -11,4 +11,4 @@ Headless poker UI logic shared by `block52/ui` and `block52/desktop`: pure TypeS
 ## Adding a module
 It belongs here if it is pure (no `window`/`document`/`localStorage`/`import.meta`/React) and everything it imports is also here or an npm package. Move it with `git mv` into `packages/core/src/<same path>` and rewrite importers to the package path.
 
-Tracking issue: block52/ui#1001. Next: bus (`ingest`/`GameMessageBus` still reach into components and context), then publishing and the desktop adoption.
+Tracking issue: block52/ui#1001. The bus (`bus/`) is here; it takes the local address and reduced-motion preference by injection (`getLocalAddress`, `getReducedMotion`). `purity.test.ts` fails the build if React, app imports or browser storage creep in. Next: publishing and the desktop adoption.

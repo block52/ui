@@ -13,8 +13,8 @@ import { coalesceCatchUp } from "./coalesceCatchUp";
 import { holeCardDeal, dealingOrder, DEAL_HOLE_CARDS_KIND } from "./holeCardDeal";
 import { buildDefaultDecorators } from "./index";
 import { makeRunoutSuspense } from "./runoutSuspense";
-import { runoutBeatHoldMs } from "@block52/poker-ui-core/bus/timing";
-import { HOLE_CARD_STAGGER_MS } from "@block52/poker-ui-core/bus/timing";
+import { runoutBeatHoldMs } from "../timing";
+import { HOLE_CARD_STAGGER_MS } from "../timing";
 import { DEFAULT_DECORATION, GameEvent, GameStreamItem } from "../types";
 import { ActionDTO, PlayerActionType, TexasHoldemRound, WinnerDTO } from "@block52/poker-vm-sdk";
 

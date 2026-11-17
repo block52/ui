@@ -13,7 +13,7 @@
  */
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../context/NetworkContext";
-import { withWinnerDescriptions } from "./winnerDescriptions";
+import { withWinnerDescriptions } from "@block52/poker-ui-core/utils/winnerDescriptions";
 import { isEmpty, isNumber, isString } from "@block52/poker-ui-core/utils/guards";
 import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 
