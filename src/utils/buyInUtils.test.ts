@@ -3,6 +3,7 @@ import {
     validateBuyInBB,
     formatBuyInRange,
     computeSngEntryBreakdown,
+    NETWORK_FEE_MICRO,
     BUY_IN_PRESETS,
     BuyInConfig
 } from "./buyInUtils";
@@ -170,33 +171,47 @@ describe("buyInUtils", () => {
     });
 
     describe("computeSngEntryBreakdown", () => {
-        it("should split the issue #2592 example: $9 buy-in, 10% fee, $1 owner fee", () => {
-            // buyIn $9 = 9_000_000 micro, entryFee $1 = 1_000_000 micro, bps 1000 = 10%
+        it("should add the flat 0.10 network fee on top when the game has no percentage rate (pokerchain#476)", () => {
+            // buyIn $9 = 9_000_000 micro, entryFee $1 = 1_000_000 micro, no bps
+            const result = computeSngEntryBreakdown("9000000", "1000000", undefined);
+
+            expect(result.networkFee).toBe(NETWORK_FEE_MICRO);
+            expect(result.networkFee).toBe(100000n); // $0.10
+            expect(result.protocolCut).toBe(0n);
+            expect(result.prizePoolPortion).toBe(9000000n); // full buy-in reaches the pool
+            expect(result.ownerFee).toBe(1000000n);
+            expect(result.total).toBe(10100000n); // $10.10 = buyIn + ownerFee + network fee
+            expect(result.hasNetworkFee).toBe(true);
+            expect(result.hasLegacyPercentageFee).toBe(false);
+        });
+
+        it("should treat zero protocolFeeBps as a new game with the flat network fee", () => {
+            const result = computeSngEntryBreakdown("9000000", "0", 0);
+
+            expect(result.protocolCut).toBe(0n);
+            expect(result.networkFee).toBe(100000n);
+            expect(result.prizePoolPortion).toBe(9000000n);
+            expect(result.total).toBe(9100000n);
+            expect(result.hasNetworkFee).toBe(true);
+            expect(result.hasLegacyPercentageFee).toBe(false);
+        });
+
+        it("should charge the same network fee at every stake", () => {
+            expect(computeSngEntryBreakdown("1000000", "0", undefined).networkFee).toBe(100000n);
+            expect(computeSngEntryBreakdown("1000000000", "0", undefined).networkFee).toBe(100000n);
+        });
+
+        it("should keep the legacy 10% maths for games that still carry a rate: $9 buy-in, 10%, $1 owner fee", () => {
+            // Issue #2592 example. bps 1000 = 10%, taken out of the buy-in.
             const result = computeSngEntryBreakdown("9000000", "1000000", 1000);
 
             expect(result.protocolCut).toBe(900000n); // $0.90
             expect(result.prizePoolPortion).toBe(8100000n); // $8.10
             expect(result.ownerFee).toBe(1000000n); // $1.00
+            expect(result.networkFee).toBe(0n); // never both fees
             expect(result.total).toBe(10000000n); // $10.00 = buyIn + ownerFee
-            expect(result.hasProtocolFee).toBe(true);
-        });
-
-        it("should treat absent protocolFeeBps as no protocol fee", () => {
-            const result = computeSngEntryBreakdown("9000000", "1000000", undefined);
-
-            expect(result.protocolCut).toBe(0n);
-            expect(result.prizePoolPortion).toBe(9000000n); // full buy-in
-            expect(result.ownerFee).toBe(1000000n);
-            expect(result.total).toBe(10000000n);
-            expect(result.hasProtocolFee).toBe(false);
-        });
-
-        it("should treat zero protocolFeeBps as no protocol fee", () => {
-            const result = computeSngEntryBreakdown("9000000", "0", 0);
-
-            expect(result.protocolCut).toBe(0n);
-            expect(result.prizePoolPortion).toBe(9000000n);
-            expect(result.hasProtocolFee).toBe(false);
+            expect(result.hasLegacyPercentageFee).toBe(true);
+            expect(result.hasNetworkFee).toBe(false);
         });
 
         it("should floor the protocol cut and keep dust in the prize-pool portion", () => {
@@ -217,6 +232,13 @@ describe("buyInUtils", () => {
             expect(result.prizePoolPortion).toBe(0n);
             expect(result.ownerFee).toBe(0n);
             expect(result.total).toBe(0n);
+        });
+
+        it("should still charge the network fee when buy-in and owner fee are missing on a new game", () => {
+            const result = computeSngEntryBreakdown(undefined, undefined, undefined);
+
+            expect(result.prizePoolPortion).toBe(0n);
+            expect(result.total).toBe(100000n);
         });
 
         it("should accept bigint and number inputs", () => {
