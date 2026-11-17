@@ -23,7 +23,6 @@ import {
     type TournamentStatus
 } from "@block52/poker-vm-sdk";
 import { hasElements, isNullish, isNumber, isRecord, isString } from "./guards";
-import { NETWORK_FEE_MICRO } from "./buyInUtils";
 import { gameIdFromTableId } from "./tournamentFollow";
 
 export interface TournamentEntrantView {
@@ -194,17 +193,18 @@ export interface TournamentEntryCost {
 
 /**
  * Mirrors pokerchain `feesFor`: the entry fee comes OUT of the buy-in (unlike a
- * sit-and-go's owner fee). A new tournament (block52/pokerchain#476) adds a flat
- * 0.10 USDC network fee ON TOP, so the player pays buy-in + 0.10 and the escrow
- * is buy-in minus entry fee. An older tournament that still carries a percentage
+ * sit-and-go's owner fee). A new tournament (block52/pokerchain#476) adds the flat
+ * network fee ON TOP (`networkFeeMicro`, the governance-set x/poker param, 0.10
+ * USDC by default, may be 0), so the player pays buy-in + fee and the escrow is
+ * buy-in minus entry fee. An older tournament that still carries a percentage
  * rate takes that cut out of the buy-in instead, with no flat fee. Never both.
  */
-export function tournamentEntryCost(options: Pick<TournamentOptionsView, "buyIn" | "entryFee" | "protocolFeeBps">): TournamentEntryCost {
+export function tournamentEntryCost(options: Pick<TournamentOptionsView, "buyIn" | "entryFee" | "protocolFeeBps">, networkFeeMicro: bigint): TournamentEntryCost {
     const gross = BigInt(options.buyIn);
     const entryFee = isNullish(options.entryFee) ? 0n : BigInt(options.entryFee);
     const bps = isNullish(options.protocolFeeBps) || options.protocolFeeBps <= 0 ? 0n : BigInt(options.protocolFeeBps);
     const protocolCut = (gross * bps) / 10000n;
-    const networkFee = bps > 0n ? 0n : NETWORK_FEE_MICRO;
+    const networkFee = bps > 0n ? 0n : networkFeeMicro;
     return { gross, entryFee, protocolCut, networkFee, total: gross + networkFee, net: gross - entryFee - protocolCut };
 }
 
@@ -279,12 +279,13 @@ function tablePlayedBy(entrant: TournamentEntrantView | undefined): { gameId: st
 /**
  * The lobby card for a tournament as seen by `viewer` (undefined = no wallet).
  * Registration closes at the start time, so the buttons follow the clock rather
- * than waiting for the chain to flip the status.
+ * than waiting for the chain to flip the status. `networkFeeMicro` is the
+ * chain's flat network fee per entry (from `useNetworkFee`).
  */
-export function buildTournamentCard(record: TournamentRecord, viewer: string | undefined, nowMs: number): TournamentLobbyCard {
+export function buildTournamentCard(record: TournamentRecord, viewer: string | undefined, nowMs: number, networkFeeMicro: bigint): TournamentLobbyCard {
     const { state, creator } = record;
     const phase = tournamentPhase(state, nowMs);
-    const cost = tournamentEntryCost(state.options);
+    const cost = tournamentEntryCost(state.options, networkFeeMicro);
     const registered = countedEntrants(state.entrants).length;
     const mine = isNullish(viewer) ? undefined : state.entrants.find(e => e.address === viewer);
     const isRegistered = !isNullish(mine) && mine.status !== "unregistered";
@@ -410,6 +411,18 @@ export function escrowStatement(cost: TournamentEntryCost): { register: string; 
         register: `You pay ${paid} now. ${formatUsdc(cost.net)} of it is held in escrow for the prize pool.${feeNote}`,
         unregister: `Unregistering returns the ${formatUsdc(cost.net)} held in escrow, not the full ${formatUsdc(cost.total)} you paid.${feeNote} If the tournament is cancelled for too few entrants, the refund is currently the same escrowed amount.`
     };
+}
+
+/**
+ * The lobby's footnote on what registering costs, priced with the chain's flat
+ * network fee per entry (`networkFeeMicro`, governance-set; 0 = no fee).
+ */
+export function registrationFeeNotice(networkFeeMicro: bigint): string {
+    const refund = "Unregistering, or a tournament cancelled for too few entrants, returns only the rest of the buy-in held in escrow.";
+    if (networkFeeMicro > 0n) {
+        return `You pay the buy-in plus a ${formatUsdc(networkFeeMicro)} network fee when you register. The network fee and the entry fee (which comes out of the buy-in) are not refunded. ${refund}`;
+    }
+    return `You pay the buy-in when you register. The entry fee (which comes out of the buy-in) is not refunded. ${refund}`;
 }
 
 const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);

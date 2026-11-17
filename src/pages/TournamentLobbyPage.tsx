@@ -9,7 +9,7 @@ import { useTournamentActions } from "../hooks/tournament/useTournamentActions";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { parseMicroToBigInt } from "../constants/currency";
 import { isEmpty } from "../utils/guards";
-import type { TournamentLobbyCard } from "../utils/tournamentLobby";
+import { registrationFeeNotice, type TournamentLobbyCard } from "../utils/tournamentLobby";
 
 interface PendingAction {
     card: TournamentLobbyCard;
@@ -18,7 +18,7 @@ interface PendingAction {
 
 /** /tournaments: multi-table tournaments to register for, and the form to create one (ui#980). */
 export default function TournamentLobbyPage() {
-    const { cards, isLoading, error, failedCount, refresh } = useTournamentLobby();
+    const { cards, isLoading, error, failedCount, refresh, networkFeeMicro } = useTournamentLobby();
     const actions = useTournamentActions(refresh);
     const now = useNow(1000);
     const [pending, setPending] = useState<PendingAction | null>(null);
@@ -100,10 +100,7 @@ export default function TournamentLobbyPage() {
                         {failedCount} {failedCount === 1 ? "tournament" : "tournaments"} could not be read and {failedCount === 1 ? "is" : "are"} not shown.
                     </p>
                 )}
-                <p className="mt-4 text-xs text-gray-400">
-                    You pay the buy-in plus a 0.10 USDC network fee when you register. The network fee and the entry fee (which comes out of the buy-in) are not
-                    refunded. Unregistering, or a tournament cancelled for too few entrants, returns only the rest of the buy-in held in escrow.
-                </p>
+                <p className="mt-4 text-xs text-gray-400">{registrationFeeNotice(networkFeeMicro)}</p>
             </div>
 
             <TournamentRegisterModal

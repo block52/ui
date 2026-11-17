@@ -3,6 +3,7 @@ import { useMinAndMaxBuyIns } from "../../hooks/game/useMinAndMaxBuyIns";
 import { useNavigate } from "react-router-dom";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
+import { useNetworkFee } from "../../hooks/game/useNetworkFee";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { HexagonPattern } from "../common/Modal";
 import { joinTable } from "../../hooks/playerActions/joinTable";
@@ -82,8 +83,11 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     // Sit & Go seats pay fees; cash tables never do (even a fixed buy-in one).
     const isFeeBearingSeat = isSitAndGo && !(gameFormat && isCashFormat(gameFormat));
 
+    // The chain's flat network fee per seat (governance-set; 0.10 USDC until read).
+    const { networkFeeMicro } = useNetworkFee();
+
     // Entry-cost breakdown for Sit & Go. New games (block52/pokerchain#476) pay
-    // a flat 0.10 USDC network fee ON TOP of the buy-in; the whole buy-in goes
+    // the chain's flat network fee ON TOP of the buy-in; the whole buy-in goes
     // to the prize pool. Games that still carry a percentage rate (poker-vm#2592)
     // keep it, taken OUT OF the buy-in, with no flat fee. The owner fee
     // (entryFee) is charged on top either way. Computed in micro-USDC bigint.
@@ -91,7 +95,8 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
         const breakdown = computeSngEntryBreakdown(
             maxBuyInValue,
             gameState?.gameOptions?.entryFee,
-            gameState?.gameOptions?.protocolFeeBps
+            gameState?.gameOptions?.protocolFeeBps,
+            networkFeeMicro
         );
 
         // Fees charged on top of the buy-in (owner fee + network fee), in
@@ -110,11 +115,11 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
             ownerFeeFormatted: formatUSDCToSimpleDollars(breakdown.ownerFee),
             totalFormatted: formatUSDCToSimpleDollars(breakdown.total)
         };
-    }, [isFeeBearingSeat, maxBuyInValue, gameState?.gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
+    }, [isFeeBearingSeat, maxBuyInValue, gameState?.gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps, networkFeeMicro]);
 
     // Least the player must hold to take a seat: the minimum buy-in, plus the
     // owner fee and network fee on a Sit & Go seat. Cash tables: buy-in only.
-    // Compared in micro-USDC bigint so 0.10 fees never hit float rounding.
+    // Compared in micro-USDC bigint so small fees never hit float rounding.
     const balanceMicro = useMemo(
         () => parseMicroToBigInt(cosmosWallet.balance.find(b => b.denom === "usdc")?.amount),
         [cosmosWallet.balance]
@@ -393,7 +398,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                                 <div className="text-xs text-gray-400 mt-1">This is a fixed buy-in tournament</div>
                             </div>
 
-                            {/* Entry-cost breakdown. New games: + 0.10 USDC network fee on top
+                            {/* Entry-cost breakdown. New games: + the chain's network fee on top
                                 of the buy-in, whole buy-in to the prize pool
                                 (block52/pokerchain#476). Older games keep their percentage,
                                 taken out of the buy-in (poker-vm#2592). Never both. */}

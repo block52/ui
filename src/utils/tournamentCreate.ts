@@ -58,7 +58,7 @@ export interface TournamentFormInput {
     /**
      * A legacy percentage rate in basis points, for the net buy-in check. Only
      * tournaments created before block52/pokerchain#476 carried one; new ones pay
-     * a flat 0.10 USDC network fee on top of the buy-in instead, which does not
+     * the flat network fee (governance-set, 0.10 USDC by default) on top of the buy-in instead, which does not
      * come out of the prize pool. Leave undefined for new tournaments.
      */
     protocolFeeBps?: number;

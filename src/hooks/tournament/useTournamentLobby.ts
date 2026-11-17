@@ -13,6 +13,7 @@ import {
     type TournamentRecord
 } from "../../utils/tournamentLobby";
 import { isNullish } from "../../utils/guards";
+import { useNetworkFee } from "../game/useNetworkFee";
 
 /** How often the lobby re-reads the chain. */
 export const TOURNAMENT_LOBBY_POLL_MS = 5000;
@@ -38,6 +39,8 @@ export interface UseTournamentLobbyResult {
     /** Tournaments whose state could not be read or parsed; the rest still show. */
     failedCount: number;
     refresh: () => Promise<void>;
+    /** The chain's flat network fee per entry (micro-USDC) the cards were priced with. */
+    networkFeeMicro: bigint;
 }
 
 /**
@@ -56,6 +59,7 @@ export const useTournamentLobby = (): UseTournamentLobbyResult => {
     const requestSeq = useRef(0);
     const now = useNow(1000);
     const viewer = getCosmosAddress() ?? undefined;
+    const { networkFeeMicro } = useNetworkFee();
 
     const refresh = useCallback(async () => {
         const seq = ++requestSeq.current;
@@ -91,7 +95,7 @@ export const useTournamentLobby = (): UseTournamentLobbyResult => {
         };
     }, [refresh]);
 
-    const cards = useMemo(() => sortTournamentCards(records.map(r => buildTournamentCard(r, isNullish(viewer) ? undefined : viewer, now))), [records, viewer, now]);
+    const cards = useMemo(() => sortTournamentCards(records.map(r => buildTournamentCard(r, isNullish(viewer) ? undefined : viewer, now, networkFeeMicro))), [records, viewer, now, networkFeeMicro]);
 
-    return { cards, viewer, isLoading, error, failedCount, refresh };
+    return { cards, viewer, isLoading, error, failedCount, refresh, networkFeeMicro };
 };

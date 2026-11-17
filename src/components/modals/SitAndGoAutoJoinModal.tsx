@@ -13,6 +13,7 @@ import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { joinTable } from "../../hooks/playerActions/joinTable";
 import { formatUSDCToSimpleDollars, formatForSitAndGo } from "../../utils/numberUtils";
 import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
+import { useNetworkFee } from "../../hooks/game/useNetworkFee";
 import { getCosmosBalance } from "../../utils/cosmosAccountUtils";
 import { useNetwork } from "../../context/NetworkContext";
 import { colors as _colors, hexToRgba as _hexToRgba } from "../../utils/colorConfig";
@@ -121,8 +122,11 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         };
     }, [gameOptions, accountBalance]);
 
-    // Entry-cost breakdown. New games (block52/pokerchain#476) pay a flat 0.10
-    // USDC network fee ON TOP of the buy-in, and the whole buy-in goes to the
+    // The chain's flat network fee per seat (governance-set; 0.10 USDC until read).
+    const { networkFeeMicro } = useNetworkFee();
+
+    // Entry-cost breakdown. New games (block52/pokerchain#476) pay the chain's
+    // flat network fee ON TOP of the buy-in, and the whole buy-in goes to the
     // prize pool. Games that still carry a percentage rate (poker-vm#2592) keep
     // it: the cut comes OUT OF the buy-in and no flat fee is added. Computed in
     // micro-USDC bigint via the shared, tested util.
@@ -132,7 +136,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         // protocolFeeBps is optional and not surfaced by useGameOptions' Required<>
         // mapping — read it from the raw DTO (single source: the chain).
         const protocolFeeBps = gameState?.gameOptions?.protocolFeeBps;
-        const breakdown = computeSngEntryBreakdown(buyIn, entryFee, protocolFeeBps);
+        const breakdown = computeSngEntryBreakdown(buyIn, entryFee, protocolFeeBps, networkFeeMicro);
 
         return {
             hasNetworkFee: breakdown.hasNetworkFee,
@@ -145,7 +149,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             ownerFeeFormatted: formatUSDCToSimpleDollars(breakdown.ownerFee),
             totalFormatted: formatUSDCToSimpleDollars(breakdown.total)
         };
-    }, [gameOptions?.maxBuyIn, gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
+    }, [gameOptions?.maxBuyIn, gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps, networkFeeMicro]);
 
     // The player must hold the FULL entry cost (buy-in + owner fee + network
     // fee), not just the buy-in — the chain rejects a join short of it.
@@ -395,7 +399,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                                     </div>
                                 </div>
 
-                                {/* Entry-cost breakdown. New games: + 0.10 USDC network fee on
+                                {/* Entry-cost breakdown. New games: + the chain's network fee on
                                     top of the buy-in, whole buy-in to the prize pool
                                     (block52/pokerchain#476). Older games keep their percentage,
                                     taken out of the buy-in (poker-vm#2592). Never both. */}
