@@ -11,27 +11,45 @@ import { parseMicroToBigInt } from "../constants/currency";
 export const BPS_DENOMINATOR = 10000n;
 
 /**
+ * Fallback flat network fee per Sit & Go seat or tournament entry, in micro-USDC
+ * (0.10 USDC): the chain default and the constant charged by chains from before
+ * the fee became a governance param. The live value is the x/poker param
+ * `network_fee_per_entry` (block52/pokerchain#476), read by `useNetworkFee`;
+ * this is only used while that loads, if it fails, or on an SDK without
+ * `getNetworkFeePerEntry`. Paid ON TOP of the buy-in. Cash tables pay none.
+ */
+export const DEFAULT_NETWORK_FEE_MICRO = 100_000n;
+
+/**
  * Sit & Go entry-cost breakdown, all amounts in USDC micro-units (bigint).
  *
- * The protocol fee is skimmed OUT OF the buy-in (it is NOT added on top): the
- * prize-pool portion is `buyIn - protocolCut`. The owner fee (`entryFee`) is an
- * additional charge that goes to the game creator. Total entry cost is
- * `buyIn + ownerFee` — the protocol cut lives inside the buy-in.
+ * Games created after block52/pokerchain#476 carry no percentage rate: the
+ * player pays the flat network fee (governance-set, 0.10 USDC by default, may be
+ * 0) ON TOP of the buy-in, and the whole buy-in reaches the prize pool.
+ * Total = `buyIn + ownerFee + networkFee`.
  *
- * Mirrors the on-chain math (poker-vm#2592): `protocolCut = buyIn * bps / 10000`
- * with floor division; dust stays in the prize-pool portion.
+ * Older games still carrying a percentage rate (`protocolFeeBps` > 0) finish on
+ * it: the cut is taken OUT OF the buy-in (`prizePoolPortion = buyIn - cut`), no
+ * network fee is added, and total = `buyIn + ownerFee`. Never both fees.
+ *
+ * Legacy cut mirrors the on-chain math (poker-vm#2592): `protocolCut = buyIn *
+ * bps / 10000` with floor division; dust stays in the prize-pool portion.
  */
 export interface SngEntryBreakdown {
-    /** Buy-in portion that reaches the prize pool: buyIn - protocolCut. */
+    /** Buy-in portion that reaches the prize pool: full buy-in, or buyIn - protocolCut on legacy games. */
     prizePoolPortion: bigint;
-    /** Protocol fee skimmed from the buy-in to validators: buyIn * bps / 10000 (floor). */
+    /** Legacy percentage cut taken from the buy-in: buyIn * bps / 10000 (floor). 0 on new games. */
     protocolCut: bigint;
+    /** Flat network fee charged on top of the buy-in (the chain's network_fee_per_entry). 0 on legacy games. */
+    networkFee: bigint;
     /** Owner/creator fee (entryFee), charged on top of the buy-in. Unchanged path. */
     ownerFee: bigint;
-    /** Total entry cost the player pays: buyIn + ownerFee. */
+    /** Total entry cost the player pays: buyIn + ownerFee + networkFee. */
     total: bigint;
-    /** Whether a non-zero protocol fee applies (bps present and > 0). */
-    hasProtocolFee: boolean;
+    /** Whether a flat network fee is charged (game has no percentage rate and the fee is above 0). */
+    hasNetworkFee: boolean;
+    /** Whether the game still carries a legacy percentage rate (bps present and > 0). */
+    hasLegacyPercentageFee: boolean;
 }
 
 /**
@@ -39,36 +57,48 @@ export interface SngEntryBreakdown {
  *
  * @param buyIn - Fixed SNG buy-in in micro-USDC (string DTO / number / bigint).
  * @param entryFee - Owner fee in micro-USDC (string DTO / number / bigint); absent/0 = no owner fee.
- * @param protocolFeeBps - Protocol fee rate in basis points (1000 = 10%); absent/0 = no protocol fee.
- * @returns Breakdown with prize-pool portion, protocol cut, owner fee, and total.
+ * @param protocolFeeBps - Legacy percentage rate in basis points (1000 = 10%); absent/0 = flat network fee instead.
+ * @param networkFeeMicro - The flat network fee per entry in micro-USDC, from `useNetworkFee` (0 = no fee).
+ * @returns Breakdown with prize-pool portion, legacy cut, network fee, owner fee, and total.
  *
  * @example
- * // $9 buy-in, 10% protocol fee, $1 owner fee (micro-USDC)
- * computeSngEntryBreakdown("9000000", "1000000", 1000)
- * // => { prizePoolPortion: 8100000n, protocolCut: 900000n, ownerFee: 1000000n, total: 10000000n, hasProtocolFee: true }
+ * // $9 buy-in, $1 owner fee, no percentage rate (micro-USDC)
+ * computeSngEntryBreakdown("9000000", "1000000", undefined, 100000n)
+ * // => { prizePoolPortion: 9000000n, protocolCut: 0n, networkFee: 100000n, ownerFee: 1000000n, total: 10100000n, ... }
+ *
+ * @example
+ * // Legacy game: $9 buy-in, 10% rate, $1 owner fee
+ * computeSngEntryBreakdown("9000000", "1000000", 1000, 100000n)
+ * // => { prizePoolPortion: 8100000n, protocolCut: 900000n, networkFee: 0n, ownerFee: 1000000n, total: 10000000n, ... }
  */
 export function computeSngEntryBreakdown(
     buyIn: string | number | bigint | undefined,
     entryFee: string | number | bigint | undefined,
-    protocolFeeBps: number | undefined
+    protocolFeeBps: number | undefined,
+    networkFeeMicro: bigint
 ): SngEntryBreakdown {
     const buyInMicro = parseMicroToBigInt(buyIn);
     const ownerFee = parseMicroToBigInt(entryFee);
 
     // bps is a small safe integer (Commandment #10). Guard absent/0/negative.
     const bps = protocolFeeBps && protocolFeeBps > 0 ? BigInt(protocolFeeBps) : 0n;
-    const hasProtocolFee = bps > 0n;
+    const hasLegacyPercentageFee = bps > 0n;
+    // Never both fees; a governance-set fee of 0 means no fee line at all.
+    const hasNetworkFee = !hasLegacyPercentageFee && networkFeeMicro > 0n;
 
     // Floor division mirrors the chain: dust stays in the prize-pool portion.
-    const protocolCut = hasProtocolFee ? (buyInMicro * bps) / BPS_DENOMINATOR : 0n;
+    const protocolCut = hasLegacyPercentageFee ? (buyInMicro * bps) / BPS_DENOMINATOR : 0n;
+    const networkFee = hasNetworkFee ? networkFeeMicro : 0n;
     const prizePoolPortion = buyInMicro - protocolCut;
 
     return {
         prizePoolPortion,
         protocolCut,
+        networkFee,
         ownerFee,
-        total: buyInMicro + ownerFee,
-        hasProtocolFee
+        total: buyInMicro + ownerFee + networkFee,
+        hasNetworkFee,
+        hasLegacyPercentageFee
     };
 }
 

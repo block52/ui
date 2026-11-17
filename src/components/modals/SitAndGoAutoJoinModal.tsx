@@ -13,10 +13,11 @@ import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { joinTable } from "../../hooks/playerActions/joinTable";
 import { formatUSDCToSimpleDollars, formatForSitAndGo } from "../../utils/numberUtils";
 import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
+import { useNetworkFee } from "../../hooks/game/useNetworkFee";
 import { getCosmosBalance } from "../../utils/cosmosAccountUtils";
 import { useNetwork } from "../../context/NetworkContext";
 import { colors as _colors, hexToRgba as _hexToRgba } from "../../utils/colorConfig";
-import { microToUsdc } from "../../constants/currency";
+import { microToUsdc, parseMicroToBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
@@ -68,15 +69,14 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
     const publicKey = useMemo(() => localStorage.getItem(STORAGE_KEYS.cosmosAddress) || undefined, []);
 
     // Calculate formatted values
-    const { maxBuyInFormatted, balanceFormatted, smallBlindFormatted, bigBlindFormatted, startingStackFormatted, entryFeeFormatted } = useMemo(() => {
+    const { maxBuyInFormatted, balanceFormatted, smallBlindFormatted, bigBlindFormatted, startingStackFormatted } = useMemo(() => {
         if (!gameOptions) {
             return {
                 maxBuyInFormatted: "0",
                 balanceFormatted: 0,
                 smallBlindFormatted: "0",
                 bigBlindFormatted: "0",
-                startingStackFormatted: "0",
-                entryFeeFormatted: "0.00"
+                startingStackFormatted: "0"
             };
         }
 
@@ -87,8 +87,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                 balanceFormatted: 0,
                 smallBlindFormatted: "0.00",
                 bigBlindFormatted: "0.00",
-                startingStackFormatted: "0",
-                entryFeeFormatted: "0.00"
+                startingStackFormatted: "0"
             };
         }
 
@@ -114,41 +113,50 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             ? formatForSitAndGo(Number(gameOptions.startingStack))
             : "0";
 
-        // Entry fee is USDC microunits (like the buy-in); "0"/absent = no fee
-        const entryFee = gameOptions.entryFee && gameOptions.entryFee !== "0"
-            ? formatUSDCToSimpleDollars(gameOptions.entryFee)
-            : "0.00";
-
         return {
             maxBuyInFormatted: maxFormatted,
             balanceFormatted: balance,
             smallBlindFormatted: smallBlind,
             bigBlindFormatted: bigBlind,
-            startingStackFormatted: startingStack,
-            entryFeeFormatted: entryFee
+            startingStackFormatted: startingStack
         };
     }, [gameOptions, accountBalance]);
 
-    // Protocol-fee breakdown (poker-vm#2592). The fee is skimmed OUT OF the
-    // buy-in, so the prize-pool portion is buyIn - protocolCut. When no protocol
-    // fee is configured (bps absent/0) the breakdown is hidden and behaviour is
-    // unchanged. Computed in micro-USDC bigint via the shared, tested util.
+    // The chain's flat network fee per seat (governance-set; 0.10 USDC until read).
+    const { networkFeeMicro } = useNetworkFee();
+
+    // Entry-cost breakdown. New games (block52/pokerchain#476) pay the chain's
+    // flat network fee ON TOP of the buy-in, and the whole buy-in goes to the
+    // prize pool. Games that still carry a percentage rate (poker-vm#2592) keep
+    // it: the cut comes OUT OF the buy-in and no flat fee is added. Computed in
+    // micro-USDC bigint via the shared, tested util.
     const feeBreakdown = useMemo(() => {
         const buyIn = gameOptions?.maxBuyIn;
         const entryFee = gameOptions?.entryFee;
         // protocolFeeBps is optional and not surfaced by useGameOptions' Required<>
         // mapping — read it from the raw DTO (single source: the chain).
         const protocolFeeBps = gameState?.gameOptions?.protocolFeeBps;
-        const breakdown = computeSngEntryBreakdown(buyIn, entryFee, protocolFeeBps);
+        const breakdown = computeSngEntryBreakdown(buyIn, entryFee, protocolFeeBps, networkFeeMicro);
 
         return {
-            show: breakdown.hasProtocolFee,
+            hasNetworkFee: breakdown.hasNetworkFee,
+            hasLegacyPercentageFee: breakdown.hasLegacyPercentageFee,
+            hasOwnerFee: breakdown.ownerFee > 0n,
+            totalMicro: breakdown.total,
             prizePoolPortionFormatted: formatUSDCToSimpleDollars(breakdown.prizePoolPortion),
             protocolCutFormatted: formatUSDCToSimpleDollars(breakdown.protocolCut),
+            networkFeeFormatted: formatUSDCToSimpleDollars(breakdown.networkFee),
             ownerFeeFormatted: formatUSDCToSimpleDollars(breakdown.ownerFee),
             totalFormatted: formatUSDCToSimpleDollars(breakdown.total)
         };
-    }, [gameOptions?.maxBuyIn, gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
+    }, [gameOptions?.maxBuyIn, gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps, networkFeeMicro]);
+
+    // The player must hold the FULL entry cost (buy-in + owner fee + network
+    // fee), not just the buy-in — the chain rejects a join short of it.
+    const hasEnoughForEntry = useMemo(
+        () => parseMicroToBigInt(accountBalance) >= feeBreakdown.totalMicro,
+        [accountBalance, feeBreakdown.totalMicro]
+    );
 
     // Fetch balance on mount
     useEffect(() => {
@@ -185,10 +193,9 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
             return;
         }
 
-        // Check balance
-        const maxBuyInNumber = parseFloat(maxBuyInFormatted);
-        if (balanceFormatted < maxBuyInNumber) {
-            setBuyInError(`Insufficient balance. Need $${maxBuyInFormatted}`);
+        // Check balance covers buy-in + owner fee + network fee
+        if (!hasEnoughForEntry) {
+            setBuyInError(`Insufficient balance. Need $${feeBreakdown.totalFormatted} (buy-in plus fees)`);
             return;
         }
 
@@ -249,7 +256,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
         } finally {
             setIsJoining(false);
         }
-    }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, balanceFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess, gameFormat]);
+    }, [publicKey, tableId, isUserAlreadyPlaying, hasJoined, emptySeatIndexes, maxBuyInFormatted, hasEnoughForEntry, feeBreakdown.totalFormatted, gameOptions, currentNetwork, subscribeToTable, onJoinSuccess, gameFormat]);
 
     // Spectate: close the prompt and keep watching the table underneath.
     const handleSpectate = useCallback(() => {
@@ -347,6 +354,11 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
                                 <div className="text-gray-400 text-[10px]">Buy-in</div>
                                 <div className="text-white text-xs font-semibold">${maxBuyInFormatted}</div>
+                                {feeBreakdown.hasNetworkFee && (
+                                    <div className="text-purple-300 text-[10px]" data-testid="sng-network-fee-compact">
+                                        + {feeBreakdown.networkFeeFormatted} USDC network fee
+                                    </div>
+                                )}
                             </div>
                             <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
                                 <div className="text-gray-400 text-[10px]">Blinds</div>
@@ -358,7 +370,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             </div>
                             <div className="bg-gray-700/80 rounded p-1.5 border border-blue-500/30">
                                 <div className="text-gray-400 text-[10px]">Balance</div>
-                                <div className={`text-xs font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}>
+                                <div className={`text-xs font-semibold ${hasEnoughForEntry ? "text-green-400" : "text-red-400"}`}>
                                     ${balanceFormatted.toFixed(2)}
                                 </div>
                             </div>
@@ -387,41 +399,41 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                                     </div>
                                 </div>
 
-                                {entryFeeFormatted !== "0.00" && !feeBreakdown.show && (
-                                    <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Entry Fee:</span>
-                                            <span className="text-white font-semibold">${entryFeeFormatted}</span>
-                                        </div>
+                                {/* Entry-cost breakdown. New games: + the chain's network fee on
+                                    top of the buy-in, whole buy-in to the prize pool
+                                    (block52/pokerchain#476). Older games keep their percentage,
+                                    taken out of the buy-in (poker-vm#2592). Never both. */}
+                                <div
+                                    className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-purple-500/30 space-y-1.5"
+                                    data-testid="sng-fee-breakdown"
+                                >
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-gray-400 text-sm">Buy-in (to prize pool):</span>
+                                        <span className="text-white font-semibold">${feeBreakdown.prizePoolPortionFormatted}</span>
                                     </div>
-                                )}
-
-                                {/* Protocol-fee breakdown (poker-vm#2592). Shown only when a
-                                    protocol fee is configured; the fee comes OUT OF the buy-in,
-                                    so prize pool = buyIn - protocolCut, and total = buyIn + owner fee. */}
-                                {feeBreakdown.show && (
-                                    <div
-                                        className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-purple-500/30 space-y-1.5"
-                                        data-testid="sng-fee-breakdown"
-                                    >
+                                    {feeBreakdown.hasLegacyPercentageFee && (
                                         <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Buy-in (to prize pool):</span>
-                                            <span className="text-white font-semibold">${feeBreakdown.prizePoolPortionFormatted}</span>
-                                        </div>
-                                        <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Protocol fee:</span>
+                                            <span className="text-gray-400 text-sm">Network fee (taken from buy-in):</span>
                                             <span className="text-purple-300 font-semibold">${feeBreakdown.protocolCutFormatted}</span>
                                         </div>
+                                    )}
+                                    {feeBreakdown.hasNetworkFee && (
                                         <div className="flex justify-between items-center">
-                                            <span className="text-gray-400 text-sm">Owner fee:</span>
-                                            <span className="text-white font-semibold">${feeBreakdown.ownerFeeFormatted}</span>
+                                            <span className="text-gray-400 text-sm">Network fee:</span>
+                                            <span className="text-purple-300 font-semibold">+ {feeBreakdown.networkFeeFormatted} USDC</span>
                                         </div>
-                                        <div className="border-t border-white/10 pt-1.5 flex justify-between items-center">
-                                            <span className="text-gray-300 text-sm font-semibold">Total:</span>
-                                            <span className="text-green-400 font-bold">${feeBreakdown.totalFormatted}</span>
+                                    )}
+                                    {feeBreakdown.hasOwnerFee && (
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-gray-400 text-sm">Entry fee:</span>
+                                            <span className="text-white font-semibold">+ ${feeBreakdown.ownerFeeFormatted}</span>
                                         </div>
+                                    )}
+                                    <div className="border-t border-white/10 pt-1.5 flex justify-between items-center">
+                                        <span className="text-gray-300 text-sm font-semibold">Total you pay:</span>
+                                        <span className="text-green-400 font-bold">${feeBreakdown.totalFormatted}</span>
                                     </div>
-                                )}
+                                </div>
 
                                 <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
                                     <div className="flex justify-between items-center">
@@ -442,7 +454,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                                 <div className="bg-gray-700/80 backdrop-blur-sm rounded-lg p-3 border border-blue-500/30">
                                     <div className="flex justify-between items-center">
                                         <span className="text-gray-400 text-sm">Your Balance:</span>
-                                        <span className={`font-semibold ${balanceFormatted >= parseFloat(maxBuyInFormatted) ? "text-green-400" : "text-red-400"}`}>
+                                        <span className={`font-semibold ${hasEnoughForEntry ? "text-green-400" : "text-red-400"}`}>
                                             ${balanceFormatted.toFixed(2)}
                                         </span>
                                     </div>
@@ -471,10 +483,10 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                     {/* Take Seat Button */}
                     <button
                         onClick={handleTakeSeat}
-                        disabled={isRegistrationClosed || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)}
+                        disabled={isRegistrationClosed || isJoining || isBalanceLoading || !hasEnoughForEntry || isEmpty(emptySeatIndexes)}
                         className={`w-full px-4 rounded-lg font-semibold text-white transition-all duration-300 ${isCompact ? "py-2 text-sm" : "py-3"} ${
-                            isRegistrationClosed || isJoining || isBalanceLoading || balanceFormatted < parseFloat(maxBuyInFormatted) || isEmpty(emptySeatIndexes)
-                                ? (!isRegistrationClosed && !isJoining && !isBalanceLoading && balanceFormatted < parseFloat(maxBuyInFormatted)
+                            isRegistrationClosed || isJoining || isBalanceLoading || !hasEnoughForEntry || isEmpty(emptySeatIndexes)
+                                ? (!isRegistrationClosed && !isJoining && !isBalanceLoading && !hasEnoughForEntry
                                     ? "!text-red-400 bg-red-400/15 border border-red-400/50 cursor-not-allowed"
                                     : "bg-gray-600 cursor-not-allowed")
                                 : "bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600 transform hover:scale-105"
@@ -494,7 +506,7 @@ const SitAndGoAutoJoinModal: React.FC<SitAndGoAutoJoinModalProps> = ({ tableId, 
                             </div>
                         ) : isBalanceLoading ? (
                             "Loading..."
-                        ) : balanceFormatted < parseFloat(maxBuyInFormatted) ? (
+                        ) : !hasEnoughForEntry ? (
                             "Insufficient Balance"
                         ) : isEmpty(emptySeatIndexes) ? (
                             "Table Full"

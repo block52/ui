@@ -59,8 +59,8 @@ describe("validateTournamentForm", () => {
         expect(validate({ buyIn: "5", entryFee: "4.99" }).errors.entryFee).toBeUndefined();
     });
 
-    it("requires a positive net buy-in after the protocol cut when the rate is known", () => {
-        expect(validate({ buyIn: "10", entryFee: "9.5" }, { protocolFeeBps: 1000 }).errors.entryFee).toMatch(/protocol fee/);
+    it("requires a positive net buy-in after a legacy percentage cut when the rate is known", () => {
+        expect(validate({ buyIn: "10", entryFee: "9.5" }, { protocolFeeBps: 1000 }).errors.entryFee).toMatch(/percentage network fee/);
         expect(validate({ buyIn: "10", entryFee: "5" }, { protocolFeeBps: 1000 }).errors.entryFee).toBeUndefined();
     });
 

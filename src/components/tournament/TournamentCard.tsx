@@ -50,7 +50,11 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({ card, nowMs, onR
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <Stat label="Registered" value={`${card.registered} / ${card.maxEntrants}`} testId="tournament-registered" />
-                <Stat label="Buy-in" value={formatUsdc(card.cost.gross)} testId="tournament-buyin" />
+                <Stat
+                    label="Buy-in"
+                    value={card.cost.networkFee > 0n ? `${formatUsdc(card.cost.gross)} + ${formatUsdc(card.cost.networkFee)} fee` : formatUsdc(card.cost.gross)}
+                    testId="tournament-buyin"
+                />
                 <Stat
                     label={card.prizePoolIsProjected ? "Prize pool (so far)" : "Prize pool"}
                     value={formatUsdc(card.prizePoolMicro)}
@@ -91,7 +95,7 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({ card, nowMs, onR
                         className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         data-testid="tournament-register"
                     >
-                        Register · {formatUsdc(card.cost.gross)}
+                        Register · {formatUsdc(card.cost.total)}
                     </button>
                 )}
                 {card.myTable && (

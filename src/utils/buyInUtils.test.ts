@@ -3,6 +3,7 @@ import {
     validateBuyInBB,
     formatBuyInRange,
     computeSngEntryBreakdown,
+    DEFAULT_NETWORK_FEE_MICRO,
     BUY_IN_PRESETS,
     BuyInConfig
 } from "./buyInUtils";
@@ -170,40 +171,54 @@ describe("buyInUtils", () => {
     });
 
     describe("computeSngEntryBreakdown", () => {
-        it("should split the issue #2592 example: $9 buy-in, 10% fee, $1 owner fee", () => {
-            // buyIn $9 = 9_000_000 micro, entryFee $1 = 1_000_000 micro, bps 1000 = 10%
-            const result = computeSngEntryBreakdown("9000000", "1000000", 1000);
+        it("should add the flat 0.10 network fee on top when the game has no percentage rate (pokerchain#476)", () => {
+            // buyIn $9 = 9_000_000 micro, entryFee $1 = 1_000_000 micro, no bps
+            const result = computeSngEntryBreakdown("9000000", "1000000", undefined, DEFAULT_NETWORK_FEE_MICRO);
+
+            expect(result.networkFee).toBe(DEFAULT_NETWORK_FEE_MICRO);
+            expect(result.networkFee).toBe(100000n); // $0.10
+            expect(result.protocolCut).toBe(0n);
+            expect(result.prizePoolPortion).toBe(9000000n); // full buy-in reaches the pool
+            expect(result.ownerFee).toBe(1000000n);
+            expect(result.total).toBe(10100000n); // $10.10 = buyIn + ownerFee + network fee
+            expect(result.hasNetworkFee).toBe(true);
+            expect(result.hasLegacyPercentageFee).toBe(false);
+        });
+
+        it("should treat zero protocolFeeBps as a new game with the flat network fee", () => {
+            const result = computeSngEntryBreakdown("9000000", "0", 0, DEFAULT_NETWORK_FEE_MICRO);
+
+            expect(result.protocolCut).toBe(0n);
+            expect(result.networkFee).toBe(100000n);
+            expect(result.prizePoolPortion).toBe(9000000n);
+            expect(result.total).toBe(9100000n);
+            expect(result.hasNetworkFee).toBe(true);
+            expect(result.hasLegacyPercentageFee).toBe(false);
+        });
+
+        it("should charge the same network fee at every stake", () => {
+            expect(computeSngEntryBreakdown("1000000", "0", undefined, DEFAULT_NETWORK_FEE_MICRO).networkFee).toBe(100000n);
+            expect(computeSngEntryBreakdown("1000000000", "0", undefined, DEFAULT_NETWORK_FEE_MICRO).networkFee).toBe(100000n);
+        });
+
+        it("should keep the legacy 10% maths for games that still carry a rate: $9 buy-in, 10%, $1 owner fee", () => {
+            // Issue #2592 example. bps 1000 = 10%, taken out of the buy-in.
+            const result = computeSngEntryBreakdown("9000000", "1000000", 1000, DEFAULT_NETWORK_FEE_MICRO);
 
             expect(result.protocolCut).toBe(900000n); // $0.90
             expect(result.prizePoolPortion).toBe(8100000n); // $8.10
             expect(result.ownerFee).toBe(1000000n); // $1.00
+            expect(result.networkFee).toBe(0n); // never both fees
             expect(result.total).toBe(10000000n); // $10.00 = buyIn + ownerFee
-            expect(result.hasProtocolFee).toBe(true);
-        });
-
-        it("should treat absent protocolFeeBps as no protocol fee", () => {
-            const result = computeSngEntryBreakdown("9000000", "1000000", undefined);
-
-            expect(result.protocolCut).toBe(0n);
-            expect(result.prizePoolPortion).toBe(9000000n); // full buy-in
-            expect(result.ownerFee).toBe(1000000n);
-            expect(result.total).toBe(10000000n);
-            expect(result.hasProtocolFee).toBe(false);
-        });
-
-        it("should treat zero protocolFeeBps as no protocol fee", () => {
-            const result = computeSngEntryBreakdown("9000000", "0", 0);
-
-            expect(result.protocolCut).toBe(0n);
-            expect(result.prizePoolPortion).toBe(9000000n);
-            expect(result.hasProtocolFee).toBe(false);
+            expect(result.hasLegacyPercentageFee).toBe(true);
+            expect(result.hasNetworkFee).toBe(false);
         });
 
         it("should floor the protocol cut and keep dust in the prize-pool portion", () => {
             // $0.99 buy-in at 10% => 99000000... actually 990000 micro * 1000 / 10000 = 99000
             // Use an amount that produces a fractional micro to prove flooring.
             // 1_000_001 micro * 1000 / 10000 = 100_000.1 -> floor 100_000
-            const result = computeSngEntryBreakdown("1000001", "0", 1000);
+            const result = computeSngEntryBreakdown("1000001", "0", 1000, DEFAULT_NETWORK_FEE_MICRO);
 
             expect(result.protocolCut).toBe(100000n); // floored
             expect(result.prizePoolPortion).toBe(900001n); // dust (the extra 1 micro) stays in pool
@@ -211,7 +226,7 @@ describe("buyInUtils", () => {
         });
 
         it("should handle missing buy-in and owner fee as zero", () => {
-            const result = computeSngEntryBreakdown(undefined, undefined, 1000);
+            const result = computeSngEntryBreakdown(undefined, undefined, 1000, DEFAULT_NETWORK_FEE_MICRO);
 
             expect(result.protocolCut).toBe(0n);
             expect(result.prizePoolPortion).toBe(0n);
@@ -219,8 +234,42 @@ describe("buyInUtils", () => {
             expect(result.total).toBe(0n);
         });
 
+        it("should still charge the network fee when buy-in and owner fee are missing on a new game", () => {
+            const result = computeSngEntryBreakdown(undefined, undefined, undefined, DEFAULT_NETWORK_FEE_MICRO);
+
+            expect(result.prizePoolPortion).toBe(0n);
+            expect(result.total).toBe(100000n);
+        });
+
+        it("should charge the governance-set network fee, not a constant (pokerchain#476)", () => {
+            // Governance raised the fee to $0.25.
+            const result = computeSngEntryBreakdown("9000000", "1000000", undefined, 250000n);
+
+            expect(result.networkFee).toBe(250000n);
+            expect(result.prizePoolPortion).toBe(9000000n);
+            expect(result.total).toBe(10250000n); // $10.25 = buyIn + ownerFee + $0.25
+            expect(result.hasNetworkFee).toBe(true);
+        });
+
+        it("should charge no network fee and show no fee line when governance sets it to 0", () => {
+            const result = computeSngEntryBreakdown("9000000", "1000000", undefined, 0n);
+
+            expect(result.networkFee).toBe(0n);
+            expect(result.total).toBe(10000000n); // buy-in + owner fee only
+            expect(result.hasNetworkFee).toBe(false);
+            expect(result.hasLegacyPercentageFee).toBe(false);
+        });
+
+        it("should ignore the governance fee on a legacy percentage game (never both fees)", () => {
+            const result = computeSngEntryBreakdown("9000000", "0", 1000, 250000n);
+
+            expect(result.networkFee).toBe(0n);
+            expect(result.protocolCut).toBe(900000n);
+            expect(result.total).toBe(9000000n);
+        });
+
         it("should accept bigint and number inputs", () => {
-            const result = computeSngEntryBreakdown(9000000n, 1000000, 1000);
+            const result = computeSngEntryBreakdown(9000000n, 1000000, 1000, DEFAULT_NETWORK_FEE_MICRO);
 
             expect(result.protocolCut).toBe(900000n);
             expect(result.prizePoolPortion).toBe(8100000n);

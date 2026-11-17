@@ -55,7 +55,12 @@ export interface TournamentFormInput {
     blindStructure: BlindStructureDTO | undefined;
     /** The blind picker's own error (custom text that does not parse). */
     blindError?: string;
-    /** The chain's protocol cut in basis points, when known, for the net buy-in check. */
+    /**
+     * A legacy percentage rate in basis points, for the net buy-in check. Only
+     * tournaments created before block52/pokerchain#476 carried one; new ones pay
+     * the flat network fee (governance-set, 0.10 USDC by default) on top of the buy-in instead, which does not
+     * come out of the prize pool. Leave undefined for new tournaments.
+     */
     protocolFeeBps?: number;
     nowMs: number;
 }
@@ -130,9 +135,13 @@ export function validateTournamentForm(input: TournamentFormInput): TournamentFo
         errors.entryFee = "Entry fee must be less than the buy-in (it comes out of the buy-in)";
     }
 
-    if (!isNullish(buyIn) && !isNullish(entryFee) && isNullish(errors.buyIn) && isNullish(errors.entryFee) && !isNullish(protocolFeeBps) && protocolFeeBps > 0) {
-        const cut = (buyIn * BigInt(protocolFeeBps)) / 10000n;
-        if (entryFee + cut >= buyIn) errors.entryFee = "Entry fee plus the protocol fee must leave part of the buy-in for the prize pool";
+    // Legacy percentage rate only: the cut came out of the buy-in, so entry fee
+    // plus cut had to leave something for the prize pool. The flat network fee
+    // (pokerchain#476) is paid on top and never reduces the pool.
+    const legacyPercentageBps = !isNullish(protocolFeeBps) && protocolFeeBps > 0 ? protocolFeeBps : undefined;
+    if (!isNullish(buyIn) && !isNullish(entryFee) && isNullish(errors.buyIn) && isNullish(errors.entryFee) && !isNullish(legacyPercentageBps)) {
+        const legacyCut = (buyIn * BigInt(legacyPercentageBps)) / 10000n;
+        if (entryFee + legacyCut >= buyIn) errors.entryFee = "Entry fee plus the percentage network fee must leave part of the buy-in for the prize pool";
     }
 
     const startingStack = parseWhole(values.startingStack, "Starting stack", errors, "startingStack");

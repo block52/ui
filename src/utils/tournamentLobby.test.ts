@@ -1,16 +1,22 @@
 import {
-    buildTournamentCard,
+    buildTournamentCard as buildTournamentCardWithFee,
     escrowStatement,
     formatUsdc,
     openingLevelLabel,
     parseTournamentResponse,
     parseTournamentState,
+    registrationFeeNotice,
     sortTournamentCards,
     tournamentEntryCost,
     tournamentIdsFromTxSearch,
     tournamentPhase,
     type TournamentRecord
 } from "./tournamentLobby";
+import { DEFAULT_NETWORK_FEE_MICRO } from "./buyInUtils";
+
+/** Cards priced with the default 0.10 USDC network fee (most tests); fee-specific tests pass their own. */
+const buildTournamentCard = (record: TournamentRecord, viewer: string | undefined, nowMs: number) =>
+    buildTournamentCardWithFee(record, viewer, nowMs, DEFAULT_NETWORK_FEE_MICRO);
 
 const START = 1_794_481_862_000;
 const ME = "b521me";
@@ -103,17 +109,38 @@ describe("tournamentIdsFromTxSearch", () => {
 });
 
 describe("tournamentEntryCost", () => {
-    it("takes the entry fee and protocol cut out of the buy-in", () => {
-        const c = tournamentEntryCost({ buyIn: "5000000", entryFee: "500000", protocolFeeBps: 1000 });
-        expect(c).toEqual({ gross: 5_000_000n, entryFee: 500_000n, protocolCut: 500_000n, net: 4_000_000n });
+    it("adds the flat 0.10 network fee on top of the buy-in when there is no percentage rate (pokerchain#476)", () => {
+        const c = tournamentEntryCost({ buyIn: "5000000", entryFee: "500000" }, DEFAULT_NETWORK_FEE_MICRO);
+        expect(c).toEqual({ gross: 5_000_000n, entryFee: 500_000n, protocolCut: 0n, networkFee: 100_000n, total: 5_100_000n, net: 4_500_000n });
+    });
+
+    it("charges the same network fee at every buy-in", () => {
+        expect(tournamentEntryCost({ buyIn: "1000000" }, DEFAULT_NETWORK_FEE_MICRO).networkFee).toBe(100_000n);
+        expect(tournamentEntryCost({ buyIn: "1000000000" }, DEFAULT_NETWORK_FEE_MICRO).networkFee).toBe(100_000n);
+        expect(tournamentEntryCost({ buyIn: "1000000", protocolFeeBps: 0 }, DEFAULT_NETWORK_FEE_MICRO).networkFee).toBe(100_000n);
+    });
+
+    it("keeps the legacy percentage for older tournaments: entry fee and cut out of the buy-in, no flat fee", () => {
+        const c = tournamentEntryCost({ buyIn: "5000000", entryFee: "500000", protocolFeeBps: 1000 }, DEFAULT_NETWORK_FEE_MICRO);
+        expect(c).toEqual({ gross: 5_000_000n, entryFee: 500_000n, protocolCut: 500_000n, networkFee: 0n, total: 5_000_000n, net: 4_000_000n });
     });
 
     it("floors the protocol cut like the chain", () => {
-        expect(tournamentEntryCost({ buyIn: "333", protocolFeeBps: 1000 }).protocolCut).toBe(33n);
+        expect(tournamentEntryCost({ buyIn: "333", protocolFeeBps: 1000 }, DEFAULT_NETWORK_FEE_MICRO).protocolCut).toBe(33n);
     });
 
-    it("with no fees the whole buy-in is escrowed", () => {
-        expect(tournamentEntryCost({ buyIn: "1000000" }).net).toBe(1_000_000n);
+    it("charges the governance-set network fee on top (pokerchain#476)", () => {
+        const c = tournamentEntryCost({ buyIn: "5000000", entryFee: "500000" }, 250_000n);
+        expect(c).toEqual({ gross: 5_000_000n, entryFee: 500_000n, protocolCut: 0n, networkFee: 250_000n, total: 5_250_000n, net: 4_500_000n });
+    });
+
+    it("charges nothing on top when governance sets the fee to 0", () => {
+        const c = tournamentEntryCost({ buyIn: "5000000", entryFee: "500000" }, 0n);
+        expect(c).toEqual({ gross: 5_000_000n, entryFee: 500_000n, protocolCut: 0n, networkFee: 0n, total: 5_000_000n, net: 4_500_000n });
+    });
+
+    it("with no entry fee the whole buy-in is escrowed", () => {
+        expect(tournamentEntryCost({ buyIn: "1000000" }, DEFAULT_NETWORK_FEE_MICRO).net).toBe(1_000_000n);
     });
 });
 
@@ -225,7 +252,17 @@ describe("sortTournamentCards", () => {
 });
 
 describe("escrowStatement", () => {
-    const cost = tournamentEntryCost({ buyIn: "5000000", entryFee: "500000", protocolFeeBps: 1000 });
+    const cost = tournamentEntryCost({ buyIn: "5000000", entryFee: "500000", protocolFeeBps: 1000 }, DEFAULT_NETWORK_FEE_MICRO);
+
+    it("states the buy-in plus network fee, the escrow, and that the network fee is not refunded (pokerchain#476)", () => {
+        const s = escrowStatement(tournamentEntryCost({ buyIn: "5000000", entryFee: "500000" }, DEFAULT_NETWORK_FEE_MICRO));
+        expect(s.register).toContain("You pay $5.10");
+        expect(s.register).toContain("$0.10 network fee");
+        expect(s.register).toContain("$4.50 of it is held in escrow");
+        expect(s.register).toContain("not refunded");
+        expect(s.unregister).toContain("not the full $5.10");
+        expect(s.unregister).toContain("$0.10 network fee");
+    });
 
     it("states the escrow and that the fees are not refunded", () => {
         const s = escrowStatement(cost);
@@ -241,8 +278,40 @@ describe("escrowStatement", () => {
         expect(s.unregister).not.toMatch(/full refund/i);
     });
 
-    it("omits the fee note when there are no fees", () => {
-        expect(escrowStatement(tournamentEntryCost({ buyIn: "1000000" })).register).not.toContain("not refunded");
+    it("says the network fee alone is not refunded when there is no entry fee", () => {
+        expect(escrowStatement(tournamentEntryCost({ buyIn: "1000000" }, DEFAULT_NETWORK_FEE_MICRO)).register).toContain("The $0.10 network fee is taken at registration and is not refunded.");
+    });
+
+    it("does not mention a network fee when governance sets it to 0", () => {
+        const s = escrowStatement(tournamentEntryCost({ buyIn: "1000000" }, 0n));
+        expect(s.register).toBe("You pay $1.00 now. $1.00 of it is held in escrow for the prize pool.");
+        expect(s.register).not.toContain("network fee");
+    });
+
+    it("omits the fee note when an older tournament has no fees", () => {
+        expect(escrowStatement(tournamentEntryCost({ buyIn: "5", protocolFeeBps: 1000 }, DEFAULT_NETWORK_FEE_MICRO)).register).not.toContain("not refunded");
+    });
+});
+
+describe("buildTournamentCard network fee", () => {
+    it("prices the card with the network fee it is given", () => {
+        const newTournament = record({}, { protocolFeeBps: undefined });
+        expect(buildTournamentCardWithFee(newTournament, undefined, START - 1000, 250_000n).cost.networkFee).toBe(250_000n);
+        expect(buildTournamentCardWithFee(newTournament, undefined, START - 1000, 250_000n).cost.total).toBe(1_250_000n);
+        expect(buildTournamentCardWithFee(newTournament, undefined, START - 1000, 0n).cost.total).toBe(1_000_000n);
+    });
+});
+
+describe("registrationFeeNotice", () => {
+    it("names the chain's network fee", () => {
+        expect(registrationFeeNotice(100_000n)).toContain("plus a $0.10 network fee");
+        expect(registrationFeeNotice(250_000n)).toContain("plus a $0.25 network fee");
+        expect(registrationFeeNotice(250_000n)).toContain("The network fee and the entry fee");
+    });
+
+    it("mentions no network fee when it is 0", () => {
+        expect(registrationFeeNotice(0n)).not.toContain("network fee");
+        expect(registrationFeeNotice(0n)).toContain("You pay the buy-in when you register.");
     });
 });
 

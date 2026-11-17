@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel, ExplorerReloadButton } from "../components/explorer/ExplorerPanel";
 import { TournamentCard } from "../components/tournament/TournamentCard";
@@ -6,8 +6,10 @@ import { TournamentRegisterModal } from "../components/tournament/TournamentRegi
 import { CreateTournamentModal } from "../components/tournament/CreateTournamentModal";
 import { useNow, useTournamentLobby } from "../hooks/tournament/useTournamentLobby";
 import { useTournamentActions } from "../hooks/tournament/useTournamentActions";
+import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
+import { parseMicroToBigInt } from "../constants/currency";
 import { isEmpty } from "../utils/guards";
-import type { TournamentLobbyCard } from "../utils/tournamentLobby";
+import { registrationFeeNotice, type TournamentLobbyCard } from "../utils/tournamentLobby";
 
 interface PendingAction {
     card: TournamentLobbyCard;
@@ -16,12 +18,19 @@ interface PendingAction {
 
 /** /tournaments: multi-table tournaments to register for, and the form to create one (ui#980). */
 export default function TournamentLobbyPage() {
-    const { cards, isLoading, error, failedCount, refresh } = useTournamentLobby();
+    const { cards, isLoading, error, failedCount, refresh, networkFeeMicro } = useTournamentLobby();
     const actions = useTournamentActions(refresh);
     const now = useNow(1000);
     const [pending, setPending] = useState<PendingAction | null>(null);
     const [creating, setCreating] = useState(false);
     const [createdId, setCreatedId] = useState<string | null>(null);
+    const wallet = useCosmosWallet();
+    // USDC balance in micro-units; undefined while unknown so the modal never
+    // blocks a register on a balance it has not read yet.
+    const balanceMicro = useMemo(() => {
+        if (wallet.isLoading || wallet.error) return undefined;
+        return parseMicroToBigInt(wallet.balance.find(b => b.denom === "usdc")?.amount);
+    }, [wallet.isLoading, wallet.error, wallet.balance]);
 
     useEffect(() => {
         document.title = "Tournaments - Block52";
@@ -91,10 +100,7 @@ export default function TournamentLobbyPage() {
                         {failedCount} {failedCount === 1 ? "tournament" : "tournaments"} could not be read and {failedCount === 1 ? "is" : "are"} not shown.
                     </p>
                 )}
-                <p className="mt-4 text-xs text-gray-400">
-                    The entry fee and the protocol fee come out of the buy-in when you register and are not refunded. Unregistering, or a tournament cancelled for too
-                    few entrants, returns only the rest of the buy-in held in escrow.
-                </p>
+                <p className="mt-4 text-xs text-gray-400">{registrationFeeNotice(networkFeeMicro)}</p>
             </div>
 
             <TournamentRegisterModal
@@ -102,6 +108,7 @@ export default function TournamentLobbyPage() {
                 mode={pending?.mode ?? "register"}
                 busy={actions.busy}
                 error={actions.error}
+                balanceMicro={balanceMicro}
                 onConfirm={confirm}
                 onClose={closeModals}
             />

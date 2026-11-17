@@ -25,26 +25,28 @@ const PAGE_SIZE = 20;
 /**
  * Format buy-in display based on game format.
  *
- * SNG/Tournament with a protocol fee configured: shows the buy-in split into its
- * prize-pool portion and protocol cut, e.g. "$9.00 (8.10 + 0.90)". The split uses
- * the governable `protocolFeeBps` from the game config via the shared, tested util
- * — NOT a hardcoded 10% (poker-vm#2592, Commandment #7). When no protocol fee is
- * configured, no split is shown.
+ * SNG/Tournament on a new game (block52/pokerchain#476): shows the buy-in plus
+ * the chain's flat network fee paid on top, e.g. "$9.00 + 0.10 network fee"
+ * (just "$9.00" when governance has set the fee to 0).
+ * A game that still carries a percentage rate (poker-vm#2592) keeps showing its
+ * buy-in split into prize-pool portion and cut, e.g. "$9.00 (8.10 + 0.90)",
+ * computed from its own `protocolFeeBps` via the shared, tested util.
  *
- * Cash Game: shows the min-max range.
+ * Cash Game: shows the min-max range (no fee).
  */
-const formatBuyIn = (game: GameWithFormat) => {
+const formatBuyIn = (game: GameWithFormat, networkFeeMicro: bigint) => {
     const isTournament = isTournamentFormat(game.gameFormat);
     const minBuyIn = formatMicroAsUsdc(game.minBuyIn, 2);
 
     if (isTournament) {
-        const breakdown = computeSngEntryBreakdown(game.minBuyIn, game.entryFee, game.protocolFeeBps);
-        if (breakdown.hasProtocolFee) {
+        const breakdown = computeSngEntryBreakdown(game.minBuyIn, game.entryFee, game.protocolFeeBps, networkFeeMicro);
+        if (breakdown.hasLegacyPercentageFee) {
             const prizePool = formatMicroAsUsdc(breakdown.prizePoolPortion, 2);
             const fee = formatMicroAsUsdc(breakdown.protocolCut, 2);
             return `$${minBuyIn} (${prizePool} + ${fee})`;
         }
-        return `$${minBuyIn}`;
+        if (!breakdown.hasNetworkFee) return `$${minBuyIn}`;
+        return `$${minBuyIn} + ${formatMicroAsUsdc(breakdown.networkFee, 2)} network fee`;
     }
 
     const maxBuyIn = formatMicroAsUsdc(game.maxBuyIn, 2);
@@ -188,7 +190,7 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
     const clubName = import.meta.env.VITE_CLUB_NAME || "Texas Hodl";
 
     // Multi-table tournaments are rows of this list too: one row per tournament, with its runners.
-    const { cards: tournamentCards } = useTournamentLobby();
+    const { cards: tournamentCards, networkFeeMicro } = useTournamentLobby();
     const tournamentRows = React.useMemo(() => {
         const q = gameIdSearch.trim().toLowerCase();
         return tournamentCards.map(tournamentListRow).filter(r => hasContent(q) ? r.tournamentId.toLowerCase().includes(q) : true);
@@ -479,8 +481,8 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                             )}
                                         </td>
                                         <td className="px-2 sm:px-4 py-4 text-center">
-                                            <span className="block truncate text-gray-300 font-mono text-sm" title={formatBuyIn(game)}>
-                                                {formatBuyIn(game)}
+                                            <span className="block truncate text-gray-300 font-mono text-sm" title={formatBuyIn(game, networkFeeMicro)}>
+                                                {formatBuyIn(game, networkFeeMicro)}
                                             </span>
                                         </td>
                                         <td className="px-2 sm:px-4 py-4 text-center">

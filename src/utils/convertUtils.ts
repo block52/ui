@@ -27,7 +27,7 @@ export interface GameWithFormat {
     updatedAt?: string;
     /** Owner/creator fee in micro-USDC (SNG/Tournament); absent/"0" = none (poker-vm#2118). */
     entryFee?: string;
-    /** Protocol fee rate in basis points (1000 = 10%); absent/0 = none (poker-vm#2592). */
+    /** Legacy percentage rate in basis points (1000 = 10%), older games only (poker-vm#2592); absent/0 = the flat network fee on top (governance-set, 0.10 USDC by default; pokerchain#476). */
     protocolFeeBps?: number;
     /** Scheduled start, epoch ms (poker-vm#2680); absent = the sit-and-go starts only when full. */
     scheduledStartTime?: number;

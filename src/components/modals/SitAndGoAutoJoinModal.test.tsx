@@ -22,6 +22,10 @@ jest.mock("../../hooks/game/useVacantSeatData", () => ({
 }));
 jest.mock("../../hooks/playerActions/joinTable", () => ({ joinTable: (...args: unknown[]) => mockJoin(...args) }));
 jest.mock("../../utils/cosmosAccountUtils", () => ({ getCosmosBalance: (...args: unknown[]) => mockBalance(...args) }));
+let mockNetworkFeeMicro = 100_000n;
+jest.mock("../../hooks/game/useNetworkFee", () => ({
+    useNetworkFee: () => ({ networkFeeMicro: mockNetworkFeeMicro, isLoading: false, isFallback: false })
+}));
 jest.mock("../../context/NetworkContext", () => ({ useNetwork: () => ({ currentNetwork: { name: "fixture" } }) }));
 jest.mock("../../context/GameStateContext", () => ({
     useGameStateContext: () => ({ subscribeToTable: jest.fn(), gameState: { players: [], gameOptions: {} }, gameFormat: "sit-and-go" })
@@ -38,6 +42,7 @@ const renderModal = () => render(<SitAndGoAutoJoinModal tableId="fixture-table" 
 beforeEach(() => {
     jest.clearAllMocks();
     mockLatePhase = "not-started";
+    mockNetworkFeeMicro = 100_000n;
     localStorage.setItem(STORAGE_KEYS.cosmosAddress, "fixture-address");
 });
 
@@ -110,4 +115,41 @@ it("takes a drawn seat: joins without naming one and says the seat is random (ui
     expect(tableId).toBe("fixture-table");
     expect(options).toEqual({ amount: "10", format: "sit-and-go" });
     expect(options).not.toHaveProperty("seatNumber");
+});
+
+// block52/pokerchain#476: a new Sit & Go seat costs the buy-in PLUS a flat
+// 0.10 USDC network fee, so a player holding exactly the buy-in is short.
+it("shows the 0.10 network fee and blocks a player holding only the buy-in", async () => {
+    mockBalance.mockResolvedValue("10000000");
+    renderModal();
+    await waitFor(() => expect(screen.getByText("Insufficient Balance")).toBeInTheDocument());
+    const breakdown = screen.getByTestId("sng-fee-breakdown");
+    expect(breakdown).toHaveTextContent("+ 0.10 USDC");
+    expect(breakdown).toHaveTextContent("$10.10");
+    expect(mockJoin).not.toHaveBeenCalled();
+});
+
+it("offers the seat once the balance covers buy-in plus the network fee", async () => {
+    mockBalance.mockResolvedValue("10100000");
+    renderModal();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take My Seat" })).toBeEnabled());
+});
+
+// The fee is a governance param: the modal prices and checks with the chain's value.
+it("prices the seat with a governance-raised network fee", async () => {
+    mockNetworkFeeMicro = 250_000n;
+    mockBalance.mockResolvedValue("10100000");
+    renderModal();
+    await waitFor(() => expect(screen.getByText("Insufficient Balance")).toBeInTheDocument());
+    const breakdown = screen.getByTestId("sng-fee-breakdown");
+    expect(breakdown).toHaveTextContent("+ 0.25 USDC");
+    expect(breakdown).toHaveTextContent("$10.25");
+});
+
+it("shows no network fee and needs only the buy-in when governance sets it to 0", async () => {
+    mockNetworkFeeMicro = 0n;
+    mockBalance.mockResolvedValue("10000000");
+    renderModal();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take My Seat" })).toBeEnabled());
+    expect(screen.getByTestId("sng-fee-breakdown")).not.toHaveTextContent(/network fee/i);
 });

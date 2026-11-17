@@ -3,16 +3,17 @@ import { useMinAndMaxBuyIns } from "../../hooks/game/useMinAndMaxBuyIns";
 import { useNavigate } from "react-router-dom";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
+import { useNetworkFee } from "../../hooks/game/useNetworkFee";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { HexagonPattern } from "../common/Modal";
 import { joinTable } from "../../hooks/playerActions/joinTable";
 import { JoinTableOptions } from "../../hooks/playerActions/types";
 import { useCosmosWallet } from "../../hooks";
-import { usdcToMicroBigInt, microToUsdc, parseUsdcToMicro } from "../../constants/currency";
+import { usdcToMicroBigInt, microToUsdc, parseUsdcToMicro, parseMicroToBigInt } from "../../constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useNetwork } from "../../context/NetworkContext";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { getBlindsForDisplay } from "../../utils/gameFormatUtils";
+import { getBlindsForDisplay, isCashFormat } from "../../utils/gameFormatUtils";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import DepositCore from "./DepositCore";
 import { isEmpty, hasElements, hasValue } from "../../utils/guards";
@@ -51,7 +52,6 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     const {
         minBuyInFormatted,
         maxBuyInFormatted,
-        balanceFormatted,
         stakeLabel,
         minBuyInNumber,
         maxBuyInNumber: _maxBuyInNumber,
@@ -60,10 +60,6 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
         // Format USDC microunits (6 decimals) from Cosmos
         const minFormatted = formatUSDCToSimpleDollars(minBuyInValue);
         const maxFormatted = formatUSDCToSimpleDollars(maxBuyInValue);
-
-        // Get USDC balance from cosmosWallet hook (which shows all token balances)
-        const usdcBalance = cosmosWallet.balance.find(b => b.denom === "usdc");
-        const balance = usdcBalance ? microToUsdc(usdcBalance.amount) : 0;
 
         // Get blinds for display using utility function
         // Determines format based on isSitAndGo flag (fixed buy-in = tournament-style)
@@ -77,47 +73,76 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
         return {
             minBuyInFormatted: minFormatted,
             maxBuyInFormatted: maxFormatted,
-            balanceFormatted: balance,
             stakeLabel: stake,
             minBuyInNumber: parseFloat(minFormatted),
             maxBuyInNumber: parseFloat(maxFormatted),
             bigBlindValue: bigBlind
         };
-    }, [minBuyInValue, maxBuyInValue, cosmosWallet.balance, isSitAndGo, gameState?.gameOptions?.bigBlind, gameState?.gameOptions?.smallBlind]);
+    }, [minBuyInValue, maxBuyInValue, isSitAndGo, gameState?.gameOptions?.bigBlind, gameState?.gameOptions?.smallBlind]);
 
-    // Protocol-fee breakdown for Sit & Go (poker-vm#2592). The protocol fee is
-    // skimmed OUT OF the fixed buy-in (prize-pool portion = buyIn - protocolCut);
-    // the owner fee (entryFee) is charged on top. Hidden unless a protocol fee is
-    // configured (bps absent/0). Computed in micro-USDC bigint via the shared util.
+    // Sit & Go seats pay fees; cash tables never do (even a fixed buy-in one).
+    const isFeeBearingSeat = isSitAndGo && !(gameFormat && isCashFormat(gameFormat));
+
+    // The chain's flat network fee per seat (governance-set; 0.10 USDC until read).
+    const { networkFeeMicro } = useNetworkFee();
+
+    // Entry-cost breakdown for Sit & Go. New games (block52/pokerchain#476) pay
+    // the chain's flat network fee ON TOP of the buy-in; the whole buy-in goes
+    // to the prize pool. Games that still carry a percentage rate (poker-vm#2592)
+    // keep it, taken OUT OF the buy-in, with no flat fee. The owner fee
+    // (entryFee) is charged on top either way. Computed in micro-USDC bigint.
     const feeBreakdown = useMemo(() => {
         const breakdown = computeSngEntryBreakdown(
             maxBuyInValue,
             gameState?.gameOptions?.entryFee,
-            gameState?.gameOptions?.protocolFeeBps
+            gameState?.gameOptions?.protocolFeeBps,
+            networkFeeMicro
         );
 
+        // Fees charged on top of the buy-in (owner fee + network fee), in
+        // micro-USDC, so balance checks can require buy-in + fees for SNG seats.
+        const feesOnTop = breakdown.total - parseMicroToBigInt(maxBuyInValue);
+
         return {
-            show: isSitAndGo && breakdown.hasProtocolFee,
+            show: isFeeBearingSeat,
+            hasNetworkFee: breakdown.hasNetworkFee,
+            hasLegacyPercentageFee: breakdown.hasLegacyPercentageFee,
+            hasOwnerFee: breakdown.ownerFee > 0n,
+            feesOnTopMicro: isFeeBearingSeat ? feesOnTop : 0n,
             prizePoolPortionFormatted: formatUSDCToSimpleDollars(breakdown.prizePoolPortion),
             protocolCutFormatted: formatUSDCToSimpleDollars(breakdown.protocolCut),
+            networkFeeFormatted: formatUSDCToSimpleDollars(breakdown.networkFee),
             ownerFeeFormatted: formatUSDCToSimpleDollars(breakdown.ownerFee),
             totalFormatted: formatUSDCToSimpleDollars(breakdown.total)
         };
-    }, [isSitAndGo, maxBuyInValue, gameState?.gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps]);
+    }, [isFeeBearingSeat, maxBuyInValue, gameState?.gameOptions?.entryFee, gameState?.gameOptions?.protocolFeeBps, networkFeeMicro]);
+
+    // Least the player must hold to take a seat: the minimum buy-in, plus the
+    // owner fee and network fee on a Sit & Go seat. Cash tables: buy-in only.
+    // Compared in micro-USDC bigint so small fees never hit float rounding.
+    const balanceMicro = useMemo(
+        () => parseMicroToBigInt(cosmosWallet.balance.find(b => b.denom === "usdc")?.amount),
+        [cosmosWallet.balance]
+    );
+    const minRequiredMicro = parseMicroToBigInt(minBuyInValue) + feeBreakdown.feesOnTopMicro;
+    const isShortOfMinimum = balanceMicro < minRequiredMicro;
 
     // Initialize buyInAmount with maxBuyInFormatted
     const [buyInAmount, setBuyInAmount] = useState(() => maxBuyInFormatted);
 
     // Memoize isDisabled calculation
-    const isDisabled = useMemo(() => {
-        return balanceFormatted < minBuyInNumber;
-    }, [balanceFormatted, minBuyInNumber]);
+    const isDisabled = isShortOfMinimum;
 
-    // Check if buy-in exceeds balance
+    // Check if buy-in (plus any Sit & Go fees) exceeds balance
     const exceedsBalance = useMemo(() => {
-        const buyInValue = parseFloat(buyInAmount) || 0;
-        return buyInValue > balanceFormatted;
-    }, [buyInAmount, balanceFormatted]);
+        let buyInMicro = 0n;
+        try {
+            buyInMicro = parseUsdcToMicro(buyInAmount);
+        } catch {
+            buyInMicro = 0n;
+        }
+        return buyInMicro + feeBreakdown.feesOnTopMicro > balanceMicro;
+    }, [buyInAmount, balanceMicro, feeBreakdown.feesOnTopMicro]);
 
     // Check if random seat join is available
     const canJoinRandomSeat = useMemo(() => {
@@ -132,7 +157,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
     // a successful deposit (DepositCore calls refreshBalance), so this
     // flips back automatically once the user has funded enough.
     // block52/ui#378
-    const needsDeposit = balanceFormatted < minBuyInNumber;
+    const needsDeposit = isShortOfMinimum;
 
     // Memoized event handlers
     const handleBuyInChange = useCallback((amount: string) => {
@@ -156,8 +181,10 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                 return;
             }
 
-            if (balanceFormatted < minBuyInNumber) {
-                setBuyInError("Your available balance does not reach the minimum buy-in amount for this game. Please deposit to continue.");
+            if (isShortOfMinimum) {
+                setBuyInError(feeBreakdown.show
+                    ? `Your available balance does not cover the $${feeBreakdown.totalFormatted} entry (buy-in plus fees). Please deposit to continue.`
+                    : "Your available balance does not reach the minimum buy-in amount for this game. Please deposit to continue.");
                 return;
             }
 
@@ -168,7 +195,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
         } catch (_error) {
             setBuyInError("Invalid input amount.");
         }
-    }, [buyInAmount, minBuyInValue, maxBuyInValue, minBuyInFormatted, maxBuyInFormatted, balanceFormatted, minBuyInNumber, waitForBigBlind, onJoin]);
+    }, [buyInAmount, minBuyInValue, maxBuyInValue, minBuyInFormatted, maxBuyInFormatted, isShortOfMinimum, feeBreakdown.show, feeBreakdown.totalFormatted, waitForBigBlind, onJoin]);
 
     const handleRandomSeatJoin = useCallback(async () => {
         try {
@@ -188,8 +215,10 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                 return;
             }
 
-            if (balanceFormatted < minBuyInNumber) {
-                setBuyInError("Your available balance does not reach the minimum buy-in amount for this game. Please deposit to continue.");
+            if (isShortOfMinimum) {
+                setBuyInError(feeBreakdown.show
+                    ? `Your available balance does not cover the $${feeBreakdown.totalFormatted} entry (buy-in plus fees). Please deposit to continue.`
+                    : "Your available balance does not reach the minimum buy-in amount for this game. Please deposit to continue.");
                 return;
             }
 
@@ -218,8 +247,9 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
         buyInAmount,
         minBuyInValue,
         maxBuyInValue,
-        balanceFormatted,
-        minBuyInNumber,
+        isShortOfMinimum,
+        feeBreakdown.show,
+        feeBreakdown.totalFormatted,
         emptySeatIndexes.length,
         navigate,
         tableId,
@@ -342,7 +372,7 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                        replace this block automatically. block52/ui#378 */
                     <div className="mb-6">
                         <div className={`mb-4 p-3 rounded-lg text-sm ${styles.depositLink}`}>
-                            You need at least ${minBuyInFormatted} to join this table. Deposit to continue.
+                            You need at least ${feeBreakdown.show ? `${feeBreakdown.totalFormatted} (buy-in plus fees)` : minBuyInFormatted} to join this table. Deposit to continue.
                         </div>
                         <DepositCore showMethodSelector />
                     </div>
@@ -368,25 +398,36 @@ const BuyInModal: React.FC<BuyInModalProps> = React.memo(({ onClose, onJoin, tab
                                 <div className="text-xs text-gray-400 mt-1">This is a fixed buy-in tournament</div>
                             </div>
 
-                            {/* Protocol-fee breakdown (poker-vm#2592). The protocol fee comes
-                                OUT OF the buy-in, so prize pool = buyIn - protocolCut, and the
-                                total entry = buyIn + owner fee. Hidden when no protocol fee. */}
+                            {/* Entry-cost breakdown. New games: + the chain's network fee on top
+                                of the buy-in, whole buy-in to the prize pool
+                                (block52/pokerchain#476). Older games keep their percentage,
+                                taken out of the buy-in (poker-vm#2592). Never both. */}
                             {feeBreakdown.show && (
                                 <div className="mt-3 pt-3 border-t border-white/15 space-y-1 text-left" data-testid="sng-fee-breakdown">
                                     <div className="flex justify-between text-xs">
                                         <span className="text-gray-400">Buy-in (to prize pool)</span>
                                         <span className="text-white font-medium">${feeBreakdown.prizePoolPortionFormatted}</span>
                                     </div>
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-gray-400">Protocol fee</span>
-                                        <span className="text-purple-300 font-medium">${feeBreakdown.protocolCutFormatted}</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs">
-                                        <span className="text-gray-400">Owner fee</span>
-                                        <span className="text-white font-medium">${feeBreakdown.ownerFeeFormatted}</span>
-                                    </div>
+                                    {feeBreakdown.hasLegacyPercentageFee && (
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-gray-400">Network fee (taken from buy-in)</span>
+                                            <span className="text-purple-300 font-medium">${feeBreakdown.protocolCutFormatted}</span>
+                                        </div>
+                                    )}
+                                    {feeBreakdown.hasNetworkFee && (
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-gray-400">Network fee</span>
+                                            <span className="text-purple-300 font-medium">+ {feeBreakdown.networkFeeFormatted} USDC</span>
+                                        </div>
+                                    )}
+                                    {feeBreakdown.hasOwnerFee && (
+                                        <div className="flex justify-between text-xs">
+                                            <span className="text-gray-400">Entry fee</span>
+                                            <span className="text-white font-medium">+ ${feeBreakdown.ownerFeeFormatted}</span>
+                                        </div>
+                                    )}
                                     <div className="flex justify-between text-xs pt-1 border-t border-white/10">
-                                        <span className="text-gray-300 font-semibold">Total</span>
+                                        <span className="text-gray-300 font-semibold">Total you pay</span>
                                         <span className="text-green-400 font-bold">${feeBreakdown.totalFormatted}</span>
                                     </div>
                                 </div>
