@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useSyncExternalStore } from "react";
 import { ActionDTO } from "@block52/poker-vm-sdk";
 import { useGameData } from "../../context/gameState/GameDataContext";
-import { applyPotHoldback, closingBetPhase, deriveClosingBets, type ClosingBetPhase } from "../../utils/closingBets";
-import { getClosingClock, subscribeClosingClock, syncClosingClock } from "./closingBetClock";
+import { applyPotHoldback, closingBetPhase, deriveClosingBets, type ClosingBetPhase } from "@block52/poker-ui-core/utils/closingBets";
+import { getClosingClock, subscribeClosingClock, syncClosingClock } from "@block52/poker-ui-core/hooks/player/closingBetClock";
 
 export interface ClosingBetPresentation {
     phase: ClosingBetPhase;

@@ -1,5 +1,5 @@
 import { useParams } from "react-router-dom";
-import { gameIdFromRoute } from "../../utils/tableUrl";
+import { gameIdFromRoute } from "@block52/poker-ui-core/utils/tableUrl";
 
 /**
  * The game id of the table the current route shows. The table page is mounted

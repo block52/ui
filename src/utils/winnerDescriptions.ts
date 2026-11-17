@@ -1,8 +1,8 @@
 import { GameVariant, PlayerActionType, PokerGameIntegration, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
 import { isRevealedHand } from "../bus/deriveEvents";
-import { isTabledHand } from "./tabledHand";
-import { hasElements, isEmpty } from "./guards";
-import { evaluateHand } from "./handEvaluation";
+import { isTabledHand } from "@block52/poker-ui-core/utils/tabledHand";
+import { hasElements, isEmpty } from "@block52/poker-ui-core/utils/guards";
+import { evaluateHand } from "@block52/poker-ui-core/utils/handEvaluation";
 
 export type WinType = "showdown" | "uncontested";
 

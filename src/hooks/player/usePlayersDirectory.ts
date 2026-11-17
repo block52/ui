@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useIndexerApi } from "../../context/IndexerApiContext";
-import type { PlayerListItem, PlayerSearchParams } from "../../types/players";
+import type { PlayerListItem, PlayerSearchParams } from "@block52/poker-ui-core/types/players";
 
 interface UsePlayersDirectoryResult {
     players: PlayerListItem[];

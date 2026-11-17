@@ -11,8 +11,8 @@ import {
     tournamentIdsFromTxSearch,
     type TournamentLobbyCard,
     type TournamentRecord
-} from "../../utils/tournamentLobby";
-import { isNullish } from "../../utils/guards";
+} from "@block52/poker-ui-core/utils/tournamentLobby";
+import { isNullish } from "@block52/poker-ui-core/utils/guards";
 
 /** How often the lobby re-reads the chain. */
 export const TOURNAMENT_LOBBY_POLL_MS = 5000;

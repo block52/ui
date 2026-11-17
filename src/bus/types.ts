@@ -9,7 +9,7 @@
  */
 import type { TexasHoldemStateDTO, ActionDTO, WinnerDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import type { ClassifiedMessage } from "./ingest";
-import type { RunoutBeat } from "./timing";
+import type { RunoutBeat } from "@block52/poker-ui-core/bus/timing";
 
 /**
  * Typed transitions derived by diffing prev/next snapshot at ingest

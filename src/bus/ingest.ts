@@ -15,11 +15,11 @@
  *     renders what it can, while the error is surfaced).
  */
 import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
-import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
+import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import type { PendingAction } from "../context/gameState/GameUIContext";
 import { withWinnerDescriptions } from "../utils/winnerDescriptions";
-import { hasValue, isRecord } from "../utils/guards";
+import { hasValue, isRecord } from "@block52/poker-ui-core/utils/guards";
 
 /**
  * Cosmos event names that carry a full game-state snapshot.

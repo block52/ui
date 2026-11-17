@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCosmosAddressSync } from "../../utils/cosmosAccountUtils";
-import { isNullish } from "../../utils/guards";
-import { parseTournamentState } from "../../utils/tournamentBlinds";
-import { tournamentProgress, type MyTournamentTable } from "../../utils/tournamentFollow";
-import type { TournamentStateDTO } from "../../types/tournament";
+import { isNullish } from "@block52/poker-ui-core/utils/guards";
+import { parseTournamentState } from "@block52/poker-ui-core/utils/tournamentBlinds";
+import { tournamentProgress, type MyTournamentTable } from "@block52/poker-ui-core/utils/tournamentFollow";
+import type { TournamentStateDTO } from "@block52/poker-ui-core/types/tournament";
 
 /** How often a live tournament is re-read. */
 export const TOURNAMENT_POLL_MS = 4000;

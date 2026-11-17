@@ -1,4 +1,4 @@
-import { isEmpty } from "./guards";
+import { isEmpty } from "@block52/poker-ui-core/utils/guards";
 
 interface Page<T> {
     data: T[];

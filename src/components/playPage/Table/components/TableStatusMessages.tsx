@@ -12,7 +12,7 @@
 
 import React, { useMemo } from "react";
 import { PlayerDTO, LegalActionDTO } from "@block52/poker-vm-sdk";
-import { getTableStatusMessages, TableStatusMessage } from "../../../../utils/tableStatusDisplayUtils";
+import { getTableStatusMessages, TableStatusMessage } from "@block52/poker-ui-core/utils/tableStatusDisplayUtils";
 
 export interface TableStatusMessagesProps {
     viewportMode: "mobile-portrait" | "mobile-landscape" | "tablet" | "desktop";

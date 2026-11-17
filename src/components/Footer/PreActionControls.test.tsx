@@ -5,7 +5,7 @@
  */
 import { render, screen, fireEvent } from "@testing-library/react";
 import { PreActionControls } from "./PreActionControls";
-import { PreAction } from "../../utils/preActions";
+import { PreAction } from "@block52/poker-ui-core/utils/preActions";
 
 describe("PreActionControls", () => {
     const setup = (buttons: PreAction[], props: Partial<React.ComponentProps<typeof PreActionControls>> = {}) => {

@@ -72,8 +72,8 @@ import { deriveEvents } from "./deriveEvents";
 import { expandFrames, runoutBeats } from "./expandFrames";
 import { buildDefaultDecorators } from "./decorators";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
-import { hasValue, isEmpty, isNullish } from "../utils/guards";
-import { isTournamentFormat } from "../utils/gameFormatUtils";
+import { hasValue, isEmpty, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 
 /** Cap on the retained commit log so the dev handle never grows unbounded. */
 const COMMIT_LOG_CAP = 200;

@@ -4,10 +4,10 @@ import { SigningCosmosClient, GameFormat } from "@block52/poker-vm-sdk";
 import { DirectSecp256k1HdWallet } from "@cosmjs/proto-signing";
 import { getCosmosMnemonic } from "../utils/cosmos/storage";
 import { useNetwork } from "../context/NetworkContext";
-import { USDC_TO_MICRO, microToUsdc } from "../constants/currency";
+import { USDC_TO_MICRO, microToUsdc } from "@block52/poker-ui-core/constants/currency";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
-import { isEmpty, isNullish } from "../utils/guards";
-import { isTournamentFormat, toGameFormat } from "../utils/gameFormatUtils";
+import { isEmpty, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isTournamentFormat, toGameFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import styles from "./TestSigningPage.module.css";
 
 interface TestResult {

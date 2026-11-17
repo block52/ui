@@ -11,8 +11,8 @@ import {
     isBlindStructureChoice,
     type BlindLevelRow,
     type BlindStructureChoice
-} from "../utils/blindStructureChoice";
-import { isEmpty } from "../utils/guards";
+} from "@block52/poker-ui-core/utils/blindStructureChoice";
+import { isEmpty } from "@block52/poker-ui-core/utils/guards";
 
 const DEFAULT_CONTROL_CLASS =
     "w-full p-2 rounded bg-gray-700 text-white border border-gray-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all duration-200";

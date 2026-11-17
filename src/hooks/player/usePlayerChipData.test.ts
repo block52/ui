@@ -1,7 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usePlayerChipData } from "./usePlayerChipData";
-import { resetClosingClock } from "./closingBetClock";
+import { resetClosingClock } from "@block52/poker-ui-core/hooks/player/closingBetClock";
 import { useGameStateContext } from "../../context/GameStateContext";
 
 // Mock the GameStateContext and the slice hooks the migrated usePlayerChipData reads from.

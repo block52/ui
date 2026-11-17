@@ -1,6 +1,6 @@
 import React from "react";
-import { winAmountFloatText } from "../../../utils/winAmountFloat";
-import { hasContent } from "../../../utils/guards";
+import { winAmountFloatText } from "@block52/poker-ui-core/utils/winAmountFloat";
+import { hasContent } from "@block52/poker-ui-core/utils/guards";
 import "./WinAmountFloat.css";
 
 interface WinAmountFloatProps {

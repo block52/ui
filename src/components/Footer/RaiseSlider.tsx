@@ -1,8 +1,8 @@
 import React from "react";
-import { formatDisplayAmount, formatSliderInputValue, parseSliderInput } from "../../utils/numberUtils";
-import { hasValue } from "../../utils/guards";
+import { formatDisplayAmount, formatSliderInputValue, parseSliderInput } from "@block52/poker-ui-core/utils/numberUtils";
+import { hasValue } from "@block52/poker-ui-core/utils/guards";
 import type { RaiseSliderProps } from "./types";
-import { amountAtStep, sliderStepCount, stepForAmount } from "../../utils/raiseSlider";
+import { amountAtStep, sliderStepCount, stepForAmount } from "@block52/poker-ui-core/utils/raiseSlider";
 import styles from "./RaiseSlider.module.css";
 
 export const RaiseSlider: React.FC<RaiseSliderProps> = ({

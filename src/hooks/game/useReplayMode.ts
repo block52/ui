@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/poker-ui-core/utils/guards";
 
 interface UseReplayModeReturn {
     isReplayMode: boolean;

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { REPLAY_SPEEDS, clampStep, stepDelayMs } from "../../utils/replayTimeline";
+import { REPLAY_SPEEDS, clampStep, stepDelayMs } from "@block52/poker-ui-core/utils/replayTimeline";
 
 export interface ReplayTransport {
     /** The current step, 0-based; the last step is the hand's final state. */

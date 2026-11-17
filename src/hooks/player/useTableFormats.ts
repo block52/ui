@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { parseGameRecordResponse } from "../../utils/handReplay";
-import { toGameFormat } from "../../utils/gameFormatUtils";
+import { toGameFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 
 /**
  * Each table's format (cash, sit-and-go, tournament), read once per table from

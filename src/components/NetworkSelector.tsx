@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNetwork } from "../context/NetworkContext";
-import { hasElements } from "../utils/guards";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 import styles from "./NetworkSelector.module.css";
 
 export const NetworkSelector: React.FC = () => {

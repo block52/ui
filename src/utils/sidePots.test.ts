@@ -1,5 +1,5 @@
 import { GameFormat, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { formatPotDisplay, potLabel } from "./potDisplayUtils";
+import { formatPotDisplay, potLabel } from "@block52/poker-ui-core/utils/potDisplayUtils";
 import { winnerBannerText } from "./winnerBanner";
 
 describe("side pots (ui#918)", () => {

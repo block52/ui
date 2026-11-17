@@ -3,7 +3,7 @@
  */
 
 import React from "react";
-import type { VipTier } from "../../types/players";
+import type { VipTier } from "@block52/poker-ui-core/types/players";
 import { getVipTierMeta } from "../../utils/vip";
 
 interface VipBadgeProps {

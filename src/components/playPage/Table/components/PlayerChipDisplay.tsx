@@ -3,7 +3,7 @@ import { usePlayerChipData } from "../../../../hooks/player/usePlayerChipData";
 import { type BetSide, dealerSideFor } from "../../../../config/stageGeometry";
 import Chip from "../../common/Chip";
 import DealerButtonDisplay from "./DealerButtonDisplay";
-import { hasValue } from "../../../../utils/guards";
+import { hasValue } from "@block52/poker-ui-core/utils/guards";
 
 interface PlayerChipDisplayProps {
     seatIndex: number;

@@ -13,7 +13,7 @@
  */
 
 import { viteEnv } from "../viteEnv";
-import { hasElements } from "../guards";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 
 const ARWEAVE_GATEWAY = "https://arweave.net/";
 

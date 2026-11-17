@@ -2,9 +2,9 @@ import { useMemo } from "react";
 import { PlayerDTO } from "@block52/poker-vm-sdk";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
-import { PlayerSeatInfoReturn } from "../../types/index";
+import { PlayerSeatInfoReturn } from "@block52/poker-ui-core/types";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
-import { isNumber } from "../../utils/guards";
+import { isNumber } from "@block52/poker-ui-core/utils/guards";
 
 /**
  * Custom hook to manage player seat information

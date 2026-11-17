@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useIndexerApi } from "../../context/IndexerApiContext";
-import type { PlayerProfile } from "../../types/players";
+import type { PlayerProfile } from "@block52/poker-ui-core/types/players";
 
 interface UsePlayerProfileResult {
     profile: PlayerProfile | null;

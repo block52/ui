@@ -1,8 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { tableUrl } from "../../utils/tableUrl";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 import { formatCountdown, formatStartsAt } from "../../utils/scheduledSng";
-import { formatUsdc, phaseLabel, type TournamentLobbyCard } from "../../utils/tournamentLobby";
+import { formatUsdc, phaseLabel, type TournamentLobbyCard } from "@block52/poker-ui-core/utils/tournamentLobby";
 
 interface TournamentCardProps {
     card: TournamentLobbyCard;

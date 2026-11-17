@@ -1,6 +1,6 @@
 import React from "react";
 import { useTimeBankClock } from "../../../hooks/playerActions/useTimeBankClock";
-import { hasValue } from "../../../utils/guards";
+import { hasValue } from "@block52/poker-ui-core/utils/guards";
 import "./TimeBankClock.css";
 
 type TimeBankClockProps = {

@@ -31,7 +31,7 @@ jest.mock("../../context/GameStateContext", () => ({
 // USDC formatter — fixed for this test suite. We don't care about
 // exact formatting precision; we just need the payout to be a string
 // that doesn't collide with "$0.00" when present.
-jest.mock("../../utils/numberUtils", () => ({
+jest.mock("@block52/poker-ui-core/utils/numberUtils", () => ({
     formatUSDCToSimpleDollars: (raw: string) => raw,
 }));
 

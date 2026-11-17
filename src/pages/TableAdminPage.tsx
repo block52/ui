@@ -4,20 +4,20 @@ import { BettingLimit, GameFormat, GameVariant, CosmosClient, getDefaultCosmosCo
 import { Link, useNavigate } from "react-router-dom";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { isValidPlayerAddress } from "../utils/addressUtils";
-import { isEmpty, hasValue, isNullish, hasContent, hasElements } from "../utils/guards";
+import { isEmpty, hasValue, isNullish, hasContent, hasElements } from "@block52/poker-ui-core/utils/guards";
 import { useNewTable } from "../hooks/game/useNewTable";
 import { useFindGames } from "../hooks/game/useFindGames";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
-import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
+import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "@block52/poker-ui-core/constants/currency";
 import { normalizeTableName, tableNameCharCount } from "../utils/tableName";
 import { useTableNameError } from "../hooks/game/useTableNameError";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import TableList from "../components/TableList";
-import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
-import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
-import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
-import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { calculateBuyIn, BUY_IN_PRESETS } from "@block52/poker-ui-core/utils/buyInUtils";
+import { sortTablesByAvailableSeats } from "@block52/poker-ui-core/utils/tableSortingUtils";
+import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "@block52/poker-ui-core/constants/blindLevels";
+import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
@@ -31,7 +31,7 @@ import {
     resolveBlindStructureChoice,
     sngBlindFields,
     type BlindStructureChoice
-} from "../utils/blindStructureChoice";
+} from "@block52/poker-ui-core/utils/blindStructureChoice";
 import { BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
 
 /**

@@ -14,8 +14,8 @@
  * - maxPlayers: number of runners/entrants
  */
 
-import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "./guards";
-import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "./blindStructureChoice";
+import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "@block52/poker-ui-core/utils/guards";
+import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "@block52/poker-ui-core/utils/blindStructureChoice";
 
 /** Chain-defined valid entrant counts for a Sit & Go. */
 export const VALID_SNG_RUNNER_COUNTS = [2, 4, 6, 9] as const;

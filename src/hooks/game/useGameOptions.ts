@@ -2,8 +2,8 @@ import { useMemo } from "react";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { GameOptionsDTO } from "@block52/poker-vm-sdk";
-import { GameOptionsReturn } from "../../types/index";
-import { validateGameOptions } from "../../utils/gameOptionsValidation";
+import { GameOptionsReturn } from "@block52/poker-ui-core/types";
+import { validateGameOptions } from "@block52/poker-ui-core/utils/gameOptionsValidation";
 
 /**
  * Custom hook to fetch game options for a table

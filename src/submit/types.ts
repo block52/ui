@@ -7,7 +7,7 @@
  * transport failures (and only when the evidence proves the action did NOT
  * already land), and surfaces every failure. See ui#538 and ui#609.
  */
-import type { PlayerActionResult } from "../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import type { TrackMeta } from "../bus/types";
 
 /**

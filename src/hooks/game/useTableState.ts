@@ -3,10 +3,10 @@ import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameMeta } from "../../context/gameState/GameMetaContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { TexasHoldemRound, GameFormat } from "@block52/poker-vm-sdk";
-import { TableStateReturn } from "../../types/index";
-import { getGameFormat } from "../../utils/gameFormatUtils";
-import { formatMicroAsUsdc } from "../../constants/currency";
-import { hasElements } from "../../utils/guards";
+import { TableStateReturn } from "@block52/poker-ui-core/types";
+import { getGameFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 
 /**
  * Custom hook to fetch and provide table state information

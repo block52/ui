@@ -1,5 +1,5 @@
 import React from "react";
-import { formatPotLabel } from "../../../../utils/potTextUtils";
+import { formatPotLabel } from "@block52/poker-ui-core/utils/potTextUtils";
 import { PotPill } from "./PotPill";
 
 interface TotalPotDisplayProps {

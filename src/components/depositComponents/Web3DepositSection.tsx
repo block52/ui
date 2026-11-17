@@ -1,5 +1,5 @@
 import React from "react";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import styles from "./DepositComponents.module.css";
 
 interface Web3DepositSectionProps {

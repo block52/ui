@@ -10,7 +10,7 @@ import { GameMessageBus, SUSPENSE_BACKLOG_CAP } from "./GameMessageBus";
 import { SHOWDOWN_HOLD_MS } from "./decorators/showdownHold";
 import { RawWsMessage } from "./ingest";
 import { GameStreamItem } from "./types";
-import { runoutBeatHoldMs } from "./timing";
+import { runoutBeatHoldMs } from "@block52/poker-ui-core/bus/timing";
 import { buildDefaultDecorators } from "./decorators";
 import { TexasHoldemStateDTO, GameOptionsDTO, ActionDTO, WinnerDTO, PlayerDTO, PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 

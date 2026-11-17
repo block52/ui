@@ -23,10 +23,10 @@ import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/c
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
-import { hasElements } from "../../../utils/guards";
-import { winnerCardHighlight } from "../../../utils/holeCardLayout";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { winnerCardHighlight } from "@block52/poker-ui-core/utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";
-import { getSeatOpacityClass } from "../../../utils/seatOpacity";
+import { getSeatOpacityClass } from "@block52/poker-ui-core/utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
 import { useTableId } from "../../../hooks/game/useTableId";

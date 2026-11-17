@@ -4,9 +4,9 @@ import { toValoperAddress } from "@block52/poker-vm-sdk";
 import { ChainOverview } from "../../hooks/nodes/useChainOverview";
 import { useCreateValidator } from "../../hooks/nodes/useCreateValidator";
 import { useCosmosWallet } from "../../hooks/wallet";
-import { formatMicroAsUsdc } from "../../constants/currency";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
 import { faultTolerance, parseConsensusPubkey, parseMicroAmount, powerShareBps, wouldControlLiveness } from "../../utils/nodePortal";
-import { hasContent, isNullish } from "../../utils/guards";
+import { hasContent, isNullish } from "@block52/poker-ui-core/utils/guards";
 
 const inputClass = "w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-blue-500";
 

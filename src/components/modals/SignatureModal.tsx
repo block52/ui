@@ -1,6 +1,6 @@
 import React from "react";
 import { copyToClipboard as copyToClipboardUtil } from "../../utils/clipboard";
-import { formatMicroAsUsdc } from "../../constants/currency";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
 
 interface Withdrawal {
     nonce: string;

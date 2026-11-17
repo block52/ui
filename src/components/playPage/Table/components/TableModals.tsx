@@ -13,9 +13,9 @@
 
 import React from "react";
 import type { ResultDTO } from "@block52/poker-vm-sdk";
-import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
-import { isNullish } from "../../../../utils/guards";
-import { tournamentIdOf } from "../../../../utils/tournamentBlinds";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { isNullish } from "@block52/poker-ui-core/utils/guards";
+import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
@@ -23,7 +23,7 @@ import TransactionPopup from "../../common/TransactionPopup";
 import { LeaveTableModal } from "../../../modals";
 import TournamentWinnerMoment from "../../Animations/TournamentWinnerMoment";
 import { useTournamentFinishMoment } from "../../../../hooks/game/useTournamentFinishMoment";
-import { holdsResultModals } from "../../../../utils/tournamentFinish";
+import { holdsResultModals } from "@block52/poker-ui-core/utils/tournamentFinish";
 
 export interface TableModalsProps {
     // Game Start Countdown

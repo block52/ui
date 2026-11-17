@@ -1,6 +1,6 @@
 import type { GameFormat } from "@block52/poker-vm-sdk";
-import { convertBlindsForBlockchain, isTournamentFormat } from "./gameFormatUtils";
-import { usdcToMicroBigInt } from "../constants/currency";
+import { convertBlindsForBlockchain, isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { usdcToMicroBigInt } from "@block52/poker-ui-core/constants/currency";
 
 /** The table creation fee, in big blinds (block52/pokerchain#378). */
 export const CREATION_FEE_BIG_BLINDS = 10n;

@@ -18,7 +18,7 @@
  */
 import type { Decorator, Decoration, SoundHint } from "../types";
 import { getActionSoundKey } from "../../utils/actionSoundUtils";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 
 export function makeRemoteActionSound(getLocalAddress: () => string | null): Decorator {
     return (item): Partial<Decoration> => {

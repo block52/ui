@@ -8,8 +8,8 @@ import { parseFrame } from "../bus/frame";
 import { GameMessageBus } from "../bus/GameMessageBus";
 import { type GameStreamItem } from "../bus/types";
 import { viteEnv } from "../utils/viteEnv";
-import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
-import { hasElements, hasValue, isNullish } from "../utils/guards";
+import { toGameFormat, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { hasElements, hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
@@ -24,7 +24,7 @@ import { ReplayProvider, useReplay } from "./gameState/ReplayContext";
 import { GameActionsProvider, useGameActions } from "./gameState/GameActionsContext";
 import { GameEventsProvider } from "./gameState/GameEventsContext";
 import { IDLE_CONNECTION, isConnectionLive, type ConnectionState } from "./gameState/connection";
-import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
+import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "@block52/poker-ui-core/utils/reconnectBackoff";
 import { AUTH_RENEWAL_CHECK_MS, isAuthRenewalDue, isOwnHandMasked } from "../utils/wsAuth";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)

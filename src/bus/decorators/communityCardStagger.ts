@@ -19,12 +19,12 @@
  * Pure function; unit-tested in isolation.
  */
 import type { Decorator, Decoration, AnimationHint } from "../types";
-import { hasElements } from "../../utils/guards";
-import { CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "../timing";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "@block52/poker-ui-core/bus/timing";
 
 // The durations live in ../timing (one source for the bus, the hooks and the
 // CSS); re-exported here so existing importers of this decorator keep working.
-export { CARD_STAGGER_MS, MAX_STREET_CARDS, CARD_DROP_MS, ACK_MARGIN_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "../timing";
+export { CARD_STAGGER_MS, MAX_STREET_CARDS, CARD_DROP_MS, ACK_MARGIN_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "@block52/poker-ui-core/bus/timing";
 
 export const communityCardStagger: Decorator = (item): Partial<Decoration> => {
     const animations: AnimationHint[] = [];

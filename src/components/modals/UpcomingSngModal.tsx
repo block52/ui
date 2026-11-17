@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal } from "../common";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useSngSchedule } from "../../hooks/useSngSchedule";
 import { getUpcomingSngs, formatCountdown, formatUtcLabel, formatLocalLabel } from "../../utils/sngSchedule";

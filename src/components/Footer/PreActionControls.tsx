@@ -1,6 +1,6 @@
 import React from "react";
-import { PreAction } from "../../utils/preActions";
-import { isEmpty } from "../../utils/guards";
+import { PreAction } from "@block52/poker-ui-core/utils/preActions";
+import { isEmpty } from "@block52/poker-ui-core/utils/guards";
 
 interface PreActionControlsProps {
     /** The buttons to show, left→right (from preActionButtons). */

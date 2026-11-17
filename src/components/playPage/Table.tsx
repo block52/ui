@@ -45,8 +45,8 @@
 
 import { buildHandShareUrl } from "../../utils/handReplay";
 import { useEffect, useState, useMemo, useCallback, memo, useRef } from "react";
-import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { formatPotDisplay, formatChipCount } from "../../utils/potDisplayUtils";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { formatPotDisplay, formatChipCount } from "@block52/poker-ui-core/utils/potDisplayUtils";
 import { useClosingBetPresentation } from "../../hooks/player/useClosingBetPresentation";
 // Position arrays now come from useTableLayout hook
 // // Position arrays now come from useTableLayout hook
@@ -76,18 +76,18 @@ const clubLogo = import.meta.env.VITE_CLUB_LOGO || defaultLogo;
 
 import { useNavigate } from "react-router-dom";
 import { useTournament } from "../../hooks/tournament/useTournament";
-import { tournamentIdOf } from "../../utils/tournamentBlinds";
-import { followTarget, type MyTournamentTable } from "../../utils/tournamentFollow";
-import { tableUrl } from "../../utils/tableUrl";
-import { tournamentRunners, tournamentSize } from "../../utils/tournamentResult";
+import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
+import { followTarget, type MyTournamentTable } from "@block52/poker-ui-core/utils/tournamentFollow";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
+import { tournamentRunners, tournamentSize } from "@block52/poker-ui-core/utils/tournamentResult";
 import React from "react";
-import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { toast } from "react-toastify";
 
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
 import { cssVars } from "../../utils/cssVars";
-import { ANIMATION_CSS_VARS } from "../../bus/timing";
+import { ANIMATION_CSS_VARS } from "@block52/poker-ui-core/bus/timing";
 
 import "./Table.css"; // Import the Table CSS file
 
@@ -125,7 +125,7 @@ import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalA
 import { SitOutIntentProvider } from "../../context/SitOutIntentContext";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { hasTournamentFinished, isAwaitingTournamentStart } from "../../utils/scheduledSng";
-import { describeReplayStep, latestCompletedHand } from "../../utils/replayTimeline";
+import { describeReplayStep, latestCompletedHand } from "@block52/poker-ui-core/utils/replayTimeline";
 import { useReplayTimeline } from "../../hooks/game/useReplayTimeline";
 import { ReplayTransport } from "./ReplayTransport";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../utils/cosmosAccountUtils";
@@ -166,7 +166,7 @@ import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
 import ConnectionBanner from "./ConnectionBanner";
 
-import { hasElements, hasValue, isNullish } from "../../utils/guards";
+import { hasElements, hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
 import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
 import { useTableId } from "../../hooks/game/useTableId";
 

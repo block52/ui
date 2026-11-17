@@ -2,7 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import type { PlayerAward } from "../../utils/playerAwards";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { AwardCard } from "./AwardCard";
 
 jest.mock("../../context/profile/ProfileAvatarContext", () => ({ useProfileAvatar: jest.fn() }));

@@ -1,9 +1,9 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import type { TournamentFinish } from "../../../utils/tournamentFinish";
-import { winnerMomentText } from "../../../utils/tournamentFinish";
-import { formatUSDCToSimpleDollars } from "../../../utils/numberUtils";
-import { truncateMiddle } from "../../../utils/stringUtils";
+import type { TournamentFinish } from "@block52/poker-ui-core/utils/tournamentFinish";
+import { winnerMomentText } from "@block52/poker-ui-core/utils/tournamentFinish";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import "./TournamentWinnerMoment.css";
 
 const truncateAddress = (address: string): string => truncateMiddle(address, 8, 4, "…");
