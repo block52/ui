@@ -111,3 +111,21 @@ it("takes a drawn seat: joins without naming one and says the seat is random (ui
     expect(options).toEqual({ amount: "10", format: "sit-and-go" });
     expect(options).not.toHaveProperty("seatNumber");
 });
+
+// block52/pokerchain#476: a new Sit & Go seat costs the buy-in PLUS a flat
+// 0.10 USDC network fee, so a player holding exactly the buy-in is short.
+it("shows the 0.10 network fee and blocks a player holding only the buy-in", async () => {
+    mockBalance.mockResolvedValue("10000000");
+    renderModal();
+    await waitFor(() => expect(screen.getByText("Insufficient Balance")).toBeInTheDocument());
+    const breakdown = screen.getByTestId("sng-fee-breakdown");
+    expect(breakdown).toHaveTextContent("+ 0.10 USDC");
+    expect(breakdown).toHaveTextContent("$10.10");
+    expect(mockJoin).not.toHaveBeenCalled();
+});
+
+it("offers the seat once the balance covers buy-in plus the network fee", async () => {
+    mockBalance.mockResolvedValue("10100000");
+    renderModal();
+    await waitFor(() => expect(screen.getByRole("button", { name: "Take My Seat" })).toBeEnabled());
+});

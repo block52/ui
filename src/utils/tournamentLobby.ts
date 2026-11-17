@@ -22,7 +22,8 @@ import {
     type TournamentEntrantStatus,
     type TournamentStatus
 } from "@block52/poker-vm-sdk";
-import { isNullish, isNumber, isRecord, isString } from "./guards";
+import { hasElements, isNullish, isNumber, isRecord, isString } from "./guards";
+import { NETWORK_FEE_MICRO } from "./buyInUtils";
 import { gameIdFromTableId } from "./tournamentFollow";
 
 export interface TournamentEntrantView {
@@ -177,27 +178,34 @@ export const TOURNAMENT_CREATED_QUERY = "tournament_created.tournament_id EXISTS
 
 /** What one entrant pays and what part of it reaches the prize pool. All micro-USDC bigint. */
 export interface TournamentEntryCost {
-    /** What the player pays to register (the buy-in). */
+    /** The buy-in. */
     gross: bigint;
     /** Inside the buy-in, to the creator. Never refunded. */
     entryFee: bigint;
-    /** Inside the buy-in, to validators. Never refunded. */
+    /** Legacy percentage cut inside the buy-in, to validators (older tournaments only). Never refunded. */
     protocolCut: bigint;
+    /** Flat network fee paid ON TOP of the buy-in, to validators (0 on older tournaments). Never refunded. */
+    networkFee: bigint;
+    /** What the player pays to register: buy-in plus network fee. */
+    total: bigint;
     /** Gross minus entry fee and protocol cut: escrowed, the prize-pool share, and all that unregistering refunds. */
     net: bigint;
 }
 
 /**
- * Mirrors pokerchain `feesFor`: the entry fee and the protocol cut both come OUT
- * of the buy-in (unlike a sit-and-go's owner fee), so the player pays exactly the
- * buy-in and the escrow is what is left.
+ * Mirrors pokerchain `feesFor`: the entry fee comes OUT of the buy-in (unlike a
+ * sit-and-go's owner fee). A new tournament (block52/pokerchain#476) adds a flat
+ * 0.10 USDC network fee ON TOP, so the player pays buy-in + 0.10 and the escrow
+ * is buy-in minus entry fee. An older tournament that still carries a percentage
+ * rate takes that cut out of the buy-in instead, with no flat fee. Never both.
  */
 export function tournamentEntryCost(options: Pick<TournamentOptionsView, "buyIn" | "entryFee" | "protocolFeeBps">): TournamentEntryCost {
     const gross = BigInt(options.buyIn);
     const entryFee = isNullish(options.entryFee) ? 0n : BigInt(options.entryFee);
     const bps = isNullish(options.protocolFeeBps) || options.protocolFeeBps <= 0 ? 0n : BigInt(options.protocolFeeBps);
     const protocolCut = (gross * bps) / 10000n;
-    return { gross, entryFee, protocolCut, net: gross - entryFee - protocolCut };
+    const networkFee = bps > 0n ? 0n : NETWORK_FEE_MICRO;
+    return { gross, entryFee, protocolCut, networkFee, total: gross + networkFee, net: gross - entryFee - protocolCut };
 }
 
 export type TournamentLobbyPhase =
@@ -388,10 +396,20 @@ export function formatUsdc(micro: bigint): string {
  * unregistering or a cancelled tournament refunds only the escrowed net buy-in.
  */
 export function escrowStatement(cost: TournamentEntryCost): { register: string; unregister: string } {
-    const fees = cost.entryFee + cost.protocolCut;
-    const feeNote = fees > 0n ? ` The ${formatUsdc(fees)} of fees inside the buy-in (entry fee and protocol fee) is taken at registration and is not refunded.` : "";
+    const fees: string[] = [];
+    if (cost.entryFee > 0n) fees.push(`the ${formatUsdc(cost.entryFee)} entry fee`);
+    if (cost.protocolCut > 0n) fees.push(`the ${formatUsdc(cost.protocolCut)} network fee taken from the buy-in`);
+    if (cost.networkFee > 0n) fees.push(`the ${formatUsdc(cost.networkFee)} network fee`);
+    const feeNote = hasElements(fees)
+        ? ` ${capitalise(fees.join(" and "))} ${fees.length > 1 ? "are" : "is"} taken at registration and ${fees.length > 1 ? "are" : "is"} not refunded.`
+        : "";
+    const paid = cost.networkFee > 0n
+        ? `${formatUsdc(cost.total)} (the ${formatUsdc(cost.gross)} buy-in plus the ${formatUsdc(cost.networkFee)} network fee)`
+        : formatUsdc(cost.total);
     return {
-        register: `You pay ${formatUsdc(cost.gross)} now. ${formatUsdc(cost.net)} of it is held in escrow for the prize pool.${feeNote}`,
-        unregister: `Unregistering returns the ${formatUsdc(cost.net)} held in escrow, not the full ${formatUsdc(cost.gross)} buy-in.${feeNote} If the tournament is cancelled for too few entrants, the refund is currently the same escrowed amount.`
+        register: `You pay ${paid} now. ${formatUsdc(cost.net)} of it is held in escrow for the prize pool.${feeNote}`,
+        unregister: `Unregistering returns the ${formatUsdc(cost.net)} held in escrow, not the full ${formatUsdc(cost.total)} you paid.${feeNote} If the tournament is cancelled for too few entrants, the refund is currently the same escrowed amount.`
     };
 }
+
+const capitalise = (text: string): string => text.charAt(0).toUpperCase() + text.slice(1);

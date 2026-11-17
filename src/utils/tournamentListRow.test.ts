@@ -7,7 +7,7 @@ const card = (over: Partial<TournamentLobbyCard>): TournamentLobbyCard =>
         phase: "running",
         registered: 27,
         maxEntrants: 27,
-        cost: { gross: 1_000_000n, entryFee: 0n, protocolCut: 100_000n, net: 900_000n },
+        cost: { gross: 1_000_000n, entryFee: 0n, protocolCut: 100_000n, networkFee: 0n, total: 1_000_000n, net: 900_000n },
         ...over
     }) as TournamentLobbyCard;
 
@@ -16,6 +16,11 @@ describe("tournamentListRow", () => {
         const row = tournamentListRow(card({ registered: 27, maxEntrants: 40 }));
         expect(row.runners).toBe("27/40");
         expect(row.buyIn).toBe("$1.00");
+    });
+
+    it("shows the 0.10 network fee on top of the buy-in for a new tournament (pokerchain#476)", () => {
+        const row = tournamentListRow(card({ cost: { gross: 1_000_000n, entryFee: 0n, protocolCut: 0n, networkFee: 100_000n, total: 1_100_000n, net: 1_000_000n } }));
+        expect(row.buyIn).toBe("$1.00 + 0.10 network fee");
     });
 
     it("links a running or finished tournament to its own page", () => {

@@ -25,13 +25,13 @@ const PAGE_SIZE = 20;
 /**
  * Format buy-in display based on game format.
  *
- * SNG/Tournament with a protocol fee configured: shows the buy-in split into its
- * prize-pool portion and protocol cut, e.g. "$9.00 (8.10 + 0.90)". The split uses
- * the governable `protocolFeeBps` from the game config via the shared, tested util
- * — NOT a hardcoded 10% (poker-vm#2592, Commandment #7). When no protocol fee is
- * configured, no split is shown.
+ * SNG/Tournament on a new game (block52/pokerchain#476): shows the buy-in plus
+ * the flat network fee paid on top, e.g. "$9.00 + 0.10 network fee".
+ * A game that still carries a percentage rate (poker-vm#2592) keeps showing its
+ * buy-in split into prize-pool portion and cut, e.g. "$9.00 (8.10 + 0.90)",
+ * computed from its own `protocolFeeBps` via the shared, tested util.
  *
- * Cash Game: shows the min-max range.
+ * Cash Game: shows the min-max range (no fee).
  */
 const formatBuyIn = (game: GameWithFormat) => {
     const isTournament = isTournamentFormat(game.gameFormat);
@@ -39,12 +39,12 @@ const formatBuyIn = (game: GameWithFormat) => {
 
     if (isTournament) {
         const breakdown = computeSngEntryBreakdown(game.minBuyIn, game.entryFee, game.protocolFeeBps);
-        if (breakdown.hasProtocolFee) {
+        if (breakdown.hasLegacyPercentageFee) {
             const prizePool = formatMicroAsUsdc(breakdown.prizePoolPortion, 2);
             const fee = formatMicroAsUsdc(breakdown.protocolCut, 2);
             return `$${minBuyIn} (${prizePool} + ${fee})`;
         }
-        return `$${minBuyIn}`;
+        return `$${minBuyIn} + ${formatMicroAsUsdc(breakdown.networkFee, 2)} network fee`;
     }
 
     const maxBuyIn = formatMicroAsUsdc(game.maxBuyIn, 2);
