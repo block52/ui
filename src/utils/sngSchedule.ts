@@ -12,7 +12,7 @@
  * so daylight-saving transitions (AEST↔AEDT) are handled correctly.
  */
 
-import { hasContent, isNumber, isRecord, isString } from "./guards";
+import { hasContent, isNumber, isRecord, isString } from "@block52/poker-ui-core/utils/guards";
 
 /** A weekly recurring Sit & Go, as defined in the remote JSON schedule. */
 export interface SngTournament {

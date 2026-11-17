@@ -1,7 +1,7 @@
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { erc20abi } from "../../abis/erc20ABI";
 import useUserWalletConnect from "./useUserWalletConnect";
-import { FunctionName } from "../../types";
+import { FunctionName } from "@block52/poker-ui-core/types";
 import { useCallback, useMemo } from "react";
 
 const useApprove = () => {

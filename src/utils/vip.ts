@@ -6,7 +6,7 @@
  * stat fields. No thresholds are recomputed here — the chain/indexer owns those.
  */
 
-import type { VipTier } from "../types/players";
+import type { VipTier } from "@block52/poker-ui-core/types/players";
 
 export interface VipTierMeta {
     label: string;

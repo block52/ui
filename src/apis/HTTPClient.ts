@@ -1,6 +1,6 @@
 import axios, { isAxiosError, AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from "axios";
 import { STORAGE_KEYS } from "../constants/storageKeys";
-import { isRecord, isString } from "../utils/guards";
+import { isRecord, isString } from "@block52/poker-ui-core/utils/guards";
 
 export interface HTTPClientConfig {
     baseUrl: string;

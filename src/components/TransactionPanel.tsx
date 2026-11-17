@@ -2,8 +2,8 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useNetwork } from "../context/NetworkContext";
-import { formatTimestampRelative } from "../utils/formatUtils";
-import { microToUsdc } from "../constants/currency";
+import { formatTimestampRelative } from "@block52/poker-ui-core/utils/formatUtils";
+import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
 import styles from "./TransactionPanel.module.css";
 import {
     formatTransactionLabel,
@@ -18,7 +18,7 @@ import {
     type TransferEvent
 } from "../utils/transactionUtils";
 import { useCosmosApi } from "../context/CosmosApiContext";
-import { isEmpty, hasElements, isString } from "../utils/guards";
+import { isEmpty, hasElements, isString } from "@block52/poker-ui-core/utils/guards";
 
 interface Transaction {
     txhash: string;

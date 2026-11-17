@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import { httpErrorMessage, isNetworkError } from "../../apis/HTTPClient";
 import { mergeHandPages } from "../../utils/handHistory";
-import type { PlayerHand } from "../../types/players";
+import type { PlayerHand } from "@block52/poker-ui-core/types/players";
 
 interface UseMyHandHistoryResult {
     hands: PlayerHand[];

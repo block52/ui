@@ -1,7 +1,7 @@
 import { withMoneyMoverRetry } from "../../utils/cosmos/client";
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
-import type { LeaveTableResult } from "../../types";
+import type { LeaveTableResult } from "@block52/poker-ui-core/types";
 
 /**
  * Leave a poker table by broadcasting MsgLeaveGame on Cosmos.

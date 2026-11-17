@@ -11,7 +11,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useNetwork } from "../../../../context/NetworkContext";
 import { getCosmosBalance, getCosmosAddressSync, getFormattedCosmosAddress } from "../../../../utils/cosmosAccountUtils";
-import { formatUSDCToSimpleDollars } from "../../../../utils/numberUtils";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import {
     copyToClipboard,
     navigateToLobby,
@@ -22,7 +22,7 @@ import {
     getDepositButtonStyle
 } from "../utils";
 import { UseTableHeaderReturn } from "../types";
-import { tableUrl } from "../../../../utils/tableUrl";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 
 export const useTableHeader = (tableId: string): UseTableHeaderReturn => {
     const { currentNetwork } = useNetwork();

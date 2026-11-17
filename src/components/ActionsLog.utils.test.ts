@@ -1,6 +1,6 @@
 import { ActionDTO, NonPlayerActionType, TexasHoldemRound, TexasHoldemStateDTO, PlayerActionType } from "@block52/poker-vm-sdk";
 import { getActionLine, getWinnerLine, shouldShowWinnerSummary } from "./ActionsLog.utils";
-import { WinnerInfo } from "../types/index";
+import { WinnerInfo } from "@block52/poker-ui-core/types";
 
 const buildAction = (overrides: Partial<ActionDTO> = {}): ActionDTO => ({
     playerId: "0x1234567890abcdef1234567890abcdef12345678",

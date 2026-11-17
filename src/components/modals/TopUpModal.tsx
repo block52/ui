@@ -1,12 +1,12 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { microToUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../../constants/currency";
+import { microToUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import { calculateMinTopUp, calculateMaxTopUp } from "../../utils/topUpUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { Modal, LoadingSpinner } from "../common";
 import styles from "./TopUpModal.module.css";
 import type { TopUpModalProps } from "./types";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/poker-ui-core/utils/guards";
 
 const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyIn, walletBalance, onClose, onTopUp }) => {
     const [topUpError, setTopUpError] = useState("");

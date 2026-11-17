@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { Navigate, useLocation, useParams } from "react-router-dom";
-import { parseTournamentGameId, tableUrl } from "../utils/tableUrl";
+import { parseTournamentGameId, tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 
 /**
  * `/table/:id`. A tournament table's game id (`<tournamentId>-t<n>`) belongs at

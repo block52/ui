@@ -4,9 +4,9 @@ import { NetworkSelector } from "./NetworkSelector";
 import { useNetwork } from "../context/NetworkContext";
 import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
-import { hasElements } from "../utils/guards";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 import styles from "./GlobalHeader.module.css";
-import { isTournamentTablePath } from "../utils/tableUrl";
+import { isTournamentTablePath } from "@block52/poker-ui-core/utils/tableUrl";
 
 interface MenuItem {
     path: string;

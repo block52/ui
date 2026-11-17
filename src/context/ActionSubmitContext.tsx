@@ -19,7 +19,7 @@ import { useCosmosApi } from "./CosmosApiContext";
 import { useGameUI } from "./gameState/GameUIContext";
 import { isConnectionLive } from "./gameState/connection";
 import type { CosmosApi } from "../apis/Api";
-import { isNullish } from "../utils/guards";
+import { isNullish } from "@block52/poker-ui-core/utils/guards";
 
 const ActionSubmitContext = createContext<ActionSubmitController>(null as unknown as ActionSubmitController);
 

@@ -19,7 +19,10 @@
         "noFallthroughCasesInSwitch": true,
 
         /* Prevent JS or declaration files generation */
-        "noEmit": true
+        "noEmit": true,
+
+        /* Workspace source, so dev and tests need no build of the core package */
+        "paths": { "@block52/poker-ui-core/*": ["./packages/core/src/*"] }
     },
-    "include": ["src"]
+    "include": ["src", "packages/core/src"]
 }

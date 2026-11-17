@@ -1,7 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { truncateMiddle } from "../../utils/stringUtils";
-import type { TournamentListRow } from "../../utils/tournamentListRow";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
+import type { TournamentListRow } from "@block52/poker-ui-core/utils/tournamentListRow";
 
 interface TournamentListRowsProps {
     rows: TournamentListRow[];

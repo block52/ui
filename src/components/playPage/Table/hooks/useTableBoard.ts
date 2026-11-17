@@ -11,9 +11,9 @@ import { useMemo } from "react";
 import { useGameStateContext } from "../../../../context/GameStateContext";
 import { useTableState } from "../../../../hooks/game/useTableState";
 import { useVacantSeatData } from "../../../../hooks/game/useVacantSeatData";
-import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { UseTableBoardReturn } from "../types";
-import { hasElements } from "../../../../utils/guards";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 
 export const useTableBoard = (): UseTableBoardReturn => {
     const { gameState, gameFormat } = useGameStateContext();

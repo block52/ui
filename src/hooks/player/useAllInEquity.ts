@@ -1,14 +1,14 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useShowingCardsByAddress } from "./useShowingCardsByAddress";
-import { hasValue, isNullish } from "../../utils/guards";
+import { hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
 import {
     PokerSolver,
     Deck,
     GameVariant,
     holeCardsPerPlayer
 } from "@block52/poker-vm-sdk";
-import { equityHands, exactShowdownWinPercentages, shouldShowAllInEquity } from "../../utils/allInEquity";
+import { equityHands, exactShowdownWinPercentages, shouldShowAllInEquity } from "@block52/poker-ui-core/utils/allInEquity";
 
 /**
  * Monte Carlo iterations per simulation. Each iteration copies and shuffles the

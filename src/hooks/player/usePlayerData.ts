@@ -1,13 +1,13 @@
 import React from "react";
 import { PlayerStatus, PlayerDTO } from "@block52/poker-vm-sdk";
-import { PlayerDataReturn } from "../../types/index";
+import { PlayerDataReturn } from "@block52/poker-ui-core/types";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameMeta } from "../../context/gameState/GameMetaContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { usePlayersBySeat } from "../game/usePlayersBySeat";
-import { convertUSDCToNumber } from "../../utils/numberUtils";
-import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { convertUSDCToNumber } from "@block52/poker-ui-core/utils/numberUtils";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { hasFoldedOrMucked } from "@block52/poker-ui-core/utils/playerStatus";
 
 /**
  * Custom hook to fetch player data for a specific seat

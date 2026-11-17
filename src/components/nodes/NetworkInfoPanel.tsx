@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { ChainOverview } from "../../hooks/nodes/useChainOverview";
 import { useGenesisInfo } from "../../hooks/nodes/useGenesisInfo";
 import { GENESIS_PATH, GENESIS_SHA256 } from "../../constants/chainNetwork";
-import { formatMicroAsUsdc } from "../../constants/currency";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
 import { faultTolerance } from "../../utils/nodePortal";
 import { copyToClipboard } from "../playPage/Table/utils";
 

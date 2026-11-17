@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from "react";
 import Chip from "./playPage/common/Chip";
-import { decomposeAmount, ChipStackEntry, parseCustomAmounts, chipColorClass } from "../utils/chipBreakdown";
-import { hasElements } from "../utils/guards";
+import { decomposeAmount, ChipStackEntry, parseCustomAmounts, chipColorClass } from "@block52/poker-ui-core/utils/chipBreakdown";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 
 /**
  * Convert a dollar amount to USDC micro-unit string (6 decimals).

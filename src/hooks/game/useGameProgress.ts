@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { GameProgressReturn } from "../../types/index";
+import { GameProgressReturn } from "@block52/poker-ui-core/types";
 import { PlayerDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { hasFoldedOrMucked } from "@block52/poker-ui-core/utils/playerStatus";
 
 /**
  * Custom hook to check if a game is in progress and provide game status information

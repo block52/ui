@@ -13,7 +13,7 @@ import { useTableData } from "../../../../hooks/game/useTableData";
 import { usePlayerSeatInfo } from "../../../../hooks/player/usePlayerSeatInfo";
 import { useTableState } from "../../../../hooks/game/useTableState";
 import { UsePlayerLayoutReturn } from "../types";
-import { isEmpty } from "../../../../utils/guards";
+import { isEmpty } from "@block52/poker-ui-core/utils/guards";
 
 export const usePlayerLayout = (): UsePlayerLayoutReturn => {
     const { tableSize } = useTableState();

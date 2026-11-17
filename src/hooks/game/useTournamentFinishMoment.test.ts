@@ -5,8 +5,8 @@
 import { renderHook, act } from "@testing-library/react";
 import type { ResultDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { useTournamentFinishMoment } from "./useTournamentFinishMoment";
-import type { GameStreamItem } from "../../bus/types";
-import { FINISH_SHOWDOWN_HOLD_MS, RECORD_FINISH_SETTLE_MS, TOURNAMENT_WINNER_MOMENT_MS } from "../../bus/timing";
+import type { GameStreamItem } from "@block52/poker-ui-core/bus/types";
+import { FINISH_SHOWDOWN_HOLD_MS, RECORD_FINISH_SETTLE_MS, TOURNAMENT_WINNER_MOMENT_MS } from "@block52/poker-ui-core/bus/timing";
 
 let mockItem: GameStreamItem | null = null;
 let mockSuspense = false;

@@ -1,7 +1,7 @@
 import { ActionDTO, NonPlayerActionType, TexasHoldemRound, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { formatPlayerId, formatAmount } from "../utils/accountUtils";
-import { WinnerInfo } from "../types/index";
-import { hasElements } from "../utils/guards";
+import { WinnerInfo } from "@block52/poker-ui-core/types";
+import { hasElements } from "@block52/poker-ui-core/utils/guards";
 
 /**
  * Actions whose amounts are MONETARY (USDC micro-units) even in tournaments:

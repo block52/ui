@@ -12,7 +12,7 @@ import { startNewHand } from "./startNewHand";
 import { getLatestGameState } from "./transportAction";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
-import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS } from "../../bus/timing";
+import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS } from "@block52/poker-ui-core/bus/timing";
 
 jest.mock("./startNewHand");
 jest.mock("./transportAction");

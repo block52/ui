@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react";
 import { useAnimationAck } from "./useAnimationAck";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
-import type { AnimationHint } from "../../bus/types";
+import type { AnimationHint } from "@block52/poker-ui-core/bus/types";
 
 jest.mock("../../context/gameState/GameEventsContext");
 

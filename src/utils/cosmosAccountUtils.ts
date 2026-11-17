@@ -5,7 +5,7 @@
 
 import { getCosmosClient } from "./cosmos/client";
 import type { NetworkEndpoints } from "./cosmos/urls";
-import { truncateMiddle } from "./stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 
 /**

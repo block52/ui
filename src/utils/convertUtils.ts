@@ -1,5 +1,5 @@
 import { BettingLimit, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
-import { getGameFormat, getGameVariant } from "./gameFormatUtils";
+import { getGameFormat, getGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 
 /**
  * Flattened game representation for UI display (e.g., table lists).

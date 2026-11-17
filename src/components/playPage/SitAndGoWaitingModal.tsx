@@ -6,15 +6,15 @@
  */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
-import { hasValue, isEmpty, isNullish } from "../../utils/guards";
+import { hasValue, isEmpty, isNullish } from "@block52/poker-ui-core/utils/guards";
 import { useGameOptions } from "../../hooks/game/useGameOptions";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { startTournament } from "../../hooks/playerActions/startTournament";
-import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
-import { formatSitAndGoStackString } from "../../utils/numberUtils";
+import { getGameTypeMnemonic } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { formatSitAndGoStackString } from "@block52/poker-ui-core/utils/numberUtils";
 import { AUTO_START_RETRY_MS, formatCountdown, formatStartsAt, isScheduledSng, scheduledSngPhase, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "../../utils/scheduledSng";
 import styles from "./SitAndGoWaitingModal.module.css";
 

@@ -1,6 +1,6 @@
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
-import type { PlayerActionResult } from "../../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import { executeTransportAction } from "./transportAction";
 import type { SitOutMethod } from "@block52/poker-vm-sdk";
 import { SIT_OUT_METHOD_NEXT_HAND } from "@block52/poker-vm-sdk";

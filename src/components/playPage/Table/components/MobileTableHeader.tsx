@@ -21,7 +21,7 @@ import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { TopUpModal } from "../../../modals";
-import { formatGameFormatDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { formatGameFormatDisplay, isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
@@ -33,11 +33,11 @@ import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
-import { hasValue, isNullish } from "../../../../utils/guards";
+import { hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
 import { tableTitle } from "../../../../utils/tableTitle";
-import { tableUrl } from "../../../../utils/tableUrl";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 import BlindsButton from "../../BlindsButton";
-import { playersLabel, type TournamentRunners } from "../../../../utils/tournamentResult";
+import { playersLabel, type TournamentRunners } from "@block52/poker-ui-core/utils/tournamentResult";
 
 export type TableStyleOption = "modern" | "classic" | "nouns";
 

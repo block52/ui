@@ -3,9 +3,9 @@
  * the same structure as the lobby modal, and its previews (form + advanced
  * modal) show the levels the engine will play instead of raw doubling.
  */
-import { describeBlindStructureChoice, resolveBlindStructureChoice, sngBlindFields } from "./blindStructureChoice";
+import { describeBlindStructureChoice, resolveBlindStructureChoice, sngBlindFields } from "@block52/poker-ui-core/utils/blindStructureChoice";
 import { buildSngPreview } from "./sngAdvancedParams";
-import { ladderStructure } from "./blindLadder";
+import { ladderStructure } from "@block52/poker-ui-core/utils/blindLadder";
 
 const base = { maxPlayers: 9, buyIn: 10, startingStack: 1500, smallBlind: 10, bigBlind: 20, blindLevelDuration: 10 };
 

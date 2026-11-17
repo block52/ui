@@ -10,7 +10,7 @@ import { checkHand } from "./checkHand";
 import { foldHand } from "./foldHand";
 import { callHand } from "./callHand";
 import { makeTestSubmit } from "./testSubmit";
-import { PreAction, PreActionCallGuard, PreActionLegal } from "../../utils/preActions";
+import { PreAction, PreActionCallGuard, PreActionLegal } from "@block52/poker-ui-core/utils/preActions";
 
 jest.mock("./checkHand");
 jest.mock("./foldHand");

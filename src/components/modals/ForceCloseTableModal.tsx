@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from "react";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { colors } from "../../utils/colorConfig";
 import { Modal, LoadingSpinner } from "../common";
 import styles from "./DeleteTableModal.module.css";
