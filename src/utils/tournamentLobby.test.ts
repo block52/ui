@@ -55,6 +55,11 @@ describe("parseTournamentState", () => {
         expect(parseTournamentState(stateJson({}, { entryFee: "100000" })).options.entryFee).toBe("100000");
     });
 
+    it("reads late registration levels when the chain emits them, else leaves them absent (ui#1000)", () => {
+        expect(parseTournamentState(stateJson()).options.lateRegistrationLevels).toBeUndefined();
+        expect(parseTournamentState(stateJson({}, { lateRegistrationLevels: 15 })).options.lateRegistrationLevels).toBe(15);
+    });
+
     it("refuses an unknown status instead of defaulting", () => {
         expect(() => parseTournamentState(stateJson({ status: "paused" }))).toThrow("unknown tournament status");
     });
@@ -149,6 +154,12 @@ describe("buildTournamentCard", () => {
     it("flags a tournament under its minimum", () => {
         expect(buildTournamentCard(record(), "b521other", START - 1000).atRiskOfCancelling).toBe(true);
         expect(buildTournamentCard(record({}, { minEntrants: 2 }), "b521other", START - 1000).atRiskOfCancelling).toBe(false);
+    });
+
+    it("labels late registration when configured, blank when off (ui#1000 item 2)", () => {
+        expect(buildTournamentCard(record(), "b521other", START - 1000).lateRegistrationLabel).toBe("");
+        expect(buildTournamentCard(record({}, { lateRegistrationLevels: 15 }), "b521other", START - 1000).lateRegistrationLabel).toBe("Late reg: until level 15");
+        expect(buildTournamentCard(record({}, { lateRegistrationLevels: 0 }), "b521other", START - 1000).lateRegistrationLabel).toBe("");
     });
 
     it("lets a stranger register and a registered viewer unregister", () => {

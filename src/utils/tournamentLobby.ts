@@ -24,6 +24,7 @@ import {
 } from "@block52/poker-vm-sdk";
 import { isNullish, isNumber, isRecord, isString } from "./guards";
 import { gameIdFromTableId } from "./tournamentFollow";
+import { formatTournamentLateRegistration } from "./tournamentLateRegistration";
 
 export interface TournamentEntrantView {
     address: string;
@@ -46,6 +47,8 @@ export interface TournamentOptionsView {
     startTime: number;
     blindStructure: BlindStructureDTO;
     actionTimeoutSeconds: number;
+    /** Blind levels late registration stays open; 0/absent = off (ui#1000). Optional until the chain emits it (pokerchain#478). */
+    lateRegistrationLevels?: number;
 }
 
 /** What the lobby reads of the engine's TournamentStateDTO. */
@@ -125,7 +128,8 @@ export function parseTournamentState(raw: unknown): TournamentStateDTO {
         maxEntrants: requireInt(o.maxEntrants, "options.maxEntrants"),
         startTime: requireInt(o.startTime, "options.startTime"),
         blindStructure: parseBlindStructure(o.blindStructure),
-        actionTimeoutSeconds: requireInt(o.actionTimeoutSeconds, "options.actionTimeoutSeconds")
+        actionTimeoutSeconds: requireInt(o.actionTimeoutSeconds, "options.actionTimeoutSeconds"),
+        ...(isNullish(o.lateRegistrationLevels) ? {} : { lateRegistrationLevels: requireInt(o.lateRegistrationLevels, "options.lateRegistrationLevels") })
     };
     return {
         tournamentId: requireString(raw.tournamentId, "tournamentId"),
@@ -241,6 +245,8 @@ export interface TournamentLobbyCard {
     canUnregister: boolean;
     /** Why the viewer cannot register, for the disabled button; undefined when they can. */
     registerBlockedReason?: string;
+    /** The lobby's late-registration line, e.g. "Late reg: until level 15" or "Late reg closed"; empty when there is none (ui#1000 item 2). */
+    lateRegistrationLabel: string;
 }
 
 /** Entrants that count toward the field: registered, or already playing/busted after the start. */
@@ -314,7 +320,12 @@ export function buildTournamentCard(record: TournamentRecord, viewer: string | u
         ...(isNullish(myTable) ? {} : { myTable }),
         canRegister: isNullish(registerBlockedReason),
         canUnregister: registering && !isNullish(mine) && mine.status === "registered",
-        ...(isNullish(registerBlockedReason) ? {} : { registerBlockedReason })
+        ...(isNullish(registerBlockedReason) ? {} : { registerBlockedReason }),
+        // TODO(poker-vm#2800): the engine is the authority on when the window shuts
+        // (it also closes at the first paid place and while the final table forms),
+        // so `closed` must come from the tournament-level SDK helper once it ships;
+        // until then the label shows the configured target level while it exists.
+        lateRegistrationLabel: formatTournamentLateRegistration(state.options.lateRegistrationLevels, false)
     };
 }
 
