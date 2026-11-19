@@ -1,4 +1,5 @@
 import type { MoveIntentDTO, TournamentStateDTO, TournamentTableDTO } from "../types/tournament";
+import { isEmpty } from "./guards";
 import { parseTournamentGameId, tournamentGameId } from "./tableUrl";
 import { gameIdFromTableId } from "./tournamentFollow";
 
@@ -108,7 +109,7 @@ export const rebalanceNotice = (
     }
 
     const named = intentsFor(tournament, table.tableId);
-    if (named.length === 0) {
+    if (isEmpty(named)) {
         // Short table at the boundary with no planned move yet (e.g. seats still
         // reserved): still waiting on a rebalance, not on the next hand.
         return table.players.length < 2 ? { kind: "waiting" } : undefined;
