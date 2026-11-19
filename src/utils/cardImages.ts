@@ -7,6 +7,7 @@
  * rather than raw.githubusercontent.com, which is not a CDN and has rate limits / intermittent 5xx.
  */
 
+import { BLOCKCHAIN_POKER_CARD_BACK } from "./tableStyle";
 import as2C from "../assets/cards/2C.svg";
 import as2D from "../assets/cards/2D.svg";
 import as2H from "../assets/cards/2H.svg";
@@ -140,6 +141,9 @@ export function getCardBackUrl(style?: CardBackStyle): string {
     }
     if (style === "legacy") {
         return backLegacySvg;
+    }
+    if (style === "blockchainpoker") {
+        return BLOCKCHAIN_POKER_CARD_BACK;
     }
     // Support custom URLs (e.g., for club-specific branding)
     return style;
