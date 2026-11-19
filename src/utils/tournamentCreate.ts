@@ -20,6 +20,7 @@ import { parseUsdcToMicro } from "../constants/currency";
 import { CREATION_FEE_BIG_BLINDS } from "./tableCreationFee";
 import { hasElements, isBlank, isNullish } from "./guards";
 import { localDateTimeToUnixSeconds } from "./scheduledSng";
+import { DEFAULT_TOURNAMENT_LATE_REGISTRATION_LEVELS, isValidLateRegistrationLevels } from "./tournamentLateRegistration";
 import type { CreateTournamentParams } from "./tournamentTx";
 
 /** pvm/go/engine/tournament.go TournamentMinSeatsPerTable / MaxSeatsPerTable / MaxEntrantsCap. */
@@ -43,6 +44,8 @@ export interface TournamentFormValues {
     /** `datetime-local` value. */
     startTime: string;
     actionTimeoutSeconds: string;
+    /** Blind levels late registration stays open, as whole-number text; "0" = off (ui#1000). */
+    lateRegistrationLevels: string;
 }
 
 export type TournamentFormField = keyof TournamentFormValues | "blindStructure";
@@ -64,6 +67,13 @@ export interface TournamentFormResult {
     errors: TournamentFormErrors;
     /** Present only when there are no errors. */
     params?: CreateTournamentParams;
+    /**
+     * The validated late-registration choice (blind levels; 0 = off), present
+     * only when there are no errors. Kept off {@link params} until the SDK's
+     * CreateTournamentParams and the chain accept it (poker-vm#2800,
+     * pokerchain#478); the form shows it today, the submit wires it then.
+     */
+    lateRegistrationLevels?: number;
 }
 
 /** Defaults the form opens with. The start time is filled by {@link defaultStartTimeLocal}. */
@@ -74,7 +84,8 @@ export const DEFAULT_TOURNAMENT_FORM_VALUES: Omit<TournamentFormValues, "startTi
     seatsPerTable: "9",
     minEntrants: "2",
     maxEntrants: "27",
-    actionTimeoutSeconds: "25"
+    actionTimeoutSeconds: "25",
+    lateRegistrationLevels: String(DEFAULT_TOURNAMENT_LATE_REGISTRATION_LEVELS)
 };
 
 /** A `datetime-local` value one hour from `nowMs`, on the hour boundary, in the viewer's time zone. */
@@ -170,6 +181,9 @@ export function validateTournamentForm(input: TournamentFormInput): TournamentFo
     const timeout = parseWhole(values.actionTimeoutSeconds, "Action timeout", errors, "actionTimeoutSeconds");
     if (!isNullish(timeout) && timeout <= 0) errors.actionTimeoutSeconds = "Action timeout must be more than 0 seconds";
 
+    const lateReg = parseWhole(values.lateRegistrationLevels, "Late registration levels", errors, "lateRegistrationLevels");
+    if (!isNullish(lateReg) && !isValidLateRegistrationLevels(lateReg)) errors.lateRegistrationLevels = "Late registration must be 0 (off) or a positive number of levels";
+
     if (!isNullish(blindError)) errors.blindStructure = blindError;
     else if (isNullish(blindStructure)) errors.blindStructure = "Choose a blind structure";
 
@@ -183,6 +197,7 @@ export function validateTournamentForm(input: TournamentFormInput): TournamentFo
         isNullish(max) ||
         isNullish(startSeconds) ||
         isNullish(timeout) ||
+        isNullish(lateReg) ||
         isNullish(blindStructure)
     ) {
         return { errors };
@@ -190,6 +205,7 @@ export function validateTournamentForm(input: TournamentFormInput): TournamentFo
 
     return {
         errors,
+        lateRegistrationLevels: lateReg,
         params: {
             buyIn,
             entryFee,

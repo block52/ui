@@ -21,7 +21,9 @@ import {
     type TournamentFormField,
     type TournamentFormValues
 } from "../../utils/tournamentCreate";
-import { hasElements, isBlank, isNullish } from "../../utils/guards";
+import { lateRegistrationCutoffAt } from "../../utils/tournamentLateRegistration";
+import { formatStartsAt, localDateTimeToUnixSeconds } from "../../utils/scheduledSng";
+import { hasElements, hasValue, isBlank, isNullish } from "../../utils/guards";
 import { formatUsdc } from "../../utils/tournamentLobby";
 import { parseUsdcToMicro } from "../../constants/currency";
 import type { CreateTournamentParams } from "../../utils/tournamentTx";
@@ -78,6 +80,17 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({ is
         }
     }, [plan.preview, values.buyIn, values.startingStack]);
 
+    // The cut-off late registration reaches, previewed from the level durations
+    // and the scheduled start (ui#1000 item 1). Undefined when off, or the
+    // structure/start are not resolvable yet.
+    const lateRegCutoff = useMemo(() => {
+        if (isNullish(blindStructure)) return undefined;
+        const levels = Number(values.lateRegistrationLevels);
+        if (!Number.isSafeInteger(levels) || levels <= 0) return undefined;
+        const startSeconds = localDateTimeToUnixSeconds(values.startTime);
+        return lateRegistrationCutoffAt(blindStructure, levels, Number.isFinite(startSeconds) ? startSeconds * 1000 : undefined);
+    }, [blindStructure, values.lateRegistrationLevels, values.startTime]);
+
     const set = (field: keyof TournamentFormValues) => (e: React.ChangeEvent<HTMLInputElement>) => setValues(v => ({ ...v, [field]: e.target.value }));
     // Show an error once the field has been tried: after the first submit, every error shows.
     const err = (field: TournamentFormField): string | undefined => (submitted ? result.errors[field] : undefined);
@@ -115,6 +128,24 @@ export const CreateTournamentModal: React.FC<CreateTournamentModalProps> = ({ is
                     </Field>
                     <Field label="Action timeout (seconds)" error={err("actionTimeoutSeconds")} testId="actionTimeoutSeconds" hint="Every table's action clock.">
                         <input className={INPUT} inputMode="numeric" value={values.actionTimeoutSeconds} onChange={set("actionTimeoutSeconds")} />
+                    </Field>
+                    <Field
+                        label="Late registration (blind levels)"
+                        error={err("lateRegistrationLevels")}
+                        testId="lateRegistrationLevels"
+                        hint={
+                            hasValue(lateRegCutoff)
+                                ? `Registration stays open until the end of this level — about ${formatStartsAt(lateRegCutoff)}. 0 to fix the field at the start.`
+                                : "Blind levels registration stays open after the start. 0 to fix the field at the start."
+                        }
+                    >
+                        <input
+                            data-testid="tournament-latereg-input"
+                            className={INPUT}
+                            inputMode="numeric"
+                            value={values.lateRegistrationLevels}
+                            onChange={set("lateRegistrationLevels")}
+                        />
                     </Field>
                 </div>
 
