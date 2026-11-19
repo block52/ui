@@ -189,12 +189,14 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         </>
     );
 }, (prevProps, nextProps) => {
-    // Custom comparison function - only re-render if meaningful props change
+    // Custom comparison function - only re-render if meaningful props change.
+    // cardBackStyle must be included so toggling the table appearance updates hole-card backs.
     return (
         prevProps.left === nextProps.left &&
         prevProps.top === nextProps.top &&
         prevProps.index === nextProps.index &&
-        prevProps.color === nextProps.color
+        prevProps.color === nextProps.color &&
+        prevProps.cardBackStyle === nextProps.cardBackStyle
     );
 });
 

@@ -34,12 +34,13 @@ import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "../../../../utils/guards";
+import { TABLE_STYLE_LABELS, type TableStyleOption } from "../../../../utils/tableStyle";
 import { tableTitle } from "../../../../utils/tableTitle";
 import { tableUrl } from "../../../../utils/tableUrl";
 import BlindsButton from "../../BlindsButton";
 import { playersLabel, type TournamentRunners } from "../../../../utils/tournamentResult";
 
-export type TableStyleOption = "modern" | "classic" | "nouns";
+export type { TableStyleOption };
 
 export interface MobileTableHeaderProps {
     tableId: string;
@@ -95,12 +96,6 @@ export interface MobileTableHeaderProps {
     handleLeaveTableClick: () => void;
     handleShareHand: () => void;
 }
-
-const TABLE_STYLE_LABELS: Record<TableStyleOption, string> = {
-    modern: "Modern",
-    classic: "Classic",
-    nouns: "Nouns"
-};
 
 /** Shared row styling: every drawer item is a ≥44px tap target. */
 const menuRowClass =
@@ -354,7 +349,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         )}
 
                         {/* Table style — replaces the fixed bottom-left selector on mobile */}
-                        <button className={menuRowClass} onClick={onCycleTableStyle}>
+                        <button className={`${menuRowClass} table-style-menu-row`} onClick={onCycleTableStyle}>
                             <span className="text-xs text-gray-400">Style</span>
                             <span>{TABLE_STYLE_LABELS[tableStyle]}</span>
                         </button>
