@@ -78,7 +78,8 @@ import { useNavigate } from "react-router-dom";
 import { useTournament } from "../../hooks/tournament/useTournament";
 import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { followTarget, type MyTournamentTable } from "../../utils/tournamentFollow";
-import { tableUrl } from "../../utils/tableUrl";
+import { parseTournamentGameId, tableUrl } from "../../utils/tableUrl";
+import { REBALANCE_MOVE_NOTICE_MS, rebalanceNotice } from "../../utils/rebalanceNotice";
 import { tournamentRunners, tournamentSize } from "../../utils/tournamentResult";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
@@ -763,11 +764,19 @@ const Table = React.memo(() => {
     // A finished tournament: the record says so on a directed table, results[] on a single-table one.
     const tournamentOver = tournamentRecord?.status === "finished" || hasTournamentFinished(gameState);
     const seatedAt = useRef<MyTournamentTable | undefined>(undefined);
+    const [pendingMove, setPendingMove] = useState<{ gameId: string; tableNumber: number } | undefined>(undefined);
     useEffect(() => {
         const target = followTarget(id, seatedAt.current, myTournamentTable);
         seatedAt.current = myTournamentTable;
-        if (target) navigate(tableUrl(target));
+        if (!target) return;
+        const tableNumber = parseTournamentGameId(target)?.tableNumber;
+        if (tableNumber) setPendingMove({ gameId: target, tableNumber });
+        const timer = window.setTimeout(() => navigate(tableUrl(target)), REBALANCE_MOVE_NOTICE_MS);
+        return () => window.clearTimeout(timer);
     }, [id, myTournamentTable, navigate]);
+    useEffect(() => {
+        if (pendingMove && id === pendingMove.gameId) setPendingMove(undefined);
+    }, [id, pendingMove]);
 
     // Card back style configuration - driven by VITE_CARD_BACK_URL env var
     // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
@@ -783,6 +792,7 @@ const Table = React.memo(() => {
     const [isBalanceLoading, setIsBalanceLoading] = useState<boolean>(true);
     const [, setBalanceError] = useState<Error | null>(null);
     const publicKey = getCosmosAddressSync();
+    const tableRebalanceNotice = rebalanceNotice(tournamentRecord, id, publicKey ?? undefined, pendingMove);
 
     // Update to use the imported hook
     const tableDataValues = useTableData();
@@ -1720,6 +1730,7 @@ const Table = React.memo(() => {
                 handleClaimWinnings={handleClaimWinnings}
                 currentPlayerStack={currentPlayerData?.stack || "0"}
                 isInActiveHand={isGameInProgress && currentUserSeat > 0}
+                rebalanceNotice={tableRebalanceNotice}
             />
             )}
 
