@@ -39,7 +39,22 @@ export type TournamentTableDTO = {
     broken: boolean;
     handNumber: number;
     atBoundary: boolean;
+    /** Director hold: "break" (level break) or "final-table". Empty when free. */
     hold?: string;
+};
+
+/**
+ * A reserved seat move that has not executed yet (pvm/go/engine MoveIntentDTO).
+ * `reason` is "balance" (fill a short table) or "break" (this table is being
+ * broken and its players are being sent to others).
+ */
+export type MoveIntentDTO = {
+    key: string;
+    address: string;
+    from: string;
+    to: string;
+    seat: number;
+    reason: string;
 };
 
 export type TournamentStateDTO = {
@@ -54,6 +69,8 @@ export type TournamentStateDTO = {
     prizePool: string;
     payouts: PayoutPlaceDTO[];
     results: ResultDTO[];
+    /** Reserved moves waiting for both tables to reach a hand boundary. */
+    intents?: MoveIntentDTO[];
     seq: number;
 };
 
