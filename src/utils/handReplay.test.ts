@@ -21,8 +21,17 @@ describe("handEndedQuery", () => {
     it("has a hand_started twin", () => {
         expect(handStartedQuery(GAME, 19)).toBe(`hand_started.game_id='${GAME}' AND hand_started.hand_number='19'`);
     });
+    it("allows a multi-table tournament table id", () => {
+        const id = `${GAME}-t1`;
+        expect(handEndedQuery(id, 4)).toBe(`hand_ended.game_id='${id}' AND hand_ended.hand_number='4'`);
+        expect(handStartedQuery(id, 4)).toBe(`hand_started.game_id='${id}' AND hand_started.hand_number='4'`);
+    });
     it("rejects values that could break out of the query", () => {
-        expect(() => handEndedQuery("0xabc' OR 'x'='x", 1)).toThrow();
+        expect(() => handEndedQuery("0xabc' OR 'x'='x", 1)).toThrow("Invalid table id");
+        expect(() => handEndedQuery(`${GAME}-t1' OR 'x'='x`, 1)).toThrow("Invalid table id");
+        expect(() => handEndedQuery(`${GAME}-t`, 1)).toThrow("Invalid table id");
+        expect(() => handEndedQuery("0xabc -t1", 1)).toThrow("Invalid table id");
+        expect(() => handEndedQuery("0xabc;drop", 1)).toThrow("Invalid table id");
         expect(() => handEndedQuery(GAME, 0)).toThrow();
         expect(() => handEndedQuery(GAME, 1.5)).toThrow();
     });

@@ -21,6 +21,8 @@ export type TournamentOptionsDTO = {
     startTime: number;
     blindStructure: BlindStructureDTO;
     actionTimeoutSeconds: number;
+    /** Optional custom name if the engine ever stores one. */
+    name?: string;
 };
 
 export type TournamentEntrantDTO = {
@@ -45,6 +47,8 @@ export type TournamentTableDTO = {
 export type TournamentStateDTO = {
     tournamentId: string;
     status: TournamentStatus;
+    /** Optional custom name; same caveat as options.name. */
+    name?: string;
     options: TournamentOptionsDTO;
     entrants: TournamentEntrantDTO[];
     tables: TournamentTableDTO[];

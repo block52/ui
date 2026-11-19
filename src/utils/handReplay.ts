@@ -15,6 +15,7 @@ import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../context/NetworkContext";
 import { withWinnerDescriptions } from "./winnerDescriptions";
 import { isEmpty, isNumber, isString } from "./guards";
+import { assertQueryableGameId } from "./queryableGameId";
 import { tableUrl } from "./tableUrl";
 
 /** gRPC method path of the public (masked) game state query, as abci_query expects it. */
@@ -25,15 +26,19 @@ export function handEndedQuery(gameId: string, handNumber: number): string {
     return handEventQuery("hand_ended", gameId, handNumber);
 }
 
+/** All `hand_ended` events for one table. `gameId` must be a queryable id. */
+export function handEndedTableQuery(gameId: string): string {
+    assertQueryableGameId(gameId);
+    return `hand_ended.game_id='${gameId}'`;
+}
+
 /** CometBFT tx_search query for the block where hand `handNumber` of `gameId` started. */
 export function handStartedQuery(gameId: string, handNumber: number): string {
     return handEventQuery("hand_started", gameId, handNumber);
 }
 
 function handEventQuery(event: "hand_ended" | "hand_started", gameId: string, handNumber: number): string {
-    if (!/^[A-Za-z0-9]+$/.test(gameId)) {
-        throw new Error(`Invalid table id: ${gameId}`);
-    }
+    assertQueryableGameId(gameId);
     if (!Number.isInteger(handNumber) || handNumber < 1) {
         throw new Error(`Invalid hand number: ${handNumber}`);
     }

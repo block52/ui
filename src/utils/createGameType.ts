@@ -8,8 +8,9 @@
  * lobby and the table header agree on what to call a table.
  */
 import { GameFormat } from "@block52/poker-vm-sdk";
-import { hasValue } from "./guards";
+import { hasContent, hasValue } from "./guards";
 import { isScheduledSng } from "./scheduledSng";
+import { parseTournamentGameId } from "./tableUrl";
 
 export type CreateGameType = "cash" | "sit-and-go" | "tournament";
 
@@ -51,8 +52,14 @@ export const isScheduledCreateType = (type: CreateGameType): boolean => type ===
  * with a start time is an older **Tournament**, from before the two had separate
  * formats; everything else keeps the SDK's format display.
  */
-export const displayGameFormat = (format: GameFormat | "unknown" | null | undefined, scheduledStartTime: number | undefined, fallback: (format: GameFormat | "unknown") => string): string => {
+export const displayGameFormat = (
+    format: GameFormat | "unknown" | null | undefined,
+    scheduledStartTime: number | undefined,
+    fallback: (format: GameFormat | "unknown") => string,
+    gameId?: string
+): string => {
     if (!hasValue(format)) return "";
+    if (hasContent(gameId) && hasValue(parseTournamentGameId(gameId))) return "Multi-table tournament";
     if (format === GameFormat.SIT_AND_GO && isScheduledSng({ scheduledStartTime })) return "Tournament";
     return fallback(format);
 };
