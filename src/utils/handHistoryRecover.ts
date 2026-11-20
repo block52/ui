@@ -13,7 +13,7 @@ import type { NetworkEndpoints } from "../context/NetworkContext";
 import type { PlayerHand, PlayerSession, PlayerSessionsResponse } from "../types/players";
 import type { HandListItem, HandListResponse } from "../pages/explorer/types";
 import { encodeStringField1, parseAbciStringResponse } from "./abciQuery";
-import { hasContent, hasElements, isNumber, isRecord, isString } from "./guards";
+import { hasContent, hasElements, hasValue, isEmpty, isNullish, isNumber, isRecord, isString } from "./guards";
 import { handKey } from "./handHistory";
 import { playerHandFromState, unlistedHands } from "./handHistoryCards";
 import { GAME_STATE_PUBLIC_PATH, handEndedQuery, parseGameStateJson, parseTxSearchHeight, snapshotHeights } from "./handReplay";
@@ -159,7 +159,7 @@ async function collectPages<T>(
 
 /** Runs `fn` over `items` with at most `limit` in flight. One failure does not stop the rest. */
 export async function mapPool<T>(items: T[], limit: number, fn: (item: T) => Promise<void>, signal?: AbortSignal): Promise<void> {
-    if (items.length === 0 || limit < 1) return;
+    if (isEmpty(items) || limit < 1) return;
     let cursor = 0;
     const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
         while (!signal?.aborted) {
@@ -177,9 +177,9 @@ export async function mapPool<T>(items: T[], limit: number, fn: (item: T) => Pro
 }
 
 function inSession(blockHeight: number, windows: PlayerSession[]): boolean {
-    if (windows.length === 0) return true;
+    if (isEmpty(windows)) return true;
     return windows.some(window =>
-        blockHeight >= window.join_block && (window.leave_block === undefined || blockHeight <= window.leave_block)
+        blockHeight >= window.join_block && (isNullish(window.leave_block) || blockHeight <= window.leave_block)
     );
 }
 
@@ -290,14 +290,16 @@ async function confirmPlayedHand(
         try {
             // Prefer a known height, but only trust it once the snapshot is the
             // end of the hand. Indexer table rows are often the start height.
-            if (knownHeight !== undefined) {
+            if (hasValue(knownHeight)) {
                 const fromKnown = await readAt(rpc, knownHeight);
-                if (fromKnown !== undefined) return fromKnown;
+                // null means stop this node; undefined means try the tx search.
+                if (fromKnown !== undefined) return fromKnown; // guards-ok
             }
             const endHeight = parseTxSearchHeight(await rpc.txSearch(query));
-            if (endHeight === null) continue;
+            if (isNullish(endHeight)) continue;
             const fromSearch = await readAt(rpc, endHeight);
-            if (fromSearch !== undefined) return fromSearch;
+            // Same null/undefined split as fromKnown above.
+            if (fromSearch !== undefined) return fromSearch; // guards-ok
         } catch (err) {
             console.error(`Hand history lookup ${candidate.game_id}#${candidate.hand_number} on ${network.name}:`, err);
         }

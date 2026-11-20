@@ -1,3 +1,5 @@
+import { isNullish, isNumber } from "./guards";
+
 /** Display only. Never parse these labels back into transaction amounts or limits. */
 type MoneyValue = string | number | bigint;
 
@@ -10,9 +12,9 @@ function centsLabel(cents: bigint, grouped: boolean): string {
 
 /** Mathematical ceiling, including negative net results; no floating-point multiplication. */
 function ceilingCents(value: MoneyValue, decimalShift: number): bigint | null {
-    if (typeof value === "number" && !Number.isFinite(value)) return null;
+    if (isNumber(value) && !Number.isFinite(value)) return null;
     // Remove binary arithmetic noise at exact cents, without discarding real sub-cent amounts.
-    if (typeof value === "number" && decimalShift === 0) {
+    if (isNumber(value) && decimalShift === 0) {
         const nearest = Math.round(value * 100) / 100;
         if (Math.abs(value - nearest) <= Number.EPSILON * Math.abs(value) * 2) value = nearest;
     }
@@ -32,11 +34,11 @@ function ceilingCents(value: MoneyValue, decimalShift: number): bigint | null {
 /** Dollar/USDC label, rounded UP to cents. Missing/invalid data is not a zero balance. */
 export function formatUsd(value: MoneyValue, grouped = false): string {
     const cents = ceilingCents(value, 0);
-    return cents === null ? "—" : centsLabel(cents, grouped);
+    return isNullish(cents) ? "—" : centsLabel(cents, grouped);
 }
 
 /** Exact USDC micro-unit label. Pass wire strings/bigints to preserve large balances. */
 export function formatMicroUsd(value: MoneyValue, grouped = false): string {
     const cents = ceilingCents(value, 6);
-    return cents === null ? "—" : centsLabel(cents, grouped);
+    return isNullish(cents) ? "—" : centsLabel(cents, grouped);
 }

@@ -62,7 +62,7 @@ export function cardsForHistoryHand(state: TexasHoldemStateDTO, viewer: string):
     const hand = captureFinishingHand(state, { viewer });
     const you = viewer.toLowerCase();
     const seats = hand.players
-        .filter(player => player.cards.length > 0)
+        .filter(player => hasElements(player.cards))
         .map(player => ({
             seat: player.seat,
             address: player.address,
@@ -75,7 +75,7 @@ export function cardsForHistoryHand(state: TexasHoldemStateDTO, viewer: string):
 
 /** A whole chip (or micro-USDC) count. Blank is 0. Anything else is unreadable. */
 export function chipCount(value: string | number | undefined): number | undefined {
-    if (value === undefined || value === "") return 0;
+    if (!hasValue(value) || value === "") return 0;
     if (isNumber(value)) return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
     if (!/^\d+$/.test(value)) return undefined;
     const parsed = Number(value);
@@ -202,7 +202,7 @@ export function mergeHistoryHands(indexed: PlayerHand[], recovered: PlayerHand[]
 export function displayBoard(indexed: string[] | undefined, snapshot: string[] | undefined): string[] {
     const known = (indexed ?? []).map(card => card.toUpperCase());
     const board = (snapshot ?? []).map(card => card.toUpperCase());
-    if (board.length >= known.length && board.length > 0) return board;
+    if (board.length >= known.length && hasElements(board)) return board;
     return known;
 }
 

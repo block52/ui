@@ -17,7 +17,7 @@ const PAGE_SIZE = 20;
 
 const formatUsd = (micro: number): string => {
     const label = formatMicroUsd(micro, true);
-    return label.startsWith("-") ? `-${label.slice(1)}` : `${label}`;
+    return label.startsWith("-") ? `-$${label.slice(1)}` : `$${label}`;
 };
 
 export default function PlayersPage() {

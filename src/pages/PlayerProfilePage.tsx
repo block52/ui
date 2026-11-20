@@ -64,7 +64,7 @@ const NO_PROFIT_HANDS: HandContributionTarget[] = [];
 
 const formatUsd = (micro: number): string => {
     const label = formatMicroUsd(micro, true);
-    return label.startsWith("-") ? `-${label.slice(1)}` : `${label}`;
+    return label.startsWith("-") ? `-$${label.slice(1)}` : `$${label}`;
 };
 
 const StatCard: React.FC<{ label: string; value: string; valueClass?: string }> = ({ label, value, valueClass = "text-white" }) => (

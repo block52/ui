@@ -1,6 +1,6 @@
 import { Deck, GameVariant, PlayerActionType, PlayerDTO, PlayerStatus, PokerSolver, TexasHoldemRound, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { isMaskedHand, isRevealedHand } from "../bus/deriveEvents";
-import { hasElements, hasValue } from "./guards";
+import { hasElements, hasValue, isEmpty } from "./guards";
 import { describeShownHand } from "./showdownSummary";
 
 export interface FinishingSeat {
@@ -38,8 +38,8 @@ export const normalizeCard = (card: string) => card.toUpperCase().replace(/^10/,
 
 /** Prefer the engine's winning combination; older snapshots can use revealed cards only. */
 export function finishingWinnerCards(hand: FinishingHand): Set<string> {
-    return new Set(hand.players.filter(player => player.won !== null).flatMap(player => {
-        if (player.winningCards !== undefined) return player.winningCards.map(normalizeCard);
+    return new Set(hand.players.filter(player => hasValue(player.won)).flatMap(player => {
+        if (hasValue(player.winningCards)) return player.winningCards.map(normalizeCard);
         if (player.cards.length !== 2 || hand.board.length !== 5) return [];
         try {
             return PokerSolver.evaluatePartialHand([...player.cards, ...hand.board].map(card => Deck.fromString(normalizeCard(card))))
@@ -76,7 +76,7 @@ function playedThisHand(state: TexasHoldemStateDTO, address: string): boolean {
  */
 function publiclyShownNow(player: PlayerDTO, state: TexasHoldemStateDTO, remembered: boolean): string[] {
     const cards = holeCardsIfShown(player.holeCards);
-    if (cards.length === 0) return [];
+    if (isEmpty(cards)) return [];
     const address = player.address.toLowerCase();
     if (
         player.status === PlayerStatus.SHOWING
@@ -118,17 +118,17 @@ export function observeRevealedCards(
     for (const player of state.players ?? []) {
         const address = player.address.toLowerCase();
         const cards = holeCardsIfShown(player.holeCards);
-        if (viewerAddress && address === viewerAddress && cards.length > 0) ledger.ownCards = cards;
+        if (viewerAddress && address === viewerAddress && hasElements(cards)) ledger.ownCards = cards;
         const prev = prevByAddress.get(address);
         // A deal to the viewer is not a public show. Fold and muck are not either.
         const flipped = !!prev
             && isMaskedHand(prev.holeCards)
-            && cards.length > 0
+            && hasElements(cards)
             && player.status !== PlayerStatus.FOLDED
             && player.status !== PlayerStatus.MUCKED
             && player.status !== PlayerStatus.ACTIVE
             && player.status !== PlayerStatus.SEATED;
-        if (cards.length > 0 && (
+        if (hasElements(cards) && (
             flipped
             || player.status === PlayerStatus.SHOWING
             || player.status === PlayerStatus.ALL_IN
@@ -230,14 +230,14 @@ export function captureFinishingHand(state: TexasHoldemStateDTO, context: Captur
         const address = player.address.toLowerCase();
         seen.add(address);
         const remembered = shown.get(address)?.cards ?? [];
-        const livePublic = publiclyShownNow(player, state, remembered.length > 0);
+        const livePublic = publiclyShownNow(player, state, hasElements(remembered));
         const liveOwn = viewer === address ? holeCardsIfShown(player.holeCards) : [];
-        const own = liveOwn.length > 0 ? liveOwn : (viewer === address ? (context.ownCards ?? []) : []);
-        const cards = livePublic.length > 0 ? livePublic : (remembered.length > 0 ? remembered : own);
+        const own = hasElements(liveOwn) ? liveOwn : (viewer === address ? (context.ownCards ?? []) : []);
+        const cards = hasElements(livePublic) ? livePublic : (hasElements(remembered) ? remembered : own);
         return seatSnapshot(player.seat, address, cards, state, board, context.variant);
     });
     const removed = [...shown.entries()]
-        .filter(([address, info]) => !seen.has(address) && info.cards.length > 0)
+        .filter(([address, info]) => !seen.has(address) && hasElements(info.cards))
         .map(([address, info]) => seatSnapshot(info.seat, address, info.cards, state, board, context.variant))
         .sort((a, b) => a.seat - b.seat);
     return { handNumber: state.handNumber, board, players: [...players, ...removed] };
