@@ -14,7 +14,7 @@
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../context/NetworkContext";
 import { withWinnerDescriptions } from "./winnerDescriptions";
-import { isEmpty, isNumber, isString } from "./guards";
+import { isEmpty, isNumber, isString } from "@block52/ui-sdk/helpers";
 import { tableUrl } from "./tableUrl";
 
 /** gRPC method path of the public (masked) game state query, as abci_query expects it. */

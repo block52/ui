@@ -298,7 +298,7 @@ export const PlayerSeat: React.FC<Props> = ({ player }) => {
 
 // ✅ CORRECT - import tested helpers and guards
 import { truncateHash } from "../utils/formatUtils";
-import { hasElements } from "../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 export const PlayerSeat: React.FC<Props> = ({ player }) => {
     const label = truncateHash(player.address);
     if (hasElements(player.holeCards)) { ... }
@@ -310,7 +310,7 @@ hand, look for an existing helper. If one is missing, add it to `src/utils/`
 **with a colocated `*.test.ts`** rather than inlining the logic. Reuse beats
 re-implementation: grep `src/utils/` first.
 
-Most common: `src/utils/guards.ts` for null/empty and `typeof` checks.
+Most common: the guards from `@block52/ui-sdk/helpers` for null/empty and `typeof` checks.
 
 ```typescript
 // ❌ WRONG - inline checks scattered everywhere
@@ -318,7 +318,7 @@ if (arr && arr.length > 0) { ... }
 if (value !== null && value !== undefined) { ... }
 
 // ✅ CORRECT - use the tested guards
-import { hasElements, hasValue } from "../utils/guards";
+import { hasElements, hasValue } from "@block52/ui-sdk/helpers";
 if (hasElements(arr)) { ... }
 if (hasValue(value)) { ... }
 ```

@@ -5,7 +5,7 @@ import { useNetwork } from "../../context/NetworkContext";
 import { ClickableAddress } from "../../components/explorer/ClickableAddress";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { formatProposerAddress } from "../../utils/formatUtils";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { truncateMiddle } from "../../utils/stringUtils";
 import { extractMessageTypeFromHex } from "../../utils/transactionUtils";
 import styles from "./BlockDetailPage.module.css";

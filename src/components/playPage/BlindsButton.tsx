@@ -15,7 +15,7 @@ import { FaLayerGroup } from "react-icons/fa";
 import { Modal } from "../common/Modal";
 import { useBlindLevel } from "../../hooks/game/useBlindLevel";
 import { buildBlindLadder, formatBlindCountdown } from "../../utils/blindStructure";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import { formatChipCount } from "../../utils/potDisplayUtils";
 import styles from "./BlindsButton.module.css";
 

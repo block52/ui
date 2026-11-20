@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 
 const RELEASE_NOTES_URL =
     import.meta.env.VITE_APP_RELEASE_NOTE_URL ?? "https://raw.githubusercontent.com/block52/cards/refs/heads/main/release-notes/release-notes.json";

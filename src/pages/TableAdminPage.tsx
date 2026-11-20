@@ -4,7 +4,7 @@ import { BettingLimit, GameFormat, GameVariant, CosmosClient, getDefaultCosmosCo
 import { Link, useNavigate } from "react-router-dom";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { isValidPlayerAddress } from "../utils/addressUtils";
-import { isEmpty, hasValue, isNullish, hasContent, hasElements } from "../utils/guards";
+import { isEmpty, hasValue, isNullish, hasContent, hasElements } from "@block52/ui-sdk/helpers";
 import { useNewTable } from "../hooks/game/useNewTable";
 import { useFindGames } from "../hooks/game/useFindGames";
 import { toast } from "react-toastify";

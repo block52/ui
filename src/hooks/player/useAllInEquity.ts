@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useShowingCardsByAddress } from "./useShowingCardsByAddress";
-import { hasValue, isNullish } from "../../utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import {
     PokerSolver,
     Deck,

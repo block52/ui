@@ -1,5 +1,5 @@
 import { CLOSING_BET_FLIGHT_MS, CLOSING_BET_HOLD_MS } from "../../bus/timing";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * One clock for every seat's closing-bet chips, the pot holdback, and the

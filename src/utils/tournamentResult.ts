@@ -1,6 +1,6 @@
 import type { ResultDTO } from "@block52/poker-vm-sdk";
 import type { TournamentStateDTO } from "../types/tournament";
-import { hasElements, isNullish } from "./guards";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
 
 /** A finisher's place and prize, in the shape the Sit & Go result modal shows. */
 export interface FinisherResult {

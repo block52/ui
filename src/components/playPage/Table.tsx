@@ -169,7 +169,7 @@ import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
 import ConnectionBanner from "./ConnectionBanner";
 
-import { hasElements, hasValue, isNullish } from "../../utils/guards";
+import { hasElements, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
 import { useTableId } from "../../hooks/game/useTableId";
 

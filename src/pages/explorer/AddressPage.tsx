@@ -6,7 +6,7 @@ import { useNetwork } from "../../context/NetworkContext";
 import { microToUsdc } from "../../constants/currency";
 import { Coin } from "./types";
 import { formatTimestampRelative } from "../../utils/formatUtils";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import {

@@ -1,5 +1,5 @@
 import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasValue, isNullish } from "./guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * The pre-action bar (ui#388), CoinPoker-style. While it is NOT the player's turn

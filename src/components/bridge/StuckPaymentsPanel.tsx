@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { usePaymentApi } from "../../context/PaymentApiContext";
 import { proxyErrorMessage, isProxyTimeout, STILL_GOING_THROUGH } from "../../utils/bridge/proxyError";
 import { LoadingSpinner } from "../common/LoadingSpinner";
-import { hasElements, hasValue, isEmpty, isNullish } from "../../utils/guards";
+import { hasElements, hasValue, isEmpty, isNullish } from "@block52/ui-sdk/helpers";
 
 /** One payment NOWPayments settled whose USDC has not all reached the bridge (proxy GET /unbridged). */
 export interface UnbridgedPaymentDTO {

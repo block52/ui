@@ -6,7 +6,7 @@ import { colors } from "../../utils/colorConfig";
 import { renderJSONWithClickableAddresses } from "../../components/explorer/ClickableAddress";
 import { CosmosTransaction, CosmosEvent, CosmosEventAttribute, CosmosMessage } from "./types";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import styles from "./TransactionPage.module.css";
 
 export default function TransactionPage() {

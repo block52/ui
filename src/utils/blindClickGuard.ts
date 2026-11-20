@@ -20,7 +20,7 @@
  * to look again once the screen is back.
  */
 
-import { hasValue } from "./guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 /** No painted frame for this long while the tab is visible and timers are running = the player can't see the table. */
 export const RENDER_STALL_THRESHOLD_MS = 300;

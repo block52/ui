@@ -20,7 +20,7 @@ export {
 } from "@block52/poker-vm-sdk";
 
 import { BettingLimit, GameFormat, GameVariant, GameOptionsDTO, TexasHoldemStateDTO, COSMOS_CONSTANTS, isTournamentFormat as isTournamentFormatFn, parseGameFormat as parseGameFormatFn, parseGameVariant as parseGameVariantFn } from "@block52/poker-vm-sdk";
-import { isBlank, isNullish, hasElements } from "./guards";
+import { isBlank, isNullish, hasElements } from "@block52/ui-sdk/helpers";
 
 /**
  * Coerce a raw format string into a GameFormat, returning undefined for missing

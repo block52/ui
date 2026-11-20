@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { httpErrorMessage, isNetworkError } from "../../apis/HTTPClient";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import type { PlayerHand, PlayerListItem, PlayerProfile } from "../../types/players";
-import { hasValue, isEmpty } from "../../utils/guards";
+import { hasValue, isEmpty } from "@block52/ui-sdk/helpers";
 import { fetchAllPages, mapWithConcurrency } from "../../utils/pagedFetch";
 import { computeAwards, handsWithRecordedWinner, MIN_AWARD_DECISIONS, PlayerAward, rankedLines, toAwardLine } from "../../utils/playerAwards";
 

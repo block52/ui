@@ -2,7 +2,7 @@ import { useCallback, useMemo, useState } from "react";
 import { ETH_CHAIN_ID } from "../../config/constants";
 import { normalizeIpfsUri, isAllowedAvatarUrl } from "../../utils/profile/ipfs";
 import type { WalletNftAsset } from "../../types/profile/avatar";
-import { hasContent } from "../../utils/guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 
 interface ProfileNftConfig {
     chainId: number;

@@ -3,7 +3,7 @@ import { isTournamentFormat } from "@block52/poker-vm-sdk";
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameMeta } from "../../context/gameState/GameMetaContext";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 export interface SitAndGoPayoutPlace {
     place: number;

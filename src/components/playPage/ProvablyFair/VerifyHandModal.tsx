@@ -17,7 +17,7 @@ import { useHandVerification } from "../../../hooks/game/useHandVerification";
 import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import { getCardImageUrl } from "../../../utils/cardImages";
 import { downloadJson } from "../../../utils/download";
-import { hasContent, hasElements, hasValue } from "../../../utils/guards";
+import { hasContent, hasElements, hasValue } from "@block52/ui-sdk/helpers";
 import { truncateMiddle } from "../../../utils/stringUtils";
 import {
     DEAL_ORDER_DESCRIPTION,

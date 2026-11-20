@@ -1,7 +1,7 @@
 import React from "react";
 import { formatMicroAsUsdc } from "../../constants/currency";
 import { truncateMiddle } from "../../utils/stringUtils";
-import { isEmpty } from "../../utils/guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 import type { ValidatorBond } from "../../utils/validatorBonds";
 
 interface ValidatorEarningsPanelProps {

@@ -15,7 +15,7 @@ import { useWinnerInfo } from "./useWinnerInfo";
 import { shouldShowWinnerSummary } from "../../components/ActionsLog.utils";
 import { getShowdownSummaryLines } from "../../utils/showdownSummary";
 import { setLastHandResult } from "../../utils/lastHandResult";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 export const useLastHandResultCapture = (tableId: string | undefined): void => {
     // Rendered track on purpose: it is what the user saw, and END is held on it.

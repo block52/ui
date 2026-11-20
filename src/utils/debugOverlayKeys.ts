@@ -13,7 +13,7 @@
  *   contentEditable) are ignored entirely, so typing never toggles debug UI.
  */
 
-import { isNullish } from "./guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 /** Which overlay(s) a key press should toggle, or `null` for no-op. */
 export type DebugOverlayAction =

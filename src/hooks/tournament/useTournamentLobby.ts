@@ -12,7 +12,7 @@ import {
     type TournamentLobbyCard,
     type TournamentRecord
 } from "../../utils/tournamentLobby";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 /** How often the lobby re-reads the chain. */
 export const TOURNAMENT_LOBBY_POLL_MS = 5000;

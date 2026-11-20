@@ -18,7 +18,7 @@
 import type { Decorator, Decoration } from "../types";
 import { runoutBeatHoldMs } from "../timing";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 export function makeRunoutSuspense(getReducedMotion: () => boolean): Decorator {
     return (item): Partial<Decoration> => {

@@ -17,7 +17,7 @@ import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext"
 import { useNetwork } from "../../../context/NetworkContext";
 import { useActionSubmit } from "../../../context/ActionSubmitContext";
 import { SIT_IN_METHOD_POST_NOW, sitIn } from "../../../hooks/playerActions";
-import { hasElements } from "../../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";

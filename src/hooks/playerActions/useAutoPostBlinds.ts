@@ -3,7 +3,7 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { postSmallBlind } from "./postSmallBlind";
 import { postBigBlind } from "./postBigBlind";
 import { getAutoPostBlindsEnabled } from "../../utils/urlParams";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
 

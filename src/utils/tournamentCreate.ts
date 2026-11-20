@@ -18,7 +18,7 @@
 import { type BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { parseUsdcToMicro } from "../constants/currency";
 import { CREATION_FEE_BIG_BLINDS } from "./tableCreationFee";
-import { hasElements, isBlank, isNullish } from "./guards";
+import { hasElements, isBlank, isNullish } from "@block52/ui-sdk/helpers";
 import { localDateTimeToUnixSeconds } from "./scheduledSng";
 import { DEFAULT_TOURNAMENT_LATE_REGISTRATION_LEVELS, isValidLateRegistrationLevels } from "./tournamentLateRegistration";
 import type { CreateTournamentParams } from "./tournamentTx";

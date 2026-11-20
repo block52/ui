@@ -3,7 +3,7 @@ import { useGameUI } from "../../context/gameState/GameUIContext";
 import { PlayerLegalActionsResult } from "./types";
 import { LegalActionDTO, PlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useRef, useMemo, useState, useEffect } from "react";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
 // 🔍 DEBUG: Enhanced logging utility for easy data export (same as GameStateContext)

@@ -72,7 +72,7 @@ import { deriveEvents } from "./deriveEvents";
 import { expandFrames, runoutBeats } from "./expandFrames";
 import { buildDefaultDecorators } from "./decorators";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
-import { hasValue, isEmpty, isNullish } from "../utils/guards";
+import { hasValue, isEmpty, isNullish } from "@block52/ui-sdk/helpers";
 import { isTournamentFormat } from "../utils/gameFormatUtils";
 
 /** Cap on the retained commit log so the dev handle never grows unbounded. */

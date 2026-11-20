@@ -1,5 +1,5 @@
 import type { PlayerHand, PlayerProfile } from "../types/players";
-import { isEmpty } from "./guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 
 /**
  * The player awards ("biggest nit" and friends), ranked from the indexer's

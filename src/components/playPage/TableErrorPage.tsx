@@ -7,7 +7,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { AnimatedBackground } from "../common/AnimatedBackground";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 export interface ValidationError {
     missingFields: string[];

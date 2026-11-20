@@ -4,7 +4,7 @@ import CryptoJS from "crypto-js";
 import type { DealEntropyModalProps } from "./types";
 import styles from "./DealEntropyModal.module.css";
 import { truncateMiddle } from "../../utils/stringUtils";
-import { generateSystemEntropy } from "../../utils/entropy";
+import { generateSystemEntropy } from "@block52/ui-sdk/helpers";
 
 /**
  * Hashes a string using SHA-256

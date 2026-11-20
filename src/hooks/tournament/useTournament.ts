@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCosmosAddressSync } from "../../utils/cosmosAccountUtils";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import { parseTournamentState } from "../../utils/tournamentBlinds";
 import { tournamentProgress, type MyTournamentTable } from "../../utils/tournamentFollow";
 import type { TournamentStateDTO } from "../../types/tournament";

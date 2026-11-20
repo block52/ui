@@ -11,7 +11,7 @@
  */
 import { GameFormat, TxExecutionError } from "@block52/poker-vm-sdk";
 import { isTournamentFormat } from "./gameFormatUtils";
-import { hasValue, isEmpty, isString } from "./guards";
+import { hasValue, isEmpty, isString } from "@block52/ui-sdk/helpers";
 
 /** A uniform random integer in [0, n). */
 export type RandomInt = (n: number) => number;

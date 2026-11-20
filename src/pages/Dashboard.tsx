@@ -10,7 +10,7 @@ import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
 import { calculateBuyIn } from "../utils/buyInUtils";
-import { hasValue, isNullish, hasContent } from "../utils/guards";
+import { hasValue, isNullish, hasContent } from "@block52/ui-sdk/helpers";
 import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
 import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
 

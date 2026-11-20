@@ -10,7 +10,7 @@
  */
 import type { ResultDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { FINISH_SHOWDOWN_HOLD_MS, TOURNAMENT_WINNER_MOMENT_MS } from "../bus/timing";
-import { hasElements, hasValue } from "./guards";
+import { hasElements, hasValue } from "@block52/ui-sdk/helpers";
 
 export interface TournamentPlacing {
     place: number;

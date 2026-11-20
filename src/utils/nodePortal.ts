@@ -3,7 +3,7 @@
  * bonding a validator). No React, no network: unit-tested in nodePortal.test.ts.
  */
 import { P2PPeer } from "../constants/chainNetwork";
-import { isRecord, isString } from "./guards";
+import { isRecord, isString } from "@block52/ui-sdk/helpers";
 
 export type ParseResult<T> = { ok: true; value: T } | { ok: false; error: string };
 

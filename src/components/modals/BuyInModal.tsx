@@ -15,7 +15,7 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { getBlindsForDisplay } from "../../utils/gameFormatUtils";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import DepositCore from "./DepositCore";
-import { isEmpty, hasElements, hasValue } from "../../utils/guards";
+import { isEmpty, hasElements, hasValue } from "@block52/ui-sdk/helpers";
 import { sitAndGoTypeLabel } from "../../utils/createGameType";
 import styles from "./BuyInModal.module.css";
 

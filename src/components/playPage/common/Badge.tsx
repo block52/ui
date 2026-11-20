@@ -1,5 +1,5 @@
 import React from "react";
-import { hasValue } from "../../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 import { usePlayerActionDropBox } from "../../../hooks/player/usePlayerActionDropBox";
 import { WinAmountFloat } from "./WinAmountFloat";
 import { useSeatJoinNotification } from "../../../hooks/notifications/useSeatJoinNotification";

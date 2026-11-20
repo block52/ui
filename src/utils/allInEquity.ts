@@ -19,7 +19,7 @@ import {
     type PlayerDTO
 } from "@block52/poker-vm-sdk";
 import { isRevealedHand } from "../bus/deriveEvents";
-import { hasValue, isEmpty, safeLength } from "./guards";
+import { hasValue, isEmpty, safeLength } from "@block52/ui-sdk/helpers";
 import { hasFoldedOrMucked } from "./playerStatus";
 
 /** A seat the equity math needs. SDK fields only — no parallel player type. */

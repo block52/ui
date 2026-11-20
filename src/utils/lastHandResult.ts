@@ -13,7 +13,7 @@
  * useSyncExternalStore-compatible subscribe/get pair.
  */
 
-import { isNullish } from "./guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 export interface LastHandResult {
     tableId: string;

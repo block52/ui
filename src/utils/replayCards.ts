@@ -13,7 +13,7 @@
  */
 import type { PlayerDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { isMaskedHand, isRevealedHand } from "../bus/deriveEvents";
-import { hasElements, isString } from "../utils/guards";
+import { hasElements, isString } from "@block52/ui-sdk/helpers";
 
 /** gRPC method path of the authenticated (per-player masking) game state query. */
 export const GAME_STATE_PATH = "/pokerchain.poker.v1.Query/GameState";
