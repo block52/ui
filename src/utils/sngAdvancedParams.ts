@@ -14,7 +14,7 @@
  * - maxPlayers: number of runners/entrants
  */
 
-import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "./guards";
+import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "@block52/ui-sdk/helpers";
 import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "./blindStructureChoice";
 
 /** Chain-defined valid entrant counts for a Sit & Go. */

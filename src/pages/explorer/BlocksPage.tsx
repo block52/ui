@@ -6,7 +6,7 @@ import { truncateHash, formatTimestampRelative, formatProposerAddress } from "..
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 
 // Define block response type locally to match Cosmos API response
 interface CosmosBlockResponse {

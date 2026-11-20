@@ -4,7 +4,7 @@ import { microToUsdc } from "../constants/currency";
 import { truncateMiddle } from "../utils/stringUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
-import { isEmpty, hasElements, hasValue } from "../utils/guards";
+import { isEmpty, hasElements, hasValue } from "@block52/ui-sdk/helpers";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
 import { formatScaledPercent } from "../utils/vip";

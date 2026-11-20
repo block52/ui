@@ -3,7 +3,7 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO } from "@block52/poker-vm-sdk";
 import { VacantSeatResponse } from "../../types/index";
 import { isValidPlayerAddress } from "../../utils/addressUtils";
-import { isEmpty, isNullish, hasElements } from "../../utils/guards";
+import { isEmpty, isNullish, hasElements } from "@block52/ui-sdk/helpers";
 import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 

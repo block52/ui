@@ -1,6 +1,6 @@
 import { PlayerStatus } from "@block52/poker-vm-sdk";
 import { hasFoldedOrMucked } from "./playerStatus";
-import { hasValue } from "./guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 /**
  * Tailwind opacity classes used to dim a player's seat/avatar based on how

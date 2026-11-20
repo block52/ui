@@ -1,7 +1,7 @@
 import { BigUnit } from "bigunit";
 import { ethers } from "ethers";
 import { microToUsdc, USDC_TO_MICRO } from "../constants/currency";
-import { hasValue, isBlank, isNullish } from "./guards";
+import { hasValue, isBlank, isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * Format a USDC balance from micro-units (6 decimals) to display format

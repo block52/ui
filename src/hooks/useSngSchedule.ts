@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { parseSngSchedule, type SngTournament } from "../utils/sngSchedule";
+import { parseSngSchedule, type SngTournament } from "@block52/ui-sdk/helpers";
 
 /**
  * URL of the recurring Sit & Go schedule JSON. Defaults to the raw GitHub copy

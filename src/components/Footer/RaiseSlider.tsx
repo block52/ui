@@ -1,6 +1,6 @@
 import React from "react";
 import { formatDisplayAmount, formatSliderInputValue, parseSliderInput } from "../../utils/numberUtils";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 import type { RaiseSliderProps } from "./types";
 import { amountAtStep, sliderStepCount, stepForAmount } from "../../utils/raiseSlider";
 import styles from "./RaiseSlider.module.css";

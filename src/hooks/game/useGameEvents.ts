@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import type { GameEvent, GameEventType } from "../../bus/types";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * useGameEvents — the events of the latest committed bus item (WS Action Bus,

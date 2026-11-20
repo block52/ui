@@ -3,7 +3,7 @@ import { toast } from "react-toastify";
 import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import { Modal } from "../common/Modal";
 import styles from "./ProfileAvatarModal.module.css";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { useCopyToClipboard } from "../../hooks/useCopyToClipboard";
 import { isEthAddress } from "../../utils/profile/nftRegistration";
 

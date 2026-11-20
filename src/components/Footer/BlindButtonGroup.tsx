@@ -4,7 +4,7 @@ import { LoadingSpinner } from "../common";
 import { FoldButton } from "./FoldButton";
 import type { BlindButtonGroupProps } from "./types";
 import { hasFoldedOrMucked } from "../../utils/playerStatus";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 export const BlindButtonGroup: React.FC<BlindButtonGroupProps> = ({
     showSmallBlind,

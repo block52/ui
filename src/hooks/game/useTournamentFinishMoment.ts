@@ -4,7 +4,7 @@ import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS, RECORD_FINISH_SETTLE_M
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { finishPhaseAt, hasNewFinisher, hasNewResults, nextFinishPhaseAtMs, tournamentFinishOf, type FinishPhase, type TournamentFinish } from "../../utils/tournamentFinish";
-import { hasValue, isNullish } from "../../utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 
 export interface TournamentFinishMoment {
     /** null when no finish is being shown (including a table opened after the finish). */

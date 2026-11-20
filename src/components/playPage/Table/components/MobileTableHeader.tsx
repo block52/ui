@@ -33,7 +33,7 @@ import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
-import { hasValue, isNullish } from "../../../../utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { TABLE_STYLE_LABELS, type TableStyleOption } from "../../../../utils/tableStyle";
 import { tableTitle } from "../../../../utils/tableTitle";
 import { tableUrl } from "../../../../utils/tableUrl";

@@ -20,7 +20,7 @@
  * Pure function; unit-tested in isolation.
  */
 import type { Decorator, Decoration, AnimationHint } from "../types";
-import { hasElements, isNullish } from "../../utils/guards";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
 import { HOLE_CARD_STAGGER_MS } from "../timing";
 
 /** The `AnimationHint.kind` this decorator attaches and useHoleCardDeal consumes. */

@@ -6,7 +6,7 @@ import { friendlyCreateTableError } from "../../utils/tableName";
 import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
 import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
 import { usdcToMicroBigInt } from "../../constants/currency";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 // Type for rake configuration options
 export interface RakeOptions {

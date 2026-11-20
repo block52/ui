@@ -18,7 +18,7 @@ import {
     ExplorerReloadButton,
     ExplorerSearchInput
 } from "../../components/explorer/ExplorerPanel";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { Pagination } from "../../components/common";
 import styles from "./AllAccountsPage.module.css";
 import { useCosmosApi } from "../../context/CosmosApiContext";

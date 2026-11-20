@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import type { AnimationHint } from "../../bus/types";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 /**
  * useAnimationAck — bridge bus animation acks to React consumers (Phase 5, §2.7).

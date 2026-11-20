@@ -5,7 +5,7 @@ import { FaCopy, FaCheck } from "react-icons/fa";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import { getCardImageUrl } from "../../utils/cardImages";
-import { hasElements, hasValue } from "../../utils/guards";
+import { hasElements, hasValue } from "@block52/ui-sdk/helpers";
 import type { HandDetail, HandListItem, HandListResponse } from "./types";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import { useIndexerStatus } from "../../hooks/player/useIndexerStatus";

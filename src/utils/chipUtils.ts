@@ -1,6 +1,6 @@
 import { ActionDTO, PlayerActionType, PlayerDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { MAX_ACTION_GROUPS } from "../constants/chips";
-import { hasContent } from "./guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 import { hasFoldedOrMucked } from "./playerStatus";
 
 /** Action types that place chips on the table */

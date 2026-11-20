@@ -1,6 +1,6 @@
 import axios, { isAxiosError, AxiosError, AxiosRequestConfig, AxiosResponse, AxiosInstance } from "axios";
 import { STORAGE_KEYS } from "../constants/storageKeys";
-import { isRecord, isString } from "../utils/guards";
+import { isRecord, isString } from "@block52/ui-sdk/helpers";
 
 export interface HTTPClientConfig {
     baseUrl: string;

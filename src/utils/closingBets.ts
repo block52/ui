@@ -1,7 +1,7 @@
 import { ActionDTO, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { CLOSING_BET_FLIGHT_MS, CLOSING_BET_HOLD_MS } from "../bus/timing";
 import { CHIP_ACTIONS, seatBetChipAmount } from "./chipUtils";
-import { hasContent, hasValue, isEmpty, isNullish } from "./guards";
+import { hasContent, hasValue, isEmpty, isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * Chips for the bet that closed a street, when the snapshot already moved on

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { parseIpfsRef, ipfsGatewayUrl, ipfsGatewayCount } from "../../utils/profile/ipfs";
-import { isEmpty } from "../../utils/guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 
 interface NftAvatarImageProps {
     /** The resolved avatar URL (may be an ipfs gateway URL, ipfs://, CDN, or data:). */

@@ -5,7 +5,7 @@ import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import type { ClockCallOpportunity } from "../../utils/turnClock";
 import { callClock } from "./callClock";
 import { getCallClockEnabled } from "../../utils/urlParams";
-import { isNullish, hasValue } from "../../utils/guards";
+import { isNullish, hasValue } from "@block52/ui-sdk/helpers";
 import { AUTO_ACTION_DELAY_MS } from "./useLatchedDelay";
 import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
 

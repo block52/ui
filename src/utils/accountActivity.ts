@@ -5,7 +5,7 @@
  * time is the timestamp of its most recent sent or received transaction.
  */
 
-import { isNullish } from "./guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * The most recent of the given ISO timestamps, or null when none is usable.

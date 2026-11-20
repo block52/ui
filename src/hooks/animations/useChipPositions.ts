@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { chipPosition } from "../../utils/PositionArray";
 import { useTableState } from "../game/useTableState";
 import { ChipPositionsReturn, TableStateReturn, PositionArray } from "../../types/index";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 /**
  * Custom hook to manage chip positions based on table size

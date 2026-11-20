@@ -1,4 +1,4 @@
-import { isEmpty } from "./guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 
 /**
  * Minimal protobuf codec for CometBFT `abci_query` of the chain's query messages:

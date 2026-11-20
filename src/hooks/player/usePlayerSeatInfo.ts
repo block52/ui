@@ -4,7 +4,7 @@ import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { PlayerSeatInfoReturn } from "../../types/index";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
-import { isNumber } from "../../utils/guards";
+import { isNumber } from "@block52/ui-sdk/helpers";
 
 /**
  * Custom hook to manage player seat information

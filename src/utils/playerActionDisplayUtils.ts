@@ -1,6 +1,6 @@
 import { LegalActionDTO, NonPlayerActionType, PlayerStatus, isCashFormat } from "@block52/poker-vm-sdk";
 import { SIT_IN_METHOD_POST_NOW } from "../hooks/playerActions";
-import { isNullish } from "./guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 export type PlayerActionDisplay =
     | { kind: "pending"; waitingMessage: string; showSeatOption?: boolean }

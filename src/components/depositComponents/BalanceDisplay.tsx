@@ -1,6 +1,6 @@
 import React from "react";
 import { formatBalance } from "../../utils/numberUtils";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 import styles from "./DepositComponents.module.css";
 
 interface BalanceDisplayProps {

@@ -1,6 +1,6 @@
 import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { microToUsdc } from "../constants/currency";
-import { isEmpty } from "./guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 
 /**
  * Calculate the total amount to display on the raise button.

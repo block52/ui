@@ -11,7 +11,7 @@
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
 import { findChipStyle } from "../config/chipSets";
 import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled, getCallClockEnabled } from "../utils/urlParams";
-import { isNullish } from "../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 const LS_KEY_AUTO_DEAL = "setting_autodeal";
 const LS_KEY_AUTO_POST_BLINDS = "setting_autoblinds";

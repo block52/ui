@@ -1,4 +1,4 @@
-import { hasElements, isNumber } from "./guards";
+import { hasElements, isNumber } from "@block52/ui-sdk/helpers";
 import { potLabel } from "./potDisplayUtils";
 
 /**

@@ -18,7 +18,7 @@ import {
     type TransferEvent
 } from "../utils/transactionUtils";
 import { useCosmosApi } from "../context/CosmosApiContext";
-import { isEmpty, hasElements, isString } from "../utils/guards";
+import { isEmpty, hasElements, isString } from "@block52/ui-sdk/helpers";
 
 interface Transaction {
     txhash: string;

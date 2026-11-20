@@ -1,6 +1,6 @@
 /**
  * Hand-written null/empty/length and `typeof` checks that UI Architecture
- * Commandment 8 (CLAUDE.md) says go through `src/utils/guards.ts` instead.
+ * Commandment 8 (CLAUDE.md) says go through the guards from `@block52/ui-sdk/helpers` instead.
  *
  * Pure and dependency-free so `check-guards.ts` can run under plain Node (no
  * `yarn install`) and Jest can test it.

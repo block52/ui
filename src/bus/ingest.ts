@@ -19,7 +19,7 @@ import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVari
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import type { PendingAction } from "../context/gameState/GameUIContext";
 import { withWinnerDescriptions } from "../utils/winnerDescriptions";
-import { hasValue, isRecord } from "../utils/guards";
+import { hasValue, isRecord } from "@block52/ui-sdk/helpers";
 
 /**
  * Cosmos event names that carry a full game-state snapshot.

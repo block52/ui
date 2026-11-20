@@ -1,6 +1,6 @@
 import { PlayerActionType, ActionDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
-import { isNumber } from "./guards";
+import { isNumber } from "@block52/ui-sdk/helpers";
 
 type CalculatePotBetAmountParams = {
     currentRound: TexasHoldemRound;

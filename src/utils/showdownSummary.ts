@@ -14,7 +14,7 @@
 
 import { GameVariant, PlayerStatus, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { WinnerInfo } from "../types/index";
-import { hasElements } from "./guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { EvaluatedHand, evaluateHand } from "./handEvaluation";
 import { isTabledHand } from "./tabledHand";
 

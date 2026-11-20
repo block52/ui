@@ -14,7 +14,7 @@
  * Pure function; unit-tested in isolation.
  */
 import type { Decorator, Decoration, AnimationHint } from "../types";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 export const actionBadge: Decorator = (item): Partial<Decoration> => {
     const animations: AnimationHint[] = [];

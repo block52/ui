@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
 import { useNetwork } from "../../context/NetworkContext";
 import { getTournamentTxClient, type CreateTournamentParams } from "../../utils/tournamentTx";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 export interface UseTournamentActionsResult {
     busy: boolean;

@@ -26,7 +26,7 @@ import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import type { ResultDTO } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { hasValue, isNullish } from "../../utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { finisherResult } from "../../utils/tournamentResult";
 import { tournamentIdOf } from "../../utils/tournamentBlinds";
 import { STORAGE_KEYS } from "../../constants/storageKeys";

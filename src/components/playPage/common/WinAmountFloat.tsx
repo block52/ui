@@ -1,6 +1,6 @@
 import React from "react";
 import { winAmountFloatText } from "../../../utils/winAmountFloat";
-import { hasContent } from "../../../utils/guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 import "./WinAmountFloat.css";
 
 interface WinAmountFloatProps {

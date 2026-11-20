@@ -14,7 +14,7 @@ import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
-import { hasContent, isNullish, isEmpty } from "../utils/guards";
+import { hasContent, isNullish, isEmpty } from "@block52/ui-sdk/helpers";
 import { useTournamentLobby } from "../hooks/tournament/useTournamentLobby";
 import { TournamentListRows } from "./tournament/TournamentListRows";
 import { tournamentListRow } from "../utils/tournamentListRow";
