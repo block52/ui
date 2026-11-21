@@ -1,36 +1,20 @@
 import { renderHook, waitFor } from "@testing-library/react";
-import { useCometRpcApiFactory, useCosmosApi } from "../../context/CosmosApiContext";
+import { useCosmosApi } from "../../context/CosmosApiContext";
 import { useIndexerApi } from "../../context/IndexerApiContext";
-import { useNetwork } from "../../context/NetworkContext";
 import type { PlayerListItem } from "../../types/players";
-import { countHandsPlayedForPlayer } from "../../utils/directoryHandsPlayed";
 import { ALL_PRIZE_CLAIMS_QUERY, PRIZE_DIRECTORY_QUERY_TIMEOUT_MS } from "../../utils/playerPrizeClaims";
 import { ALL_TOURNAMENT_REGISTERED_QUERY, ALL_TOURNAMENT_UNREGISTERED_QUERY } from "../../utils/playerTournamentEntries";
 import { resetPlayersDirectoryCache, usePlayersDirectory } from "./usePlayersDirectory";
 
 jest.mock("../../context/IndexerApiContext", () => ({ useIndexerApi: jest.fn() }));
-jest.mock("../../context/CosmosApiContext", () => ({ useCosmosApi: jest.fn(), useCometRpcApiFactory: jest.fn() }));
-jest.mock("../../context/NetworkContext", () => ({
-    useNetwork: jest.fn(),
-    NETWORK_PRESETS: [{ name: "Block52", rpc: "https://node1.block52.xyz/rpc/", rest: "https://node1.block52.xyz", grpc: "", ws: "" }]
-}));
-jest.mock("../../utils/directoryHandsPlayed", () => {
-    const actual = jest.requireActual("../../utils/directoryHandsPlayed");
-    return { ...actual, countHandsPlayedForPlayer: jest.fn() };
-});
+jest.mock("../../context/CosmosApiContext", () => ({ useCosmosApi: jest.fn() }));
 
 const getPlayers = jest.fn();
 const getPlayerSessions = jest.fn();
-const getPlayerHands = jest.fn();
-const getHands = jest.fn();
 const getAllTransactionsMatching = jest.fn();
 const getTournament = jest.fn();
-const emptyPage = { data: [], pagination: { total: 0 } };
-const network = { name: "Block52", rpc: "https://node1.block52.xyz/rpc/", rest: "https://node1.block52.xyz", grpc: "", ws: "" };
-(useIndexerApi as jest.Mock).mockReturnValue({ getPlayers, getPlayerSessions, getPlayerHands, getHands });
+(useIndexerApi as jest.Mock).mockReturnValue({ getPlayers, getPlayerSessions });
 (useCosmosApi as jest.Mock).mockReturnValue({ getAllTransactionsMatching, getTournament });
-(useCometRpcApiFactory as jest.Mock).mockReturnValue(() => ({ txSearch: jest.fn(), abciQuery: jest.fn() }));
-(useNetwork as jest.Mock).mockReturnValue({ currentNetwork: network });
 
 const ALPHA = "b521alpha";
 const BETA = "b521beta";
@@ -84,19 +68,11 @@ beforeEach(() => {
     resetPlayersDirectoryCache();
     getPlayers.mockReset();
     getPlayerSessions.mockReset();
-    getPlayerHands.mockReset();
-    getHands.mockReset();
     getAllTransactionsMatching.mockReset();
     getTournament.mockReset();
-    (countHandsPlayedForPlayer as jest.Mock).mockReset();
-    (countHandsPlayedForPlayer as jest.Mock).mockResolvedValue({ dealt: 0 });
-    getPlayerHands.mockResolvedValue(emptyPage);
-    getHands.mockResolvedValue(emptyPage);
     jest.spyOn(console, "error").mockImplementation(() => {});
-    (useIndexerApi as jest.Mock).mockReturnValue({ getPlayers, getPlayerSessions, getPlayerHands, getHands });
+    (useIndexerApi as jest.Mock).mockReturnValue({ getPlayers, getPlayerSessions });
     (useCosmosApi as jest.Mock).mockReturnValue({ getAllTransactionsMatching, getTournament });
-    (useCometRpcApiFactory as jest.Mock).mockReturnValue(() => ({ txSearch: jest.fn(), abciQuery: jest.fn() }));
-    (useNetwork as jest.Mock).mockReturnValue({ currentNetwork: network });
 });
 
 afterEach(() => {
@@ -128,6 +104,7 @@ test("sorts the directory by net after prizes, without counting a recorded cash-
     expect(result.current.error).toBeNull();
     const sessionAddresses = getPlayerSessions.mock.calls.map(call => call[0]);
     expect(sessionAddresses).toEqual(expect.arrayContaining([ALPHA, BETA]));
+    expect(sessionAddresses).not.toContain(GAMMA);
 
     const playerCalls = getPlayers.mock.calls.length;
     rerender({ order: "asc", offset: 0 });
@@ -259,24 +236,4 @@ test("a failed tournament query keeps the prize-corrected nets", async () => {
         [BETA, 10]
     ]);
     expect(getTournament).not.toHaveBeenCalled();
-});
-
-test("fills each listed player with the chain hands count, not the indexer total", async () => {
-    getPlayers.mockResolvedValue(directory([row(ALPHA, 10), row(BETA, 5)]));
-    getAllTransactionsMatching.mockResolvedValue({ tx_responses: [] });
-    (countHandsPlayedForPlayer as jest.Mock).mockImplementation(async (address: string) => {
-        if (address === ALPHA) return { dealt: 435 };
-        if (address === BETA) return { dealt: 12 };
-        return { dealt: 0 };
-    });
-
-    const { result } = renderHook(() => usePlayersDirectory({ ...params, sort: "total_hands", limit: 10 }));
-    await waitFor(() => expect(result.current.loading).toBe(false));
-    await waitFor(() =>
-        expect(result.current.players.map(player => [player.player_address, player.total_hands])).toEqual([
-            [ALPHA, 435],
-            [BETA, 12]
-        ])
-    );
-    expect(countHandsPlayedForPlayer).toHaveBeenCalledTimes(2);
 });

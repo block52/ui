@@ -1,20 +1,10 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CosmosApi, IndexerApi } from "../../apis/Api";
-import { useCometRpcApiFactory, useCosmosApi } from "../../context/CosmosApiContext";
+import { useCosmosApi } from "../../context/CosmosApiContext";
 import { useIndexerApi } from "../../context/IndexerApiContext";
-import { NETWORK_PRESETS, useNetwork } from "../../context/NetworkContext";
 import type { PlayerListItem, PlayerSearchParams, PlayerSession, PlayerSortField } from "../../types/players";
 import type { TournamentStateDTO } from "../../types/tournament";
-import { block52HistoryRpc } from "../../utils/chainHistory";
-import {
-    DIRECTORY_HANDS_PLAYER_CONCURRENCY,
-    countHandsPlayedForPlayer,
-    directoryHandsOrder,
-    withDirectoryHands,
-    type DirectoryHandsCount
-} from "../../utils/directoryHandsPlayed";
 import { hasContent, hasElements, hasValue, isNumber } from "../../utils/guards";
-import { historyNetworks } from "../../utils/handReplay";
 import { fetchAllPages, mapWithConcurrency } from "../../utils/pagedFetch";
 import { playersPage } from "../../utils/playerDirectory";
 import {
@@ -91,8 +81,6 @@ interface UsePlayersDirectoryResult {
     loading: boolean;
     error: string | null;
     refetch: (options?: SilentRefetchOptions) => void;
-    /** Chain dealt-in counts keyed by lowercase address. Missing means still loading. */
-    hands: ReadonlyMap<string, DirectoryHandsCount>;
 }
 
 let globalClaims: Map<string, PlayerPrizeClaim[]> | undefined;
@@ -107,8 +95,6 @@ const perPlayerClaimsCache = new Map<string, PlayerPrizeClaim[]>();
 const perPlayerRegistrationsCache = new Map<string, TournamentRegistration[]>();
 const perPlayerUnregistrationsCache = new Map<string, TournamentUnregistration[]>();
 const tournamentRecordCache = new Map<string, TournamentStateDTO>();
-const directoryHandsCache = new Map<string, DirectoryHandsCount>();
-const directoryHandsInflight = new Map<string, Promise<DirectoryHandsCount>>();
 
 const EMPTY_TOURNAMENTS: TournamentDirectory = {
     registrationsByPlayer: new Map(),
@@ -130,8 +116,6 @@ export function resetPlayersDirectoryCache(): void {
     perPlayerRegistrationsCache.clear();
     perPlayerUnregistrationsCache.clear();
     tournamentRecordCache.clear();
-    directoryHandsCache.clear();
-    directoryHandsInflight.clear();
 }
 
 /**
@@ -147,14 +131,6 @@ export function resetPlayersDirectoryCache(): void {
  * who were paid or entered an MTT are read so a prize or payout the indexer
  * already stored as a cash-out is not added again.
  *
- * Hands on the list is the chain dealt-in count from the indexer's hand list
- * and the public logs, the same logs as profile Hands Played, not the
- * indexer's total_hands (which is 0). Unlisted-hand recovery is skipped here
- * so the directory can fill in a reasonable time; a player the indexer
- * under-listed may show a slightly lower figure than the profile. The list is
- * shown as soon as net profit is ready; each row shows an ellipsis until that
- * player's count arrives.
- *
  * A failed prize-claim query keeps the indexer figures. A failed tournament
  * query keeps the prize-corrected figures. A node that rejects a global query
  * falls back to per-player queries for the rows on the current page.
@@ -162,19 +138,14 @@ export function resetPlayersDirectoryCache(): void {
 export function usePlayersDirectory(params: PlayerSearchParams): UsePlayersDirectoryResult {
     const indexerApi = useIndexerApi();
     const cosmosApi = useCosmosApi();
-    const cometRpcApiFactory = useCometRpcApiFactory();
-    const { currentNetwork } = useNetwork();
     const { search, sort, order, limit, offset } = params;
     const [loaded, setLoaded] = useState<LoadedDirectory | null>(null);
     const [perPlayerView, setPerPlayerView] = useState<PerPlayerView | null>(null);
-    const [hands, setHands] = useState<Map<string, DirectoryHandsCount>>(() => new Map());
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
     const [reloadKey, setReloadKey] = useState(0);
     const loadedRef = useRef<LoadedDirectory | null>(null);
     const silentRef = useRef(false);
-    const pageParamsRef = useRef({ sort, order, limit, offset });
-    pageParamsRef.current = { sort, order, limit, offset };
 
     const refetch = useCallback((options?: SilentRefetchOptions) => {
         resetPlayersDirectoryCache();
@@ -264,44 +235,16 @@ export function usePlayersDirectory(params: PlayerSearchParams): UsePlayersDirec
         };
     }, [cosmosApi, indexerApi, limit, offset, order, reloadKey, search, sort]);
 
-    // Fill Hands after the list is on screen. Do not restart when the user
-    // sorts or pages — the counts are for the whole directory.
-    useEffect(() => {
-        if (!hasValue(loaded)) {
-            setHands(new Map());
-            return;
-        }
-        let cancelled = false;
-        const controller = new AbortController();
-        const pageParams = pageParamsRef.current;
-        const visible = playersPage(loaded.listed, pageParams.sort, pageParams.order, pageParams.limit, pageParams.offset);
-        const addresses = directoryHandsOrder(visible, loaded.listed);
-        void fillDirectoryHands(addresses, {
-            indexerApi,
-            rpcFor: cometRpcApiFactory,
-            networks: historyNetworks(currentNetwork, NETWORK_PRESETS),
-            fallbackRpc: block52HistoryRpc(currentNetwork, NETWORK_PRESETS),
-            signal: controller.signal,
-            onUpdate: next => {
-                if (!cancelled) setHands(next);
-            }
-        });
-        return () => {
-            cancelled = true;
-            controller.abort();
-        };
-    }, [cometRpcApiFactory, currentNetwork, indexerApi, loaded]);
-
     const players = useMemo(() => {
         if (!hasValue(loaded)) return [];
         if (loaded.mode === "perPlayer") {
             if (!viewMatches(perPlayerView, loaded, { sort, order, limit, offset })) return [];
-            return withDirectoryHands(perPlayerView.players, hands);
+            return perPlayerView.players;
         }
-        return playersPage(withDirectoryHands(loaded.listed, hands), sort, order, limit, offset, hands);
-    }, [hands, limit, loaded, offset, order, perPlayerView, sort]);
+        return playersPage(loaded.listed, sort, order, limit, offset);
+    }, [limit, loaded, offset, order, perPlayerView, sort]);
 
-    return { players, total: hasValue(loaded) ? loaded.raw.length : 0, loading, error, refetch, hands };
+    return { players, total: hasValue(loaded) ? loaded.raw.length : 0, loading, error, refetch };
 }
 
 function viewMatches(
@@ -558,46 +501,4 @@ async function readSessions(indexerApi: IndexerApi, address: string): Promise<Pl
         });
     sessionInflight.set(key, request);
     return request;
-}
-
-interface FillDirectoryHandsDeps {
-    indexerApi: IndexerApi;
-    rpcFor: (rpcUrl: string) => { abciQuery: (path: string, dataHex: string, height: number) => Promise<unknown> };
-    networks: ReturnType<typeof historyNetworks>;
-    fallbackRpc?: string;
-    signal: AbortSignal;
-    onUpdate: (hands: Map<string, DirectoryHandsCount>) => void;
-}
-
-async function fillDirectoryHands(addresses: string[], deps: FillDirectoryHandsDeps): Promise<void> {
-    const known = new Map<string, DirectoryHandsCount>();
-    for (const address of addresses) {
-        const cached = directoryHandsCache.get(address.toLowerCase());
-        if (hasValue(cached)) known.set(address.toLowerCase(), cached);
-    }
-    if (known.size > 0) deps.onUpdate(new Map(known));
-
-    await mapWithConcurrency(addresses, DIRECTORY_HANDS_PLAYER_CONCURRENCY, async address => {
-        if (deps.signal.aborted) return;
-        const key = address.toLowerCase();
-        if (known.has(key)) return;
-        const pending = directoryHandsInflight.get(key);
-        const request = hasValue(pending)
-            ? pending
-            : countHandsPlayedForPlayer(address, {
-                  getPlayerHands: (player, limit, offset) => deps.indexerApi.getPlayerHands(player, limit, offset),
-                  rpcFor: deps.rpcFor,
-                  networks: deps.networks,
-                  fallbackRpc: deps.fallbackRpc,
-                  signal: deps.signal
-              }).finally(() => {
-                  directoryHandsInflight.delete(key);
-              });
-        if (!hasValue(pending)) directoryHandsInflight.set(key, request);
-        const result = await request;
-        if (deps.signal.aborted) return;
-        directoryHandsCache.set(key, result);
-        known.set(key, result);
-        deps.onUpdate(new Map(known));
-    });
 }
