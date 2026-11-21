@@ -6,6 +6,7 @@ import { truncateMiddle } from "../utils/stringUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel, ExplorerReloadButton, ExplorerSearchInput } from "../components/explorer/ExplorerPanel";
+import { formatDirectoryHands } from "../utils/directoryHandsPlayed";
 import { isEmpty, hasElements } from "../utils/guards";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
@@ -53,7 +54,7 @@ export default function PlayersPage() {
         [appliedSearch, sort, order, page]
     );
 
-    const { players, total, loading, error, refetch } = usePlayersDirectory(params);
+    const { players, total, loading, error, refetch, hands } = usePlayersDirectory(params);
 
     useVisibleRefresh(() => refetch({ silent: true }));
 
@@ -108,6 +109,12 @@ export default function PlayersPage() {
                                         </th>
                                         <th
                                             className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
+                                            onClick={() => toggleSort("total_hands")}
+                                        >
+                                            Hands{sortArrow("total_hands")}
+                                        </th>
+                                        <th
+                                            className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
                                             onClick={() => toggleSort("net_profit")}
                                         >
                                             Net Profit{sortArrow("net_profit")}
@@ -135,6 +142,9 @@ export default function PlayersPage() {
                                             </td>
                                             <td className="hidden sm:table-cell px-3 sm:px-4 py-2">
                                                 <VipBadge tier={p.vip_tier} rakebackPct={p.rakeback_pct} />
+                                            </td>
+                                            <td className="px-3 sm:px-4 py-2 text-right text-white">
+                                                {formatDirectoryHands(hands.get(p.player_address.toLowerCase()))}
                                             </td>
                                             <td className="px-3 sm:px-4 py-2 text-right">
                                                 <span className={p.net_profit >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
