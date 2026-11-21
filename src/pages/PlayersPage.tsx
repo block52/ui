@@ -1,6 +1,7 @@
+import { formatMicroUsd } from "../utils/moneyDisplay";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { microToUsdc } from "../constants/currency";
+import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
 import { truncateMiddle } from "../utils/stringUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
@@ -15,9 +16,8 @@ import styles from "./explorer/AllAccountsPage.module.css";
 const PAGE_SIZE = 20;
 
 const formatUsd = (micro: number): string => {
-    const value = microToUsdc(micro);
-    const sign = value < 0 ? "-" : "";
-    return `${sign}$${Math.abs(value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const label = formatMicroUsd(micro, true);
+    return label.startsWith("-") ? `-$${label.slice(1)}` : `$${label}`;
 };
 
 export default function PlayersPage() {
@@ -54,6 +54,8 @@ export default function PlayersPage() {
     );
 
     const { players, total, loading, error, refetch } = usePlayersDirectory(params);
+
+    useVisibleRefresh(() => refetch({ silent: true }));
 
     const toggleSort = (field: PlayerSortField) => {
         if (sort === field) {
@@ -106,12 +108,6 @@ export default function PlayersPage() {
                                         </th>
                                         <th
                                             className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
-                                            onClick={() => toggleSort("total_hands")}
-                                        >
-                                            Hands{sortArrow("total_hands")}
-                                        </th>
-                                        <th
-                                            className="px-3 sm:px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
                                             onClick={() => toggleSort("net_profit")}
                                         >
                                             Net Profit{sortArrow("net_profit")}
@@ -140,7 +136,6 @@ export default function PlayersPage() {
                                             <td className="hidden sm:table-cell px-3 sm:px-4 py-2">
                                                 <VipBadge tier={p.vip_tier} rakebackPct={p.rakeback_pct} />
                                             </td>
-                                            <td className="px-3 sm:px-4 py-2 text-right text-white">{p.total_hands.toLocaleString()}</td>
                                             <td className="px-3 sm:px-4 py-2 text-right">
                                                 <span className={p.net_profit >= 0 ? "text-green-400 font-semibold" : "text-red-400 font-semibold"}>
                                                     {formatUsd(p.net_profit)}

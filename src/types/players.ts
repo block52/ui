@@ -39,6 +39,7 @@ export interface PlayerListItem {
     total_actions: number;
     net_profit: number;
     total_rake_contributed: number;
+    vip_points?: number;
     last_seen_block?: number;
 }
 

@@ -1,4 +1,5 @@
 import { BettingLimit, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import { isBlank, isNullish, isNumber, isString } from "./guards";
 import { getGameFormat, getGameVariant } from "./gameFormatUtils";
 
 /**
@@ -34,6 +35,13 @@ export interface GameWithFormat {
     /** Late registration, in blind levels after the start (poker-vm#2731); absent = none. */
     lateRegistrationLevels?: number;
 }
+
+/** Epoch ms for lobby math; string SST would concat with grace and break 24h hide. */
+export const coerceScheduledStartTimeMs = (raw: unknown): number | undefined => {
+    if (isNullish(raw) || (isString(raw) && isBlank(raw))) return undefined;
+    const ms = isNumber(raw) ? raw : Number(raw);
+    return Number.isFinite(ms) && ms > 0 ? ms : undefined;
+};
 
 /**
  * Converts a single GameListItem (SDK type) to GameWithFormat (UI type).
