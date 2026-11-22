@@ -29,6 +29,12 @@ describe("convertUtils", () => {
             expect(convertGameListItemToGameWithFormat(makeGameListItem()).bettingLimit).toBeUndefined();
         });
 
+        it("carries the blind structure through for the lobby's ante label (ui#891)", () => {
+            const sng = makeGameListItem({ format: GameFormat.SIT_AND_GO, gameOptions: { ...makeGameListItem().gameOptions, blindStructure: { preset: "turbo" } } });
+            expect(convertGameListItemToGameWithFormat(sng).blindStructure).toEqual({ preset: "turbo" });
+            expect(convertGameListItemToGameWithFormat(makeGameListItem()).blindStructure).toBeUndefined();
+        });
+
         it("should convert a complete GameListItem", () => {
             const game = makeGameListItem();
             const result = convertGameListItemToGameWithFormat(game);

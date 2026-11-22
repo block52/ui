@@ -19,6 +19,7 @@ import { useTournamentLobby } from "../hooks/tournament/useTournamentLobby";
 import { TournamentListRows } from "./tournament/TournamentListRows";
 import { tournamentListRow } from "../utils/tournamentListRow";
 import { parseTournamentGameId } from "../utils/tableUrl";
+import { describeAnteSchedule } from "../utils/anteRule";
 
 const PAGE_SIZE = 20;
 
@@ -475,6 +476,11 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                             {scheduledLabel(game) && (
                                                 <span className="block text-xs text-blue-300 mt-1" data-testid="scheduled-start-label">
                                                     {scheduledLabel(game)}
+                                                </span>
+                                            )}
+                                            {isTournament && (
+                                                <span className="block text-xs text-gray-400 mt-1" data-testid="lobby-antes">
+                                                    {describeAnteSchedule(game.blindStructure)}
                                                 </span>
                                             )}
                                         </td>
