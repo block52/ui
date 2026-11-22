@@ -5,7 +5,7 @@ import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { shouldShowChips, getRelevantChipAmounts, seatBetChipAmount } from "../../utils/chipUtils";
-import { hasContent, hasElements } from "../../utils/guards";
+import { hasContent, hasElements } from "@block52/ui-sdk/helpers";
 import { useClosingBetPresentation } from "./useClosingBetPresentation";
 
 /**

@@ -1,4 +1,4 @@
-import { hasContent } from "./guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 
 // JWT Cookie management functions
 export const setAuthCookie = (): void => {

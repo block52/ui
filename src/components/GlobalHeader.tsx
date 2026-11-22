@@ -4,7 +4,7 @@ import { NetworkSelector } from "./NetworkSelector";
 import { useNetwork } from "../context/NetworkContext";
 import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
-import { hasElements } from "../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import styles from "./GlobalHeader.module.css";
 import { isTournamentTablePath } from "../utils/tableUrl";
 

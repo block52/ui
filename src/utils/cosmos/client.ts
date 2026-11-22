@@ -8,7 +8,7 @@
 import { CosmosClient, SigningCosmosClient, createSigningClientFromMnemonic, getDefaultCosmosConfig as getDefaultCosmosConfigSDK, COSMOS_CONSTANTS } from "@block52/poker-vm-sdk";
 import { getCosmosAddress, getCosmosMnemonic } from "./storage";
 import { getCosmosUrls, type NetworkEndpoints } from "./urls";
-import { isRecord, isString } from "../guards";
+import { isRecord, isString } from "@block52/ui-sdk/helpers";
 
 // Local type definition (not exported from SDK main index)
 interface CosmosConfig {

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNetwork } from "../../context/NetworkContext";
 import { fetchTableNameTaken, normalizeTableName, tableNameTakenMessage, validateTableName } from "../../utils/tableName";
-import { hasContent, isBlank } from "../../utils/guards";
+import { hasContent, isBlank } from "@block52/ui-sdk/helpers";
 
 /** How long typing must pause before the name is checked against the chain. */
 export const NAME_CHECK_DEBOUNCE_MS = 400;

@@ -1,4 +1,4 @@
-import { isEmpty } from "./guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 
 interface Page<T> {
     data: T[];

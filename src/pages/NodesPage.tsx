@@ -6,7 +6,7 @@ import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { DiscoveredNode, discoverNodes, probeNodes, getCachedNodes, cacheNodes, clearNodeCache } from "../services/nodeDiscovery";
-import { isEmpty, hasElements } from "../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import ValidatorEarningsPanel from "../components/explorer/ValidatorEarningsPanel";
 import { useValidatorBonds } from "../hooks/game/useValidatorBonds";
 import { useChainOverview } from "../hooks/nodes/useChainOverview";

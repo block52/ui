@@ -3,7 +3,7 @@ import type { BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
 import { formatChipCount } from "../../utils/potDisplayUtils";
-import { hasContent, hasValue, isNullish } from "../../utils/guards";
+import { hasContent, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { hasTournamentFinished } from "../../utils/scheduledSng";
 import { directedBlinds, tournamentIdOf } from "../../utils/tournamentBlinds";
 import { useTournament } from "../tournament/useTournament";

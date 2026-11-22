@@ -5,7 +5,7 @@ import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
 import { formatAmount } from "../../utils/accountUtils";
 import { isTournamentFormat } from "../../utils/gameFormatUtils";
 import { WinnerInfo, WinnerInfoReturn } from "../../types/index";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { getWinType } from "../../utils/winnerDescriptions";
 
 /**

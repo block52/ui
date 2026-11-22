@@ -4,7 +4,7 @@
  * own CSS under [data-table-theme].
  */
 
-import { isString } from "./guards";
+import { isString } from "@block52/ui-sdk/helpers";
 
 export const TABLE_STYLE_OPTIONS = ["modern", "classic", "nouns", "blockchainpoker"] as const;
 

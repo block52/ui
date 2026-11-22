@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Modal } from "../common";
-import { hasElements } from "../../utils/guards";
+import { hasElements, getUpcomingSngs, formatCountdown, formatUtcLabel, formatLocalLabel } from "@block52/ui-sdk/helpers";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useSngSchedule } from "../../hooks/useSngSchedule";
-import { getUpcomingSngs, formatCountdown, formatUtcLabel, formatLocalLabel } from "../../utils/sngSchedule";
 
 /** How many upcoming tournaments the modal lists. */
 const UPCOMING_COUNT = 2;

@@ -8,7 +8,7 @@
  * failure signal is `tx_response.code !== 0`, and `raw_log` carries the reason.
  */
 import type { TxVerdict } from "./types";
-import { hasContent, isNumber, isRecord, isString } from "../utils/guards";
+import { hasContent, isNumber, isRecord, isString } from "@block52/ui-sdk/helpers";
 
 export function parseTxVerdict(response: unknown, hash: string): TxVerdict | null {
     if (!isRecord(response)) {

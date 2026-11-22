@@ -16,7 +16,7 @@
  */
 
 import { resolveBlindPreset, type AnteRuleDTO, type BlindLevelDTO, type BlindStructureDTO, type BlindStructurePresetDTO } from "@block52/poker-vm-sdk";
-import { isNullish } from "./guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 /** A structure with any preset resolved: what the form previews and edits. */
 export type ConcreteBlindStructure = Exclude<BlindStructureDTO, BlindStructurePresetDTO>;

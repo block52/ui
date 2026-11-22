@@ -20,7 +20,7 @@
  * from `useHandVerification`.
  */
 import { Deck, TexasHoldemRound, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements, hasValue, isEmpty, isNullish, isRecord, isString } from "./guards";
+import { hasContent, hasElements, hasValue, isEmpty, isNullish, isRecord, isString } from "@block52/ui-sdk/helpers";
 
 /** Cards the engine draws at the deal and sets aside before the board. */
 export const SET_ASIDE_CARDS = 5;

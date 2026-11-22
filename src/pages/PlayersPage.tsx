@@ -5,7 +5,7 @@ import { truncateMiddle } from "../utils/stringUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel, ExplorerReloadButton, ExplorerSearchInput } from "../components/explorer/ExplorerPanel";
-import { isEmpty, hasElements } from "../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
 import { usePlayersDirectory } from "../hooks/player/usePlayersDirectory";

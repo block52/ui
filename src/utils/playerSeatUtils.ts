@@ -1,5 +1,5 @@
 import type { PlayerDTO } from "@block52/poker-vm-sdk";
-import { hasValue, hasContent, hasElements } from "./guards";
+import { hasValue, hasContent, hasElements } from "@block52/ui-sdk/helpers";
 
 /**
  * Returns true when the given seat is the big-blind position for the current

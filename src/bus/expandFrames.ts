@@ -43,7 +43,7 @@ import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { isMaskedHand, isRevealedHand } from "./deriveEvents";
 import type { RunoutBeat } from "./timing";
 import { runoutSubframeStatus } from "../utils/allInEquity";
-import { hasElements, isNullish } from "../utils/guards";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
 
 export interface ExpandFramesOptions {
     /**

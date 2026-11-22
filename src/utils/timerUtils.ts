@@ -1,5 +1,5 @@
 import { ActionDTO } from "@block52/poker-vm-sdk";
-import { hasElements } from "./guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 /** Default timeout in seconds for game creation */
 export const DEFAULT_TIMEOUT_SECONDS = 25;

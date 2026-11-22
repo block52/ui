@@ -15,7 +15,7 @@
 import type { ActionDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { NonPlayerActionType, PlayerActionType } from "@block52/poker-vm-sdk";
 import type { ConfirmationBaseline } from "./types";
-import { hasElements } from "../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 /**
  * The recorded action name(s) a submitted label can appear as. A full-stack

@@ -21,7 +21,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
 import { sitAndGoJoinTitle } from "../../utils/createGameType";
-import { isEmpty, hasElements, isBlank, hasValue } from "../../utils/guards";
+import { isEmpty, hasElements, isBlank, hasValue } from "@block52/ui-sdk/helpers";
 import { SEAT_DRAW_NOTE } from "../../utils/vacantSeatText";
 import { formatStartsAt, lateRegistrationEndsAt, lateRegistrationPhase, scheduledSngPhase, tournamentStartRule, waitsForStartTime } from "../../utils/scheduledSng";
 

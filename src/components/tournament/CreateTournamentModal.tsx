@@ -23,7 +23,7 @@ import {
 } from "../../utils/tournamentCreate";
 import { lateRegistrationCutoffAt } from "../../utils/tournamentLateRegistration";
 import { formatStartsAt, localDateTimeToUnixSeconds } from "../../utils/scheduledSng";
-import { hasElements, hasValue, isBlank, isNullish } from "../../utils/guards";
+import { hasElements, hasValue, isBlank, isNullish } from "@block52/ui-sdk/helpers";
 import { formatUsdc } from "../../utils/tournamentLobby";
 import { parseUsdcToMicro } from "../../constants/currency";
 import type { CreateTournamentParams } from "../../utils/tournamentTx";

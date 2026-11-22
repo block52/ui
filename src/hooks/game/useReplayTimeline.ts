@@ -19,7 +19,7 @@ import {
 import { encodeGameStateRequest } from "../../utils/abciQuery";
 import { getCosmosAddress, getCosmosMnemonic } from "../../utils/cosmos/storage";
 import { signQueryMessage } from "../../utils/cosmos/signing";
-import { hasElements, isNullish } from "../../utils/guards";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
 import type { CometRpcApi } from "../../apis/Api";
 import { useReplayTransport, type ReplayTransport } from "./useReplayTransport";
 

@@ -9,7 +9,7 @@
  * by PlayerActionButtons via the "waiting-for-players" kind.
  */
 
-import { hasElements, hasValue } from "./guards";
+import { hasElements, hasValue } from "@block52/ui-sdk/helpers";
 
 export type TableStatusMessage =
     | { kind: "seat-label"; seatNumber: number; text: string }

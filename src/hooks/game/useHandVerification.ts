@@ -3,7 +3,7 @@ import { useNetwork, NETWORK_PRESETS } from "../../context/NetworkContext";
 import { useCometRpcApiFactory, useCosmosApiFactory } from "../../context/CosmosApiContext";
 import { handEndedQuery, handStartedQuery, historyNetworks } from "../../utils/handReplay";
 import { publicStateAt } from "../../utils/chainHistory";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import {
     dealtSeatsFromState,
     parseFirstTx,

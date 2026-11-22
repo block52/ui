@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 import * as React from "react";
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import useDepositUSDC from "../../hooks/wallet/useDepositUSDC";

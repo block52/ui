@@ -23,7 +23,7 @@ import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/c
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
-import { hasElements } from "../../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { winnerCardHighlight } from "../../../utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";
 import { getSeatOpacityClass } from "../../../utils/seatOpacity";

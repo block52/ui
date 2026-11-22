@@ -4,7 +4,7 @@ import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { winnerBannerRollDistance, winnerBannerText, winnerBannerTop } from "../../../utils/winnerBanner";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
-import { hasElements } from "../../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import "./WinnerBanner.css";
 
 /** How long the last-pot banner takes to roll across, end to end (ms). */

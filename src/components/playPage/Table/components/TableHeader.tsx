@@ -23,7 +23,7 @@ import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
 import { formatBlindsWithAnte } from "../../../../utils/anteRule";
 import styles from "./TableHeader.module.css";
-import { hasValue, isNullish } from "../../../../utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { tableTitle } from "../../../../utils/tableTitle";
 import { tableUrl } from "../../../../utils/tableUrl";
 import BlindsButton from "../../BlindsButton";

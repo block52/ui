@@ -5,7 +5,7 @@ import { callHand } from "./callHand";
 import { useLatchedDelay } from "./useLatchedDelay";
 import { resolvePreAction, PreAction, PreActionCallGuard, PreActionLegal, ResolvedPreAction } from "../../utils/preActions";
 import type { SubmitActionRequest } from "../../submit/types";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 /**
  * The pre-action bar's firing hook (ui#388), CoinPoker-style. When the player has

@@ -14,7 +14,7 @@
 import React from "react";
 import type { ResultDTO } from "@block52/poker-vm-sdk";
 import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
-import { isNullish } from "../../../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import { tournamentIdOf } from "../../../../utils/tournamentBlinds";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";

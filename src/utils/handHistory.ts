@@ -7,7 +7,7 @@ import { GameFormat, PlayerStatus, isTournamentFormat } from "@block52/poker-vm-
 import type { PlayerHand } from "../types/players";
 import type { IndexerStatus } from "../pages/explorer/types";
 import { formatAmount } from "./accountUtils";
-import { hasValue, isNumber, isRecord } from "./guards";
+import { hasValue, isNumber, isRecord } from "@block52/ui-sdk/helpers";
 import { httpErrorMessage, isNetworkError } from "../apis/HTTPClient";
 
 /** A hand's identity across tables: one table can't repeat a hand number. */

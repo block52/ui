@@ -14,7 +14,7 @@ import { renderHook, act } from "@testing-library/react";
 import { NonPlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { usePlayerTimer } from "./usePlayerTimer";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 const mockUseGameData = jest.fn();
 const mockUseGameUI = jest.fn();

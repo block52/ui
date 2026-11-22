@@ -1,7 +1,7 @@
 import React from "react";
 import { useSitAndGoPayouts } from "../../hooks/game/useSitAndGoPayouts";
 import { convertUSDCToNumber, formatForCashGame } from "../../utils/numberUtils";
-import { hasContent, isEmpty } from "../../utils/guards";
+import { hasContent, isEmpty } from "@block52/ui-sdk/helpers";
 
 const PLACE_LABELS = ["1st", "2nd", "3rd", "4th", "5th", "6th", "7th", "8th", "9th", "10th"];
 

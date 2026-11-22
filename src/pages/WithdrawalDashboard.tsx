@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { truncateMiddle } from "../utils/stringUtils";
-import { isEmpty } from "../utils/guards";
+import { isEmpty, base64ToHex } from "@block52/ui-sdk/helpers";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
@@ -8,7 +8,6 @@ import { copyToClipboard } from "../utils/clipboard";
 import { ethers } from "ethers";
 import { formatMicroAsUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
-import { base64ToHex } from "../utils/encodingUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";

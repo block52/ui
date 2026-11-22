@@ -12,7 +12,7 @@ import { describeHandOutcome, describeIndexing, handKey, HandOutcomeTone } from 
 import { formatTimestampRelative } from "../utils/formatUtils";
 import { truncateMiddle } from "../utils/stringUtils";
 import { getCardImageUrl } from "../utils/cardImages";
-import { hasElements, isEmpty } from "../utils/guards";
+import { hasElements, isEmpty } from "@block52/ui-sdk/helpers";
 import type { PlayerHand } from "../types/players";
 import styles from "./explorer/AllAccountsPage.module.css";
 import { tableUrl } from "../utils/tableUrl";

@@ -1,7 +1,7 @@
 import React from "react";
 import { FaBackward, FaForward, FaPause, FaPlay, FaStepBackward, FaStepForward } from "react-icons/fa";
 import { REPLAY_SPEEDS } from "../../utils/replayTimeline";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 export interface ReplayTransportProps {
     handNumber: number;

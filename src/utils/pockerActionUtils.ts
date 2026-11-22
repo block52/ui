@@ -1,7 +1,7 @@
 import { hasAction, LegalActionDTO, PlayerActionType, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
 import { parseMicroToBigInt } from "../constants/currency";
 import { formatDisplayAmount } from "./numberUtils";
-import { hasValue } from "./guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 export const getTotalPotMicro = (totalPot: string): bigint => parseMicroToBigInt(totalPot);
 

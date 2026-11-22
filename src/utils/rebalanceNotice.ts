@@ -1,5 +1,5 @@
 import type { MoveIntentDTO, TournamentStateDTO, TournamentTableDTO } from "../types/tournament";
-import { isEmpty } from "./guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 import { parseTournamentGameId, tournamentGameId } from "./tableUrl";
 import { gameIdFromTableId } from "./tournamentFollow";
 

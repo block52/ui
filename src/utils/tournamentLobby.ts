@@ -22,7 +22,7 @@ import {
     type TournamentEntrantStatus,
     type TournamentStatus
 } from "@block52/poker-vm-sdk";
-import { isNullish, isNumber, isRecord, isString } from "./guards";
+import { isNullish, isNumber, isRecord, isString } from "@block52/ui-sdk/helpers";
 import { gameIdFromTableId } from "./tournamentFollow";
 import { formatTournamentLateRegistration } from "./tournamentLateRegistration";
 

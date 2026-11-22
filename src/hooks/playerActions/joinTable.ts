@@ -4,7 +4,7 @@ import { getLatestGameState } from "./transportAction";
 import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { JoinTableResult } from "../../types";
-import { hasValue, isEmpty, isNullish } from "../../utils/guards";
+import { hasValue, isEmpty, isNullish } from "@block52/ui-sdk/helpers";
 import { parseUsdcToMicro } from "../../constants/currency";
 import { cryptoRandomInt, drawSeat, isSeatTakenError, openSeats, RandomInt, seatsAreDrawn } from "../../utils/seatDraw";
 

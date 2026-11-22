@@ -1,4 +1,4 @@
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import React from "react";
 import { LoadingSpinner } from "../common";
 import { TexasHoldemRound, ActionDTO, PlayerStatus } from "@block52/poker-vm-sdk";

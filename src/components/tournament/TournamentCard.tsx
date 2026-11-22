@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { tableUrl } from "../../utils/tableUrl";
 import { formatCountdown, formatStartsAt } from "../../utils/scheduledSng";
 import { formatUsdc, phaseLabel, type TournamentLobbyCard } from "../../utils/tournamentLobby";
-import { hasContent } from "../../utils/guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 
 interface TournamentCardProps {
     card: TournamentLobbyCard;

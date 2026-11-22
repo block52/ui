@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { truncateMiddle } from "../utils/stringUtils";
-import { hasElements } from "../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
