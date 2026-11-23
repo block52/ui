@@ -14,7 +14,7 @@ import { holeCardsPerPlayer } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../../context/GameStateContext";
 import { useBlindLevel } from "../../../hooks/game/useBlindLevel";
 import { DEAL_ORDER_DESCRIPTION, DERIVATION_DESCRIPTION, handPhase, previousHand } from "../../../utils/provablyFair";
-import { hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import VerifyHandModal from "./VerifyHandModal";
 import { ShieldIcon } from "./ShieldIcon";
 import styles from "./ProvablyFairPanel.module.css";

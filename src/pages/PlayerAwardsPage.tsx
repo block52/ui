@@ -4,7 +4,7 @@ import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel, ExplorerReloadButton } from "../components/explorer/ExplorerPanel";
 import { AwardCard } from "../components/players/AwardCard";
 import { usePlayerAwards } from "../hooks/player/usePlayerAwards";
-import { isEmpty } from "@block52/poker-ui-core/utils/guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 import { MIN_AWARD_DECISIONS, MIN_AWARD_HANDS, MIN_AWARD_MONEY_ACTIONS } from "../utils/playerAwards";
 
 export default function PlayerAwardsPage() {

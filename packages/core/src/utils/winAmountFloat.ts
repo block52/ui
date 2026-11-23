@@ -1,4 +1,4 @@
-import { hasContent } from "./guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 
 /**
  * Text for the floating win pill on a winning seat (ui#861).

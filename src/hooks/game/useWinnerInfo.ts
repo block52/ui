@@ -5,7 +5,7 @@ import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUt
 import { formatAmount } from "../../utils/accountUtils";
 import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { WinnerInfo, WinnerInfoReturn } from "@block52/poker-ui-core/types";
-import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { getWinType } from "@block52/poker-ui-core/utils/winnerDescriptions";
 
 /**

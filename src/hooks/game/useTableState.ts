@@ -6,7 +6,7 @@ import { TexasHoldemRound, GameFormat } from "@block52/poker-vm-sdk";
 import { TableStateReturn } from "@block52/poker-ui-core/types";
 import { getGameFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
-import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 /**
  * Custom hook to fetch and provide table state information

@@ -1,4 +1,4 @@
-import { hasContent } from "@block52/poker-ui-core/utils/guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 
 /**
  * A validator's bonded USDC: the weight the protocol fee is split by (poker-vm#2592).

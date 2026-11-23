@@ -70,6 +70,14 @@ export interface BaseModalProps {
     closeOnBackdropClick?: boolean;
     /** Whether the modal content should scroll when it overflows (default: true) */
     scrollable?: boolean;
+    /**
+     * Whether to dim and block the page behind the modal (default: true).
+     * When false, no backdrop is drawn and the overlay does not capture clicks,
+     * so controls behind the card (e.g. Leave Table) stay usable.
+     */
+    showBackdrop?: boolean;
+    /** Tighter padding and title, for a compact notice card (default: false). */
+    compact?: boolean;
 }
 
 /**
@@ -115,7 +123,9 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
         patternId,
         closeOnEscape = true,
         closeOnBackdropClick = true,
-        scrollable = true
+        scrollable = true,
+        showBackdrop = true,
+        compact = false
     }) => {
         // Handle Escape key press
         useEffect(() => {
@@ -142,16 +152,21 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
         if (!isOpen) return null;
 
         return (
-            <div className="fixed inset-0 z-50 flex items-center justify-center">
+            <div
+                className={`fixed inset-0 z-50 flex items-center justify-center ${showBackdrop ? "" : "pointer-events-none"}`}
+                data-testid={showBackdrop ? undefined : "modal-overlay-pass-through"}
+            >
                 {/* Backdrop */}
-                <div
-                    className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
-                    onClick={handleBackdropClick}
-                />
+                {showBackdrop && (
+                    <div
+                        className="absolute inset-0 bg-black bg-opacity-50 backdrop-blur-sm"
+                        onClick={handleBackdropClick}
+                    />
+                )}
 
                 {/* Modal Container */}
                 <div
-                    className={`relative p-6 rounded-xl shadow-2xl overflow-x-hidden ${scrollable ? "overflow-y-auto max-h-[90vh]" : "overflow-y-hidden"} ${widthClass} max-w-[95vw] ${className} ${styles.modalContainer}`}
+                    className={`relative ${compact ? "p-4" : "p-6"} rounded-xl shadow-2xl overflow-x-hidden ${showBackdrop ? "" : "pointer-events-auto"} ${scrollable ? "overflow-y-auto max-h-[90vh]" : "overflow-y-hidden"} ${widthClass} max-w-[95vw] ${className} ${styles.modalContainer}`}
                 >
                     {/* Hexagon pattern background */}
                     {showHexagonPattern && <HexagonPattern patternId={patternId} />}
@@ -162,7 +177,7 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
                     {/* Title */}
                     {title && (
                         <>
-                            <h2 className="text-xl font-bold mb-3 text-white flex items-center">
+                            <h2 className={`${compact ? "text-lg mb-2" : "text-xl mb-3"} font-bold text-white flex items-center`}>
                                 {titleIcon && (
                                     <span style={{ color: titleDividerColor }} className="mr-2">
                                         {titleIcon}
@@ -171,7 +186,7 @@ export const Modal: React.FC<BaseModalProps> = React.memo(
                                 {title}
                             </h2>
                             <div
-                                className="w-full h-0.5 mb-4 opacity-50"
+                                className={`w-full h-0.5 ${compact ? "mb-3" : "mb-4"} opacity-50`}
                                 style={{
                                     background: `linear-gradient(to right, transparent, ${titleDividerColor}, transparent)`
                                 }}

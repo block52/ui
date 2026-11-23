@@ -1,5 +1,5 @@
 import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, isTournamentFormat, lateRegistrationClosesAt, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 
 /**

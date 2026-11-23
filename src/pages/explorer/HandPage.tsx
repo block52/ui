@@ -8,7 +8,7 @@ import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
 import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { potLabel } from "@block52/poker-ui-core/utils/potDisplayUtils";
-import { isEmpty, hasElements, hasContent } from "@block52/poker-ui-core/utils/guards";
+import { isEmpty, hasElements, hasContent } from "@block52/ui-sdk/helpers";
 import { parseGameStateJson } from "../../utils/handReplay";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../utils/handReplay";
 import styles from "./HandPage.module.css";

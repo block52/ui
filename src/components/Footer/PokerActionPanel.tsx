@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { hasContent, hasElements, hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasContent, hasElements, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "@block52/poker-ui-core/constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";

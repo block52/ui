@@ -2,7 +2,7 @@ import { FC } from "react";
 import { Link } from "react-router-dom";
 import { useProfileAvatar } from "../../context/profile/ProfileAvatarContext";
 import { NftAvatarImage } from "../profile/NftAvatarImage";
-import { hasContent, hasElements } from "@block52/poker-ui-core/utils/guards";
+import { hasContent, hasElements } from "@block52/ui-sdk/helpers";
 import type { PlayerAward } from "../../utils/playerAwards";
 import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import styles from "./AwardCard.module.css";

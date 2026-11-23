@@ -18,6 +18,11 @@ describe("isCheckedFile", () => {
         expect(isCheckedFile("src/components/Seat.tsx")).toBe(true);
     });
 
+    it("covers the shared core package", () => {
+        expect(isCheckedFile("packages/core/src/utils/thing.ts")).toBe(true);
+        expect(isCheckedFile("packages/core/src/utils/thing.test.ts")).toBe(false);
+    });
+
     it("skips tests, mocks, declarations, the guards and anything outside src", () => {
         expect(isCheckedFile("src/utils/thing.test.ts")).toBe(false);
         expect(isCheckedFile("src/components/Seat.test.tsx")).toBe(false);

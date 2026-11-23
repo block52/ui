@@ -21,7 +21,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getGameTypeMnemonic } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { sitAndGoJoinTitle } from "../../utils/createGameType";
-import { isEmpty, hasElements, isBlank, hasValue } from "@block52/poker-ui-core/utils/guards";
+import { isEmpty, hasElements, isBlank, hasValue } from "@block52/ui-sdk/helpers";
 import { SEAT_DRAW_NOTE } from "@block52/poker-ui-core/utils/vacantSeatText";
 import { formatStartsAt, lateRegistrationEndsAt, lateRegistrationPhase, scheduledSngPhase, tournamentStartRule, waitsForStartTime } from "../../utils/scheduledSng";
 

@@ -30,7 +30,7 @@ import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import { snapshotConfirmationSignals } from "./confirmationGate";
 import { attributeEvidence, type Evidence, type OpenJobRef } from "./identity";
 import { classifyActionError } from "./classifyActionError";
-import { hasElements, hasValue, isEmpty } from "@block52/poker-ui-core/utils/guards";
+import { hasElements, hasValue, isEmpty } from "@block52/ui-sdk/helpers";
 import type {
     ControllerSnapshot,
     SubmitActionRequest,

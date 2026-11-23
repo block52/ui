@@ -18,7 +18,7 @@ import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-
 import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
 import type { ValidationError, PendingAction } from "../types/gameUi";
 import { withWinnerDescriptions } from "../utils/winnerDescriptions";
-import { hasValue, isRecord } from "../utils/guards";
+import { hasValue, isRecord } from "@block52/ui-sdk/helpers";
 
 /**
  * Cosmos event names that carry a full game-state snapshot.

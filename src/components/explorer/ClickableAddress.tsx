@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import styles from "./ClickableAddress.module.css";
-import { isNullish, isEmpty, isBoolean, isNumber, isRecord, isString } from "@block52/poker-ui-core/utils/guards";
+import { isNullish, isEmpty, isBoolean, isNumber, isRecord, isString } from "@block52/ui-sdk/helpers";
 
 interface ClickableAddressProps {
     address: string;

@@ -1,6 +1,6 @@
 import { expandBlindLevel, resolveBlindPreset, type BlindLevelDTO, type BlindStructureDTO } from "@block52/poker-vm-sdk";
 import type { TournamentStateDTO } from "../types/tournament";
-import { hasContent, isNumber, isRecord, isString } from "./guards";
+import { hasContent, isNumber, isRecord, isString } from "@block52/ui-sdk/helpers";
 
 /**
  * Blind schedule of a directed (multi-table tournament) table.

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 import { formatCountdown, formatStartsAt } from "../../utils/scheduledSng";
 import { formatUsdc, phaseLabel, type TournamentLobbyCard } from "@block52/poker-ui-core/utils/tournamentLobby";
+import { hasContent } from "@block52/ui-sdk/helpers";
 
 interface TournamentCardProps {
     card: TournamentLobbyCard;
@@ -42,6 +43,11 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({ card, nowMs, onR
                     <div className="text-xs text-gray-400">
                         {card.seatsPerTable}-max tables · {Number(card.startingStack).toLocaleString("en-US")} chips · {card.blindLabel}
                     </div>
+                    {hasContent(card.lateRegistrationLabel) && (
+                        <div className="text-xs text-gray-400" data-testid="tournament-late-registration">
+                            {card.lateRegistrationLabel}
+                        </div>
+                    )}
                 </div>
                 <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border ${CHIP_CLASS[card.phase]}`} data-testid="tournament-phase">
                     {phaseLabel(card.phase)}

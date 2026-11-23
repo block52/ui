@@ -9,7 +9,7 @@ import { GameMessageBus } from "@block52/poker-ui-core/bus/GameMessageBus";
 import { type GameStreamItem } from "@block52/poker-ui-core/bus/types";
 import { viteEnv } from "../utils/viteEnv";
 import { toGameFormat, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
-import { hasElements, hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasElements, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";

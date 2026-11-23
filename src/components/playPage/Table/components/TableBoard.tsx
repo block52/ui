@@ -17,8 +17,9 @@ import OppositePlayerCards from "../../Card/OppositePlayerCards";
 import { TotalPotDisplay } from "./TotalPotDisplay";
 import { MainPotDisplay } from "./MainPotDisplay";
 import { NounsGlasses } from "./NounsGlasses";
+import { feltLogoForTheme, type TableStyleOption } from "../../../../utils/tableStyle";
 
-export type TableTheme = "modern" | "classic" | "nouns";
+export type TableTheme = TableStyleOption;
 
 export interface TableBoardProps {
     // Display data
@@ -105,7 +106,11 @@ export const TableBoard: React.FC<TableBoardProps> = ({
         <>
             {/* Club Logo */}
             <div className={`table-logo ${tableTheme === "nouns" ? "table-logo-nouns" : ""}`}>
-                {tableTheme === "nouns" ? <NounsGlasses width={300} className="nouns-glasses-logo" /> : <img src={clubLogo} alt="Club Logo" />}
+                {tableTheme === "nouns" ? (
+                    <NounsGlasses width={300} className="nouns-glasses-logo" />
+                ) : (
+                    <img src={feltLogoForTheme(tableTheme, clubLogo)} alt="Club Logo" />
+                )}
             </div>
 
             {/* Central Display Area */}

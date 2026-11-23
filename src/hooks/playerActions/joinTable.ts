@@ -4,7 +4,7 @@ import { getLatestGameState } from "./transportAction";
 import type { JoinTableOptions } from "./types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { JoinTableResult } from "@block52/poker-ui-core/types";
-import { hasValue, isEmpty, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasValue, isEmpty, isNullish } from "@block52/ui-sdk/helpers";
 import { parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import { cryptoRandomInt, drawSeat, isSeatTakenError, openSeats, RandomInt, seatsAreDrawn } from "@block52/poker-ui-core/utils/seatDraw";
 

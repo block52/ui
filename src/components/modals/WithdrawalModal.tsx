@@ -5,7 +5,7 @@ import { microToUsdc, usdcToMicroBigInt, formatMicroAsUsdc, parseUsdcToMicro } f
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { useNetwork } from "../../context/NetworkContext";
 import { getSigningClient } from "../../utils/cosmos/client";
-import { base64ToHex } from "../../utils/encodingUtils";
+import { base64ToHex } from "@block52/ui-sdk/helpers";
 import { useWithdrawalSignature } from "../../hooks/wallet/useWithdrawalSignature";
 import { describeWithdrawError } from "../../utils/withdrawalSignature";
 import { useWithdraw } from "../../hooks/wallet/useWithdraw";

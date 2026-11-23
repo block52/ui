@@ -1,6 +1,6 @@
 /**
  * Hand-written null/empty/length and `typeof` checks that UI Architecture
- * Commandment 8 (CLAUDE.md) says go through `src/utils/guards.ts` instead.
+ * Commandment 8 (CLAUDE.md) says go through the guards from `@block52/ui-sdk/helpers` instead.
  *
  * Pure and dependency-free so `check-guards.ts` can run under plain Node (no
  * `yarn install`) and Jest can test it.
@@ -54,10 +54,10 @@ export const GUARD_RULES: readonly GuardRule[] = [
     { pattern: /[^=!]===?\s*(null|undefined)\b|\b(null|undefined)\s*===?[^=]/, use: "isNullish(x)" }
 ];
 
-/** Source files the rule covers: app code, not tests, mocks or the guards themselves. */
+/** Source files the rule covers: app code and the shared core, not tests, mocks or the guards themselves. */
 export function isCheckedFile(file: string): boolean {
     return (
-        /^src\/.*\.tsx?$/.test(file) &&
+        /^(src|packages\/core\/src)\/.*\.tsx?$/.test(file) &&
         !/\.test\.tsx?$/.test(file) &&
         !file.endsWith(".d.ts") &&
         !file.startsWith("src/__mocks__/") &&

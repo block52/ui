@@ -6,7 +6,7 @@ import { useNetwork } from "../../context/NetworkContext";
 import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
 import { Coin } from "./types";
 import { formatTimestampRelative } from "@block52/poker-ui-core/utils/formatUtils";
-import { isEmpty, hasElements } from "@block52/poker-ui-core/utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import {

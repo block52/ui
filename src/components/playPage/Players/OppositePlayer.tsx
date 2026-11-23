@@ -23,7 +23,7 @@ import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/c
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
-import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { winnerCardHighlight } from "@block52/poker-ui-core/utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";
 import { getSeatOpacityClass } from "@block52/poker-ui-core/utils/seatOpacity";
@@ -189,12 +189,14 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         </>
     );
 }, (prevProps, nextProps) => {
-    // Custom comparison function - only re-render if meaningful props change
+    // Custom comparison function - only re-render if meaningful props change.
+    // cardBackStyle must be included so toggling the table appearance updates hole-card backs.
     return (
         prevProps.left === nextProps.left &&
         prevProps.top === nextProps.top &&
         prevProps.index === nextProps.index &&
-        prevProps.color === nextProps.color
+        prevProps.color === nextProps.color &&
+        prevProps.cardBackStyle === nextProps.cardBackStyle
     );
 });
 

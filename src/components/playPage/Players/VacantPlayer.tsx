@@ -26,7 +26,7 @@ import { useGameOptions } from "../../../hooks/game/useGameOptions";
 import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { useCosmosWallet } from "../../../hooks";
 import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
-import { hasElements, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
 import { seatsAreDrawn } from "@block52/poker-ui-core/utils/seatDraw";
 import { joinSeatButtonLabel, SEAT_DRAW_NOTE, vacantSeatText } from "@block52/poker-ui-core/utils/vacantSeatText";
 import { useNetwork } from "../../../context/NetworkContext";

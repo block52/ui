@@ -1,5 +1,5 @@
 import { GameOptionsDTO } from "@block52/poker-vm-sdk";
-import { isBlank, isNullish, hasContent, hasElements } from "./guards";
+import { isBlank, isNullish, hasContent, hasElements } from "@block52/ui-sdk/helpers";
 
 export interface GameOptionsValidationResult {
     isValid: boolean;

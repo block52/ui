@@ -78,7 +78,8 @@ import { useNavigate } from "react-router-dom";
 import { useTournament } from "../../hooks/tournament/useTournament";
 import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import { followTarget, type MyTournamentTable } from "@block52/poker-ui-core/utils/tournamentFollow";
-import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
+import { parseTournamentGameId, tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
+import { REBALANCE_MOVE_NOTICE_MS, rebalanceNotice } from "@block52/poker-ui-core/utils/rebalanceNotice";
 import { tournamentRunners, tournamentSize } from "@block52/poker-ui-core/utils/tournamentResult";
 import React from "react";
 import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
@@ -88,8 +89,10 @@ import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { CardBackStyle } from "../../utils/cardImages";
 import { cssVars } from "../../utils/cssVars";
 import { ANIMATION_CSS_VARS } from "@block52/poker-ui-core/bus/timing";
+import { nextTableStyle, resolveDefaultTableStyle, TABLE_STYLE_LABELS, type TableStyleOption, cardBackStyleForTheme } from "../../utils/tableStyle";
 
 import "./Table.css"; // Import the Table CSS file
+import "../../theme/blockchain-poker.css";
 
 const DESKTOP_PANEL_COLLAPSED_KEY = "b52.tablePanelCollapsed";
 
@@ -166,7 +169,7 @@ import { useDealerPosition } from "../../hooks/game/useDealerPosition";
 import { useTurnNotification } from "../../hooks/notifications/useTurnNotification";
 import ConnectionBanner from "./ConnectionBanner";
 
-import { hasElements, hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasElements, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { resolveDebugOverlayAction } from "../../utils/debugOverlayKeys";
 import { useTableId } from "../../hooks/game/useTableId";
 
@@ -763,15 +766,19 @@ const Table = React.memo(() => {
     // A finished tournament: the record says so on a directed table, results[] on a single-table one.
     const tournamentOver = tournamentRecord?.status === "finished" || hasTournamentFinished(gameState);
     const seatedAt = useRef<MyTournamentTable | undefined>(undefined);
+    const [pendingMove, setPendingMove] = useState<{ gameId: string; tableNumber: number } | undefined>(undefined);
     useEffect(() => {
         const target = followTarget(id, seatedAt.current, myTournamentTable);
         seatedAt.current = myTournamentTable;
-        if (target) navigate(tableUrl(target));
+        if (!target) return;
+        const tableNumber = parseTournamentGameId(target)?.tableNumber;
+        if (tableNumber) setPendingMove({ gameId: target, tableNumber });
+        const timer = window.setTimeout(() => navigate(tableUrl(target)), REBALANCE_MOVE_NOTICE_MS);
+        return () => window.clearTimeout(timer);
     }, [id, myTournamentTable, navigate]);
-
-    // Card back style configuration - driven by VITE_CARD_BACK_URL env var
-    // Options: "default", "block52", "custom", "legacy", or a full URL to a custom SVG
-    const cardBackStyle: CardBackStyle = import.meta.env.VITE_CARD_BACK_URL || "default";
+    useEffect(() => {
+        if (pendingMove && id === pendingMove.gameId) setPendingMove(undefined);
+    }, [id, pendingMove]);
 
     // Game Start Countdown
     const { gameStartTime, showCountdown, handleCountdownComplete, handleSkipCountdown } = useGameStartCountdown();
@@ -783,6 +790,7 @@ const Table = React.memo(() => {
     const [isBalanceLoading, setIsBalanceLoading] = useState<boolean>(true);
     const [, setBalanceError] = useState<Error | null>(null);
     const publicKey = getCosmosAddressSync();
+    const tableRebalanceNotice = rebalanceNotice(tournamentRecord, id, publicKey ?? undefined, pendingMove);
 
     // Update to use the imported hook
     const tableDataValues = useTableData();
@@ -1084,9 +1092,13 @@ const Table = React.memo(() => {
     // Optimize window width detection - only check on resize
     const [isMobile, setIsMobile] = useState(window.innerWidth <= 414);
     const [isMobileLandscape, setIsMobileLandscape] = useState(getViewportMode() === "mobile-landscape");
-    const envTableStyle = import.meta.env.VITE_TABLE_STYLE;
-    const defaultTableStyle: "modern" | "classic" | "nouns" = envTableStyle === "classic" || envTableStyle === "nouns" ? envTableStyle : "modern";
-    const [tableStyle, setTableStyle] = useState<"modern" | "classic" | "nouns">(defaultTableStyle);
+    const defaultTableStyle: TableStyleOption = resolveDefaultTableStyle(import.meta.env.VITE_TABLE_STYLE);
+    const [tableStyle, setTableStyle] = useState<TableStyleOption>(defaultTableStyle);
+
+    // Card back style configuration — Blockchain Poker uses its own back; otherwise
+    // VITE_CARD_BACK_URL ("default", "block52", "custom", "legacy", or a custom SVG URL).
+    const envCardBack: CardBackStyle = import.meta.env.VITE_CARD_BACK_URL || "default";
+    const cardBackStyle: CardBackStyle = cardBackStyleForTheme(tableStyle, envCardBack);
 
     // Update viewport mode on window resize
     useEffect(() => {
@@ -1330,13 +1342,21 @@ const Table = React.memo(() => {
     // instead, so seats/felt only lay out once, at the correct size.
     if (isTableStateLoading || !gameState) {
         return (
-            <div className="table-container">
+            <div className="table-container" data-table-theme={tableStyle}>
                 <div className="flex-grow relative overflow-visible flex items-center justify-center">
                     {/* Background layers — same as the live table for a seamless transition */}
-                    <HexagonPattern patternId="hexagons-table-loading" />
-                    <div className="background-shimmer shimmer-animation" />
-                    <div className="background-animated-static" />
-                    <div className="background-base-static" />
+                    {tableStyle === "blockchainpoker" ? (
+                        <div className="blockchain-poker-background" aria-hidden="true" />
+                    ) : tableStyle === "nouns" ? (
+                        <div className="nouns-background" />
+                    ) : (
+                        <>
+                            <HexagonPattern patternId="hexagons-table-loading" />
+                            <div className="background-shimmer shimmer-animation" />
+                            <div className="background-animated-static" />
+                            <div className="background-base-static" />
+                        </>
+                    )}
                     {/* Centered spinner */}
                     <div className="relative z-20 h-10 w-10 rounded-full border-4 border-white/20 border-t-white animate-spin" />
                 </div>
@@ -1346,7 +1366,7 @@ const Table = React.memo(() => {
 
     return (
         <SitOutIntentProvider tableId={id} network={currentNetwork} pendingSitOut={pendingSitOut} legalActions={playerLegalActions}>
-        <div className="table-container" data-connection={connection.status}>
+        <div className="table-container" data-connection={connection.status} data-table-theme={tableStyle}>
             {/* Connection freshness (ui#613): shown whenever the live socket is not live */}
             {!isReplayMode && id && (
                 <ConnectionBanner
@@ -1386,7 +1406,8 @@ const Table = React.memo(() => {
                 never sit above modals/overlays (it used to be 999999 and beat everything). */}
             {!isCompactMobile && (
                 <button
-                    onClick={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                    className="table-style-toggle"
+                    onClick={() => setTableStyle(s => nextTableStyle(s))}
                     style={{
                         position: "fixed",
                         bottom: 12,
@@ -1394,16 +1415,20 @@ const Table = React.memo(() => {
                         zIndex: 30,
                         padding: "6px 12px",
                         borderRadius: tableStyle === "nouns" ? 0 : 6,
-                        border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
-                        backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
-                        color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc",
+                        ...(tableStyle === "blockchainpoker"
+                            ? {}
+                            : {
+                                  border: tableStyle === "nouns" ? "2px solid #d63c5e" : "2px solid #555",
+                                  backgroundColor: tableStyle === "nouns" ? "rgba(26,26,46,0.8)" : "rgba(0,0,0,0.6)",
+                                  color: tableStyle === "nouns" ? "#e1d7d5" : "#ccc"
+                              }),
                         fontSize: 12,
                         fontFamily: tableStyle === "nouns" ? "'Silkscreen', monospace" : "monospace",
                         fontWeight: "bold",
                         cursor: "pointer"
                     }}
                 >
-                    Table: {tableStyle === "modern" ? "Modern" : tableStyle === "classic" ? "Classic" : "Nouns"}
+                    Table: {TABLE_STYLE_LABELS[tableStyle]}
                 </button>
             )}
             <GeometryFixedOverlay
@@ -1441,7 +1466,7 @@ const Table = React.memo(() => {
                     maxBuyIn={gameOptions?.maxBuyIn || "0"}
                     walletBalance={accountBalance}
                     tableStyle={tableStyle}
-                    onCycleTableStyle={() => setTableStyle(s => (s === "modern" ? "classic" : s === "classic" ? "nouns" : "modern"))}
+                    onCycleTableStyle={() => setTableStyle(s => nextTableStyle(s))}
                     onOpenPanel={tab => {
                         setPanelTab(tab);
                         setMobilePanelOpen(true);
@@ -1495,14 +1520,20 @@ const Table = React.memo(() => {
             {/*//! BODY — single flex-grow container, measured by geometry engine */}
             <div ref={tableContainerRef} className="flex-grow relative overflow-visible">
                 {/* Background layers */}
-                {tableStyle !== "nouns" && <HexagonPattern patternId="hexagons-table" />}
-                {tableStyle === "nouns" ? (
-                    <div className="nouns-background" />
+                {tableStyle === "blockchainpoker" ? (
+                    <div className="blockchain-poker-background" aria-hidden="true" />
                 ) : (
                     <>
-                        <div className="background-shimmer shimmer-animation" />
-                        <div className="background-animated-static" />
-                        <div className="background-base-static" />
+                        {tableStyle !== "nouns" && <HexagonPattern patternId="hexagons-table" />}
+                        {tableStyle === "nouns" ? (
+                            <div className="nouns-background" />
+                        ) : (
+                            <>
+                                <div className="background-shimmer shimmer-animation" />
+                                <div className="background-animated-static" />
+                                <div className="background-base-static" />
+                            </>
+                        )}
                     </>
                 )}
 
@@ -1524,23 +1555,27 @@ const Table = React.memo(() => {
                         }}
                     >
                         {/* Outer rail — Ignition-style 3D depth (modern and nouns) */}
-                        {(tableStyle === "modern" || tableStyle === "nouns") && (
+                        {(tableStyle === "modern" || tableStyle === "nouns" || tableStyle === "blockchainpoker") && (
                             <div
-                                className="absolute z-10 rounded-[290px]"
+                                className="table-rail absolute z-10 rounded-[290px]"
                                 style={{
                                     width: `${stageDims.tableWidth + 60}px`,
                                     height: `${stageDims.tableHeight + 60}px`,
                                     left: "-30px",
                                     top: "-30px",
-                                    border: tableStyle === "nouns" ? "10px solid rgba(26, 26, 46, 0.8)" : "10px solid rgba(100, 75, 40, 0.6)",
-                                    boxShadow:
-                                        tableStyle === "nouns"
-                                            ? "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)"
-                                            : "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
-                                    background:
-                                        tableStyle === "nouns"
-                                            ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
-                                            : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
+                                    ...(tableStyle === "blockchainpoker"
+                                        ? {}
+                                        : {
+                                              border: tableStyle === "nouns" ? "10px solid rgba(26, 26, 46, 0.8)" : "10px solid rgba(100, 75, 40, 0.6)",
+                                              boxShadow:
+                                                  tableStyle === "nouns"
+                                                      ? "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)"
+                                                      : "0 12px 48px rgba(0,0,0,0.8), 0 4px 16px rgba(0,0,0,0.5), inset 0 3px 12px rgba(0,0,0,0.5), inset 0 -2px 6px rgba(255,255,255,0.05)",
+                                              background:
+                                                  tableStyle === "nouns"
+                                                      ? "linear-gradient(180deg, rgba(26,26,46,0.4) 0%, rgba(26,26,46,0.7) 100%)"
+                                                      : "linear-gradient(180deg, rgba(80,55,25,0.25) 0%, rgba(40,25,10,0.45) 100%)"
+                                          })
                                 }}
                             />
                         )}
@@ -1550,12 +1585,16 @@ const Table = React.memo(() => {
                             style={{
                                 width: `${stageDims.tableWidth}px`,
                                 height: `${stageDims.tableHeight}px`,
-                                borderColor:
-                                    tableStyle === "nouns"
-                                        ? "rgba(214, 60, 94, 0.4)"
-                                        : tableStyle === "classic"
-                                          ? "rgba(255, 255, 255, 0.3)"
-                                          : "rgba(255, 255, 255, 0.08)"
+                                ...(tableStyle === "blockchainpoker"
+                                    ? {}
+                                    : {
+                                          borderColor:
+                                              tableStyle === "nouns"
+                                                  ? "rgba(214, 60, 94, 0.4)"
+                                                  : tableStyle === "classic"
+                                                    ? "rgba(255, 255, 255, 0.3)"
+                                                    : "rgba(255, 255, 255, 0.08)"
+                                      })
                             }}
                         >
                             <TableBoard
@@ -1720,6 +1759,7 @@ const Table = React.memo(() => {
                 handleClaimWinnings={handleClaimWinnings}
                 currentPlayerStack={currentPlayerData?.stack || "0"}
                 isInActiveHand={isGameInProgress && currentUserSeat > 0}
+                rebalanceNotice={tableRebalanceNotice}
             />
             )}
 

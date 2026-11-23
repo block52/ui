@@ -8,7 +8,7 @@
  * the payout amounts; we only report who finished where, from the broadcast
  * state's results[].
  */
-import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 
 /**

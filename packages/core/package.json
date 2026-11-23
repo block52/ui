@@ -7,6 +7,10 @@
   "sideEffects": false,
   "files": ["dist"],
   "exports": {
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
     "./*": {
       "types": "./dist/*.d.ts",
       "default": "./dist/*.js"
@@ -23,6 +27,7 @@
     "ethers": "^6.15.0"
   },
   "peerDependencies": {
-    "@block52/poker-vm-sdk": ">=1.25.0"
+    "@block52/poker-vm-sdk": ">=1.25.0",
+    "@block52/ui-sdk": ">=0.2.0"
   }
 }

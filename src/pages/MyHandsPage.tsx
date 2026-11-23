@@ -12,7 +12,7 @@ import { describeHandOutcome, describeIndexing, handKey, HandOutcomeTone } from 
 import { formatTimestampRelative } from "@block52/poker-ui-core/utils/formatUtils";
 import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { getCardImageUrl } from "../utils/cardImages";
-import { hasElements, isEmpty } from "@block52/poker-ui-core/utils/guards";
+import { hasElements, isEmpty } from "@block52/ui-sdk/helpers";
 import type { PlayerHand } from "@block52/poker-ui-core/types/players";
 import styles from "./explorer/AllAccountsPage.module.css";
 import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";

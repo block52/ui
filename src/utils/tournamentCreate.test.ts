@@ -99,6 +99,18 @@ describe("validateTournamentForm", () => {
         expect(validate({ actionTimeoutSeconds: "" }).errors.actionTimeoutSeconds).toBeDefined();
     });
 
+    it("validates late registration levels and returns them off params (ui#1000; wired to the chain in poker-vm#2800)", () => {
+        // Default is 15 levels, carried on the result but not yet on the SDK params.
+        const def = validate();
+        expect(def.lateRegistrationLevels).toBe(15);
+        expect("lateRegistrationLevels" in (def.params ?? {})).toBe(false);
+        // 0 is a valid "off" choice.
+        expect(validate({ lateRegistrationLevels: "0" }).lateRegistrationLevels).toBe(0);
+        // Non-whole and malformed values error on the field.
+        expect(validate({ lateRegistrationLevels: "2.5" }).errors.lateRegistrationLevels).toMatch(/whole number/);
+        expect(validate({ lateRegistrationLevels: "" }).errors.lateRegistrationLevels).toBeDefined();
+    });
+
     it("requires a resolved blind structure and passes the picker's error through", () => {
         expect(validate({}, { blindStructure: undefined }).errors.blindStructure).toBe("Choose a blind structure");
         expect(validate({}, { blindStructure: undefined, blindError: "levels: bad" }).errors.blindStructure).toBe("levels: bad");

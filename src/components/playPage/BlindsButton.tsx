@@ -15,7 +15,7 @@ import { FaLayerGroup } from "react-icons/fa";
 import { Modal } from "../common/Modal";
 import { useBlindLevel } from "../../hooks/game/useBlindLevel";
 import { buildBlindLadder, formatBlindCountdown } from "../../utils/blindStructure";
-import { isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import { formatChipCount } from "@block52/poker-ui-core/utils/potDisplayUtils";
 import styles from "./BlindsButton.module.css";
 

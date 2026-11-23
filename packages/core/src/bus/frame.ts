@@ -13,7 +13,7 @@
  * split cannot cut a document in half. Pure, framework-free (bus convention).
  */
 import type { RawWsMessage } from "./ingest";
-import { isBlank, isEmpty } from "../utils/guards";
+import { isBlank, isEmpty } from "@block52/ui-sdk/helpers";
 
 export interface ParsedFrame {
     /** Every document that parsed, in wire order. `JSON.parse` output — the loosely typed inbound envelope. */

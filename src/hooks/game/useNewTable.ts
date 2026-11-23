@@ -6,7 +6,7 @@ import { friendlyCreateTableError } from "../../utils/tableName";
 import {  convertBlindsForBlockchain } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { DEFAULT_TIMEOUT_SECONDS } from "@block52/poker-ui-core/utils/timerUtils";
 import { usdcToMicroBigInt } from "@block52/poker-ui-core/constants/currency";
-import { hasValue } from "@block52/poker-ui-core/utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 // Type for rake configuration options
 export interface RakeOptions {

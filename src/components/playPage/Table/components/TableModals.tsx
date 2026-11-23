@@ -14,7 +14,7 @@
 import React from "react";
 import type { ResultDTO } from "@block52/poker-vm-sdk";
 import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
-import { isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
@@ -24,6 +24,8 @@ import { LeaveTableModal } from "../../../modals";
 import TournamentWinnerMoment from "../../Animations/TournamentWinnerMoment";
 import { useTournamentFinishMoment } from "../../../../hooks/game/useTournamentFinishMoment";
 import { holdsResultModals } from "@block52/poker-ui-core/utils/tournamentFinish";
+import type { RebalanceNotice as RebalanceNoticeState } from "@block52/poker-ui-core/utils/rebalanceNotice";
+import { RebalanceNotice } from "../../RebalanceNotice";
 
 export interface TableModalsProps {
     // Game Start Countdown
@@ -58,6 +60,9 @@ export interface TableModalsProps {
     handleClaimWinnings: () => Promise<void>;
     currentPlayerStack: string;
     isInActiveHand: boolean;
+
+    /** Compact notice while this table is waiting on a tournament rebalance (ui#1007). */
+    rebalanceNotice?: RebalanceNoticeState;
 }
 
 export const TableModals: React.FC<TableModalsProps> = ({
@@ -80,7 +85,8 @@ export const TableModals: React.FC<TableModalsProps> = ({
     handleLeaveTableConfirm,
     handleClaimWinnings,
     currentPlayerStack,
-    isInActiveHand
+    isInActiveHand,
+    rebalanceNotice
 }) => {
     // ui#874: a finish happening live holds the results / busted modal until the
     // deciding hand (and, at the end, the tournament-winner moment) has shown.
@@ -131,6 +137,10 @@ export const TableModals: React.FC<TableModalsProps> = ({
             {/* Tournament-winner moment (ui#874): winner, prize, winning hand and
                 runner-up, held before the results modal. */}
             {finishMoment.phase === "winner" && finishMoment.finish && <TournamentWinnerMoment finish={finishMoment.finish} />}
+
+            {/* Rebalance notice — compact, no backdrop, so Leave and other
+                controls stay usable (block52/ui#1007). */}
+            <RebalanceNotice notice={rebalanceNotice} />
 
             {/* Transaction Popup - Bottom Right */}
             <TransactionPopup txHash={recentTxHash} onClose={handleCloseTransactionPopup} />

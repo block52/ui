@@ -22,7 +22,7 @@ import { useGameSettings } from "../../../../context/GameSettingsContext";
 import { useActionSubmit } from "../../../../context/ActionSubmitContext";
 import { useSitOutIntent } from "../../../../context/SitOutIntentContext";
 import { getCosmosAddressSync } from "../../../../utils/cosmosAccountUtils";
-import { isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 
 export interface PlayerActionButtonsProps {

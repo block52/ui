@@ -6,7 +6,7 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { Modal, LoadingSpinner } from "../common";
 import styles from "./TopUpModal.module.css";
 import type { TopUpModalProps } from "./types";
-import { hasValue } from "@block52/poker-ui-core/utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 const TopUpModal: React.FC<TopUpModalProps> = ({ currentStack, minBuyIn, maxBuyIn, walletBalance, onClose, onTopUp }) => {
     const [topUpError, setTopUpError] = useState("");

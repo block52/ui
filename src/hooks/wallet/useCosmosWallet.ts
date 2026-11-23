@@ -12,7 +12,7 @@ import { getCosmosClient, getSigningClient } from "../../utils/cosmos/client";
 import { getCosmosMnemonic, getCosmosAddress, setCosmosMnemonic, setCosmosAddress } from "../../utils/cosmos/storage";
 import { getAddressFromMnemonic } from "@block52/poker-vm-sdk";
 import { useNetwork } from "../../context/NetworkContext";
-import { isString } from "@block52/poker-ui-core/utils/guards";
+import { isString } from "@block52/ui-sdk/helpers";
 
 interface Balance {
     denom: string;

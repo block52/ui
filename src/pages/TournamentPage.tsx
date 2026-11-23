@@ -3,7 +3,7 @@ import { Link, Navigate, useParams } from "react-router-dom";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel } from "../components/explorer/ExplorerPanel";
 import { useTournament } from "../hooks/tournament/useTournament";
-import { hasElements, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
 import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";

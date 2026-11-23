@@ -14,11 +14,12 @@ import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
 import { Pagination, SortButton, SortDirection } from "./common";
 import styles from "./TableList.module.css";
-import { hasContent, isNullish, isEmpty } from "@block52/poker-ui-core/utils/guards";
+import { hasContent, isNullish, isEmpty } from "@block52/ui-sdk/helpers";
 import { useTournamentLobby } from "../hooks/tournament/useTournamentLobby";
 import { TournamentListRows } from "./tournament/TournamentListRows";
 import { tournamentListRow } from "@block52/poker-ui-core/utils/tournamentListRow";
 import { parseTournamentGameId } from "@block52/poker-ui-core/utils/tableUrl";
+import { describeAnteSchedule } from "@block52/poker-ui-core/utils/anteRule";
 
 const PAGE_SIZE = 20;
 
@@ -475,6 +476,11 @@ const TableList: React.FC<TableListProps> = ({ onCreateTable }) => {
                                             {scheduledLabel(game) && (
                                                 <span className="block text-xs text-blue-300 mt-1" data-testid="scheduled-start-label">
                                                     {scheduledLabel(game)}
+                                                </span>
+                                            )}
+                                            {isTournament && (
+                                                <span className="block text-xs text-gray-400 mt-1" data-testid="lobby-antes">
+                                                    {describeAnteSchedule(game.blindStructure)}
                                                 </span>
                                             )}
                                         </td>

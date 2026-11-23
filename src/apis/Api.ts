@@ -1,5 +1,5 @@
 import HTTPClient from "./HTTPClient";
-import { hasContent, hasValue } from "@block52/poker-ui-core/utils/guards";
+import { hasContent, hasValue } from "@block52/ui-sdk/helpers";
 import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "@block52/poker-ui-core/types/players";
 import type { TournamentResponse } from "@block52/poker-ui-core/types/tournament";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";

@@ -1,5 +1,5 @@
 import type { PlayerHand, PlayerProfile } from "@block52/poker-ui-core/types/players";
-import { isEmpty } from "@block52/poker-ui-core/utils/guards";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 
 /**
  * The player awards ("biggest nit" and friends), ranked from the indexer's

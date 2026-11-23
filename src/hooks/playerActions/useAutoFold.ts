@@ -4,7 +4,7 @@ import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { foldHand } from "./foldHand";
 import { checkHand } from "./checkHand";
 import { getAutoFoldEnabled } from "../../utils/urlParams";
-import { isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import { useLatchedDelay } from "./useLatchedDelay";
 import type { SubmitActionRequest } from "../../submit/types";
 

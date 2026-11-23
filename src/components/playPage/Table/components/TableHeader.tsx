@@ -21,8 +21,9 @@ import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handRepla
 import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
+import { formatBlindsWithAnte } from "@block52/poker-ui-core/utils/anteRule";
 import styles from "./TableHeader.module.css";
-import { hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { tableTitle } from "../../../../utils/tableTitle";
 import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 import BlindsButton from "../../BlindsButton";
@@ -272,7 +273,7 @@ export const TableHeader: React.FC<TableHeaderProps> = ({
                         <div className="flex items-center space-x-1 sm:space-x-2">
                             {blindLevel.isActive ? (
                                 <span className={`text-[10px] sm:text-[15px] font-semibold ${styles.secondaryText}`}>
-                                    {hasValue(blindLevel.level) && `Level ${blindLevel.level + 1} `}{blindLevel.currentBlindsFormatted} Next {blindLevel.nextBlindsFormatted}
+                                    {hasValue(blindLevel.level) && `Level ${blindLevel.level + 1} `}{formatBlindsWithAnte(blindLevel.currentBlindsFormatted, blindLevel.currentAnteFormatted)} Next {blindLevel.nextBlindsFormatted}
                                     {blindLevel.hasTimer && (
                                         <>
                                             {" ("}

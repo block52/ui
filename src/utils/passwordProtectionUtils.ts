@@ -1,4 +1,4 @@
-import { hasContent } from "@block52/poker-ui-core/utils/guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 
 // JWT Cookie management functions
 export const setAuthCookie = (): void => {

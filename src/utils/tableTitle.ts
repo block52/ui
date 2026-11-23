@@ -1,4 +1,4 @@
-import { hasContent } from "@block52/poker-ui-core/utils/guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 import { parseTournamentGameId } from "@block52/poker-ui-core/utils/tableUrl";
 
 /** Hex characters of the tournament id shown in a table title. */

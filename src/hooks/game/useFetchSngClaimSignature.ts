@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import { useNetwork } from "../../context/NetworkContext";
 import { getCosmosUrls } from "../../utils/cosmos/urls";
-import { isString } from "@block52/poker-ui-core/utils/guards";
+import { isString } from "@block52/ui-sdk/helpers";
 
 /**
  * Validator-signed payload returned by the chain for a SitAndGo win

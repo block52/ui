@@ -3,7 +3,7 @@ import type { BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { isSitAndGoFormat, isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { formatChipCount } from "@block52/poker-ui-core/utils/potDisplayUtils";
-import { hasContent, hasValue, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { hasContent, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { hasTournamentFinished } from "../../utils/scheduledSng";
 import { directedBlinds, tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import { useTournament } from "../tournament/useTournament";
@@ -23,6 +23,8 @@ export interface BlindLevelInfo {
     currentBlindsFormatted: string;
     /** Formatted next blinds string (e.g., "100/200") */
     nextBlindsFormatted: string;
+    /** This level's big-blind ante, formatted (e.g. "400"); undefined when the level has none (ui#891). */
+    currentAnteFormatted?: string;
     /**
      * Seconds remaining in the current blind level. Negative while a hand runs
      * past the level end (overtime); -1 when unknown (no timer — gated by
@@ -151,6 +153,10 @@ export const useBlindLevel = (): BlindLevelInfo => {
 
     const nextBlindsFormatted = `${formatChipCount(nextSmallBlind)}/${formatChipCount(nextBigBlind)}`;
 
+    // The engine re-emits the current level's ante as gameOptions.ante (absent = none).
+    const currentAnte = hasContent(gameOptions?.ante) ? Number(gameOptions.ante) : 0;
+    const currentAnteFormatted = currentAnte > 0 ? formatChipCount(currentAnte) : undefined;
+
     return {
         level,
         smallBlind: currentSB,
@@ -159,6 +165,7 @@ export const useBlindLevel = (): BlindLevelInfo => {
         nextBigBlind,
         currentBlindsFormatted,
         nextBlindsFormatted,
+        currentAnteFormatted,
         secondsRemaining,
         levelDurationSeconds,
         isActive,

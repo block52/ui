@@ -15,7 +15,7 @@ import { useWinnerInfo } from "./useWinnerInfo";
 import { shouldShowWinnerSummary } from "../../components/ActionsLog.utils";
 import { getShowdownSummaryLines } from "@block52/poker-ui-core/utils/showdownSummary";
 import { setLastHandResult } from "@block52/poker-ui-core/utils/lastHandResult";
-import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 export const useLastHandResultCapture = (tableId: string | undefined): void => {
     // Rendered track on purpose: it is what the user saw, and END is held on it.

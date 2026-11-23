@@ -1,4 +1,4 @@
-import { hasElements, isNumber } from "@block52/poker-ui-core/utils/guards";
+import { hasElements, isNumber } from "@block52/ui-sdk/helpers";
 import { potLabel } from "@block52/poker-ui-core/utils/potDisplayUtils";
 
 /**

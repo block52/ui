@@ -12,7 +12,7 @@
  */
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { isMaskedHand } from "@block52/poker-ui-core/bus/deriveEvents";
-import { isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * How old a signature may get before it is renewed. Half the chain's one-hour

@@ -3,7 +3,7 @@ import { LegalActionDTO } from "@block52/poker-vm-sdk";
 import { NextToActInfoReturn } from "@block52/poker-ui-core/types";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { getTimeoutMs, timeoutToSeconds } from "@block52/poker-ui-core/utils/timerUtils";
-import { isEmpty, isNullish } from "@block52/poker-ui-core/utils/guards";
+import { isEmpty, isNullish } from "@block52/ui-sdk/helpers";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { usePlayersBySeat } from "./usePlayersBySeat";
 

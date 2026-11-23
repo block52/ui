@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Modal } from "../common";
-import { hasContent } from "@block52/poker-ui-core/utils/guards";
+import { hasContent } from "@block52/ui-sdk/helpers";
 import {
     parseAdvancedSngParams,
     buildSngPreview,

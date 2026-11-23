@@ -1,6 +1,6 @@
 import { isTournamentFormat, isSitAndGoFormat, GameFormat, TexasHoldemRound, PotDTO } from "@block52/poker-vm-sdk";
 import { formatUSDCToSimpleDollars } from "./numberUtils";
-import { hasElements } from "./guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import type { PotName } from "./potTextUtils";
 
 /** One pot on the board: the main pot or a side pot (ui#918). */

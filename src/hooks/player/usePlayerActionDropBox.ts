@@ -5,7 +5,7 @@ import { ActionDTO, PlayerActionType, NonPlayerActionType } from "@block52/poker
 import { formatDisplayAmount, formatForSitAndGo, formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { getStreetCommitTotalForAction } from "@block52/poker-ui-core/utils/raiseUtils";
 import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
-import { isBlank, isEmpty } from "@block52/poker-ui-core/utils/guards";
+import { isBlank, isEmpty } from "@block52/ui-sdk/helpers";
 import { useClosingBetPresentation } from "./useClosingBetPresentation";
 
 export interface PlayerActionDisplay {

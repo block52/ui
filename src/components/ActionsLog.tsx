@@ -10,7 +10,7 @@ import { formatActionAmount, formatActionName, formatRoundName, getActionLine, g
 import { FaCopy, FaCheck, FaFileDownload, FaShare } from "react-icons/fa";
 import { toast } from "react-toastify";
 import { useGameStateContext } from "../context/GameStateContext";
-import { isEmpty, hasElements } from "@block52/poker-ui-core/utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import styles from "./ActionsLog.module.css";
 import { useTableId } from "../hooks/game/useTableId";
 

@@ -17,7 +17,7 @@ import type { TrackMeta } from "@block52/poker-ui-core/bus/types";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import { getSigningClient } from "../../utils/cosmos/client";
-import { hasElements } from "@block52/poker-ui-core/utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 let latestGameState: TexasHoldemStateDTO | undefined;
 

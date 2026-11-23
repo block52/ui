@@ -19,7 +19,7 @@
  * Pure function; unit-tested in isolation.
  */
 import type { Decorator, Decoration, AnimationHint } from "../types";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import { CARD_STAGGER_MS, DEAL_CARDS_ACK_TIMEOUT_MS } from "../timing";
 
 // The durations live in ../timing (one source for the bus, the hooks and the

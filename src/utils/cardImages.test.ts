@@ -68,6 +68,10 @@ describe("cardImages", () => {
             expect(getCardBackUrl("custom")).toBe(BUNDLED_SVG);
         });
 
+        it("should return the Blockchain Poker charcoal back for that appearance", () => {
+            expect(getCardBackUrl("blockchainpoker")).toBe("/appearances/blockchain-poker/card-back-charcoal.svg");
+        });
+
         it("should return custom URL when provided", () => {
             const customUrl = "https://example.com/my-card-back.svg";
             expect(getCardBackUrl(customUrl)).toBe(customUrl);
