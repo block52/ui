@@ -92,6 +92,12 @@ export interface PlayerProfile {
     stats_updated_at?: string;
 }
 
+/**
+ * One seat at one table. leave_block and cash_out_amount are omitted while the
+ * session is open. The game fields come from the indexer's games table and are
+ * omitted while it hasn't recorded the game (or on an indexer from before
+ * ui#1012); they are wire strings, parsed with toGameFormat / toGameVariant.
+ */
 export interface PlayerSession {
     player_address: string;
     game_id: string;
@@ -100,11 +106,32 @@ export interface PlayerSession {
     buy_in_amount: number;
     cash_out_amount?: number;
     created_at: string;
+    /** "cash" | "sit-and-go" | "tournament" */
+    game_format?: string;
+    /** "texas-holdem" | "omaha" */
+    game_variant?: string;
+    /** Set on tournament-directed tables. */
+    tournament_id?: string;
+}
+
+/** How many of a player's sessions were at one format and variant, across all of them. */
+export interface SessionGameCount {
+    game_format: string;
+    game_variant: string;
+    sessions: number;
+}
+
+/** Narrows GET /players/:address/sessions to one kind of game; omitted fields match everything. */
+export interface PlayerSessionFilter {
+    game_format?: string;
+    game_variant?: string;
 }
 
 export interface PlayerSessionsResponse {
     data: PlayerSession[];
     pagination: Pagination;
+    /** Absent on an indexer from before ui#1012. */
+    games?: SessionGameCount[];
 }
 
 /**
