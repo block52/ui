@@ -11,7 +11,7 @@
  * tested without React. GameStateContext owns the socket and does the sending.
  */
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { isMaskedHand } from "../bus/deriveEvents";
+import { isMaskedHand } from "@block52/poker-ui-core/bus/deriveEvents";
 import { isNullish } from "@block52/ui-sdk/helpers";
 
 /**

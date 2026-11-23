@@ -1,5 +1,5 @@
 import { expandBlindLevel, resolveBlindPreset, type BlindStructureDTO } from "@block52/poker-vm-sdk";
-import { formatChipCount } from "./potDisplayUtils";
+import { formatChipCount } from "@block52/poker-ui-core/utils/potDisplayUtils";
 import { isNullish } from "@block52/ui-sdk/helpers";
 import type { BlindLevelInfo } from "../hooks/game/useBlindLevel";
 

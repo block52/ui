@@ -1,8 +1,8 @@
 import React from "react";
-import { formatUSDCToSimpleDollars, formatForSitAndGo, convertUSDCToNumber } from "../../../utils/numberUtils";
-import { decomposeAmount } from "../../../utils/chipBreakdown";
+import { formatUSDCToSimpleDollars, formatForSitAndGo, convertUSDCToNumber } from "@block52/poker-ui-core/utils/numberUtils";
+import { decomposeAmount } from "@block52/poker-ui-core/utils/chipBreakdown";
 import { getChipImageUrl } from "../../../utils/cardImages";
-import { getChipSet } from "../../../constants/chips";
+import { getChipSet } from "@block52/poker-ui-core/constants/chips";
 import { useChipStyle } from "../../../context/GameSettingsContext";
 
 /** Vertical offset per chip for same-denomination vertical stacking (px). */

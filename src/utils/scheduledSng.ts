@@ -1,6 +1,6 @@
 import { NonPlayerActionType, PlayerActionType, isLateRegistrationOpen, isTournamentFormat, lateRegistrationClosesAt, type ActionDTO, type GameOptionsDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
 import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
-import { tournamentIdOf } from "./tournamentBlinds";
+import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 
 /**
  * Single-table tournaments (poker-vm#2680, #2776).

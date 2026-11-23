@@ -3,12 +3,12 @@ import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { useReplay } from "../../context/gameState/ReplayContext";
 import { NonPlayerActionType, PlayerStatus, PlayerDTO } from "@block52/poker-vm-sdk";
-import { PlayerTimerReturn } from "../../types/index";
+import { PlayerTimerReturn } from "@block52/poker-ui-core/types";
 import { useGameOptions } from "../game/useGameOptions";
 import { usePlayersBySeat } from "../game/usePlayersBySeat";
 import { isNullish, safeLength } from "@block52/ui-sdk/helpers";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
-import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "../../utils/timerUtils";
+import { getTimeoutMs, timeoutToSeconds, getLatestActionTimestampMs, calcTimeRemaining, calcProgressPercent, makeTurnId, resolveTurnAnchor, TurnAnchor } from "@block52/poker-ui-core/utils/timerUtils";
 import { timeBankGrantedMs, turnClockPhase } from "../../utils/turnClock";
 
 /**

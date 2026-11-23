@@ -54,10 +54,10 @@ export const GUARD_RULES: readonly GuardRule[] = [
     { pattern: /[^=!]===?\s*(null|undefined)\b|\b(null|undefined)\s*===?[^=]/, use: "isNullish(x)" }
 ];
 
-/** Source files the rule covers: app code, not tests, mocks or the guards themselves. */
+/** Source files the rule covers: app code and the shared core, not tests, mocks or the guards themselves. */
 export function isCheckedFile(file: string): boolean {
     return (
-        /^src\/.*\.tsx?$/.test(file) &&
+        /^(src|packages\/core\/src)\/.*\.tsx?$/.test(file) &&
         !/\.test\.tsx?$/.test(file) &&
         !file.endsWith(".d.ts") &&
         !file.startsWith("src/__mocks__/") &&

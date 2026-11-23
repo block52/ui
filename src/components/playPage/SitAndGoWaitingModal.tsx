@@ -13,8 +13,8 @@ import { useGameStateContext } from "../../context/GameStateContext";
 import { useNetwork } from "../../context/NetworkContext";
 import { usePlayerLegalActions } from "../../hooks/playerActions/usePlayerLegalActions";
 import { startTournament } from "../../hooks/playerActions/startTournament";
-import { getGameTypeMnemonic } from "../../utils/gameFormatUtils";
-import { formatSitAndGoStackString } from "../../utils/numberUtils";
+import { getGameTypeMnemonic } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { formatSitAndGoStackString } from "@block52/poker-ui-core/utils/numberUtils";
 import { AUTO_START_RETRY_MS, formatCountdown, formatStartsAt, isScheduledSng, scheduledSngPhase, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "../../utils/scheduledSng";
 import styles from "./SitAndGoWaitingModal.module.css";
 

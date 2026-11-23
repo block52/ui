@@ -5,7 +5,7 @@ import { useGameActions } from "../../context/gameState/GameActionsContext";
 import { handEndedQuery, handStartedQuery, historyNetworks, parseGameStateJson, parseTxSearchHeight } from "../../utils/handReplay";
 import { parseAbciStringResponse } from "../../utils/abciQuery";
 import { publicStateAt } from "../../utils/chainHistory";
-import { actionsQuery, buildTimeline, parseActionHeights } from "../../utils/replayTimeline";
+import { actionsQuery, buildTimeline, parseActionHeights } from "@block52/poker-ui-core/utils/replayTimeline";
 import {
     GAME_STATE_PATH,
     NO_KNOWN_CARDS,

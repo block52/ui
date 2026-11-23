@@ -2,7 +2,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useCardAnimations } from "./useCardAnimations";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
-import { DEFAULT_DECORATION, AnimationHint, GameEvent, GameStreamItem } from "../../bus/types";
+import { DEFAULT_DECORATION, AnimationHint, GameEvent, GameStreamItem } from "@block52/poker-ui-core/bus/types";
 import { TexasHoldemRound } from "@block52/poker-vm-sdk";
 
 jest.mock("../../context/GameStateContext");

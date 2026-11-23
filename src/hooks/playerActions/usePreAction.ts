@@ -3,7 +3,7 @@ import { checkHand } from "./checkHand";
 import { foldHand } from "./foldHand";
 import { callHand } from "./callHand";
 import { useLatchedDelay } from "./useLatchedDelay";
-import { resolvePreAction, PreAction, PreActionCallGuard, PreActionLegal, ResolvedPreAction } from "../../utils/preActions";
+import { resolvePreAction, PreAction, PreActionCallGuard, PreActionLegal, ResolvedPreAction } from "@block52/poker-ui-core/utils/preActions";
 import type { SubmitActionRequest } from "../../submit/types";
 import { hasValue } from "@block52/ui-sdk/helpers";
 

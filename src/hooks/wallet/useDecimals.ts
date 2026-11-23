@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useReadContract } from "wagmi";
 import { erc20abi } from "../../abis/erc20ABI";
-import { FunctionName } from "../../types";
+import { FunctionName } from "@block52/poker-ui-core/types";
 import { ETH_CHAIN_ID } from "../../config/constants";
 
 const useDecimal = (tokenAddress: string) => {

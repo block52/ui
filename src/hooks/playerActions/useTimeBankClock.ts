@@ -6,7 +6,7 @@ import { useNetwork } from "../../context/NetworkContext";
 import { isConnectionLive } from "../../context/gameState/connection";
 import { usePlayerLegalActions } from "./usePlayerLegalActions";
 import { usePlayerTimer } from "../player/usePlayerTimer";
-import { getActionFlags, getUserPlayer, timeBankButtonSeconds, timeBankClockState, TimeBankClockState } from "../../utils/pockerActionUtils";
+import { getActionFlags, getUserPlayer, timeBankButtonSeconds, timeBankClockState, TimeBankClockState } from "@block52/poker-ui-core/utils/pockerActionUtils";
 import { nextTimeBankMs } from "../../utils/turnClock";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { timeBank } from "./timeBank";

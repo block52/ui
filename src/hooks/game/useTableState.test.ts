@@ -11,7 +11,7 @@ import { useTableState } from "./useTableState";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameMeta } from "../../context/gameState/GameMetaContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
-import { formatMicroAsUsdc } from "../../constants/currency";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
 import { TexasHoldemRound, GameFormat } from "@block52/poker-vm-sdk";
 
 jest.mock("../../context/gameState/GameDataContext");

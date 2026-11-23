@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { microToUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../../constants/currency";
+import { microToUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import { calculateMinTopUp, calculateMaxTopUp } from "../../utils/topUpUtils";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { Modal, LoadingSpinner } from "../common";

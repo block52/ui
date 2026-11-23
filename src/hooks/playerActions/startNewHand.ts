@@ -1,6 +1,6 @@
 import { NonPlayerActionType } from "@block52/poker-vm-sdk";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
-import type { PlayerActionResult } from "../../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import { generatePlayerSeedHex } from "@block52/ui-sdk/helpers";
 import { executeTransportAction } from "./transportAction";
 

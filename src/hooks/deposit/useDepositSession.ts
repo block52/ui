@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { DEPOSIT_ADDRESS } from "../../config/constants";
 import { usePaymentApi } from "../../context/PaymentApiContext";
-import { DepositSession, TransactionStatus } from "../../types";
+import { DepositSession, TransactionStatus } from "@block52/poker-ui-core/types";
 import { isRecord } from "@block52/ui-sdk/helpers";
 
 interface UseDepositSessionReturn {

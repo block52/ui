@@ -1,6 +1,6 @@
 import { ethers } from "ethers";
-import { formatMicroAsUsdc } from "../constants/currency";
-import { truncateMiddle } from "./stringUtils";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 
 /**
  * Get public key from private key

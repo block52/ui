@@ -1,6 +1,6 @@
 import React from "react";
-import { formatMicroAsUsdc } from "../../constants/currency";
-import { DepositSession } from "../../types";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
+import { DepositSession } from "@block52/poker-ui-core/types";
 import styles from "./DepositComponents.module.css";
 
 interface SessionStatusCardProps {

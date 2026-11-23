@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from "react";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
-import type { AnimationHint } from "../../bus/types";
+import type { AnimationHint } from "@block52/poker-ui-core/bus/types";
 import { hasValue } from "@block52/ui-sdk/helpers";
 
 /**

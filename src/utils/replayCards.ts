@@ -12,7 +12,7 @@
  * These are overlaid on every step of the hand, replacing only masked hands.
  */
 import type { PlayerDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { isMaskedHand, isRevealedHand } from "../bus/deriveEvents";
+import { isMaskedHand, isRevealedHand } from "@block52/poker-ui-core/bus/deriveEvents";
 import { hasElements, isString } from "@block52/ui-sdk/helpers";
 
 /** gRPC method path of the authenticated (per-player masking) game state query. */

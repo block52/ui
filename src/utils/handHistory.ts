@@ -4,7 +4,7 @@
  */
 
 import { GameFormat, PlayerStatus, isTournamentFormat } from "@block52/poker-vm-sdk";
-import type { PlayerHand } from "../types/players";
+import type { PlayerHand } from "@block52/poker-ui-core/types/players";
 import type { IndexerStatus } from "../pages/explorer/types";
 import { formatAmount } from "./accountUtils";
 import { hasValue, isNumber, isRecord } from "@block52/ui-sdk/helpers";

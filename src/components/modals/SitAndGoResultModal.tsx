@@ -18,17 +18,17 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { useSitAndGoPlayerResults } from "../../hooks/game/useSitAndGoPlayerResults";
 import { useFetchSngClaimSignature } from "../../hooks/game/useFetchSngClaimSignature";
 import { useClaimSngWinNFT } from "../../hooks/wallet/useClaimSngWinNFT";
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
-import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import type { ResultDTO } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
-import { finisherResult } from "../../utils/tournamentResult";
-import { tournamentIdOf } from "../../utils/tournamentBlinds";
+import { finisherResult } from "@block52/poker-ui-core/utils/tournamentResult";
+import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
 type ClaimState =

@@ -1,7 +1,7 @@
 import React from "react";
 import { Modal } from "../common/Modal";
 import { LoadingSpinner } from "../common/LoadingSpinner";
-import type { RebalanceNotice as RebalanceNoticeState } from "../../utils/rebalanceNotice";
+import type { RebalanceNotice as RebalanceNoticeState } from "@block52/poker-ui-core/utils/rebalanceNotice";
 
 export interface RebalanceNoticeProps {
     notice: RebalanceNoticeState | undefined;

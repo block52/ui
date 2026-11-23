@@ -16,11 +16,11 @@
  * print each one under its input. Nothing is defaulted: an empty field is an error.
  */
 import { type BlindStructureDTO } from "@block52/poker-vm-sdk";
-import { parseUsdcToMicro } from "../constants/currency";
+import { parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import { CREATION_FEE_BIG_BLINDS } from "./tableCreationFee";
 import { hasElements, isBlank, isNullish } from "@block52/ui-sdk/helpers";
 import { localDateTimeToUnixSeconds } from "./scheduledSng";
-import { DEFAULT_TOURNAMENT_LATE_REGISTRATION_LEVELS, isValidLateRegistrationLevels } from "./tournamentLateRegistration";
+import { DEFAULT_TOURNAMENT_LATE_REGISTRATION_LEVELS, isValidLateRegistrationLevels } from "@block52/poker-ui-core/utils/tournamentLateRegistration";
 import type { CreateTournamentParams } from "./tournamentTx";
 
 /** pvm/go/engine/tournament.go TournamentMinSeatsPerTable / MaxSeatsPerTable / MaxEntrantsCap. */

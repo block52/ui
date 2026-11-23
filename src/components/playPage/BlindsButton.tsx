@@ -16,7 +16,7 @@ import { Modal } from "../common/Modal";
 import { useBlindLevel } from "../../hooks/game/useBlindLevel";
 import { buildBlindLadder, formatBlindCountdown } from "../../utils/blindStructure";
 import { isNullish } from "@block52/ui-sdk/helpers";
-import { formatChipCount } from "../../utils/potDisplayUtils";
+import { formatChipCount } from "@block52/poker-ui-core/utils/potDisplayUtils";
 import styles from "./BlindsButton.module.css";
 
 /** "800/1,600" → "800 / 1,600": spaced slash reads cleaner in a list. */

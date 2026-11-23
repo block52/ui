@@ -1,0 +1,33 @@
+{
+  "name": "@block52/poker-ui-core",
+  "version": "0.1.0",
+  "description": "Headless poker UI logic shared by block52/ui and block52/desktop: pure TypeScript, no React, no CSS.",
+  "license": "CC0-1.0",
+  "type": "module",
+  "sideEffects": false,
+  "files": ["dist"],
+  "exports": {
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "default": "./dist/types/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "default": "./dist/*.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.build.json --noEmit",
+    "test": "cd ../.. && jest packages/core"
+  },
+  "dependencies": {
+    "bech32": "^2.0.0",
+    "bigunit": "^1.2.5",
+    "ethers": "^6.15.0"
+  },
+  "peerDependencies": {
+    "@block52/poker-vm-sdk": ">=1.25.0",
+    "@block52/ui-sdk": ">=0.2.0"
+  }
+}

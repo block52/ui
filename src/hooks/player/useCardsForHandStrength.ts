@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { usePlayerData } from "./usePlayerData";
 import { useTableData } from "../game/useTableData";
 import { useGameMeta } from "../../context/gameState/GameMetaContext";
-import { evaluateHandOrThrow } from "../../utils/handEvaluation";
+import { evaluateHandOrThrow } from "@block52/poker-ui-core/utils/handEvaluation";
 
 export interface HandStrength {
   name: string;

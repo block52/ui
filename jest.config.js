@@ -18,6 +18,8 @@ module.exports = {
     'node_modules/(?!(@reown|@walletconnect|uint8arrays|multiformats|@noble)/)'
   ],
   moduleNameMapper: {
+    // Workspace source for the shared core, so tests need no build
+    '^@block52/poker-ui-core/(.*)$': '<rootDir>/packages/core/src/$1',
     // Handle CSS imports (with CSS modules)
     '\\.css$': 'identity-obj-proxy',
     // Handle image imports
@@ -33,6 +35,8 @@ module.exports = {
   },
   collectCoverageFrom: [
     'src/**/*.{ts,tsx}',
+    'packages/core/src/**/*.ts',
+    '!packages/core/src/**/*.test.ts',
     '!src/**/*.d.ts',
     '!src/main.tsx',
     '!src/vite-env.d.ts'
@@ -59,7 +63,7 @@ module.exports = {
       lines: 45,
       statements: 45
     },
-    './src/constants/currency.ts': {
+    './packages/core/src/constants/currency.ts': {
       branches: 85,
       functions: 70,
       lines: 88,

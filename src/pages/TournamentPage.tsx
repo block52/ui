@@ -4,13 +4,13 @@ import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel } from "../components/explorer/ExplorerPanel";
 import { useTournament } from "../hooks/tournament/useTournament";
 import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
-import { formatUSDCToSimpleDollars } from "../utils/numberUtils";
-import { truncateMiddle } from "../utils/stringUtils";
-import { tableUrl } from "../utils/tableUrl";
-import { liveTournamentTables, tournamentStandings } from "../utils/tournamentTables";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
+import { liveTournamentTables, tournamentStandings } from "@block52/poker-ui-core/utils/tournamentTables";
 import { startCountdownText } from "../utils/tournamentStart";
 import { useNow } from "../hooks/tournament/useTournamentLobby";
-import { tournamentSize } from "../utils/tournamentResult";
+import { tournamentSize } from "@block52/poker-ui-core/utils/tournamentResult";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
 
 /**

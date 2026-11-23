@@ -1,5 +1,5 @@
 import { GameVariant, PlayerActionType, PlayerStatus, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { getWinType, withWinnerDescriptions } from "./winnerDescriptions";
+import { getWinType, withWinnerDescriptions } from "@block52/poker-ui-core/utils/winnerDescriptions";
 import { winnerBannerText } from "./winnerBanner";
 
 const board = ["7H", "KC", "9S", "2D", "4C"];

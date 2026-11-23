@@ -9,7 +9,7 @@
  */
 
 import React, { createContext, useContext, useState, useCallback, useMemo } from "react";
-import { findChipStyle } from "../config/chipSets";
+import { findChipStyle } from "@block52/poker-ui-core/config/chipSets";
 import { getAutoDealEnabled, getAutoPostBlindsEnabled, getAutoNewHandEnabled, getAutoFoldEnabled, getCallClockEnabled } from "../utils/urlParams";
 import { isNullish } from "@block52/ui-sdk/helpers";
 

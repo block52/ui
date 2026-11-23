@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { GameFormat, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { TableBoard } from "./TableBoard";
-import { formatPotDisplay } from "../../../../utils/potDisplayUtils";
+import { formatPotDisplay } from "@block52/poker-ui-core/utils/potDisplayUtils";
 import type { CardBackStyle } from "../../../../utils/cardImages";
 
 jest.mock("../../../../hooks/animations/useCardAnimations", () => ({ useCardAnimations: () => ({ revealedSlots: [true, true, true, true, true] }) }));

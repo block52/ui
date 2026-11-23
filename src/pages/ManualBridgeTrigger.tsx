@@ -3,7 +3,7 @@ import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
 import { ethers } from "ethers";
-import { formatMicroAsUsdc } from "../constants/currency";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
 import { BRIDGE_DEPOSITS_ABI } from "../utils/bridge/abis";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";

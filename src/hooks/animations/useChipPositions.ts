@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { chipPosition } from "../../utils/PositionArray";
 import { useTableState } from "../game/useTableState";
-import { ChipPositionsReturn, TableStateReturn, PositionArray } from "../../types/index";
+import { ChipPositionsReturn, TableStateReturn, PositionArray } from "@block52/poker-ui-core/types";
 import { hasElements } from "@block52/ui-sdk/helpers";
 
 /**

@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import { DEFAULT_ANTE_FORM } from "../utils/anteRule";
-import { previewBlindLevels } from "../utils/blindStructureChoice";
+import { DEFAULT_ANTE_FORM } from "@block52/poker-ui-core/utils/anteRule";
+import { previewBlindLevels } from "@block52/poker-ui-core/utils/blindStructureChoice";
 import { useBlindStructureForm } from "./useBlindStructureForm";
 
 const blinds = { smallBlind: 10, bigBlind: 20, durationMinutes: 10 };

@@ -6,7 +6,7 @@
  * the two create forms can't drift apart again.
  */
 import React from "react";
-import { ANTE_PERCENT_QUICK_CHOICES, describeAnteForm, validateAnteForm, type AnteFormState } from "../utils/anteRule";
+import { ANTE_PERCENT_QUICK_CHOICES, describeAnteForm, validateAnteForm, type AnteFormState } from "@block52/poker-ui-core/utils/anteRule";
 import {
     BLIND_STRUCTURE_CHOICES,
     describeBlindStructureChoice,
@@ -14,7 +14,7 @@ import {
     previewHasAnte,
     type BlindLevelRow,
     type BlindStructureChoice
-} from "../utils/blindStructureChoice";
+} from "@block52/poker-ui-core/utils/blindStructureChoice";
 import { isEmpty } from "@block52/ui-sdk/helpers";
 
 const DEFAULT_CONTROL_CLASS =

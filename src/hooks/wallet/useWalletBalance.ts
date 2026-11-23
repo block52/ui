@@ -1,7 +1,7 @@
 import { useReadContract } from "wagmi";
 import useUserWalletConnect from "./useUserWalletConnect";
 import { erc20abi } from "../../abis/erc20ABI";
-import { FunctionName } from "../../types";
+import { FunctionName } from "@block52/poker-ui-core/types";
 import { useMemo } from "react";
 import {
     ETH_USDC_ADDRESS,

@@ -18,7 +18,7 @@ import { useCopyToClipboard } from "../../../hooks/useCopyToClipboard";
 import { getCardImageUrl } from "../../../utils/cardImages";
 import { downloadJson } from "../../../utils/download";
 import { hasContent, hasElements, hasValue } from "@block52/ui-sdk/helpers";
-import { truncateMiddle } from "../../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import {
     DEAL_ORDER_DESCRIPTION,
     DERIVATION_DESCRIPTION,

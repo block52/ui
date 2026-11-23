@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { PlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
 import { hasContent, hasElements, hasValue, isNullish } from "@block52/ui-sdk/helpers";
-import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "../../constants/currency";
+import { parseMicroToBigInt, microBigIntToUsdc, usdcToMicroBigInt } from "@block52/poker-ui-core/constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
-import { isTournamentFormat } from "../../utils/gameFormatUtils";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import {
     getActionFlags,
     getFormattedMaxBetAmount,
@@ -15,8 +15,8 @@ import {
     isShortShoveRaise,
     shouldShowShowdownBar,
     validRaiseAmount
-} from "../../utils/pockerActionUtils";
-import { formatDisplayAmount } from "../../utils/numberUtils";
+} from "@block52/poker-ui-core/utils/pockerActionUtils";
+import { formatDisplayAmount } from "@block52/poker-ui-core/utils/numberUtils";
 
 // Import hooks
 import { useTableState, useNextToActInfo } from "../../hooks";
@@ -54,11 +54,11 @@ import { raiseHand } from "../../hooks/playerActions/raiseHand";
 import { postSmallBlind } from "../../hooks/playerActions/postSmallBlind";
 import { postBigBlind } from "../../hooks/playerActions/postBigBlind";
 import { startNewHand } from "../../hooks/playerActions/startNewHand";
-import type { PlayerActionResult } from "../../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 
 // Import utils
-import { getActionByType } from "../../utils/actionUtils";
-import { getRaiseToAmount } from "../../utils/raiseUtils";
+import { getActionByType } from "@block52/poker-ui-core/utils/actionUtils";
+import { getRaiseToAmount } from "@block52/poker-ui-core/utils/raiseUtils";
 import { getViewportMode } from "../../config/stageGeometry";
 
 // Import sub-components
@@ -69,13 +69,13 @@ import { BlindButtonGroup } from "./BlindButtonGroup";
 import { MainActionButtons } from "./MainActionButtons";
 import { RaiseBetControls } from "./RaiseBetControls";
 import { PreActionControls } from "./PreActionControls";
-import { allowsBlindMultiples } from "../../utils/preflopPresets";
-import { isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer } from "../../utils/chipUtils";
-import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, preActionButtons, PreAction, ResolvedPreAction } from "../../utils/preActions";
+import { allowsBlindMultiples } from "@block52/poker-ui-core/utils/preflopPresets";
+import { isCheckFreeForPlayer, hasVoluntarilyCommittedThisRound, amountToCallMicroForPlayer } from "@block52/poker-ui-core/utils/chipUtils";
+import { shouldShowPreActions, shouldClearPreAction, resolvePreAction, preActionButtons, PreAction, ResolvedPreAction } from "@block52/poker-ui-core/utils/preActions";
 
 // Import types
 import type { PokerActionPanelProps } from "./types";
-import { hasFoldedOrMucked } from "../../utils/playerStatus";
+import { hasFoldedOrMucked } from "@block52/poker-ui-core/utils/playerStatus";
 
 export const PokerActionPanel: React.FC<PokerActionPanelProps> = ({ tableId, network, onTransactionSubmitted }) => {
     // The ActionSubmitController owns dedupe, serialization, the safe transport

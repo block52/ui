@@ -8,7 +8,7 @@ import { ActionSubmitController } from "./ActionSubmitController";
 import type { SubmitError, SubmitNotice, TxVerdict } from "./types";
 import { STALE_INDEX_MESSAGE } from "../hooks/playerActions/transportAction";
 import { ActionDTO, TexasHoldemStateDTO, GameOptionsDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import type { PlayerActionResult } from "../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 
 const ME = "b521me";
 const OTHER = "b521other";

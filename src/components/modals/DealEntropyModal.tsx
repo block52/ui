@@ -3,7 +3,7 @@ import { Modal, LoadingSpinner } from "../common";
 import CryptoJS from "crypto-js";
 import type { DealEntropyModalProps } from "./types";
 import styles from "./DealEntropyModal.module.css";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { generateSystemEntropy } from "@block52/ui-sdk/helpers";
 
 /**

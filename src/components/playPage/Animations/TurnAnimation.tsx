@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useNextToActInfo } from "../../../hooks/game/useNextToActInfo";
 import { useReplay } from "../../../context/gameState/ReplayContext";
-import { TurnAnimationProps } from "../../../types/index";
+import { TurnAnimationProps } from "@block52/poker-ui-core/types";
 import "./TurnAnimation.css";
 import { PlayerDTO } from "@block52/poker-vm-sdk";
 

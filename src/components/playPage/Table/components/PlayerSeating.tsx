@@ -14,7 +14,7 @@
 
 import React, { useCallback } from "react";
 import { PlayerDTO } from "@block52/poker-vm-sdk";
-import { PositionArray } from "../../../../types";
+import { PositionArray } from "@block52/poker-ui-core/types";
 import { UseTableLayoutReturn } from "../../../../hooks/game/useTableLayout";
 import Player from "../../Players/Player";
 import OppositePlayer from "../../Players/OppositePlayer";

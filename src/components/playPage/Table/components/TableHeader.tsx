@@ -15,19 +15,19 @@ import { QRCodeSVG } from "qrcode.react";
 import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
-import { formatGameFormatDisplay, formatTableGameDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { formatGameFormatDisplay, formatTableGameDisplay, isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, GameVariant, PlayerDTO } from "@block52/poker-vm-sdk";
 import { useBlindLevel } from "../../../../hooks/game/useBlindLevel";
 import { formatBlindCountdown } from "../../../../utils/blindStructure";
-import { formatBlindsWithAnte } from "../../../../utils/anteRule";
+import { formatBlindsWithAnte } from "@block52/poker-ui-core/utils/anteRule";
 import styles from "./TableHeader.module.css";
 import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { tableTitle } from "../../../../utils/tableTitle";
-import { tableUrl } from "../../../../utils/tableUrl";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 import BlindsButton from "../../BlindsButton";
-import { playersLabel, type TournamentRunners } from "../../../../utils/tournamentResult";
+import { playersLabel, type TournamentRunners } from "@block52/poker-ui-core/utils/tournamentResult";
 
 // Re-exported for existing importers (e.g. MobileTableHeader); the formatter
 // itself now lives in utils/blindStructure so the Blinds panel can share it.

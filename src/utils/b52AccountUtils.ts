@@ -5,7 +5,7 @@
 // NodeRpcClient removed from SDK - using CosmosClient instead
 // import { NodeRpcClient } from "@block52/poker-vm-sdk";
 import { hasValue } from "@block52/ui-sdk/helpers";
-import { truncateMiddle } from "./stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { STORAGE_KEYS } from "../constants/storageKeys";
 
 // Singleton instance for NodeRpcClient (deprecated - kept for potential future use)

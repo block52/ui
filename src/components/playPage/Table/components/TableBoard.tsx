@@ -10,7 +10,7 @@
 
 import React, { useMemo } from "react";
 import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../../utils/cardImages";
-import { PotDisplayValues } from "../../../../utils/potDisplayUtils";
+import { PotDisplayValues } from "@block52/poker-ui-core/utils/potDisplayUtils";
 import { useCardAnimations } from "../../../../hooks/animations/useCardAnimations";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
 import OppositePlayerCards from "../../Card/OppositePlayerCards";

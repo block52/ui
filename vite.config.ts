@@ -40,6 +40,7 @@ export default defineConfig({
     },
     resolve: {
         alias: {
+            "@block52/poker-ui-core": path.resolve(__dirname, "packages/core/src"),
             crypto: path.resolve(__dirname, "node_modules/crypto-browserify"),
             stream: path.resolve(__dirname, "node_modules/stream-browserify"),
             buffer: path.resolve(__dirname, "node_modules/buffer"),

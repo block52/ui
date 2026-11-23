@@ -1,5 +1,5 @@
 import React from "react";
-import { formatBalance } from "../../utils/numberUtils";
+import { formatBalance } from "@block52/poker-ui-core/utils/numberUtils";
 import { hasValue } from "@block52/ui-sdk/helpers";
 import styles from "./DepositComponents.module.css";
 

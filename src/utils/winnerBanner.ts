@@ -1,5 +1,5 @@
 import { hasElements, isNumber } from "@block52/ui-sdk/helpers";
-import { potLabel } from "./potDisplayUtils";
+import { potLabel } from "@block52/poker-ui-core/utils/potDisplayUtils";
 
 /**
  * Builds the last-pot winner banner text (ui#848) from the resolved winners.

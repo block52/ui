@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { microToUsdc } from "../constants/currency";
-import { truncateMiddle } from "../utils/stringUtils";
+import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { isEmpty, hasElements, hasValue } from "@block52/ui-sdk/helpers";

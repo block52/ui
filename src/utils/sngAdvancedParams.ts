@@ -15,8 +15,8 @@
  */
 
 import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "@block52/ui-sdk/helpers";
-import type { AnteFormState } from "./anteRule";
-import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "./blindStructureChoice";
+import type { AnteFormState } from "@block52/poker-ui-core/utils/anteRule";
+import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "@block52/poker-ui-core/utils/blindStructureChoice";
 
 /** Chain-defined valid entrant counts for a Sit & Go. */
 export const VALID_SNG_RUNNER_COUNTS = [2, 4, 6, 9] as const;

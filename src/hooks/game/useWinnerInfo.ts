@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, TexasHoldemStateDTO, WinnerDTO } from "@block52/poker-vm-sdk";
-import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { formatAmount } from "../../utils/accountUtils";
-import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { WinnerInfo, WinnerInfoReturn } from "../../types/index";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { WinnerInfo, WinnerInfoReturn } from "@block52/poker-ui-core/types";
 import { hasElements } from "@block52/ui-sdk/helpers";
-import { getWinType } from "../../utils/winnerDescriptions";
+import { getWinType } from "@block52/poker-ui-core/utils/winnerDescriptions";
 
 /**
  * Format a won amount the way the action log formats bets (ui#727): SNG and

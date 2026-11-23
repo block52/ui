@@ -1,8 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Modal } from "../common";
 import { BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../BlindStructureFields";
-import { SNG_BLINDS } from "../../constants/blindLevels";
-import { DEFAULT_SNG_BLIND_LEVEL_MINUTES } from "../../constants/blindLevels";
+import { SNG_BLINDS } from "@block52/poker-ui-core/constants/blindLevels";
+import { DEFAULT_SNG_BLIND_LEVEL_MINUTES } from "@block52/poker-ui-core/constants/blindLevels";
 import {
     DEFAULT_BLIND_STRUCTURE_CHOICE,
     DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT,
@@ -11,7 +11,7 @@ import {
     previewBlindLevels,
     resolveBlindStructureChoice,
     type BlindStructureChoice
-} from "../../utils/blindStructureChoice";
+} from "@block52/poker-ui-core/utils/blindStructureChoice";
 import {
     DEFAULT_TOURNAMENT_FORM_VALUES,
     defaultStartTimeLocal,
@@ -21,11 +21,11 @@ import {
     type TournamentFormField,
     type TournamentFormValues
 } from "../../utils/tournamentCreate";
-import { lateRegistrationCutoffAt } from "../../utils/tournamentLateRegistration";
+import { lateRegistrationCutoffAt } from "@block52/poker-ui-core/utils/tournamentLateRegistration";
 import { formatStartsAt, localDateTimeToUnixSeconds } from "../../utils/scheduledSng";
 import { hasElements, hasValue, isBlank, isNullish } from "@block52/ui-sdk/helpers";
-import { formatUsdc } from "../../utils/tournamentLobby";
-import { parseUsdcToMicro } from "../../constants/currency";
+import { formatUsdc } from "@block52/poker-ui-core/utils/tournamentLobby";
+import { parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import type { CreateTournamentParams } from "../../utils/tournamentTx";
 
 const PREVIEW_LEVELS = 8;

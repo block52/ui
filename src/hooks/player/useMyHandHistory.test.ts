@@ -1,7 +1,7 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { useMyHandHistory } from "./useMyHandHistory";
 import { useIndexerApi } from "../../context/IndexerApiContext";
-import type { PlayerHand } from "../../types/players";
+import type { PlayerHand } from "@block52/poker-ui-core/types/players";
 
 // A factory mock: the real module reads import.meta.env, which Jest can't parse.
 jest.mock("../../context/IndexerApiContext", () => ({ useIndexerApi: jest.fn() }));

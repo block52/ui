@@ -1,7 +1,7 @@
 import React from "react";
 import { act, renderHook } from "@testing-library/react";
 import { GameSettingsProvider, useGameSettings, useChipStyle, useStacksInBigBlinds } from "./GameSettingsContext";
-import { DEFAULT_CHIP_STYLE_ID } from "../config/chipSets";
+import { DEFAULT_CHIP_STYLE_ID } from "@block52/poker-ui-core/config/chipSets";
 
 const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => <GameSettingsProvider>{children}</GameSettingsProvider>;
 

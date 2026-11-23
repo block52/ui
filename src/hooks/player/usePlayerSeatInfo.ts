@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { PlayerDTO } from "@block52/poker-vm-sdk";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
-import { PlayerSeatInfoReturn } from "../../types/index";
+import { PlayerSeatInfoReturn } from "@block52/poker-ui-core/types";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isNumber } from "@block52/ui-sdk/helpers";
 

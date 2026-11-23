@@ -7,7 +7,7 @@ import { CreateTournamentModal } from "../components/tournament/CreateTournament
 import { useNow, useTournamentLobby } from "../hooks/tournament/useTournamentLobby";
 import { useTournamentActions } from "../hooks/tournament/useTournamentActions";
 import { isEmpty } from "@block52/ui-sdk/helpers";
-import type { TournamentLobbyCard } from "../utils/tournamentLobby";
+import type { TournamentLobbyCard } from "@block52/poker-ui-core/utils/tournamentLobby";
 
 interface PendingAction {
     card: TournamentLobbyCard;

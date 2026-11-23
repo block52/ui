@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from "react";
 import { colors } from "../../utils/colorConfig";
-import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { Modal, LoadingSpinner } from "../common";
 import type { LeaveTableModalProps } from "./types";
 import styles from "./LeaveTableModal.module.css";

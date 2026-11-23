@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 import { Navigate, useParams } from "react-router-dom";
 import { useTournament } from "../hooks/tournament/useTournament";
 import { hasValue } from "@block52/ui-sdk/helpers";
-import { tournamentUrl } from "../utils/tableUrl";
-import { isTournamentTableLive } from "../utils/tournamentTables";
+import { tournamentUrl } from "@block52/poker-ui-core/utils/tableUrl";
+import { isTournamentTableLive } from "@block52/poker-ui-core/utils/tournamentTables";
 
 /**
  * `/tournament/:tournamentId/table/:n`. A table that has been broken up (or never

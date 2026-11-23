@@ -1,6 +1,6 @@
 import React from "react";
 import { Modal } from "../common";
-import { escrowStatement, formatUsdc, type TournamentLobbyCard } from "../../utils/tournamentLobby";
+import { escrowStatement, formatUsdc, type TournamentLobbyCard } from "@block52/poker-ui-core/utils/tournamentLobby";
 
 interface TournamentRegisterModalProps {
     card: TournamentLobbyCard | null;

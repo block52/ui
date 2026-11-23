@@ -6,7 +6,7 @@ import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
 import { hasElements } from "@block52/ui-sdk/helpers";
 import styles from "./GlobalHeader.module.css";
-import { isTournamentTablePath } from "../utils/tableUrl";
+import { isTournamentTablePath } from "@block52/poker-ui-core/utils/tableUrl";
 
 interface MenuItem {
     path: string;

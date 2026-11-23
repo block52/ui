@@ -1,14 +1,14 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { formatLateRegistration, formatStartsAt, scheduledSngPhase, type ScheduledSngPhase } from "../utils/scheduledSng";
-import { truncateMiddle } from "../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { useFindGames, GameWithFormat, treasuryAddress } from "../hooks/game/useFindGames";
 import { useDeleteGame } from "../hooks/game/useDeleteGame";
 import { useForceCloseGame } from "../hooks/game/useForceCloseGame";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
-import { formatMicroAsUsdc } from "../constants/currency";
-import { computeSngEntryBreakdown } from "../utils/buyInUtils";
-import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
-import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatTableGameDisplay, toGameVariant } from "../utils/gameFormatUtils";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
+import { computeSngEntryBreakdown } from "@block52/poker-ui-core/utils/buyInUtils";
+import { sortTablesByAvailableSeats } from "@block52/poker-ui-core/utils/tableSortingUtils";
+import { isCashFormat, isTournamentFormat, formatGameFormatDisplay, formatTableGameDisplay, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { displayGameFormat } from "../utils/createGameType";
 import DeleteTableModal from "./modals/DeleteTableModal";
 import ForceCloseTableModal from "./modals/ForceCloseTableModal";
@@ -17,9 +17,9 @@ import styles from "./TableList.module.css";
 import { hasContent, isNullish, isEmpty } from "@block52/ui-sdk/helpers";
 import { useTournamentLobby } from "../hooks/tournament/useTournamentLobby";
 import { TournamentListRows } from "./tournament/TournamentListRows";
-import { tournamentListRow } from "../utils/tournamentListRow";
-import { parseTournamentGameId } from "../utils/tableUrl";
-import { describeAnteSchedule } from "../utils/anteRule";
+import { tournamentListRow } from "@block52/poker-ui-core/utils/tournamentListRow";
+import { parseTournamentGameId } from "@block52/poker-ui-core/utils/tableUrl";
+import { describeAnteSchedule } from "@block52/poker-ui-core/utils/anteRule";
 
 const PAGE_SIZE = 20;
 

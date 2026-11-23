@@ -1,10 +1,10 @@
 import React from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO } from "@block52/poker-vm-sdk";
-import { VacantSeatResponse } from "../../types/index";
+import { VacantSeatResponse } from "@block52/poker-ui-core/types";
 import { isValidPlayerAddress } from "../../utils/addressUtils";
 import { isEmpty, isNullish, hasElements } from "@block52/ui-sdk/helpers";
-import { tournamentIdOf } from "../../utils/tournamentBlinds";
+import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 
 /**

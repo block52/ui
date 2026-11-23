@@ -1,9 +1,9 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { ResultDTO, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS, RECORD_FINISH_SETTLE_MS } from "../../bus/timing";
+import { AUTO_DEAL_DEFER_POLL_MS, MAX_AUTO_DEAL_DEFER_MS, RECORD_FINISH_SETTLE_MS } from "@block52/poker-ui-core/bus/timing";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
-import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { finishPhaseAt, hasNewFinisher, hasNewResults, nextFinishPhaseAtMs, tournamentFinishOf, type FinishPhase, type TournamentFinish } from "../../utils/tournamentFinish";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { finishPhaseAt, hasNewFinisher, hasNewResults, nextFinishPhaseAtMs, tournamentFinishOf, type FinishPhase, type TournamentFinish } from "@block52/poker-ui-core/utils/tournamentFinish";
 import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
 
 export interface TournamentFinishMoment {

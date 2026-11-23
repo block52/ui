@@ -2,7 +2,7 @@ import { renderHook, act } from "@testing-library/react";
 import { useGameStateSounds, SOUND_STAGGER_MS, MAX_SOUNDS_PER_FRAME } from "./useGameStateSounds";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { useActionSounds } from "./useActionSounds";
-import { DEFAULT_DECORATION, GameEvent, GameStreamItem, SoundHint } from "../../bus/types";
+import { DEFAULT_DECORATION, GameEvent, GameStreamItem, SoundHint } from "@block52/poker-ui-core/bus/types";
 
 jest.mock("../../context/gameState/GameEventsContext");
 jest.mock("./useActionSounds");

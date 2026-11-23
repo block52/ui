@@ -1,6 +1,6 @@
 import React from "react";
-import { formatMicroAsUsdc } from "../../constants/currency";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { isEmpty } from "@block52/ui-sdk/helpers";
 import type { ValidatorBond } from "../../utils/validatorBonds";
 

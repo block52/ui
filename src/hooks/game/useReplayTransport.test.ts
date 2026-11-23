@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { useReplayTransport } from "./useReplayTransport";
-import { REPLAY_STEP_MS } from "../../utils/replayTimeline";
+import { REPLAY_STEP_MS } from "@block52/poker-ui-core/utils/replayTimeline";
 
 describe("useReplayTransport (ui#816)", () => {
     beforeEach(() => jest.useFakeTimers());

@@ -4,8 +4,8 @@ import { usePlayerActionDropBox } from "../../../hooks/player/usePlayerActionDro
 import { WinAmountFloat } from "./WinAmountFloat";
 import { useSeatJoinNotification } from "../../../hooks/notifications/useSeatJoinNotification";
 import { useGameStateContext } from "../../../context/GameStateContext";
-import { isTournamentFormat } from "../../../utils/gameFormatUtils";
-import { formatUSDCToSimpleDollars, bigBlindInStackUnits, formatSeatStack } from "../../../utils/numberUtils";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { formatUSDCToSimpleDollars, bigBlindInStackUnits, formatSeatStack } from "@block52/poker-ui-core/utils/numberUtils";
 import { useStacksInBigBlinds } from "../../../context/GameSettingsContext";
 import ProgressBar from "./ProgressBar";
 import { colors } from "../../../utils/colorConfig";

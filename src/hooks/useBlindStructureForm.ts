@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { DEFAULT_ANTE_FORM, type AnteFormState } from "../utils/anteRule";
+import { DEFAULT_ANTE_FORM, type AnteFormState } from "@block52/poker-ui-core/utils/anteRule";
 import {
     anteFormForChoice,
     anteFormOfCustomText,
@@ -11,7 +11,7 @@ import {
     type BlindPlan,
     type BlindStructureChoice,
     type DoublingBlinds
-} from "../utils/blindStructureChoice";
+} from "@block52/poker-ui-core/utils/blindStructureChoice";
 
 export interface BlindStructureForm {
     choice: BlindStructureChoice;

@@ -2,13 +2,8 @@ import React, { createContext, useContext, useMemo } from "react";
 import type { ValidationError } from "../../components/playPage/TableErrorPage";
 import type { ConnectionState } from "./connection";
 
-export interface PendingAction {
-    gameId: string;
-    actor: string;
-    action: string;
-    amount?: string;
-    timestamp: number;
-}
+import type { PendingAction } from "@block52/poker-ui-core/types/gameUi";
+export type { PendingAction };
 
 /**
  * GameUIContext — holds interaction-driven UI state (loading, errors, optimistic

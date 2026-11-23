@@ -1,10 +1,10 @@
 import { useMemo } from "react";
 import { ActionDTO, PlayerDTO } from "@block52/poker-vm-sdk";
-import { PlayerChipDataReturn } from "../../types/index";
+import { PlayerChipDataReturn } from "@block52/poker-ui-core/types";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
 import { usePlayersBySeat } from "../game/usePlayersBySeat";
-import { shouldShowChips, getRelevantChipAmounts, seatBetChipAmount } from "../../utils/chipUtils";
+import { shouldShowChips, getRelevantChipAmounts, seatBetChipAmount } from "@block52/poker-ui-core/utils/chipUtils";
 import { hasContent, hasElements } from "@block52/ui-sdk/helpers";
 import { useClosingBetPresentation } from "./useClosingBetPresentation";
 

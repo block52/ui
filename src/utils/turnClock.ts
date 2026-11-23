@@ -15,7 +15,7 @@
  * without React and so every observer at the table computes the same answer.
  */
 import { NonPlayerActionType, TexasHoldemRound, type ActionDTO, type PlayerDTO, type TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import { makeTurnId, normalizeTimestamp } from "./timerUtils";
+import { makeTurnId, normalizeTimestamp } from "@block52/poker-ui-core/utils/timerUtils";
 import { hasElements, isNullish, isNumber } from "@block52/ui-sdk/helpers";
 import { hasTournamentStarted } from "./scheduledSng";
 

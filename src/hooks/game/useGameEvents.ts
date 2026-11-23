@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
-import type { GameEvent, GameEventType } from "../../bus/types";
+import type { GameEvent, GameEventType } from "@block52/poker-ui-core/bus/types";
 import { isNullish } from "@block52/ui-sdk/helpers";
 
 /**

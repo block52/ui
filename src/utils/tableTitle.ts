@@ -1,5 +1,5 @@
 import { hasContent } from "@block52/ui-sdk/helpers";
-import { parseTournamentGameId } from "./tableUrl";
+import { parseTournamentGameId } from "@block52/poker-ui-core/utils/tableUrl";
 
 /** Hex characters of the tournament id shown in a table title. */
 export const TOURNAMENT_SHORT_ID_LENGTH = 4;

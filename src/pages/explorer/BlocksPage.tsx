@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { isNetworkError, httpStatusText } from "../../apis/HTTPClient";
 import { getCosmosClient, clearCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
-import { truncateHash, formatTimestampRelative, formatProposerAddress } from "../../utils/formatUtils";
+import { truncateHash, formatTimestampRelative, formatProposerAddress } from "@block52/poker-ui-core/utils/formatUtils";
 import { LoadingSpinner } from "../../components/common/LoadingSpinner";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";

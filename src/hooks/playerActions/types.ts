@@ -1,5 +1,5 @@
 import { GameFormat, LegalActionDTO, PlayerStatus } from "@block52/poker-vm-sdk";
-import { BaseHookReturn } from "../../types/index";
+import { BaseHookReturn } from "@block52/poker-ui-core/types";
 
 export interface PlayerLegalActionsResult extends BaseHookReturn {
     legalActions: LegalActionDTO[];

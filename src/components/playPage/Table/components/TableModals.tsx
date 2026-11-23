@@ -13,9 +13,9 @@
 
 import React from "react";
 import type { ResultDTO } from "@block52/poker-vm-sdk";
-import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { isNullish } from "@block52/ui-sdk/helpers";
-import { tournamentIdOf } from "../../../../utils/tournamentBlinds";
+import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
@@ -23,8 +23,8 @@ import TransactionPopup from "../../common/TransactionPopup";
 import { LeaveTableModal } from "../../../modals";
 import TournamentWinnerMoment from "../../Animations/TournamentWinnerMoment";
 import { useTournamentFinishMoment } from "../../../../hooks/game/useTournamentFinishMoment";
-import { holdsResultModals } from "../../../../utils/tournamentFinish";
-import type { RebalanceNotice as RebalanceNoticeState } from "../../../../utils/rebalanceNotice";
+import { holdsResultModals } from "@block52/poker-ui-core/utils/tournamentFinish";
+import type { RebalanceNotice as RebalanceNoticeState } from "@block52/poker-ui-core/utils/rebalanceNotice";
 import { RebalanceNotice } from "../../RebalanceNotice";
 
 export interface TableModalsProps {

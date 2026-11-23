@@ -12,10 +12,10 @@
  * resolution, SNG finishing order).
  */
 import { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import type { TrackMeta } from "../../bus/types";
+import type { TrackMeta } from "@block52/poker-ui-core/bus/types";
 
 import type { NetworkEndpoints } from "../../context/NetworkContext";
-import type { PlayerActionResult } from "../../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import { getSigningClient } from "../../utils/cosmos/client";
 import { hasElements } from "@block52/ui-sdk/helpers";
 

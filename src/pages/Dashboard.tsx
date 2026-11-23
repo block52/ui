@@ -9,10 +9,10 @@ import styles from "./Dashboard.module.css";
 import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
-import { calculateBuyIn } from "../utils/buyInUtils";
+import { calculateBuyIn } from "@block52/poker-ui-core/utils/buyInUtils";
 import { hasValue, isNullish, hasContent } from "@block52/ui-sdk/helpers";
-import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
-import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
+import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "@block52/poker-ui-core/constants/blindLevels";
+import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "@block52/poker-ui-core/constants/currency";
 
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
 import TableList from "../components/TableList";
@@ -32,10 +32,10 @@ import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import t
 
 // Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
-import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
-import { choiceUsesFormBlinds, openingBlindsOf, previewBlindLevels, sngBlindFields } from "../utils/blindStructureChoice";
+import { choiceUsesFormBlinds, openingBlindsOf, previewBlindLevels, sngBlindFields } from "@block52/poker-ui-core/utils/blindStructureChoice";
 import { SNG_PREVIEW_LEVEL_COUNT } from "../utils/sngAdvancedParams";
 import { AnteControls, BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
 import { useBlindStructureForm } from "../hooks/useBlindStructureForm";

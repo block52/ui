@@ -2,8 +2,8 @@ import React from "react";
 import { renderHook } from "@testing-library/react";
 import { useGameEvents } from "./useGameEvents";
 import { GameEventsProvider } from "../../context/gameState/GameEventsContext";
-import type { GameStreamItem, GameEvent } from "../../bus/types";
-import { DEFAULT_DECORATION } from "../../bus/types";
+import type { GameStreamItem, GameEvent } from "@block52/poker-ui-core/bus/types";
+import { DEFAULT_DECORATION } from "@block52/poker-ui-core/bus/types";
 import { ActionDTO, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
 
 function makeAction(index: number, action: PlayerActionType = PlayerActionType.CHECK): ActionDTO {

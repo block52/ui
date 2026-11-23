@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { useParams, Link } from "react-router-dom";
 import { FaCopy, FaCheck } from "react-icons/fa";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
@@ -10,7 +10,7 @@ import type { HandDetail, HandListItem, HandListResponse } from "./types";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import { useIndexerStatus } from "../../hooks/player/useIndexerStatus";
 import { describeHandLoadError } from "../../utils/handHistory";
-import { tableUrl } from "../../utils/tableUrl";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
 
 export default function HandReplayPage() {
     const { gameId, handNumber } = useParams<{ gameId: string; handNumber: string }>();

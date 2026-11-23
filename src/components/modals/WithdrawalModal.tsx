@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { ethers } from "ethers";
 import useCosmosWallet from "../../hooks/wallet/useCosmosWallet";
-import { microToUsdc, usdcToMicroBigInt, formatMicroAsUsdc, parseUsdcToMicro } from "../../constants/currency";
+import { microToUsdc, usdcToMicroBigInt, formatMicroAsUsdc, parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import useUserWalletConnect from "../../hooks/wallet/useUserWalletConnect";
 import { useNetwork } from "../../context/NetworkContext";
 import { getSigningClient } from "../../utils/cosmos/client";

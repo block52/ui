@@ -1,5 +1,5 @@
 import React from "react";
-import { winAmountFloatText } from "../../../utils/winAmountFloat";
+import { winAmountFloatText } from "@block52/poker-ui-core/utils/winAmountFloat";
 import { hasContent } from "@block52/ui-sdk/helpers";
 import "./WinAmountFloat.css";
 

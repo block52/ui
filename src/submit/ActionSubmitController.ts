@@ -26,7 +26,7 @@
  * (the ui#364 invariant), so a submission never acts on a stale index.
  */
 import type { TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import type { PlayerActionResult } from "../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import { snapshotConfirmationSignals } from "./confirmationGate";
 import { attributeEvidence, type Evidence, type OpenJobRef } from "./identity";
 import { classifyActionError } from "./classifyActionError";

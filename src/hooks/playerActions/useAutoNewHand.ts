@@ -9,7 +9,7 @@ import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { isNullish, hasValue } from "@block52/ui-sdk/helpers";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
-import { autoDealDecision } from "../../utils/autoDealDeferral";
+import { autoDealDecision } from "@block52/poker-ui-core/utils/autoDealDeferral";
 
 /**
  * Hook to automatically trigger a new hand when the current hand ends.

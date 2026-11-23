@@ -14,7 +14,7 @@ import React from "react";
 import { FaChevronRight, FaTimes } from "react-icons/fa";
 import ActionsLog from "../../../ActionsLog";
 import { useGameSettings } from "../../../../context/GameSettingsContext";
-import { CHIP_STYLES } from "../../../../config/chipSets";
+import { CHIP_STYLES } from "@block52/poker-ui-core/config/chipSets";
 
 export type TablePanelTab = "history" | "settings";
 
