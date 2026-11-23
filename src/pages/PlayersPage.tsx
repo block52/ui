@@ -9,6 +9,7 @@ import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
 import { usePlayersDirectory } from "../hooks/player/usePlayersDirectory";
+import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
 import type { PlayerSortField } from "@block52/poker-ui-core/types/players";
 import styles from "./explorer/AllAccountsPage.module.css";
 
@@ -55,6 +56,9 @@ export default function PlayersPage() {
 
     const { players, total, loading, error, refetch } = usePlayersDirectory(params);
 
+    // Coming back to the tab picks up new hands and results without flashing the spinner.
+    useVisibleRefresh(() => refetch({ silent: true }));
+
     const toggleSort = (field: PlayerSortField) => {
         if (sort === field) {
             setOrder(prev => (prev === "asc" ? "desc" : "asc"));
@@ -83,7 +87,7 @@ export default function PlayersPage() {
 
                 <ExplorerPanel
                     header={`Players${!loading && !error && total > 0 ? ` · ${total.toLocaleString()}` : ""}`}
-                    action={<ExplorerReloadButton onClick={refetch} busy={loading} />}
+                    action={<ExplorerReloadButton onClick={() => refetch()} busy={loading} />}
                 >
                     {loading ? (
                         <ExplorerLoading label="Loading players…" />

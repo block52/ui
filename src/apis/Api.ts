@@ -1,6 +1,13 @@
 import HTTPClient from "./HTTPClient";
 import { hasContent, hasValue } from "@block52/ui-sdk/helpers";
-import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "@block52/poker-ui-core/types/players";
+import type {
+    PlayerSearchParams,
+    PlayersListResponse,
+    PlayerProfile,
+    PlayerSessionFilter,
+    PlayerSessionsResponse,
+    PlayerHandsResponse
+} from "@block52/poker-ui-core/types/players";
 import type { TournamentResponse } from "@block52/poker-ui-core/types/tournament";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
 
@@ -110,8 +117,9 @@ export class IndexerApi extends HTTPClient {
     // fields are integers scaled x100. See indexer API.md.
     public getPlayers = (params: PlayerSearchParams = {}) => this.get<PlayersListResponse>(`/api/v1/players${buildPlayerQuery(params)}`);
     public getPlayerProfile = (address: string) => this.get<PlayerProfile>(`/api/v1/players/${encodeURIComponent(address)}/stats`);
-    public getPlayerSessions = (address: string, limit = 20, offset = 0) =>
-        this.get<PlayerSessionsResponse>(`/api/v1/players/${encodeURIComponent(address)}/sessions?limit=${limit}&offset=${offset}`);
+    // The filter and the response's game fields and counts need the indexer from ui#1012.
+    public getPlayerSessions = (address: string, limit = 20, offset = 0, filter: PlayerSessionFilter = {}) =>
+        this.get<PlayerSessionsResponse>(`/api/v1/players/${encodeURIComponent(address)}/sessions${buildSessionQuery(limit, offset, filter)}`);
     // Hands a wallet played, newest first (ui#721).
     public getPlayerHands = (address: string, limit: number, offset: number) =>
         this.get<PlayerHandsResponse>(`/api/v1/players/${encodeURIComponent(address)}/hands?limit=${limit}&offset=${offset}`);
@@ -127,4 +135,12 @@ function buildPlayerQuery(params: PlayerSearchParams): string {
     if (hasValue(params.offset)) q.set("offset", String(params.offset));
     const s = q.toString();
     return s ? `?${s}` : "";
+}
+
+// Serialize a sessions page and its game filter, omitting empty filter fields.
+export function buildSessionQuery(limit: number, offset: number, filter: PlayerSessionFilter): string {
+    const q = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (hasContent(filter.game_format)) q.set("game_format", filter.game_format);
+    if (hasContent(filter.game_variant)) q.set("game_variant", filter.game_variant);
+    return `?${q.toString()}`;
 }
