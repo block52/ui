@@ -1,0 +1,263 @@
+/**
+ * Runout frame expansion (plan: docs/plans/2026_09_09_runout_frame_expansion.md §2).
+ *
+ * `expandFrames(prev, next)` is a PURE function that turns ONE snapshot which
+ * jumped several streets at once — the all-in runout, where the engine deals
+ * flop, turn and river inside a single `performAction` with no yield point
+ * (poker-vm `texasHoldem.ts:1340-1367`) — into an ORDERED LIST of snapshots the
+ * bus can commit one at a time.
+ *
+ * Why this exists: the bus queues SNAPSHOTS, not presentation steps. One
+ * snapshot is one atomic React commit, so the drain can space things *between*
+ * commits but has no way to space anything *within* one. That is why a runout
+ * paints the winner, the payout and all five cards simultaneously — no amount of
+ * `minDisplayMs`/`holdPreviousMs` tuning can reorder events inside a single
+ * commit. Splitting the frame gives the existing drain the commit boundaries it
+ * needs, and every decorator then works unchanged (§2.4).
+ *
+ * NOTHING IS INVENTED (Commandment 7). Every field of every intermediate frame
+ * is copied from `prev` or `next` — no defaults, no coercion, no arithmetic —
+ * except the runout seat status below, which is a presentation of "this seat
+ * is still in the hand and face up" so win% can render before the result
+ * (ui#210):
+ *
+ *   base    = prev, with `previousActions`/`actionCount` carried forward from
+ *             next (so the triggering CALL's badge and sound fire on the FIRST
+ *             beat rather than after the river), any newly-revealed hole cards
+ *             applied, and betting CLOSED from next — `nextToAct`,
+ *             `legalActions` and any closing fold — so no beat flashes a turn
+ *             at a seat that already acted (ui#968).
+ *   frame_i = base, with `round` and `communityCards` advanced to street i.
+ *   final   = next, VERBATIM (returned by identity).
+ *
+ * `stack`, `pots` and `winners` therefore hold their PRE-SHOWDOWN values until
+ * the final frame — the payout lands with the winner, not before the flop. The
+ * known cosmetic gap is that the caller's committed chips are not visible during
+ * the runout; see the plan's Phase 3.
+ *
+ * Returns `[next]` unchanged whenever expansion does not apply, so normal play
+ * takes the existing single-frame path with zero added latency.
+ */
+import type { TexasHoldemStateDTO, PlayerDTO } from "@block52/poker-vm-sdk";
+import { PlayerStatus, TexasHoldemRound } from "@block52/poker-vm-sdk";
+import { isMaskedHand, isRevealedHand } from "./deriveEvents";
+import type { RunoutBeat } from "./timing";
+import { runoutSubframeStatus } from "../utils/allInEquity";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
+
+export interface ExpandFramesOptions {
+    /**
+     * Also split a run-out that deals only ONE street — an all-in on the turn,
+     * where the river and the result arrive together (ui#873). Without it that
+     * frame stays whole, so the winner paints with the river. Enabled for
+     * tournaments only; cash keeps the original single-frame path.
+     */
+    splitSingleStreetRunout: boolean;
+}
+
+const DEFAULT_OPTIONS: ExpandFramesOptions = { splitSingleStreetRunout: false };
+
+/**
+ * Did `next` finish the hand? Only then can a one-street jump be a run-out:
+ * an ordinary street advance leaves the hand in play.
+ */
+function handFinished(next: TexasHoldemStateDTO): boolean {
+    return next.round === TexasHoldemRound.END || next.round === TexasHoldemRound.SHOWDOWN || hasElements(next.winners);
+}
+
+/**
+ * Board size after each dealing street. The engine's own schedule
+ * (`roundTransitionManager.ts:47-58`): PREFLOP deals 3, FLOP deals 1, TURN
+ * deals 1 — i.e. the board is 3, then 4, then 5 cards. ANTE/PREFLOP/SHOWDOWN/END
+ * deal nothing and never appear here.
+ */
+const DEALING_STREETS: readonly { round: TexasHoldemRound; boardSize: number }[] = [
+    { round: TexasHoldemRound.FLOP, boardSize: 3 },
+    { round: TexasHoldemRound.TURN, boardSize: 4 },
+    { round: TexasHoldemRound.RIVER, boardSize: 5 }
+];
+
+/**
+ * Merge newly-revealed hole cards from `next` onto `prev`'s players, per seat
+ * (with next's SHOWING status, so the seat draws them face up).
+ * Only a masked -> revealed transition is carried (the same predicate pair
+ * {@link deriveEvents} uses to emit `cardsRevealed`); everything else keeps its
+ * `prev` value, so a seat that was already visible is untouched.
+ *
+ * @returns the merged roster, or null when no seat revealed anything.
+ */
+function mergeRevealedHoleCards(prev: TexasHoldemStateDTO, next: TexasHoldemStateDTO): PlayerDTO[] | null {
+    const nextBySeat = new Map<number, PlayerDTO>();
+    for (const player of next.players) {
+        nextBySeat.set(player.seat, player);
+    }
+
+    let revealed = false;
+    const merged = prev.players.map(player => {
+        const nextPlayer = nextBySeat.get(player.seat);
+        if (nextPlayer && isMaskedHand(player.holeCards) && isRevealedHand(nextPlayer.holeCards)) {
+            revealed = true;
+            // The seat renders an opponent's cards face up only while its status
+            // is SHOWING (useShowingCardsByAddress), so the reveal carries next's
+            // SHOWING status with the cards — otherwise the hands stay on their
+            // backs until the result frame (ui#873). Any other status is kept.
+            // cardsShown rides along too: a player who busts on the runout is
+            // tabled by it, not by SHOWING (poker-vm#2758).
+            const status = nextPlayer.status === PlayerStatus.SHOWING ? nextPlayer.status : player.status;
+            return { ...player, holeCards: nextPlayer.holeCards, status, cardsShown: nextPlayer.cardsShown };
+        }
+        return player;
+    });
+
+    return revealed ? merged : null;
+}
+
+/**
+ * Project "betting is closed" onto a runout sub-frame's roster. A runout only
+ * exists because no further action is possible, and the action that closed the
+ * betting is already carried onto the first beat via `previousActions` — so
+ * every seat's `legalActions`, and a fold that closed the betting, are `next`'s
+ * facts, not `prev`'s. A sub-frame that kept prev's values flashed the
+ * next-to-act timer (and re-armed the action panel) on a seat whose fold was
+ * already committed on chain, for the whole runout choreography (ui#968).
+ * Stacks, bets and everything else keep their prev values — the payout still
+ * lands only with the final frame.
+ */
+function closeBetting(players: readonly PlayerDTO[], next: TexasHoldemStateDTO): PlayerDTO[] {
+    const nextBySeat = new Map<number, PlayerDTO>();
+    for (const player of next.players) {
+        nextBySeat.set(player.seat, player);
+    }
+
+    return players.map(player => {
+        const nextPlayer = nextBySeat.get(player.seat);
+        if (!nextPlayer) {
+            return player;
+        }
+        // Face-up seats still in the pot read as all-in or showing for the
+        // runout, including the last caller (still ACTIVE) and a tournament
+        // loser (BUSTED + cardsShown). A fold that closed the betting stays
+        // folded. The result frame is `next` itself and is not passed through
+        // here (ui#210, ui#968).
+        const status = runoutSubframeStatus(player, nextPlayer);
+        const cardsShown = isNullish(nextPlayer.cardsShown) ? player.cardsShown : nextPlayer.cardsShown;
+        return { ...player, status, legalActions: nextPlayer.legalActions, cardsShown };
+    });
+}
+
+/**
+ * Split a multi-street snapshot jump into the frames it collapsed.
+ *
+ * @param prev - the last snapshot seen at ingest, or undefined for the first
+ *   frame after subscribe/reset.
+ * @param next - the newly-arrived snapshot.
+ * @returns an ordered list of snapshots to commit. Always ends with `next`
+ *   itself (by identity). `[next]` alone when expansion does not apply:
+ *   no previous frame, a hand boundary, no newly-dealt cards (a fold-to-showdown
+ *   or uncalled-bet win jumps `round` but deals nothing), a single-street
+ *   advance, or a board length that does not match the engine's schedule.
+ */
+export function expandFrames(
+    prev: TexasHoldemStateDTO | undefined,
+    next: TexasHoldemStateDTO,
+    options: ExpandFramesOptions = DEFAULT_OPTIONS
+): TexasHoldemStateDTO[] {
+    // No baseline to project from — the frame simply seeds the next call.
+    if (isNullish(prev)) {
+        return [next];
+    }
+
+    // A hand boundary resets the board; that is not a street advance.
+    if (prev.handNumber !== next.handNumber) {
+        return [next];
+    }
+
+    const prevBoard = prev.communityCards.length;
+    const nextBoard = next.communityCards.length;
+
+    // The streets whose cards are new in `next`. A board length that is not on
+    // the engine's schedule (a short or malformed frame) simply yields fewer
+    // streets — we decline to synthesize rather than guess (Commandment 7).
+    const dealtStreets = DEALING_STREETS.filter(street => street.boardSize > prevBoard && street.boardSize <= nextBoard);
+
+    // Nothing dealt, or one street dealt: the existing single-frame path already
+    // renders this correctly, and it must stay latency-free. The exception is a
+    // one-street RUN-OUT (the hand ended in the same frame) when the caller asks
+    // for it — otherwise the winner paints with the river (ui#873).
+    const singleStreetRunout = options.splitSingleStreetRunout && dealtStreets.length === 1 && handFinished(next);
+    if (dealtStreets.length < 2 && !singleStreetRunout) {
+        return [next];
+    }
+
+    // ---- base: prev, carrying forward only what belongs on the FIRST beat ----
+    const revealedPlayers = mergeRevealedHoleCards(prev, next);
+    const base: TexasHoldemStateDTO = {
+        ...prev,
+        // The action that triggered the runout is already in next's log. Carrying
+        // it onto the first frame fires its badge and sound before the flop
+        // instead of after the river.
+        previousActions: next.previousActions,
+        actionCount: next.actionCount,
+        // Betting is closed on every beat of a runout: the turn pointer, the
+        // legal actions and any closing fold are next's — keeping prev's left
+        // the turn flash on a seat that had already folded (ui#968).
+        nextToAct: next.nextToAct,
+        legalActions: next.legalActions,
+        // Applied to the base (not just the reveal frame) so the cards stay face
+        // up for the rest of the runout instead of flipping back to "X".
+        players: closeBetting(revealedPlayers ?? prev.players, next)
+    };
+
+    const frames: TexasHoldemStateDTO[] = [];
+
+    // Beat 0 — all-in players' cards go face up before any board card lands
+    // (the engine force-shows them: go/engine/showdown.go:5-19). Emitted only
+    // when a seat actually revealed, so no empty commit in the heads-up case
+    // where the viewer already sees every hand.
+    if (revealedPlayers) {
+        frames.push(base);
+    }
+
+    // One frame per street, each carrying only that street's cards.
+    for (const street of dealtStreets) {
+        frames.push({
+            ...base,
+            round: street.round,
+            communityCards: next.communityCards.slice(0, street.boardSize)
+        });
+    }
+
+    // The real snapshot, verbatim — `handEnded`, the payout and the final stacks
+    // derive here and nowhere earlier.
+    frames.push(next);
+
+    return frames;
+}
+
+/**
+ * Name each frame of an expansion (ui#873): the last is the `result`; a frame
+ * whose board is still `prev`'s is the face-up `reveal`; the rest are the
+ * street their board size completes. Returns undefined for every frame when
+ * nothing was expanded (`frames` is just `[next]`), so ordinary frames carry
+ * no beat.
+ */
+export function runoutBeats(prev: TexasHoldemStateDTO | undefined, frames: readonly TexasHoldemStateDTO[]): Array<RunoutBeat | undefined> {
+    if (isNullish(prev) || frames.length < 2) {
+        return frames.map(() => undefined);
+    }
+    const prevBoard = prev.communityCards.length;
+    return frames.map((frame, index): RunoutBeat | undefined => {
+        if (index === frames.length - 1) {
+            return "result";
+        }
+        const board = frame.communityCards.length;
+        if (board === prevBoard) {
+            return "reveal";
+        }
+        const street = DEALING_STREETS.find(s => s.boardSize === board);
+        if (!street) {
+            return undefined;
+        }
+        return street.round === TexasHoldemRound.FLOP ? "flop" : street.round === TexasHoldemRound.TURN ? "turn" : "river";
+    });
+}

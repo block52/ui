@@ -1,15 +1,18 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { microToUsdc } from "../constants/currency";
-import { truncateMiddle } from "../utils/stringUtils";
+import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
+import { ALL_SESSION_GAMES, sessionGameLabel, sessionGameOptions, type SessionGameOption } from "@block52/poker-ui-core/utils/sessionGame";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
-import { isEmpty, hasElements, hasValue } from "../utils/guards";
+import { isEmpty, hasElements, hasValue } from "@block52/ui-sdk/helpers";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
-import { formatScaledPercent } from "../utils/vip";
+import { PlayingStyleTip } from "../components/players/PlayingStyleTip";
+import { formatPlayingStyle, PLAYING_STYLE_FIGURES } from "../utils/playingStyle";
 import { usePlayerProfile } from "../hooks/player/usePlayerProfile";
 import { usePlayerSessions } from "../hooks/player/usePlayerSessions";
+import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
 import styles from "./explorer/AllAccountsPage.module.css";
 
 const SESSIONS_PAGE_SIZE = 20;
@@ -31,14 +34,31 @@ export default function PlayerProfilePage() {
     const { address } = useParams<{ address: string }>();
     const navigate = useNavigate();
     const [sessionsPage, setSessionsPage] = useState(1);
+    // The Session History game menu's choice; undefined shows every session.
+    const [sessionGame, setSessionGame] = useState<SessionGameOption | undefined>(undefined);
     const [copied, setCopied] = useState(false);
 
-    const { profile, loading, error } = usePlayerProfile(address);
+    const { profile, loading, error, refetch: refetchProfile } = usePlayerProfile(address);
     const {
         sessions,
         total: sessionsTotal,
-        loading: sessionsLoading
-    } = usePlayerSessions(address, SESSIONS_PAGE_SIZE, (sessionsPage - 1) * SESSIONS_PAGE_SIZE);
+        games,
+        loading: sessionsLoading,
+        refetch: refetchSessions
+    } = usePlayerSessions(address, SESSIONS_PAGE_SIZE, (sessionsPage - 1) * SESSIONS_PAGE_SIZE, hasValue(sessionGame) ? sessionGame.filter : {});
+    // The counts cover all of the player's sessions, so the menu doesn't change with the filter.
+    const gameOptions = useMemo(() => sessionGameOptions(games), [games]);
+
+    // Coming back to the tab picks up new hands and sessions without flashing the spinners.
+    useVisibleRefresh(() => {
+        refetchProfile({ silent: true });
+        refetchSessions({ silent: true });
+    });
+
+    const chooseSessionGame = (key: string) => {
+        setSessionGame(gameOptions.find(option => option.key === key));
+        setSessionsPage(1);
+    };
 
     useEffect(() => {
         document.title = address ? `Player ${truncateMiddle(address, 8, 6)} - Block52` : "Player - Block52";
@@ -106,7 +126,7 @@ export default function PlayerProfilePage() {
                             <StatCard label="Total Cash-Out" value={formatUsd(profile.total_cash_outs)} />
                             <StatCard label="Sessions" value={profile.session_count.toLocaleString()} />
                             <StatCard label="Total Actions" value={profile.total_actions.toLocaleString()} />
-                            <StatCard label="Rake Contributed" value={formatUsd(profile.total_rake_contributed)} />
+                            <StatCard label="Network Fees Paid" value={formatUsd(profile.total_rake_contributed)} />
                             <StatCard label="VIP Points" value={profile.vip_points.toLocaleString()} />
                         </div>
 
@@ -114,26 +134,15 @@ export default function PlayerProfilePage() {
                         <div className={`backdrop-blur-md p-6 rounded-xl shadow-2xl mb-6 ${styles.containerCard}`}>
                             <h2 className="text-white font-bold mb-4">Playing Style</h2>
                             <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                                <div>
-                                    <p className="text-gray-400 text-sm mb-1">VPIP</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.vpip)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400 text-sm mb-1">PFR</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.pfr)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400 text-sm mb-1">Aggression</p>
-                                    <p className="text-xl font-bold text-white">{(profile.aggression_factor / 100).toFixed(2)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400 text-sm mb-1">WTSD</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.wtsd)}</p>
-                                </div>
-                                <div>
-                                    <p className="text-gray-400 text-sm mb-1">W$SD</p>
-                                    <p className="text-xl font-bold text-white">{formatScaledPercent(profile.won_at_showdown)}</p>
-                                </div>
+                                {PLAYING_STYLE_FIGURES.map(figure => (
+                                    <div key={figure.key}>
+                                        <p className="text-gray-400 text-sm mb-1 flex items-center gap-1.5">
+                                            {figure.title}
+                                            <PlayingStyleTip figure={figure} />
+                                        </p>
+                                        <p className="text-xl font-bold text-white">{formatPlayingStyle(figure.key, profile)}</p>
+                                    </div>
+                                ))}
                             </div>
                         </div>
 
@@ -146,8 +155,23 @@ export default function PlayerProfilePage() {
 
                         {/* Session history */}
                         <div className={`backdrop-blur-md rounded-xl shadow-2xl overflow-hidden ${styles.containerCard}`}>
-                            <div className="px-6 py-4 border-b border-white/10">
+                            <div className="px-6 py-4 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
                                 <h2 className="text-white font-bold">Session History</h2>
+                                {hasElements(gameOptions) && (
+                                    <select
+                                        value={hasValue(sessionGame) ? sessionGame.key : ALL_SESSION_GAMES}
+                                        onChange={e => chooseSessionGame(e.target.value)}
+                                        aria-label="Filter sessions by game"
+                                        className="px-3 py-1.5 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                                    >
+                                        <option value={ALL_SESSION_GAMES}>All games</option>
+                                        {gameOptions.map(option => (
+                                            <option key={option.key} value={option.key}>
+                                                {option.label} ({option.sessions.toLocaleString()})
+                                            </option>
+                                        ))}
+                                    </select>
+                                )}
                             </div>
                             {sessionsLoading ? (
                                 <div className="p-8 text-center">
@@ -156,7 +180,7 @@ export default function PlayerProfilePage() {
                                 </div>
                             ) : isEmpty(sessions) ? (
                                 <div className="p-8 text-center">
-                                    <p className="text-gray-400">No sessions recorded</p>
+                                    <p className="text-gray-400">{hasValue(sessionGame) ? `No ${sessionGame.label} sessions` : "No sessions recorded"}</p>
                                 </div>
                             ) : (
                                 <div className="overflow-x-auto">
@@ -171,21 +195,32 @@ export default function PlayerProfilePage() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {sessions.map((s, i) => (
-                                                <tr key={`${s.game_id}-${s.join_block}-${i}`} className={`border-t ${styles.tableRowBorder}`}>
-                                                    <td className="px-6 py-4">
-                                                        <span className={`font-mono text-sm ${styles.brandText}`}>{truncateMiddle(s.game_id, 8, 6)}</span>
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">{s.join_block.toLocaleString()}</td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">
-                                                        {hasValue(s.leave_block) ? s.leave_block.toLocaleString() : "—"}
-                                                    </td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">{formatUsd(s.buy_in_amount)}</td>
-                                                    <td className="px-6 py-4 text-right text-gray-300">
-                                                        {hasValue(s.cash_out_amount) ? formatUsd(s.cash_out_amount) : "—"}
-                                                    </td>
-                                                </tr>
-                                            ))}
+                                            {sessions.map((s, i) => {
+                                                const gameLabel = sessionGameLabel(s.game_format, s.game_variant);
+                                                return (
+                                                    <tr key={`${s.game_id}-${s.join_block}-${i}`} className={`border-t ${styles.tableRowBorder}`}>
+                                                        <td className="px-6 py-4">
+                                                            {hasValue(gameLabel) && <div className="text-white text-sm">{gameLabel}</div>}
+                                                            <span className={`font-mono text-sm ${styles.brandText}`}>{truncateMiddle(s.game_id, 8, 6)}</span>
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right text-gray-300">{s.join_block.toLocaleString()}</td>
+                                                        <td className="px-6 py-4 text-right text-gray-300">
+                                                            {/* Still seated: the indexer omits the leave block and cash-out until the session ends. */}
+                                                            {hasValue(s.leave_block) ? (
+                                                                s.leave_block.toLocaleString()
+                                                            ) : (
+                                                                <span className="inline-block rounded-full border border-green-500/40 px-2 py-0.5 text-xs font-semibold text-green-400">
+                                                                    Open
+                                                                </span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-4 text-right text-gray-300">{formatUsd(s.buy_in_amount)}</td>
+                                                        <td className="px-6 py-4 text-right text-gray-300">
+                                                            {hasValue(s.cash_out_amount) ? formatUsd(s.cash_out_amount) : "—"}
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })}
                                         </tbody>
                                     </table>
                                 </div>

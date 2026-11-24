@@ -2,7 +2,7 @@
  * Transaction formatting utilities
  */
 
-import { truncateMiddle } from "./stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 
 export interface TransferEvent {
     type?: string;

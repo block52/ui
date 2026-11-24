@@ -1178,10 +1178,10 @@
   resolved "https://registry.npmjs.org/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@block52/poker-vm-sdk@1.24.0":
-  version "1.24.0"
-  resolved "https://registry.yarnpkg.com/@block52/poker-vm-sdk/-/poker-vm-sdk-1.24.0.tgz#de02cd9f1ec09fb0434a2fc6059bdf2ed63be602"
-  integrity sha512-+Sl7ayUtZGt8hWeNCO0yS6++vkoLQ6s5UiUPOIartZ0vJHlEIRd4c3jcJ4II2B47b6pJrhokhTuDiKKgnYAcdw==
+"@block52/poker-vm-sdk@1.25.0":
+  version "1.25.0"
+  resolved "https://registry.yarnpkg.com/@block52/poker-vm-sdk/-/poker-vm-sdk-1.25.0.tgz#8dff4a31b58efa3d9ed499a8ca3acca4a4a7c7b1"
+  integrity sha512-0tPwCy3RVCJw4zAM39ve1B/E+zxMT4BH19d2nVCyq/QVsAyP5chsGhc5maJkdf7F4RDjB/QROdaix1EhmtGSJg==
   dependencies:
     "@bufbuild/protobuf" "^2.10.0"
     "@cosmjs/amino" "^0.32.4"
@@ -1195,6 +1195,10 @@
     events "^3.3.0"
     long "^5.3.2"
     tslib "^2.6.0"
+
+"@block52/ui-sdk@https://github.com/block52/ui-sdk/releases/download/v0.2.0/block52-ui-sdk-0.2.0.tgz":
+  version "0.2.0"
+  resolved "https://github.com/block52/ui-sdk/releases/download/v0.2.0/block52-ui-sdk-0.2.0.tgz#6639cde4be3e4e134fa7808e2c61efafae334690"
 
 "@bufbuild/protobuf@^2.10.0":
   version "2.11.0"

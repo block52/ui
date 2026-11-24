@@ -35,8 +35,7 @@ export const mockGameStateContext = {
     error: null,
     pendingAction: null,
     subscribeToTable: jest.fn(),
-    unsubscribeFromTable: jest.fn(),
-    sendAction: jest.fn().mockResolvedValue(undefined)
+    unsubscribeFromTable: jest.fn()
 };
 
 // Simple provider wrapper for tests

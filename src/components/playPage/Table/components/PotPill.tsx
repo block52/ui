@@ -1,7 +1,7 @@
 import React from "react";
 import Chip from "../../common/Chip";
 
-import type { PotLabel } from "../../../../utils/potTextUtils";
+import type { PotLabel } from "@block52/poker-ui-core/utils/potTextUtils";
 
 export type PotPillLabel = "Pot" | PotLabel;
 

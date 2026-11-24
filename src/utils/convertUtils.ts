@@ -1,5 +1,5 @@
-import { BettingLimit, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
-import { getGameFormat, getGameVariant } from "./gameFormatUtils";
+import { BettingLimit, BlindStructureDTO, GameListItem, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import { getGameFormat, getGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 
 /**
  * Flattened game representation for UI display (e.g., table lists).
@@ -33,6 +33,8 @@ export interface GameWithFormat {
     scheduledStartTime?: number;
     /** Late registration, in blind levels after the start (poker-vm#2731); absent = none. */
     lateRegistrationLevels?: number;
+    /** The blind structure (poker-vm#1734), antes included (ui#891); absent = the blinds double, no antes. */
+    blindStructure?: BlindStructureDTO;
 }
 
 /**
@@ -69,6 +71,7 @@ export const convertGameListItemToGameWithFormat = (game: GameListItem): GameWit
         updatedAt: game.updatedAt,
         scheduledStartTime: opts.scheduledStartTime,
         lateRegistrationLevels: opts.lateRegistrationLevels,
+        blindStructure: opts.blindStructure,
         entryFee: opts.entryFee,
         protocolFeeBps: opts.protocolFeeBps
     };

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { ResultDTO, isTournamentFormat } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { usePlayersBySeat } from "./usePlayersBySeat";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 // Hook return type for individual player result
 export interface PlayerResultData {

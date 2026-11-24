@@ -1,14 +1,14 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { truncateMiddle } from "../../utils/stringUtils";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { useParams, useSearchParams, useNavigate, Link } from "react-router-dom";
 import { TexasHoldemStateDTO, PlayerDTO } from "@block52/poker-vm-sdk";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { useIndexerApi } from "../../context/IndexerApiContext";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { getCardImageUrl, getCardBackUrl, getDealerImageUrl } from "../../utils/cardImages";
-import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
-import { potLabel } from "../../utils/potDisplayUtils";
-import { isEmpty, hasElements, hasContent } from "../../utils/guards";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
+import { potLabel } from "@block52/poker-ui-core/utils/potDisplayUtils";
+import { isEmpty, hasElements, hasContent } from "@block52/ui-sdk/helpers";
 import { parseGameStateJson } from "../../utils/handReplay";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../utils/handReplay";
 import styles from "./HandPage.module.css";

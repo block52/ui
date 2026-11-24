@@ -14,6 +14,10 @@ import Dashboard from "./pages/Dashboard";
 // avoids a Suspense flash on the most common entry point.
 const Table = lazy(() => import("./components/playPage/Table"));
 const CosmosWalletPage = lazy(() => import("./components/CosmosWalletPage"));
+const TournamentLobbyPage = lazy(() => import("./pages/TournamentLobbyPage"));
+const TournamentPage = lazy(() => import("./pages/TournamentPage"));
+const TableRoute = lazy(() => import("./pages/TableRoute"));
+const TournamentTableRoute = lazy(() => import("./pages/TournamentTableRoute"));
 const BlocksPage = lazy(() => import("./pages/explorer/BlocksPage"));
 const BlockDetailPage = lazy(() => import("./pages/explorer/BlockDetailPage"));
 const TransactionPage = lazy(() => import("./pages/explorer/TransactionPage"));
@@ -122,7 +126,24 @@ function AppContent() {
             <Suspense fallback={<RouteFallback />}>
             <Routes>
                 <Route path="/test-sdk" element={<TestSdk />} />
-                <Route path="/table/:id" element={<Table />} />
+                <Route
+                    path="/table/:id"
+                    element={
+                        <TableRoute>
+                            <Table />
+                        </TableRoute>
+                    }
+                />
+                {/* A multi-table tournament: its own page, and its tables under it (/table/<id>-t<n> redirects here) */}
+                <Route path="/tournament/:tournamentId" element={<TournamentPage />} />
+                <Route
+                    path="/tournament/:tournamentId/table/:n"
+                    element={
+                        <TournamentTableRoute>
+                            <Table />
+                        </TournamentTableRoute>
+                    }
+                />
                 <Route path="/table/admin" element={<TableAdminPage />} /> {/* Legacy - keep for backwards compat */}
                 <Route path="/wallet" element={<CosmosWalletPage />} />
                 {/* User-facing routes */}
@@ -153,6 +174,7 @@ function AppContent() {
                 <Route path="/players" element={<PlayersPage />} />
                 <Route path="/players/:address" element={<PlayerProfilePage />} />
                 <Route path="/awards" element={<PlayerAwardsPage />} />
+                <Route path="/tournaments" element={<TournamentLobbyPage />} />
                 <Route path="/nodes" element={<NodesPage />} />
                 <Route path="/node/:name" element={<NodeStatusPage />} />
                 <Route path="/tech-notes" element={<TechNotesPage />} />

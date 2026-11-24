@@ -7,8 +7,8 @@
  * transport failures (and only when the evidence proves the action did NOT
  * already land), and surfaces every failure. See ui#538 and ui#609.
  */
-import type { PlayerActionResult } from "../types";
-import type { TrackMeta } from "../bus/types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
+import type { TrackMeta } from "@block52/poker-ui-core/bus/types";
 
 /**
  * One submission request. `run` is a lazy, re-runnable thunk so the controller
@@ -114,7 +114,7 @@ export interface TxVerdict {
 }
 
 /** Provenance of a logical-track snapshot — defined with the bus, re-exported for consumers. */
-export type { TrackMeta } from "../bus/types";
+export type { TrackMeta } from "@block52/poker-ui-core/bus/types";
 
 /** A single tracked submission. */
 export interface SubmitJob {

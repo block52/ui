@@ -18,7 +18,7 @@
  */
 
 import { MAX_GAME_NAME_LENGTH } from "@block52/poker-vm-sdk";
-import { isBlank, isRecord } from "./guards";
+import { isBlank, isRecord } from "@block52/ui-sdk/helpers";
 
 // ENS-style label rule — identical to the chain's gameNameRe.
 const GAME_NAME_RE = /^[a-z0-9](-?[a-z0-9]){0,31}$/;

@@ -4,35 +4,27 @@ import { BettingLimit, GameFormat, GameVariant, CosmosClient, getDefaultCosmosCo
 import { Link, useNavigate } from "react-router-dom";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { isValidPlayerAddress } from "../utils/addressUtils";
-import { isEmpty, hasValue, isNullish, hasContent, hasElements } from "../utils/guards";
+import { isEmpty, hasValue, isNullish, hasContent, hasElements } from "@block52/ui-sdk/helpers";
 import { useNewTable } from "../hooks/game/useNewTable";
 import { useFindGames } from "../hooks/game/useFindGames";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
-import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "../constants/currency";
+import { formatMicroAsUsdc, USDC_DECIMALS, microToUsdc } from "@block52/poker-ui-core/constants/currency";
 import { normalizeTableName, tableNameCharCount } from "../utils/tableName";
 import { useTableNameError } from "../hooks/game/useTableNameError";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import TableList from "../components/TableList";
-import { calculateBuyIn, BUY_IN_PRESETS } from "../utils/buyInUtils";
-import { sortTablesByAvailableSeats } from "../utils/tableSortingUtils";
-import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
-import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { calculateBuyIn, BUY_IN_PRESETS } from "@block52/poker-ui-core/utils/buyInUtils";
+import { sortTablesByAvailableSeats } from "@block52/poker-ui-core/utils/tableSortingUtils";
+import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "@block52/poker-ui-core/constants/blindLevels";
+import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, getGameFormat, toCreatableBettingLimit, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
 import AdvancedSngParamsModal from "../components/modals/AdvancedSngParamsModal";
 import { SNG_PREVIEW_LEVEL_COUNT, type AdvancedSngParams } from "../utils/sngAdvancedParams";
-import {
-    choiceUsesFormBlinds,
-    DEFAULT_BLIND_STRUCTURE_CHOICE,
-    DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT,
-    openingBlindsOf,
-    previewBlindLevels,
-    resolveBlindStructureChoice,
-    sngBlindFields,
-    type BlindStructureChoice
-} from "../utils/blindStructureChoice";
-import { BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
+import { choiceUsesFormBlinds, openingBlindsOf, previewBlindLevels, sngBlindFields } from "@block52/poker-ui-core/utils/blindStructureChoice";
+import { AnteControls, BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
+import { useBlindStructureForm } from "../hooks/useBlindStructureForm";
 
 /**
  * TableAdminPage - Admin interface for creating and managing poker tables
@@ -95,13 +87,10 @@ export default function TableAdminPage() {
 
     // Blind structure (ui#905, ui#906): the same choices as the lobby's create
     // modal, ladder by default. Ladder and doubling use the opening blinds and
-    // level time above; presets and custom text carry their own.
-    const [blindStructureChoice, setBlindStructureChoice] = useState<BlindStructureChoice>(DEFAULT_BLIND_STRUCTURE_CHOICE);
-    const [customBlindText, setCustomBlindText] = useState(DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT);
-    const blindPlan = useMemo(
-        () => resolveBlindStructureChoice(blindStructureChoice, customBlindText, { smallBlind: sngSmallBlind, bigBlind: sngBigBlind, durationMinutes: blindLevelDuration }),
-        [blindStructureChoice, customBlindText, sngSmallBlind, sngBigBlind, blindLevelDuration]
-    );
+    // level time above; presets and custom text carry their own. Plus the ante
+    // controls (ui#891).
+    const blindForm = useBlindStructureForm({ smallBlind: sngSmallBlind, bigBlind: sngBigBlind, durationMinutes: blindLevelDuration });
+    const { choice: blindStructureChoice, customText: customBlindText, plan: blindPlan } = blindForm;
     // What the create message carries as the opening small/big blind and level time.
     const sngOpeningBlinds = useMemo(
         () => (blindPlan.preview ? openingBlindsOf(blindPlan.preview) : { smallBlind: sngSmallBlind, bigBlind: sngBigBlind, durationMinutes: blindLevelDuration }),
@@ -738,14 +727,14 @@ export default function TableAdminPage() {
                                 <div>
                                     <BlindStructureSelect
                                         value={blindStructureChoice}
-                                        onChange={setBlindStructureChoice}
+                                        onChange={blindForm.setChoice}
                                         labelClassName="text-gray-300 text-xs mb-2 block"
                                         className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
                                     />
                                     {blindStructureChoice === "custom" && (
                                         <CustomBlindStructureInput
                                             value={customBlindText}
-                                            onChange={setCustomBlindText}
+                                            onChange={blindForm.setCustomText}
                                             error={blindPlan.error}
                                             labelClassName="text-gray-300 text-xs mt-3 mb-2 block"
                                         />
@@ -844,6 +833,16 @@ export default function TableAdminPage() {
                                     </div>
                                 </div>
                                 </>)}
+
+                                {/* Antes (ui#891) */}
+                                <AnteControls
+                                    value={blindForm.anteForm}
+                                    onChange={blindForm.setAnteForm}
+                                    disabled={blindForm.anteControlsDisabled}
+                                    customAntes={blindForm.customAntes}
+                                    labelClassName="text-gray-300 text-xs mt-3 mb-2 block"
+                                    className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
+                                />
 
                                 {/* SNG Settings Summary */}
                                 <div className="bg-gray-900/50 rounded-lg p-3 border border-gray-700">
@@ -976,7 +975,7 @@ export default function TableAdminPage() {
                         </div>
                     )}
 
-                    {/* Rake Configuration Section - Only for Cash Games */}
+                    {/* Network fee section - only for cash games */}
                     <div className="mb-4">
                         <div className="flex items-center gap-2 mb-3">
                             <input
@@ -988,7 +987,7 @@ export default function TableAdminPage() {
                                 className="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 rounded focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
                             />
                             <label htmlFor="enableRake" className={`text-sm font-medium ${gameFormat === GameFormat.CASH ? "text-gray-300" : "text-gray-500"}`}>
-                                Enable Rake Collection {gameFormat !== GameFormat.CASH && "(Cash games only)"}
+                                Charge a network fee {gameFormat !== GameFormat.CASH && "(Cash games only)"}
                             </label>
                         </div>
 
@@ -996,7 +995,7 @@ export default function TableAdminPage() {
                             <div className="bg-gray-900/50 rounded-lg p-4 border border-gray-700">
                                 <div className="grid grid-cols-2 gap-3 mb-3">
                                     <div>
-                                        <label className="text-gray-300 text-xs mb-1 block">Rake-Free Threshold (USDC)</label>
+                                        <label className="text-gray-300 text-xs mb-1 block">No Fee Below (USDC)</label>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -1004,12 +1003,12 @@ export default function TableAdminPage() {
                                             value={rakeFreeThreshold}
                                             onChange={e => setRakeFreeThreshold(e.target.value)}
                                             className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
-                                            placeholder="0 = rake all pots"
+                                            placeholder="0 = fee on every pot"
                                         />
-                                        <p className="text-gray-500 text-xs mt-1">Pots below this amount are rake-free</p>
+                                        <p className="text-gray-500 text-xs mt-1">No network fee on pots below this amount</p>
                                     </div>
                                     <div>
-                                        <label className="text-gray-300 text-xs mb-1 block">Rake Percentage (%)</label>
+                                        <label className="text-gray-300 text-xs mb-1 block">Network Fee (%)</label>
                                         <select
                                             value={rakePercentage}
                                             onChange={e => setRakePercentage(e.target.value)}
@@ -1024,7 +1023,7 @@ export default function TableAdminPage() {
                                 </div>
                                 <div className="grid grid-cols-2 gap-3">
                                     <div>
-                                        <label className="text-gray-300 text-xs mb-1 block">Rake Cap (USDC)</label>
+                                        <label className="text-gray-300 text-xs mb-1 block">Network Fee Cap (USDC)</label>
                                         <input
                                             type="number"
                                             step="0.01"
@@ -1034,10 +1033,10 @@ export default function TableAdminPage() {
                                             className="w-full px-3 py-2 bg-gray-900 border border-gray-600 rounded-lg text-white text-sm"
                                             placeholder="e.g., 0.10"
                                         />
-                                        <p className="text-gray-500 text-xs mt-1">Maximum rake per hand</p>
+                                        <p className="text-gray-500 text-xs mt-1">The most taken from one hand</p>
                                     </div>
                                     <div>
-                                        <label className="text-gray-300 text-xs mb-1 block">Rake Owner Address</label>
+                                        <label className="text-gray-300 text-xs mb-1 block">Fee Recipient Address</label>
                                         <input
                                             type="text"
                                             value={rakeOwner}
@@ -1113,7 +1112,8 @@ export default function TableAdminPage() {
                     bigBlind: sngBigBlind,
                     blindLevelDuration,
                     blindStructureChoice,
-                    customBlindText
+                    customBlindText,
+                    anteForm: blindForm.anteForm
                 }}
                 onApply={handleApplyAdvancedParams}
             />

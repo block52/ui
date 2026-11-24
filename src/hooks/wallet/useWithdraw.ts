@@ -1,7 +1,7 @@
 import { useWaitForTransactionReceipt, useWriteContract } from "wagmi";
 import { abi } from "../../abis/contractABI";
 import useUserWalletConnect from "./useUserWalletConnect";
-import { FunctionName } from "../../types";
+import { FunctionName } from "@block52/poker-ui-core/types";
 import { useCallback, useMemo, useEffect } from "react";
 import { COSMOS_BRIDGE_ADDRESS } from "../../config/constants";
 

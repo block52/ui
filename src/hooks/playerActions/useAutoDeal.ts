@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from "react";
 import type { NetworkEndpoints } from "../../context/NetworkContext";
 import { dealCardsWithEntropy } from "./dealCards";
 import { getAutoDealEnabled } from "../../utils/urlParams";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 import type { SubmitActionRequest, SubmitError } from "../../submit/types";
 import { MAX_AUTO_REARMS, shouldRearmAfterFailure } from "./autoActionRearm";
 

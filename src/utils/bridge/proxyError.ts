@@ -1,6 +1,6 @@
 import { isAxiosError } from "axios";
 import { httpErrorMessage } from "../../apis/HTTPClient";
-import { isString } from "../guards";
+import { isString } from "@block52/ui-sdk/helpers";
 
 const NO_RESPONSE = "No response from the payments server";
 

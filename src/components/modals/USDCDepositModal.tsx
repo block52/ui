@@ -1,6 +1,6 @@
 import React from "react";
 import { useCosmosWallet } from "../../hooks";
-import { microToUsdc } from "../../constants/currency";
+import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
 import DepositCore from "./DepositCore";
 import type { USDCDepositModalProps } from "./types";
 import styles from "./USDCDepositModal.module.css";

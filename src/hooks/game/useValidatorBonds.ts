@@ -1,11 +1,5 @@
 import { useState, useEffect } from "react";
-// Import Long from the SDK's OWN nested copy (long@5) so the type is identical to
-// what ValidatorBond.bondedUsdc expects. The top-level `long` is a DIFFERENT,
-// major-incompatible install (long@4, pulled by other deps) whose Long type is
-// not assignable to the SDK's. Because top-level is occupied by long@4, the
-// package manager cannot hoist the SDK's long@5, so this nested path is stable.
-import Long from "@block52/poker-vm-sdk/node_modules/long";
-import { ValidatorBond } from "@block52/poker-vm-sdk";
+import { toValidatorBonds, type StakingValidatorEntry, type ValidatorBond } from "../../utils/validatorBonds";
 import { NETWORK_PRESETS } from "../../context/NetworkContext";
 import { useCosmosApiFactory } from "../../context/CosmosApiContext";
 
@@ -59,14 +53,9 @@ export const useValidatorBonds = (): ValidatorBondsReturn => {
                     const data = (await cosmosApiFactory(node.rest).getValidatorsByStatus(
                         "BOND_STATUS_BONDED",
                         AbortSignal.timeout(10000)
-                    )) as { validators?: { operator_address?: string; tokens?: string }[] };
+                    )) as { validators?: StakingValidatorEntry[] };
 
-                    const mapped: ValidatorBond[] = (data.validators || [])
-                        .filter(v => v.operator_address && v.tokens)
-                        .map(v => ({
-                            validator: v.operator_address as string,
-                            bondedUsdc: Long.fromString(v.tokens as string)
-                        }));
+                    const mapped = toValidatorBonds(data.validators);
 
                     if (!cancelled) {
                         setBonds(mapped);

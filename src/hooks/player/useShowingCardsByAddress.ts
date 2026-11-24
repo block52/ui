@@ -1,9 +1,9 @@
 import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { ShowingCardsByAddressReturn, ShowingCardData } from "../../types/index";
-import { isRevealedHand } from "../../bus/deriveEvents";
-import { isTabledHand } from "../../utils/tabledHand";
+import { ShowingCardsByAddressReturn, ShowingCardData } from "@block52/poker-ui-core/types";
+import { isRevealedHand } from "@block52/poker-ui-core/bus/deriveEvents";
+import { isTabledHand } from "@block52/poker-ui-core/utils/tabledHand";
 
 /**
  * Custom hook to get hole cards of players who have shown their cards

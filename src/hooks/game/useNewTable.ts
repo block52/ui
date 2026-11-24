@@ -3,10 +3,10 @@ import { BettingLimit, GameFormat, GameVariant, COSMOS_CONSTANTS, BlindStructure
 import { getSigningClient, getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
 import { friendlyCreateTableError } from "../../utils/tableName";
-import {  convertBlindsForBlockchain } from "../../utils/gameFormatUtils";
-import { DEFAULT_TIMEOUT_SECONDS } from "../../utils/timerUtils";
-import { usdcToMicroBigInt } from "../../constants/currency";
-import { hasValue } from "../../utils/guards";
+import {  convertBlindsForBlockchain } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { DEFAULT_TIMEOUT_SECONDS } from "@block52/poker-ui-core/utils/timerUtils";
+import { usdcToMicroBigInt } from "@block52/poker-ui-core/constants/currency";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 // Type for rake configuration options
 export interface RakeOptions {

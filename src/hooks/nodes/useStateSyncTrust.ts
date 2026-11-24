@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { SNAPSHOT_INTERVAL } from "../../constants/chainNetwork";
 import { base64ToHex, stateSyncTrustHeight } from "../../utils/nodePortal";
-import { isNullish } from "../../utils/guards";
+import { isNullish } from "@block52/ui-sdk/helpers";
 
 interface BlockResponse {
     block_id: { hash: string };

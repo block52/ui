@@ -1,5 +1,5 @@
 import React from "react";
-import { TransactionStatus } from "../../types";
+import { TransactionStatus } from "@block52/poker-ui-core/types";
 import styles from "./DepositComponents.module.css";
 
 interface DepositProgressBarProps {

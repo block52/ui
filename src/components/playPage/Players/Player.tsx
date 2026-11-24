@@ -6,11 +6,10 @@ import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
 import { usePlayerData } from "../../../hooks/player/usePlayerData";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
-import { useParams } from "react-router-dom";
-import type { PlayerProps } from "../../../types/index";
+import type { PlayerProps } from "@block52/poker-ui-core/types";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { getCardImageUrl } from "../../../utils/cardImages";
-import { winnerCardHighlight } from "../../../utils/holeCardLayout";
+import { winnerCardHighlight } from "@block52/poker-ui-core/utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";
 import { useSitAndGoPlayerResults } from "../../../hooks/game/useSitAndGoPlayerResults";
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
@@ -18,14 +17,15 @@ import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext"
 import { useNetwork } from "../../../context/NetworkContext";
 import { useActionSubmit } from "../../../context/ActionSubmitContext";
 import { SIT_IN_METHOD_POST_NOW, sitIn } from "../../../hooks/playerActions";
-import { hasElements } from "../../../utils/guards";
-import { getSeatOpacityClass } from "../../../utils/seatOpacity";
+import { hasElements } from "@block52/ui-sdk/helpers";
+import { getSeatOpacityClass } from "@block52/poker-ui-core/utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { useTableId } from "../../../hooks/game/useTableId";
 
 const Player: React.FC<PlayerProps & { uiPosition?: number }> = memo(
     ({ left, top, index, currentIndex: _currentIndex, color, status: _status, uiPosition }) => {
-        const { id } = useParams<{ id: string }>();
+        const id = useTableId();
         const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
         const { winnerInfo, winnerBySeat } = useWinnerInfo();
         const winnerCards = useWinnerCards();

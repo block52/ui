@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { truncateMiddle } from "../utils/stringUtils";
-import { isEmpty, isBlank, hasContent } from "../utils/guards";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
+import { isEmpty, isBlank, hasContent } from "@block52/ui-sdk/helpers";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { ethers } from "ethers";
-import { formatMicroAsUsdc } from "../constants/currency";
+import { formatMicroAsUsdc } from "@block52/poker-ui-core/constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
 import { BRIDGE_DEPOSITS_ABI } from "../utils/bridge/abis";
 import { LoadingSpinner } from "../components/common/LoadingSpinner";
@@ -18,7 +18,7 @@ import { StuckPaymentsPanel } from "../components/bridge/StuckPaymentsPanel";
 import { proxyErrorMessage } from "../utils/bridge/proxyError";
 
 import { STORAGE_KEYS } from "../constants/storageKeys";
-import { countByStatus } from "../utils/statusCounts";
+import { countByStatus } from "@block52/poker-ui-core/utils/statusCounts";
 
 /** The admin key lives for this browser tab only: sessionStorage is cleared when the tab closes. */
 function readStoredAdminKey(): string {

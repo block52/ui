@@ -1,6 +1,6 @@
 import React from "react";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
-import { WinAnimationProps } from "../../../types/index";
+import { WinAnimationProps } from "@block52/poker-ui-core/types";
 import "./WinAnimation.css";
 
 const WinAnimation: React.FC<WinAnimationProps & { position?: { left: string; top: string } }> = React.memo(({ index, position }) => {

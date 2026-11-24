@@ -207,6 +207,23 @@ export interface HistoryEntry {
   events: string[];
   /** The GameStateResponseDTO JSON at this height. */
   json: string;
+  /** The committed tx that made this step, when one did (ui#972: the new-hand tx carries the seed). */
+  txHash?: string;
+  /** On a hand_ended step: the chain's hand_completed attributes (board + shown hole cards). */
+  handCompleted?: { communityCards: string; revealedHoleCards: string };
+}
+
+// The tx being applied right now, so its history steps can name it (ui#972).
+let committingTx: string | null = null;
+export function setCommittingTx(hash: string | null): void {
+  committingTx = hash;
+}
+
+/** As the chain's hand_completed: the board, and the hole cards shown — none on a fold-out. */
+function handCompletedOf(t: Table): HistoryEntry["handCompleted"] {
+  const contenders = t.seats.filter((s) => s.status !== "folded" && s.holeCards.length > 0).sort((a, b) => a.seat - b.seat);
+  const shown = contenders.length > 1 ? contenders.flatMap((s) => s.holeCards) : [];
+  return { communityCards: t.board.join(","), revealedHoleCards: shown.join(",") };
 }
 
 const FIRST_HISTORY_HEIGHT = 1000;
@@ -223,7 +240,14 @@ function recordHistory(gameId: string): void {
   if (!prev || prev.handNumber !== t.handNumber) events.push("hand_started");
   else events.push("action_performed");
   if (t.round === "end" && (!prev || prev.handNumber !== t.handNumber || !prev.json.includes('"round":"end"'))) events.push("hand_ended");
-  entries.push({ height: nextHeight++, handNumber: t.handNumber, events, json: JSON.stringify(response) });
+  entries.push({
+    height: nextHeight++,
+    handNumber: t.handNumber,
+    events,
+    json: JSON.stringify(response),
+    ...(committingTx ? { txHash: committingTx } : {}),
+    ...(events.includes("hand_ended") ? { handCompleted: handCompletedOf(t) } : {}),
+  });
   history.set(gameId, entries);
 }
 
@@ -244,6 +268,20 @@ export function stateJsonAt(gameId: string, height: number): string | undefined 
 }
 
 // ---- deck ----------------------------------------------------------------
+
+// The chain's seeded shuffle (the SDK's Deck.shuffleFromSeed), handed in once
+// the SDK has loaded (comet-rpc loadRegistry). A new-hand with "seed=<hex>"
+// deals from it exactly as the engine does, so the UI's verify window (ui#972)
+// can recompute the hand.
+let seededDeck: ((seedHex: string) => string[]) | null = null;
+export function setSeededDeckBuilder(build: (seedHex: string) => string[]): void {
+  seededDeck = build;
+}
+
+function seedOf(data: string | undefined): string | null {
+  const match = /(?:^|&)seed=([0-9a-fA-F]{64})(?:&|$)/.exec(data ?? "");
+  return match ? match[1].toLowerCase() : null;
+}
 const RANKS = ["2", "3", "4", "5", "6", "7", "8", "9", "T", "J", "Q", "K", "A"];
 const SUITS = ["C", "D", "H", "S"];
 
@@ -327,13 +365,15 @@ function makeSeat(seat: number, address: string, stack: bigint, isBot: boolean):
   };
 }
 
-function startHand(t: Table): void {
+function startHand(t: Table, seedHex: string | null = null): void {
   const h = human(t);
   const b = bot(t);
   if (!h || !b) return;
 
   t.handNumber += 1;
-  t.deck = shuffledDeck();
+  const seeded = seedHex && seededDeck ? seededDeck(seedHex) : null;
+  // Cards come off the end (pop), so a seeded deck is stored reversed: top first out.
+  t.deck = seeded ? [...seeded].reverse() : shuffledDeck();
   t.board = [];
   t.pot = 0n;
   t.winners = [];
@@ -346,7 +386,14 @@ function startHand(t: Table): void {
     s.totalBet = 0n;
     s.hasActed = false;
     s.lastAction = null;
-    s.holeCards = [t.deck.pop()!, t.deck.pop()!];
+    s.holeCards = seeded ? [] : [t.deck.pop()!, t.deck.pop()!];
+  }
+  if (seeded) {
+    // As the engine deals: one card at a time to the seats in ascending order,
+    // then five cards set aside; the board comes street by street after them.
+    const order = [h, b].sort((x, y) => x.seat - y.seat);
+    for (let round = 0; round < 2; round++) for (const s of order) s.holeCards.push(t.deck.pop()!);
+    for (let i = 0; i < 5; i++) t.deck.pop();
   }
 
   // Blinds: human (dealer) posts SB, bot posts BB.
@@ -391,7 +438,7 @@ export function applyAction(gameId: string, action: Action, onStep?: () => void)
   if (action.action === "new-hand") {
     // Deal the next hand from the END state (carries stacks forward). The UI
     // reaches here via useAutoNewHand / the manual "START NEW HAND" button.
-    if (t.round === "end") startHand(t);
+    if (t.round === "end") startHand(t, seedOf(action.data));
     step();
     return;
   }

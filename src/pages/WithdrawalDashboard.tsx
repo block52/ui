@@ -1,14 +1,13 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { truncateMiddle } from "../utils/stringUtils";
-import { isEmpty } from "../utils/guards";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
+import { isEmpty, base64ToHex } from "@block52/ui-sdk/helpers";
 import useCosmosWallet from "../hooks/wallet/useCosmosWallet";
 import { useNetwork } from "../context/NetworkContext";
 import { toast } from "react-toastify";
 import { copyToClipboard } from "../utils/clipboard";
 import { ethers } from "ethers";
-import { formatMicroAsUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "../constants/currency";
+import { formatMicroAsUsdc, usdcToMicroBigInt, parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import { getSigningClient } from "../utils/cosmos/client";
-import { base64ToHex } from "../utils/encodingUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { COSMOS_BRIDGE_ADDRESS } from "../config/constants";
 import useUserWalletConnect from "../hooks/wallet/useUserWalletConnect";
@@ -16,7 +15,7 @@ import { useWithdraw } from "../hooks/wallet/useWithdraw";
 import SignatureModal from "../components/modals/SignatureModal";
 import { useWithdrawalSignature } from "../hooks/wallet/useWithdrawalSignature";
 import { describeWithdrawError } from "../utils/withdrawalSignature";
-import { countByStatus } from "../utils/statusCounts";
+import { countByStatus } from "@block52/poker-ui-core/utils/statusCounts";
 
 /**
  * WithdrawalDashboard - Interface for managing USDC withdrawals to Ethereum

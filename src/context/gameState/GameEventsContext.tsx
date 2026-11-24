@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo } from "react";
-import type { GameStreamItem } from "../../bus/types";
+import type { GameStreamItem } from "@block52/poker-ui-core/bus/types";
 
 /**
  * GameEventsContext — the latest committed bus item (WS Action Bus, Phase 2).

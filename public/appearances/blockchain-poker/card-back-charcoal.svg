@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="145" height="200" viewBox="0 0 145 200">
+  <defs>
+    <linearGradient id="charcoalField" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#262626"/>
+      <stop offset="100%" stop-color="#1B1B1B"/>
+    </linearGradient>
+  </defs>
+  <rect x="0.75" y="0.75" width="143.5" height="198.5" rx="10" ry="10" fill="url(#charcoalField)" stroke="#E89420" stroke-width="1.5"/>
+  <rect x="4.5" y="4.5" width="136.0" height="191.0" rx="8" ry="8" fill="none" stroke="#FEAC3F" stroke-opacity="0.40" stroke-width="1.1"/>
+  <g transform="translate(18.00,48.59) scale(0.128842)">
+    <path data-face="orange_light_outer" fill="#FC9627" d="M 226.00,0.00 L 0.00,399.00 L 161.00,399.00 L 387.00,0.00 Z"/>
+    <path data-face="orange_light_bar" fill="#FFAB40" d="M 455.00,0.00 L 616.00,0.00 L 391.00,399.00 L 230.00,399.00 Z"/>
+    <path data-face="orange_dark" fill="#FFAB40" d="M 0.00,399.00 L 226.00,798.00 L 387.00,798.00 L 161.00,399.00 Z"/>
+    <path data-face="blue_bright_upper" fill="#15A0FF" d="M 633.00,24.00 L 554.00,167.00 L 685.00,399.00 L 846.00,399.00 L 620.00,0.00 Z"/>
+    <path data-face="blue_bright_bar" fill="#15A0FF" d="M 616.00,399.00 L 455.00,399.00 L 325.00,629.00 L 404.00,773.00 Z"/>
+    <path data-face="blue_mid" fill="#2196F3" d="M 846.00,399.00 L 685.00,399.00 L 459.00,798.00 L 620.00,798.00 Z"/>
+    <path data-face="blue_accent_upper" fill="#268DD3" d="M 619.00,0.00 L 538.00,139.00 L 554.00,167.00 L 633.00,24.00 Z"/>
+    <path data-face="blue_accent_lower" fill="#268DD3" d="M 325.00,629.00 L 309.00,658.00 L 391.00,797.00 L 404.00,773.00 Z"/>
+  </g>
+</svg>

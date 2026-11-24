@@ -5,7 +5,7 @@ import { QueryAccountRequest, QueryAccountResponse } from "cosmjs-types/cosmos/a
 import { Any } from "cosmjs-types/google/protobuf/any.js";
 import { applyAction, getFrameDelayMs, cosmosStateMessage } from "./state.js";
 import { broadcast, broadcastRaw } from "./chain-ws.js";
-import { historyFor, stateJsonAt, type Action } from "./holdem.js";
+import { historyFor, setCommittingTx, setSeededDeckBuilder, stateJsonAt, type Action } from "./holdem.js";
 
 /**
  * Minimal CometBFT JSON-RPC emulator (the chain-direct half of the stub).
@@ -155,6 +155,9 @@ function broadcastResult(txBase64: string): unknown {
     try {
         const raw = TxRaw.decode(txBytes);
         const body = TxBody.decode(raw.bodyBytes);
+        // Committed first, so history steps (and the REST tx) can resolve it (ui#972).
+        committedTxs.set(hash, txBase64);
+        setCommittingTx(hash);
         for (const anyMsg of body.messages) {
             const decoded = decodeMsg(anyMsg);
             if (!decoded) continue;
@@ -166,6 +169,8 @@ function broadcastResult(txBase64: string): unknown {
         }
     } catch (err) {
         console.warn(`[pvm-stub] tx decode failed: ${(err as Error).message}`);
+    } finally {
+        setCommittingTx(null);
     }
     committedTxs.set(hash, txBase64);
     return { code: 0, data: "", log: "", codespace: "", hash };
@@ -178,6 +183,11 @@ async function loadRegistry(): Promise<void> {
     if (sdkRegistry) return;
     const sdk = await import("@block52/poker-vm-sdk");
     sdkRegistry = sdk.registry as unknown as typeof sdkRegistry;
+    setSeededDeckBuilder((seedHex) => {
+        const deck = new sdk.Deck();
+        deck.shuffleFromSeed(seedHex);
+        return deck.toString().replace(/[[\]]/g, "").split("-");
+    });
 }
 function decodeMsg(anyMsg: { typeUrl: string; value: Uint8Array }): Record<string, unknown> | null {
     if (!sdkRegistry) return null;
@@ -227,7 +237,7 @@ function txSearchResult(query: string, perPage: number, orderBy: string): unknow
         const page = entries.slice(0, Math.max(1, perPage));
         return {
             txs: page.map((e) => ({
-                hash: createHash("sha256").update(`${gameId}:${e.height}`).digest("hex").toUpperCase(),
+                hash: e.txHash ?? createHash("sha256").update(`${gameId}:${e.height}`).digest("hex").toUpperCase(),
                 height: String(e.height),
                 index: 0,
                 tx_result: {
@@ -237,10 +247,26 @@ function txSearchResult(query: string, perPage: number, orderBy: string): unknow
                     info: "",
                     gas_wanted: "200000",
                     gas_used: "100000",
-                    events: [{ type, attributes: [{ key: "game_id", value: gameId }, { key: "hand_number", value: hand }, { key: "block_height", value: String(e.height) }] }],
+                    events: [
+                        { type, attributes: [{ key: "game_id", value: gameId }, { key: "hand_number", value: hand }, { key: "block_height", value: String(e.height) }] },
+                        // The chain emits hand_completed beside hand_ended (ui#972 reads the board + shown cards from it).
+                        ...(type === "hand_ended" && e.handCompleted
+                            ? [
+                                  {
+                                      type: "hand_completed",
+                                      attributes: [
+                                          { key: "game_id", value: gameId },
+                                          { key: "hand_number", value: hand },
+                                          { key: "community_cards", value: e.handCompleted.communityCards },
+                                          { key: "revealed_hole_cards", value: e.handCompleted.revealedHoleCards }
+                                      ]
+                                  }
+                              ]
+                            : [])
+                    ],
                     codespace: ""
                 },
-                tx: ""
+                tx: e.txHash ? (committedTxs.get(e.txHash) ?? "") : ""
             })),
             total_count: String(entries.length)
         };
@@ -404,4 +430,21 @@ export async function handleCometRpc(body: { id?: unknown; method?: string; para
             console.warn(`[pvm-stub] UNHANDLED CometBFT method=${body.method} params=${JSON.stringify(params)}`);
             return envelope({});
     }
+}
+
+/**
+ * REST `GET /cosmos/tx/v1beta1/txs/{hash}` for a committed tx: its messages as
+ * the node's JSON (`@type` + fields), which is how the UI's verify window
+ * (ui#972) reads a new-hand's seed. Null for an unknown hash.
+ */
+export function restTx(hashHex: string): unknown | null {
+    const hash = hashHex.toUpperCase();
+    const txBase64 = committedTxs.get(hash);
+    if (!txBase64) return null;
+    const body = TxBody.decode(TxRaw.decode(Buffer.from(txBase64, "base64")).bodyBytes);
+    const messages = body.messages.map((anyMsg) => ({ "@type": anyMsg.typeUrl, ...(decodeMsg(anyMsg) ?? {}) }));
+    return {
+        tx: { body: { messages, memo: body.memo } },
+        tx_response: { txhash: hash, height: FIXED_HEIGHT, code: 0 }
+    };
 }

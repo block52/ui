@@ -1,4 +1,4 @@
-import { hasContent, hasValue, isNullish } from "./guards";
+import { hasContent, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 
 /**
  * What the player's own countdown has spent of their time bank, per table

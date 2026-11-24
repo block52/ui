@@ -15,31 +15,32 @@
 import * as React from "react";
 import { memo, useState, useMemo, useCallback } from "react";
 import { createPortal } from "react-dom";
-import { useParams } from "react-router-dom";
 import PokerProfile from "../../../assets/PokerProfile.svg";
 
 import { useVacantSeatData } from "../../../hooks/game/useVacantSeatData";
 import { useGameStateContext } from "../../../context/GameStateContext";
-import type { VacantPlayerProps } from "../../../types/index";
+import type { VacantPlayerProps } from "@block52/poker-ui-core/types";
 import { useDealerPosition } from "../../../hooks/game/useDealerPosition";
 import { joinTable } from "../../../hooks/playerActions/joinTable";
 import { useGameOptions } from "../../../hooks/game/useGameOptions";
-import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "../../../utils/numberUtils";
+import { formatDollars, formatUSDCToSimpleDollars, parseDollars } from "@block52/poker-ui-core/utils/numberUtils";
 import { useCosmosWallet } from "../../../hooks";
-import { microToUsdc } from "../../../constants/currency";
-import { hasElements, isNullish } from "../../../utils/guards";
-import { seatsAreDrawn } from "../../../utils/seatDraw";
-import { joinSeatButtonLabel, SEAT_DRAW_NOTE, vacantSeatText } from "../../../utils/vacantSeatText";
+import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
+import { hasElements, isNullish } from "@block52/ui-sdk/helpers";
+import { seatsAreDrawn } from "@block52/poker-ui-core/utils/seatDraw";
+import { joinSeatButtonLabel, SEAT_DRAW_NOTE, vacantSeatText } from "@block52/poker-ui-core/utils/vacantSeatText";
 import { useNetwork } from "../../../context/NetworkContext";
 import styles from "./VacantPlayer.module.css";
 import { USDCDepositModal } from "../../modals";
+import { useTableId } from "../../../hooks/game/useTableId";
+import { isRegistrationClosed } from "../../../utils/scheduledSng";
 
 const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo(
-    ({ left, top, index, onJoin, uiPosition }) => {
+    ({ left, top, index, onJoin, uiPosition, tournamentOver = false }) => {
         const { isUserAlreadyPlaying, canJoinSeat: checkCanJoinSeat } = useVacantSeatData();
-        const { id: tableId } = useParams<{ id: string }>();
+        const tableId = useTableId();
         const { gameOptions } = useGameOptions();
-        const { gameFormat } = useGameStateContext();
+        const { gameFormat, gameState } = useGameStateContext();
         // A Sit & Go seat is drawn at random on join, not the one clicked (ui#969).
         const seatDrawn = useMemo(() => seatsAreDrawn(gameFormat), [gameFormat]);
         const cosmosWallet = useCosmosWallet();
@@ -222,6 +223,9 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
         );
 
         // Memoize seat text
+        // Registration is over: nobody can take this seat, so there is nothing to say about it.
+        const registrationClosed = useMemo(() => isRegistrationClosed(gameState, gameFormat, Date.now()), [gameState, gameFormat]);
+
         const seatText = useMemo(
             () => vacantSeatText(index, isUserAlreadyPlaying, canJoinThisSeat, seatDrawn),
             [isUserAlreadyPlaying, canJoinThisSeat, index, seatDrawn]
@@ -248,10 +252,14 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
                     <div className="flex justify-center mb-2">
                         <img src={PokerProfile} className="w-12 h-12" alt="Vacant Seat" />
                     </div>
-                    <div className={`text-center ${styles.seatText}`}>
-                        <div className="text-lg sm:text-sm mb-1 whitespace-nowrap font-medium">{seatText.title}</div>
-                        {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
-                    </div>
+                    {/* Once registration is over (a running tournament) or the tournament is over, the
+                        seat stays where it is but says nothing: no "Open Seat", no "Vacant Seat". */}
+                    {!tournamentOver && !registrationClosed && (
+                        <div className={`text-center ${styles.seatText}`}>
+                            <div className="text-lg sm:text-sm mb-1 whitespace-nowrap font-medium">{seatText.title}</div>
+                            {seatText.subtitle && <div className="text-base sm:text-xs whitespace-nowrap">{seatText.subtitle}</div>}
+                        </div>
+                    )}
 
                     {/* Dealer Button - TODO: Implement framer motion animation in future iteration */}
                     {/* Dealer Button — rendered at table level using geometry positions */}
@@ -442,7 +450,12 @@ const VacantPlayer: React.FC<VacantPlayerProps & { uiPosition?: number }> = memo
     },
     (prevProps, nextProps) => {
         // Custom comparison function for memo
-        return prevProps.left === nextProps.left && prevProps.top === nextProps.top && prevProps.index === nextProps.index;
+        return (
+            prevProps.left === nextProps.left &&
+            prevProps.top === nextProps.top &&
+            prevProps.index === nextProps.index &&
+            prevProps.tournamentOver === nextProps.tournamentOver
+        );
     }
 );
 

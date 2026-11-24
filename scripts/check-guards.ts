@@ -14,7 +14,8 @@ const base = process.env.GUARDS_BASE ?? "origin/main";
 const git = (...args: string[]): string => execFileSync("git", args, { encoding: "utf8", maxBuffer: 64 * 1024 * 1024 });
 
 const mergeBase = git("merge-base", base, "HEAD").trim();
-const diff = git("diff", "--unified=0", "--no-color", "--no-ext-diff", mergeBase, "--", "src/*.ts", "src/*.tsx");
+// -M pairs a module moved from src/ into the core with its old path, so a move adds no lines.
+const diff = git("diff", "-M", "--unified=0", "--no-color", "--no-ext-diff", mergeBase, "--", "src/*.ts", "src/*.tsx", "packages/core/src/*.ts");
 const violations = findGuardViolations(diff);
 
 if (violations.length === 0) {
@@ -25,11 +26,11 @@ if (violations.length === 0) {
 for (const v of violations) {
     console.log(`${v.file}:${v.line}  ${v.found}  → use ${v.use}`);
     if (process.env.GITHUB_ACTIONS) {
-        console.log(`::error file=${v.file},line=${v.line}::Use ${v.use} from src/utils/guards.ts (CLAUDE.md Commandment 8)`);
+        console.log(`::error file=${v.file},line=${v.line}::Use ${v.use} from "@block52/ui-sdk/helpers" (CLAUDE.md Commandment 8)`);
     }
 }
 console.log(
-    `\n${violations.length} hand-written check(s). Use the guards in src/utils/guards.ts (CLAUDE.md, UI Architecture Commandment 8).` +
+    `\n${violations.length} hand-written check(s). Use the guards from "@block52/ui-sdk/helpers" (CLAUDE.md, UI Architecture Commandment 8).` +
         `\nIf the raw check is genuinely needed, end the line with \`${ESCAPE_COMMENT}\`.`
 );
 process.exit(1);

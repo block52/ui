@@ -9,10 +9,10 @@ import styles from "./Dashboard.module.css";
 import { ETH_CHAIN_ID } from "../config/constants";
 import { useConnection as useWagmiAccount, useSwitchChain } from "wagmi";
 
-import { calculateBuyIn } from "../utils/buyInUtils";
-import { hasValue, isNullish, hasContent } from "../utils/guards";
-import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "../constants/blindLevels";
-import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "../constants/currency";
+import { calculateBuyIn } from "@block52/poker-ui-core/utils/buyInUtils";
+import { hasValue, isNullish, hasContent } from "@block52/ui-sdk/helpers";
+import { BLIND_LEVELS, DEFAULT_BLIND_LEVEL_INDEX, DEFAULT_SNG_BLIND_LEVEL_MINUTES, SNG_BLINDS } from "@block52/poker-ui-core/constants/blindLevels";
+import { usdcToMicroBigInt, formatMicroAsUsdc, microToUsdc } from "@block52/poker-ui-core/constants/currency";
 
 import { WithdrawalModal, USDCDepositModal, UpcomingSngModal } from "../components/modals";
 import TableList from "../components/TableList";
@@ -32,21 +32,13 @@ import type { CreateTableOptions } from "../hooks/game/useNewTable"; // Import t
 
 // Cosmos wallet utils
 import { isValidSeedPhrase } from "../utils/cosmos";
-import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "../utils/gameFormatUtils";
+import { bettingLimitLabel, creatableBettingLimits, defaultBettingLimitFor, isTournamentFormat, toCreatableBettingLimit, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { CREATE_GAME_TYPES, createGameTypeFormat, createGameTypeLabel, isScheduledCreateType, toCreateGameType, type CreateGameType } from "../utils/createGameType";
 import { computeTableCreationFeeMicro, CREATION_FEE_BIG_BLINDS } from "../utils/tableCreationFee";
-import {
-    choiceUsesFormBlinds,
-    DEFAULT_BLIND_STRUCTURE_CHOICE,
-    DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT,
-    openingBlindsOf,
-    previewBlindLevels,
-    resolveBlindStructureChoice,
-    sngBlindFields,
-    type BlindStructureChoice
-} from "../utils/blindStructureChoice";
+import { choiceUsesFormBlinds, openingBlindsOf, previewBlindLevels, sngBlindFields } from "@block52/poker-ui-core/utils/blindStructureChoice";
 import { SNG_PREVIEW_LEVEL_COUNT } from "../utils/sngAdvancedParams";
-import { BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
+import { AnteControls, BlindPreviewTable, BlindStructureSelect, CustomBlindStructureInput } from "../components/BlindStructureFields";
+import { useBlindStructureForm } from "../hooks/useBlindStructureForm";
 
 // Password protection utils
 import {
@@ -125,25 +117,20 @@ const Dashboard: React.FC = () => {
     const [modalSngMinPlayers, setModalSngMinPlayers] = useState(2);
     const [modalLateRegLevels, setModalLateRegLevels] = useState(0); // poker-vm#2731; 0 = off
     const [modalSngBlindsIndex, setModalSngBlindsIndex] = useState(0); // 10 / 20
-    // Blind structure (ui#860, poker-vm#1734): the ladder (default, ui#905) or
-    // doubling (both from the two selects above and below), an engine preset, or
-    // a custom structure in the SDK's text form.
-    const [modalBlindStructureChoice, setModalBlindStructureChoice] = useState<BlindStructureChoice>(DEFAULT_BLIND_STRUCTURE_CHOICE);
-    const [modalCustomBlindText, setModalCustomBlindText] = useState(DEFAULT_CUSTOM_BLIND_STRUCTURE_TEXT);
-
     // Cash blinds are dollars (BLIND_LEVELS); Sit & Go blinds are chips (SNG_BLINDS).
     const isModalTournament = isTournamentFormat(modalGameFormat);
-    // What the choice submits (structure) and previews; a structured table's
-    // opening blinds and level time come from its level 0, not the selects.
-    const blindPlan = useMemo(
-        () =>
-            resolveBlindStructureChoice(modalBlindStructureChoice, modalCustomBlindText, {
-                smallBlind: SNG_BLINDS[modalSngBlindsIndex].smallBlind,
-                bigBlind: SNG_BLINDS[modalSngBlindsIndex].bigBlind,
-                durationMinutes: modalBlindLevelDuration
-            }),
-        [modalBlindStructureChoice, modalCustomBlindText, modalSngBlindsIndex, modalBlindLevelDuration]
-    );
+    // Blind structure (ui#860, poker-vm#1734): the ladder (default, ui#905) or
+    // doubling (both from the two selects above and below), an engine preset, or
+    // a custom structure in the SDK's text form; plus the ante controls
+    // (ui#891). `blindPlan` is what the choice submits (structure) and
+    // previews; a structured table's opening blinds and level time come from
+    // its level 0, not the selects.
+    const blindForm = useBlindStructureForm({
+        smallBlind: SNG_BLINDS[modalSngBlindsIndex].smallBlind,
+        bigBlind: SNG_BLINDS[modalSngBlindsIndex].bigBlind,
+        durationMinutes: modalBlindLevelDuration
+    });
+    const blindPlan = blindForm.plan;
     const sngOpeningBlinds = useMemo(
         () => (blindPlan.preview ? openingBlindsOf(blindPlan.preview) : undefined),
         [blindPlan.preview]
@@ -1039,8 +1026,8 @@ const Dashboard: React.FC = () => {
                                                 <option value={1500}>Standard (1,500)</option>
                                                 <option value={3000}>Deep Stack (3,000)</option>
                                             </select>
-                                            <BlindStructureSelect value={modalBlindStructureChoice} onChange={setModalBlindStructureChoice} />
-                                            {choiceUsesFormBlinds(modalBlindStructureChoice) && (
+                                            <BlindStructureSelect value={blindForm.choice} onChange={blindForm.setChoice} />
+                                            {choiceUsesFormBlinds(blindForm.choice) && (
                                                 <>
                                                     <label className="block text-white text-sm mb-1 mt-3">Starting Blinds (chips)</label>
                                                     <select
@@ -1069,9 +1056,15 @@ const Dashboard: React.FC = () => {
                                                     </select>
                                                 </>
                                             )}
-                                            {modalBlindStructureChoice === "custom" && (
-                                                <CustomBlindStructureInput value={modalCustomBlindText} onChange={setModalCustomBlindText} error={blindPlan.error} />
+                                            {blindForm.choice === "custom" && (
+                                                <CustomBlindStructureInput value={blindForm.customText} onChange={blindForm.setCustomText} error={blindPlan.error} />
                                             )}
+                                            <AnteControls
+                                                value={blindForm.anteForm}
+                                                onChange={blindForm.setAnteForm}
+                                                disabled={blindForm.anteControlsDisabled}
+                                                customAntes={blindForm.customAntes}
+                                            />
                                             <BlindPreviewTable rows={blindPreviewRows} />
                                         </div>
                                     ) : (

@@ -21,7 +21,7 @@ import { Modal } from "../../../common/Modal";
 import { NetworkSelector } from "../../../NetworkSelector";
 import { ProfileAvatarButton } from "../../../profile";
 import { TopUpModal } from "../../../modals";
-import { formatGameFormatDisplay, isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import { formatGameFormatDisplay, isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { displayGameFormat } from "../../../../utils/createGameType";
 import { buildHandShareUrl, buildShareOnXUrl } from "../../../../utils/handReplay";
 import { GameFormat, GameOptionsDTO, LegalActionDTO, NonPlayerActionType, PlayerDTO } from "@block52/poker-vm-sdk";
@@ -33,9 +33,14 @@ import type { NetworkEndpoints } from "../../../../context/NetworkContext";
 import { formatBlindCountdown } from "./TableHeader";
 import type { TablePanelTab } from "./TablePanel";
 import styles from "./TableHeader.module.css";
-import { hasValue, isNullish } from "../../../../utils/guards";
+import { hasValue, isNullish } from "@block52/ui-sdk/helpers";
+import { TABLE_STYLE_LABELS, type TableStyleOption } from "../../../../utils/tableStyle";
+import { tableTitle } from "../../../../utils/tableTitle";
+import { tableUrl } from "@block52/poker-ui-core/utils/tableUrl";
+import BlindsButton from "../../BlindsButton";
+import { playersLabel, type TournamentRunners } from "@block52/poker-ui-core/utils/tournamentResult";
 
-export type TableStyleOption = "modern" | "classic" | "nouns";
+export type { TableStyleOption };
 
 export interface MobileTableHeaderProps {
     tableId: string;
@@ -46,6 +51,8 @@ export interface MobileTableHeaderProps {
     gameFormat: GameFormat | null;
     gameOptions: GameOptionsDTO | null;
     tableActivePlayers: PlayerDTO[];
+    /** Runners left out of the field, on a multi-table tournament table (replaces the seat count). */
+    runners?: TournamentRunners;
 
     // Wallet data
     publicKey: string | null;
@@ -90,12 +97,6 @@ export interface MobileTableHeaderProps {
     handleShareHand: () => void;
 }
 
-const TABLE_STYLE_LABELS: Record<TableStyleOption, string> = {
-    modern: "Modern",
-    classic: "Classic",
-    nouns: "Nouns"
-};
-
 /** Shared row styling: every drawer item is a ≥44px tap target. */
 const menuRowClass =
     "w-full min-h-[44px] flex items-center gap-3 px-4 text-sm text-left text-white transition-colors duration-150 hover:bg-white/10";
@@ -107,6 +108,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     gameFormat,
     gameOptions,
     tableActivePlayers,
+    runners,
     publicKey,
     formattedAddress,
     isBalanceLoading,
@@ -137,7 +139,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
     const [menuOpen, setMenuOpen] = useState(false);
     const [showQR, setShowQR] = useState(false);
     const [showTopUp, setShowTopUp] = useState(false);
-    const tableUrl = `${window.location.origin}/table/${tableId}`;
+    const shareUrl = `${window.location.origin}${tableUrl(tableId)}`;
 
     const isSNG = hasValue(gameFormat) && isTournamentFormat(gameFormat);
     const canTopUp = legalActions.some(a => a.action === NonPlayerActionType.TOP_UP);
@@ -177,7 +179,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                     className="text-white text-sm font-bold cursor-pointer truncate min-w-0 flex-1 min-h-[44px] text-left"
                     onClick={handleLobbyClick}
                 >
-                    {tableName ? tableName : `Table ${tableId ? tableId.slice(-5) : ""}`}
+                    {tableTitle(tableId, tableName)}
                 </button>
                 <div className="flex items-center flex-shrink-0">
                     {/* Balance — money on the table, wanted at a glance; tap to refresh */}
@@ -214,7 +216,8 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
             >
                 <span className={`text-[11px] font-semibold whitespace-nowrap ${styles.secondaryText}`}>
                     {blindLevel.isActive ? (
-                        <>
+                        // Tapping the blinds opens the blind schedule (ui#794).
+                        <BlindsButton className="whitespace-nowrap underline decoration-dotted underline-offset-2">
                             {hasValue(blindLevel.level) && `L${blindLevel.level + 1} `}
                             {blindLevel.currentBlindsFormatted}
                             {blindLevel.hasTimer && (
@@ -226,7 +229,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                     {")"}
                                 </>
                             )}
-                        </>
+                        </BlindsButton>
                     ) : (
                         `$${formattedValues.smallBlindFormatted} / $${formattedValues.bigBlindFormatted}`
                     )}
@@ -267,7 +270,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                                     {gameFormat ? `${displayGameFormat(gameFormat, gameOptions.scheduledStartTime, formatGameFormatDisplay)} • ` : ""}
                                     Texas Hold'em
                                     <span className={`ml-1 ${styles.secondaryText}`}>
-                                        ({tableActivePlayers.length}/{gameOptions.maxPlayers} Players)
+                                        ({playersLabel(tableActivePlayers.length, gameOptions.maxPlayers, runners)})
                                     </span>
                                 </span>
                             </div>
@@ -346,7 +349,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
                         )}
 
                         {/* Table style — replaces the fixed bottom-left selector on mobile */}
-                        <button className={menuRowClass} onClick={onCycleTableStyle}>
+                        <button className={`${menuRowClass} table-style-menu-row`} onClick={onCycleTableStyle}>
                             <span className="text-xs text-gray-400">Style</span>
                             <span>{TABLE_STYLE_LABELS[tableStyle]}</span>
                         </button>
@@ -431,7 +434,7 @@ export const MobileTableHeader: React.FC<MobileTableHeaderProps> = ({
             >
                 <div className="flex flex-col items-center gap-4">
                     <div className="bg-white p-4 rounded-xl">
-                        <QRCodeSVG value={tableUrl} size={240} />
+                        <QRCodeSVG value={shareUrl} size={240} />
                     </div>
                     <button
                         onClick={() => setShowQR(false)}

@@ -15,7 +15,7 @@ import { NonPlayerActionType, PlayerStatus, TexasHoldemRound } from "@block52/po
 import { usePlayerTimer } from "./usePlayerTimer";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { TURN_CLOCK_START_ALLOWANCE_MS } from "../../utils/turnClock";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 const mockUseGameData = jest.fn();
 const mockUseGameUI = jest.fn();

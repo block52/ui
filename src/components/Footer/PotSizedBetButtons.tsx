@@ -1,8 +1,8 @@
 import React from "react";
-import { calculatePotBetWithVariation, PotBetVariation } from "../../utils/calculatePotBetAmount";
-import { highestPreflopContribution, preflopPresetAmount, showPreflopMultiples, UNOPENED_PREFLOP_PRESETS } from "../../utils/preflopPresets";
-import { microBigIntToUsdc, roundMicroToCent } from "../../constants/currency";
-import { presetExceedsMax } from "../../utils/potPresetLimits";
+import { calculatePotBetWithVariation, PotBetVariation } from "@block52/poker-ui-core/utils/calculatePotBetAmount";
+import { highestPreflopContribution, preflopPresetAmount, showPreflopMultiples, UNOPENED_PREFLOP_PRESETS } from "@block52/poker-ui-core/utils/preflopPresets";
+import { microBigIntToUsdc, roundMicroToCent } from "@block52/poker-ui-core/constants/currency";
+import { presetExceedsMax } from "@block52/poker-ui-core/utils/potPresetLimits";
 import type { PotSizedBetButtonsProps } from "./types";
 
 const POT_FRACTION_PRESETS: { label: string; variation: PotBetVariation }[] = [

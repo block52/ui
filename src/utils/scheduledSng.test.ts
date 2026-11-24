@@ -1,5 +1,5 @@
 import { NonPlayerActionType, PlayerActionType, TexasHoldemRound } from "@block52/poker-vm-sdk";
-import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentFinished, hasTournamentStarted, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase, isAwaitingTournamentStart, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "./scheduledSng";
+import { LATE_REGISTRATION_LEVEL_OPTIONS, SCHEDULED_SNG_GRACE_MS, formatCountdown, formatLateRegistration, lateRegistrationOptionLabel, hasTournamentFinished, hasTournamentStarted, isRegistrationClosed, isScheduledSng, lateRegistrationEndsAt, lateRegistrationPhase, localDateTimeToUnixSeconds, scheduledSngPhase, isAwaitingTournamentStart, shouldAutoStart, tournamentStartRule, waitingProgressText, waitsForStartTime } from "./scheduledSng";
 import type { ActionDTO, GameOptionsDTO, ResultDTO } from "@block52/poker-vm-sdk";
 import type { ScheduledSngPhase } from "./scheduledSng";
 
@@ -194,5 +194,25 @@ describe("late registration create choices (ui#881)", () => {
         expect(lateRegistrationOptionLabel(0)).toBe("Off: the field is fixed at the start");
         expect(lateRegistrationOptionLabel(1)).toBe("Open for the first 1 blind level");
         expect(lateRegistrationOptionLabel(3)).toBe("Open for the first 3 blind levels");
+    });
+});
+
+describe("isRegistrationClosed", () => {
+    const NOW = 1_800_000_000_000;
+    const state = (over: Record<string, unknown> = {}) =>
+        ({ gameOptions: {}, results: [], handNumber: 3, previousActions: [{ action: "deal" }], ...over }) as never;
+
+    it("is closed on a directed table of a multi-table tournament", () => {
+        expect(isRegistrationClosed(state({ tournamentId: "0xabc" }), "tournament", NOW)).toBe(true);
+    });
+
+    it("is closed on a started single-table tournament with no late registration", () => {
+        expect(isRegistrationClosed(state(), "sit-and-go", NOW)).toBe(true);
+    });
+
+    it("is not closed before the tournament starts, at a cash table, or without a state", () => {
+        expect(isRegistrationClosed(state({ handNumber: 0, previousActions: [] }), "sit-and-go", NOW)).toBe(false);
+        expect(isRegistrationClosed(state(), "cash", NOW)).toBe(false);
+        expect(isRegistrationClosed(undefined, "sit-and-go", NOW)).toBe(false);
     });
 });

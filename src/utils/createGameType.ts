@@ -8,7 +8,7 @@
  * lobby and the table header agree on what to call a table.
  */
 import { GameFormat } from "@block52/poker-vm-sdk";
-import { hasValue } from "./guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 import { isScheduledSng } from "./scheduledSng";
 
 export type CreateGameType = "cash" | "sit-and-go" | "tournament";

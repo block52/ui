@@ -1,10 +1,12 @@
 import { useState, useEffect, useMemo } from "react";
 import type { BlindStructureDTO } from "@block52/poker-vm-sdk";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { isSitAndGoFormat, isTournamentFormat } from "../../utils/gameFormatUtils";
-import { formatChipCount } from "../../utils/potDisplayUtils";
-import { hasContent, hasValue, isNullish } from "../../utils/guards";
+import { isSitAndGoFormat, isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { formatChipCount } from "@block52/poker-ui-core/utils/potDisplayUtils";
+import { hasContent, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import { hasTournamentFinished } from "../../utils/scheduledSng";
+import { directedBlinds, tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
+import { useTournament } from "../tournament/useTournament";
 
 export interface BlindLevelInfo {
     /** Current blind level (0-based), undefined if not provided by backend */
@@ -21,6 +23,8 @@ export interface BlindLevelInfo {
     currentBlindsFormatted: string;
     /** Formatted next blinds string (e.g., "100/200") */
     nextBlindsFormatted: string;
+    /** This level's big-blind ante, formatted (e.g. "400"); undefined when the level has none (ui#891). */
+    currentAnteFormatted?: string;
     /**
      * Seconds remaining in the current blind level. Negative while a hand runs
      * past the level end (overtime); -1 when unknown (no timer — gated by
@@ -66,26 +70,49 @@ export const useBlindLevel = (): BlindLevelInfo => {
     // Blind level from backend
     const level = gameOptions?.blindLevel;
 
-    // Next blinds from backend — required for SNG/Tournament games
-    if (isActive && hasValue(gameOptions)) {
-        if (!hasContent(gameOptions.nextSmallBlind)) {
-            throw new Error("gameOptions.nextSmallBlind is required for SNG/Tournament games");
-        }
-        if (!hasContent(gameOptions.nextBigBlind)) {
-            throw new Error("gameOptions.nextBigBlind is required for SNG/Tournament games");
-        }
-    }
-    const nextSmallBlind = hasContent(gameOptions?.nextSmallBlind) ? Number(gameOptions.nextSmallBlind) : 0;
-    const nextBigBlind = hasContent(gameOptions?.nextBigBlind) ? Number(gameOptions.nextBigBlind) : 0;
+    // A directed table (multi-table tournament) has no next* / blindLevelDuration:
+    // the tournament director owns the schedule, so the next level and the level
+    // length come from the tournament's blind structure (ui#979).
+    const tournamentId = tournamentIdOf(gameState);
+    const { tournament } = useTournament(isActive ? tournamentId : undefined);
 
-    // Blind level duration in seconds
-    const blindLevelDuration = gameOptions?.blindLevelDuration;
-    const levelDurationSeconds = blindLevelDuration ? blindLevelDuration * 60 : 0;
+    let nextSmallBlind = 0;
+    let nextBigBlind = 0;
+    let levelDurationSeconds = 0;
+    let blindStructure = gameOptions?.blindStructure;
+
+    if (hasValue(tournamentId)) {
+        // Until the tournament record arrives there is no next level or timer
+        // (shown as unknown, never as a made-up value).
+        if (hasValue(tournament) && hasValue(level)) {
+            const directed = directedBlinds(tournament.options.blindStructure, level);
+            nextSmallBlind = Number(directed.next.smallBlind);
+            nextBigBlind = Number(directed.next.bigBlind);
+            levelDurationSeconds = directed.levelDurationSeconds;
+            blindStructure = tournament.options.blindStructure;
+        }
+    } else {
+        // Next blinds from backend — required for SNG/Tournament games
+        if (isActive && hasValue(gameOptions)) {
+            if (!hasContent(gameOptions.nextSmallBlind)) {
+                throw new Error("gameOptions.nextSmallBlind is required for SNG/Tournament games");
+            }
+            if (!hasContent(gameOptions.nextBigBlind)) {
+                throw new Error("gameOptions.nextBigBlind is required for SNG/Tournament games");
+            }
+        }
+        nextSmallBlind = hasContent(gameOptions?.nextSmallBlind) ? Number(gameOptions.nextSmallBlind) : 0;
+        nextBigBlind = hasContent(gameOptions?.nextBigBlind) ? Number(gameOptions.nextBigBlind) : 0;
+        // Blind level duration in seconds
+        const blindLevelDuration = gameOptions?.blindLevelDuration;
+        levelDurationSeconds = blindLevelDuration ? blindLevelDuration * 60 : 0;
+    }
 
     // Timer: compute seconds remaining in current level. A finished tournament
     // has no next level: levelStartTime stops advancing, so without this the
     // countdown would run on into red overtime forever.
-    const isFinished = hasTournamentFinished(gameState);
+    // On a directed table the finish is on the tournament record (the table has no results[]).
+    const isFinished = hasTournamentFinished(gameState) || tournament?.status === "finished";
     const hasTimer = isActive && !isFinished && levelDurationSeconds > 0 && hasValue(startTime) && startTime > 0;
 
     const secondsRemaining = useMemo(() => {
@@ -126,6 +153,10 @@ export const useBlindLevel = (): BlindLevelInfo => {
 
     const nextBlindsFormatted = `${formatChipCount(nextSmallBlind)}/${formatChipCount(nextBigBlind)}`;
 
+    // The engine re-emits the current level's ante as gameOptions.ante (absent = none).
+    const currentAnte = hasContent(gameOptions?.ante) ? Number(gameOptions.ante) : 0;
+    const currentAnteFormatted = currentAnte > 0 ? formatChipCount(currentAnte) : undefined;
+
     return {
         level,
         smallBlind: currentSB,
@@ -134,10 +165,11 @@ export const useBlindLevel = (): BlindLevelInfo => {
         nextBigBlind,
         currentBlindsFormatted,
         nextBlindsFormatted,
+        currentAnteFormatted,
         secondsRemaining,
         levelDurationSeconds,
         isActive,
         hasTimer,
-        blindStructure: gameOptions?.blindStructure
+        blindStructure
     };
 };

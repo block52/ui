@@ -3,8 +3,8 @@ import { Modal, LoadingSpinner } from "../common";
 import CryptoJS from "crypto-js";
 import type { DealEntropyModalProps } from "./types";
 import styles from "./DealEntropyModal.module.css";
-import { truncateMiddle } from "../../utils/stringUtils";
-import { generateSystemEntropy } from "../../utils/entropy";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
+import { generateSystemEntropy } from "@block52/ui-sdk/helpers";
 
 /**
  * Hashes a string using SHA-256

@@ -12,7 +12,10 @@
  */
 
 import React from "react";
-import { isTournamentFormat } from "../../../../utils/gameFormatUtils";
+import type { ResultDTO } from "@block52/poker-vm-sdk";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { isNullish } from "@block52/ui-sdk/helpers";
+import { tournamentIdOf } from "@block52/poker-ui-core/utils/tournamentBlinds";
 import GameStartCountdown from "../../common/GameStartCountdown";
 import { SitAndGoAutoJoinModal, SitAndGoResultModal } from "../../../modals";
 import SitAndGoWaitingModal from "../../SitAndGoWaitingModal";
@@ -20,7 +23,9 @@ import TransactionPopup from "../../common/TransactionPopup";
 import { LeaveTableModal } from "../../../modals";
 import TournamentWinnerMoment from "../../Animations/TournamentWinnerMoment";
 import { useTournamentFinishMoment } from "../../../../hooks/game/useTournamentFinishMoment";
-import { holdsResultModals } from "../../../../utils/tournamentFinish";
+import { holdsResultModals } from "@block52/poker-ui-core/utils/tournamentFinish";
+import type { RebalanceNotice as RebalanceNoticeState } from "@block52/poker-ui-core/utils/rebalanceNotice";
+import { RebalanceNotice } from "../../RebalanceNotice";
 
 export interface TableModalsProps {
     // Game Start Countdown
@@ -35,6 +40,10 @@ export interface TableModalsProps {
     isUserAlreadyPlaying: boolean;
     tableId: string | undefined;
     onAutoJoinSuccess: () => void;
+    /** The tournament record's results, on a directed table of a multi-table tournament (it has none of its own). */
+    tournamentResults?: ResultDTO[];
+    /** How many players that tournament started with. */
+    tournamentSize?: number;
 
     // Sit & Go Waiting Modal
     isSitAndGoWaitingForPlayers: boolean;
@@ -51,6 +60,9 @@ export interface TableModalsProps {
     handleClaimWinnings: () => Promise<void>;
     currentPlayerStack: string;
     isInActiveHand: boolean;
+
+    /** Compact notice while this table is waiting on a tournament rebalance (ui#1007). */
+    rebalanceNotice?: RebalanceNoticeState;
 }
 
 export const TableModals: React.FC<TableModalsProps> = ({
@@ -63,6 +75,8 @@ export const TableModals: React.FC<TableModalsProps> = ({
     isUserAlreadyPlaying,
     tableId,
     onAutoJoinSuccess,
+    tournamentResults,
+    tournamentSize,
     isSitAndGoWaitingForPlayers,
     recentTxHash,
     handleCloseTransactionPopup,
@@ -71,11 +85,12 @@ export const TableModals: React.FC<TableModalsProps> = ({
     handleLeaveTableConfirm,
     handleClaimWinnings,
     currentPlayerStack,
-    isInActiveHand
+    isInActiveHand,
+    rebalanceNotice
 }) => {
     // ui#874: a finish happening live holds the results / busted modal until the
     // deciding hand (and, at the end, the tournament-winner moment) has shown.
-    const finishMoment = useTournamentFinishMoment();
+    const finishMoment = useTournamentFinishMoment(tournamentResults);
     const holdResults = holdsResultModals(finishMoment.phase);
 
     return (
@@ -85,8 +100,11 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 <GameStartCountdown gameStartTime={gameStartTime} onCountdownComplete={handleCountdownComplete} onSkip={handleSkipCountdown} />
             )}
 
-            {/* Sit & Go Auto-Join Modal - Shows for Sit & Go games when user is not playing */}
-            {gameState && gameFormat && isTournamentFormat(gameFormat) && !isUserAlreadyPlaying && tableId && (
+            {/* Sit & Go Auto-Join Modal - Shows for Sit & Go games when user is not playing.
+                Never on a directed table of a multi-table tournament: the director seats
+                the players, nobody joins mid-event, and a busted player must not be
+                offered a seat (they see the result banner instead). */}
+            {gameState && gameFormat && isTournamentFormat(gameFormat) && !isUserAlreadyPlaying && tableId && isNullish(tournamentIdOf(gameState)) && (
                 <SitAndGoAutoJoinModal tableId={tableId} onJoinSuccess={onAutoJoinSuccess} />
             )}
 
@@ -106,12 +124,23 @@ export const TableModals: React.FC<TableModalsProps> = ({
                 table is finished — no balance-still-on-table concern.
                 block52/ui#371. */}
             {gameFormat && isTournamentFormat(gameFormat) && (
-                <SitAndGoResultModal tableId={tableId} onLeave={handleLeaveTableConfirm} onClaim={handleClaimWinnings} held={holdResults} />
+                <SitAndGoResultModal
+                    tableId={tableId}
+                    onLeave={handleLeaveTableConfirm}
+                    onClaim={handleClaimWinnings}
+                    held={holdResults}
+                    tournamentResults={tournamentResults}
+                    tournamentSize={tournamentSize}
+                />
             )}
 
             {/* Tournament-winner moment (ui#874): winner, prize, winning hand and
                 runner-up, held before the results modal. */}
             {finishMoment.phase === "winner" && finishMoment.finish && <TournamentWinnerMoment finish={finishMoment.finish} />}
+
+            {/* Rebalance notice — compact, no backdrop, so Leave and other
+                controls stay usable (block52/ui#1007). */}
+            <RebalanceNotice notice={rebalanceNotice} />
 
             {/* Transaction Popup - Bottom Right */}
             <TransactionPopup txHash={recentTxHash} onClose={handleCloseTransactionPopup} />

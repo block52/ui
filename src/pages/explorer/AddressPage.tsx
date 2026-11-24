@@ -3,10 +3,10 @@ import { isNetworkError } from "../../apis/HTTPClient";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { getCosmosClient } from "../../utils/cosmos/client";
 import { useNetwork } from "../../context/NetworkContext";
-import { microToUsdc } from "../../constants/currency";
+import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
 import { Coin } from "./types";
-import { formatTimestampRelative } from "../../utils/formatUtils";
-import { isEmpty, hasElements } from "../../utils/guards";
+import { formatTimestampRelative } from "@block52/poker-ui-core/utils/formatUtils";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { AnimatedBackground } from "../../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../../components/explorer/ExplorerHeader";
 import {

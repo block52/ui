@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useCosmosApi } from "../../context/CosmosApiContext";
 import { PlayerDTO } from "@block52/poker-vm-sdk";
-import { isEmpty, hasValue } from "../../utils/guards";
+import { isEmpty, hasValue } from "@block52/ui-sdk/helpers";
 
 interface TablePlayerCount {
     tableId: string;

@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { microToUsdc } from "../constants/currency";
-import { truncateMiddle } from "../utils/stringUtils";
+import { microToUsdc } from "@block52/poker-ui-core/constants/currency";
+import { truncateMiddle } from "@block52/poker-ui-core/utils/stringUtils";
 import { AnimatedBackground } from "../components/common/AnimatedBackground";
 import { ExplorerHeader } from "../components/explorer/ExplorerHeader";
 import { ExplorerEmpty, ExplorerError, ExplorerLoading, ExplorerPanel, ExplorerReloadButton, ExplorerSearchInput } from "../components/explorer/ExplorerPanel";
-import { isEmpty, hasElements } from "../utils/guards";
+import { isEmpty, hasElements } from "@block52/ui-sdk/helpers";
 import { Pagination } from "../components/common";
 import { VipBadge } from "../components/players/VipBadge";
 import { usePlayersDirectory } from "../hooks/player/usePlayersDirectory";
-import type { PlayerSortField } from "../types/players";
+import { useVisibleRefresh } from "../hooks/useVisibleRefresh";
+import type { PlayerSortField } from "@block52/poker-ui-core/types/players";
 import styles from "./explorer/AllAccountsPage.module.css";
 
 const PAGE_SIZE = 20;
@@ -55,6 +56,9 @@ export default function PlayersPage() {
 
     const { players, total, loading, error, refetch } = usePlayersDirectory(params);
 
+    // Coming back to the tab picks up new hands and results without flashing the spinner.
+    useVisibleRefresh(() => refetch({ silent: true }));
+
     const toggleSort = (field: PlayerSortField) => {
         if (sort === field) {
             setOrder(prev => (prev === "asc" ? "desc" : "asc"));
@@ -83,7 +87,7 @@ export default function PlayersPage() {
 
                 <ExplorerPanel
                     header={`Players${!loading && !error && total > 0 ? ` · ${total.toLocaleString()}` : ""}`}
-                    action={<ExplorerReloadButton onClick={refetch} busy={loading} />}
+                    action={<ExplorerReloadButton onClick={() => refetch()} busy={loading} />}
                 >
                     {loading ? (
                         <ExplorerLoading label="Loading players…" />
@@ -120,7 +124,7 @@ export default function PlayersPage() {
                                             className="hidden sm:table-cell px-4 py-2 text-right text-gray-400 font-semibold whitespace-nowrap cursor-pointer hover:text-white transition-colors"
                                             onClick={() => toggleSort("total_rake_contributed")}
                                         >
-                                            Rake{sortArrow("total_rake_contributed")}
+                                            Network fees{sortArrow("total_rake_contributed")}
                                         </th>
                                     </tr>
                                 </thead>

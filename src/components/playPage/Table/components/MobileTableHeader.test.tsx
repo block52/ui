@@ -39,7 +39,7 @@ jest.mock("../../../modals", () => ({ TopUpModal: () => <div /> }));
 
 const sitOutLegal: LegalActionDTO[] = [{ action: NonPlayerActionType.SIT_OUT, min: "0", max: "0", index: 1 } as LegalActionDTO];
 
-function renderHeader(over: { seated?: boolean; legalActions?: LegalActionDTO[] } = {}) {
+function renderHeader(over: { seated?: boolean; legalActions?: LegalActionDTO[]; tableStyle?: "modern" | "classic" | "nouns" | "blockchainpoker" } = {}) {
     const legalActions = over.legalActions ?? [];
     return render(
         <SitOutIntentProvider tableId="0xtable" network={{} as never} pendingSitOut={null} legalActions={legalActions}>
@@ -63,7 +63,7 @@ function renderHeader(over: { seated?: boolean; legalActions?: LegalActionDTO[] 
                 minBuyIn="0"
                 maxBuyIn="0"
                 walletBalance="0"
-                tableStyle="modern"
+                tableStyle={over.tableStyle ?? "modern"}
                 onCycleTableStyle={jest.fn()}
                 onOpenPanel={mockOpenPanel}
                 handleLobbyClick={jest.fn()}
@@ -111,6 +111,12 @@ describe("MobileTableHeader drawer (ui#684)", () => {
         renderHeader({ seated: true, legalActions: sitOutLegal });
         openMenu();
         expect(screen.queryByText(/tap an open seat to join/)).not.toBeInTheDocument();
+    });
+
+    it("shows the Blockchain Poker label in the Style row", () => {
+        renderHeader({ tableStyle: "blockchainpoker" });
+        openMenu();
+        expect(screen.getByText("Blockchain Poker")).toBeInTheDocument();
     });
 
     describe("sit-out intents", () => {

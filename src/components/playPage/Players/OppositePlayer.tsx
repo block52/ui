@@ -12,7 +12,6 @@
  */
 
 import * as React from "react";
-import { useParams } from "react-router-dom";
 import Badge from "../common/Badge";
 import { useWinnerInfo } from "../../../hooks/game/useWinnerInfo";
 import { useWinnerCards } from "../../../hooks/game/useWinnerCards";
@@ -24,12 +23,13 @@ import { getCardImageUrl, getCardBackUrl, CardBackStyle } from "../../../utils/c
 import { useAllInEquity } from "../../../hooks/player/useAllInEquity";
 import { useProfileAvatar } from "../../../context/profile/ProfileAvatarContext";
 import { usePlayerTimer } from "../../../hooks/player/usePlayerTimer";
-import { hasElements } from "../../../utils/guards";
-import { winnerCardHighlight } from "../../../utils/holeCardLayout";
+import { hasElements } from "@block52/ui-sdk/helpers";
+import { winnerCardHighlight } from "@block52/poker-ui-core/utils/holeCardLayout";
 import { HoleCardRow } from "./HoleCardRow";
-import { getSeatOpacityClass } from "../../../utils/seatOpacity";
+import { getSeatOpacityClass } from "@block52/poker-ui-core/utils/seatOpacity";
 import styles from "./PlayersCommon.module.css";
 import { NftAvatarImage } from "../../profile/NftAvatarImage";
+import { useTableId } from "../../../hooks/game/useTableId";
 
 type OppositePlayerProps = {
     left?: string;
@@ -43,7 +43,7 @@ type OppositePlayerProps = {
 };
 
 const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, index, color, uiPosition, cardBackStyle }) => {
-    const { id } = useParams<{ id: string }>();
+    const id = useTableId();
     const { playerData, stackValue, isFolded, isAllIn, isSeated, isSittingOut, holeCards, round } = usePlayerData(index);
     const { winnerInfo, winnerBySeat } = useWinnerInfo();
     const winnerCards = useWinnerCards();
@@ -189,12 +189,14 @@ const OppositePlayer: React.FC<OppositePlayerProps> = React.memo(({ left, top, i
         </>
     );
 }, (prevProps, nextProps) => {
-    // Custom comparison function - only re-render if meaningful props change
+    // Custom comparison function - only re-render if meaningful props change.
+    // cardBackStyle must be included so toggling the table appearance updates hole-card backs.
     return (
         prevProps.left === nextProps.left &&
         prevProps.top === nextProps.top &&
         prevProps.index === nextProps.index &&
-        prevProps.color === nextProps.color
+        prevProps.color === nextProps.color &&
+        prevProps.cardBackStyle === nextProps.cardBackStyle
     );
 });
 

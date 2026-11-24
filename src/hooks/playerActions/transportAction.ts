@@ -12,13 +12,13 @@
  * resolution, SNG finishing order).
  */
 import { NonPlayerActionType, TexasHoldemStateDTO } from "@block52/poker-vm-sdk";
-import type { TrackMeta } from "../../bus/types";
+import type { TrackMeta } from "@block52/poker-ui-core/bus/types";
 
 import type { NetworkEndpoints } from "../../context/NetworkContext";
-import type { PlayerActionResult } from "../../types";
+import type { PlayerActionResult } from "@block52/poker-ui-core/types";
 import { getSigningClient } from "../../utils/cosmos/client";
 import { bankSpentData, withBankSpentData } from "../../utils/bankClockReport";
-import { hasElements } from "../../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 
 let latestGameState: TexasHoldemStateDTO | undefined;
 

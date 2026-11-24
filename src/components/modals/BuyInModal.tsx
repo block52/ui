@@ -1,21 +1,21 @@
 import React, { useState, useMemo, useCallback } from "react";
 import { useMinAndMaxBuyIns } from "../../hooks/game/useMinAndMaxBuyIns";
 import { useNavigate } from "react-router-dom";
-import { formatUSDCToSimpleDollars } from "../../utils/numberUtils";
-import { computeSngEntryBreakdown } from "../../utils/buyInUtils";
+import { formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
+import { computeSngEntryBreakdown } from "@block52/poker-ui-core/utils/buyInUtils";
 import { useVacantSeatData } from "../../hooks/game/useVacantSeatData";
 import { HexagonPattern } from "../common/Modal";
 import { joinTable } from "../../hooks/playerActions/joinTable";
 import { JoinTableOptions } from "../../hooks/playerActions/types";
 import { useCosmosWallet } from "../../hooks";
-import { usdcToMicroBigInt, microToUsdc, parseUsdcToMicro } from "../../constants/currency";
+import { usdcToMicroBigInt, microToUsdc, parseUsdcToMicro } from "@block52/poker-ui-core/constants/currency";
 import { STORAGE_KEYS } from "../../constants/storageKeys";
 import { useNetwork } from "../../context/NetworkContext";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { getBlindsForDisplay } from "../../utils/gameFormatUtils";
+import { getBlindsForDisplay } from "@block52/poker-ui-core/utils/gameFormatUtils";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import DepositCore from "./DepositCore";
-import { isEmpty, hasElements, hasValue } from "../../utils/guards";
+import { isEmpty, hasElements, hasValue } from "@block52/ui-sdk/helpers";
 import { sitAndGoTypeLabel } from "../../utils/createGameType";
 import styles from "./BuyInModal.module.css";
 

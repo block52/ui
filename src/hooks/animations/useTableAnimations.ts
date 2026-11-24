@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { TableAnimationsReturn } from "../../types/index";
+import { TableAnimationsReturn } from "@block52/poker-ui-core/types";
 
 /**
  * Custom hook to provide table animation-related information

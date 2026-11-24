@@ -1,5 +1,5 @@
 import React from "react";
-import { RECONNECT_MAX_ATTEMPTS } from "../../utils/reconnectBackoff";
+import { RECONNECT_MAX_ATTEMPTS } from "@block52/poker-ui-core/utils/reconnectBackoff";
 import type { ConnectionState } from "../../context/gameState/connection";
 
 interface ConnectionBannerProps {

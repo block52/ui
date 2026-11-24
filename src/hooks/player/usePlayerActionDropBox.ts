@@ -2,10 +2,11 @@ import { useState, useEffect, useMemo, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameEvents } from "../game/useGameEvents";
 import { ActionDTO, PlayerActionType, NonPlayerActionType } from "@block52/poker-vm-sdk";
-import { formatDisplayAmount, formatForSitAndGo, formatUSDCToSimpleDollars } from "../../utils/numberUtils";
-import { getStreetCommitTotalForAction } from "../../utils/raiseUtils";
-import { isTournamentFormat } from "../../utils/gameFormatUtils";
-import { isBlank, isEmpty } from "../../utils/guards";
+import { formatDisplayAmount, formatForSitAndGo, formatUSDCToSimpleDollars } from "@block52/poker-ui-core/utils/numberUtils";
+import { getStreetCommitTotalForAction } from "@block52/poker-ui-core/utils/raiseUtils";
+import { isTournamentFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { isBlank, isEmpty } from "@block52/ui-sdk/helpers";
+import { useClosingBetPresentation } from "./useClosingBetPresentation";
 
 export interface PlayerActionDisplay {
   action: string;
@@ -141,11 +142,14 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
 
   // Newest actions committed this frame (index-ordered; last is globally newest).
   const playerActedEvents = useGameEvents("playerActed");
+  const closing = useClosingBetPresentation();
+  const forced = closing.phase === "off" ? undefined : closing.actionBySeat.get(seatIndex);
 
   const [displayState, setDisplayState] = useState<PlayerActionDisplay>(HIDDEN);
 
   // All pending choreography timers, cleared on a new action / unmount.
   const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
+  const heldClosingLabel = useRef(false);
   const clearTimers = () => {
     timersRef.current.forEach(clearTimeout);
     timersRef.current = [];
@@ -161,6 +165,28 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
 
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
+    // The bet that closed the street stays labelled while its chips are in
+    // front of the seat, including on later runout beats that emit no new action.
+    if (forced) {
+      heldClosingLabel.current = true;
+      clearTimers();
+      const badge = getActionBadgeDisplay(forced, gameState?.previousActions ?? [], isTournament);
+      setDisplayState({
+        action: badge.action,
+        amount: badge.amount,
+        isVisible: true,
+        isTextHiding: false,
+        isAnimatingOut: false
+      });
+      return;
+    }
+
+    if (heldClosingLabel.current) {
+      heldClosingLabel.current = false;
+      clearTimers();
+      setDisplayState(HIDDEN);
+    }
+
     // No new action this commit (duplicate frame, no-op frame, or filtered): do
     // not disturb an in-progress badge — it follows its own timeout.
     if (!latestAction) return;
@@ -199,7 +225,7 @@ export const usePlayerActionDropBox = (seatIndex: number): PlayerActionDisplay =
     // previousActions is safe as a dep: a commit without new actions yields no
     // playerActed events, so latestAction is null and the effect early-returns
     // before it could disturb an in-progress badge.
-  }, [latestAction, seatIndex, isTournament, gameState?.previousActions]);
+  }, [latestAction, seatIndex, isTournament, gameState?.previousActions, forced]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // Cleanup timeouts on unmount

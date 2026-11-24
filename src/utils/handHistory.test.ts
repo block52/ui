@@ -1,7 +1,7 @@
 import { AxiosError } from "axios";
 import { GameFormat } from "@block52/poker-vm-sdk";
 import { describeHandLoadError, describeHandOutcome, describeIndexing, handKey, indexerErrorCode, mergeHandPages } from "./handHistory";
-import type { PlayerHand } from "../types/players";
+import type { PlayerHand } from "@block52/poker-ui-core/types/players";
 import type { IndexerStatus } from "../pages/explorer/types";
 
 const hand = (game_id: string, hand_number: number, extra: Partial<PlayerHand> = {}): PlayerHand => ({

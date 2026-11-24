@@ -1,6 +1,14 @@
 import HTTPClient from "./HTTPClient";
-import { hasContent, hasValue } from "../utils/guards";
-import type { PlayerSearchParams, PlayersListResponse, PlayerProfile, PlayerSessionsResponse, PlayerHandsResponse } from "../types/players";
+import { hasContent, hasValue } from "@block52/ui-sdk/helpers";
+import type {
+    PlayerSearchParams,
+    PlayersListResponse,
+    PlayerProfile,
+    PlayerSessionFilter,
+    PlayerSessionsResponse,
+    PlayerHandsResponse
+} from "@block52/poker-ui-core/types/players";
+import type { TournamentResponse } from "@block52/poker-ui-core/types/tournament";
 import type { WithdrawalSignatureResponse } from "../utils/withdrawalSignature";
 
 export class PaymentApi extends HTTPClient {
@@ -59,11 +67,14 @@ export class CosmosApi extends HTTPClient {
         this.get(`/block52/pokerchain/poker/v1/game_state_public/${gameId}`, {
             headers: { "x-cosmos-block-height": String(blockHeight) }
         });
+    /** A multi-table tournament: `{ tournament: "<TournamentStateDTO JSON>", creator }` (404 when unknown). */
     public getWithdrawalRequests = () => this.get("/pokerchain/poker/withdrawal_requests");
     // A validator's signature for a pending withdrawal (read-only; pokerchain#392).
     public getWithdrawalSignature = (nonce: string) =>
         this.get<WithdrawalSignatureResponse>(`/block52/pokerchain/poker/v1/withdrawal_signature/${encodeURIComponent(nonce)}`);
-    public getIsTxProcessed = (txHash: string) => this.get(`/block52/pokerchain/poker/v1/is_tx_processed/${txHash}`);
+    /** A multi-table tournament's record (`tournament` = TournamentStateDTO JSON string). */
+    public getTournament = (tournamentId: string) => this.get<TournamentResponse>(`/block52/pokerchain/poker/v1/tournament/${encodeURIComponent(tournamentId)}`);
+    public getIsTxProcessed =(txHash: string) => this.get(`/block52/pokerchain/poker/v1/is_tx_processed/${txHash}`);
     public getNftAvatar = (cosmosAddress: string) => this.get(`/pokerchain/poker/nft_avatar/${cosmosAddress}`);
     // Tendermint base endpoints (used for node status / block-height probes across arbitrary node URLs)
     public getLatestBlock = (signal?: AbortSignal) => this.get("/cosmos/base/tendermint/v1beta1/blocks/latest", { signal });
@@ -106,8 +117,9 @@ export class IndexerApi extends HTTPClient {
     // fields are integers scaled x100. See indexer API.md.
     public getPlayers = (params: PlayerSearchParams = {}) => this.get<PlayersListResponse>(`/api/v1/players${buildPlayerQuery(params)}`);
     public getPlayerProfile = (address: string) => this.get<PlayerProfile>(`/api/v1/players/${encodeURIComponent(address)}/stats`);
-    public getPlayerSessions = (address: string, limit = 20, offset = 0) =>
-        this.get<PlayerSessionsResponse>(`/api/v1/players/${encodeURIComponent(address)}/sessions?limit=${limit}&offset=${offset}`);
+    // The filter and the response's game fields and counts need the indexer from ui#1012.
+    public getPlayerSessions = (address: string, limit = 20, offset = 0, filter: PlayerSessionFilter = {}) =>
+        this.get<PlayerSessionsResponse>(`/api/v1/players/${encodeURIComponent(address)}/sessions${buildSessionQuery(limit, offset, filter)}`);
     // Hands a wallet played, newest first (ui#721).
     public getPlayerHands = (address: string, limit: number, offset: number) =>
         this.get<PlayerHandsResponse>(`/api/v1/players/${encodeURIComponent(address)}/hands?limit=${limit}&offset=${offset}`);
@@ -123,4 +135,12 @@ function buildPlayerQuery(params: PlayerSearchParams): string {
     if (hasValue(params.offset)) q.set("offset", String(params.offset));
     const s = q.toString();
     return s ? `?${s}` : "";
+}
+
+// Serialize a sessions page and its game filter, omitting empty filter fields.
+export function buildSessionQuery(limit: number, offset: number, filter: PlayerSessionFilter): string {
+    const q = new URLSearchParams({ limit: String(limit), offset: String(offset) });
+    if (hasContent(filter.game_format)) q.set("game_format", filter.game_format);
+    if (hasContent(filter.game_variant)) q.set("game_variant", filter.game_variant);
+    return `?${q.toString()}`;
 }

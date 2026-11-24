@@ -1,0 +1,84 @@
+/**
+ * Blockchain Poker table appearance.
+ *
+ * Loaded from Table.tsx and scoped to [data-table-theme="blockchainpoker"]
+ * so modern, classic, and nouns are untouched. Layout (seat positions,
+ * table size, rail geometry) stays in Table.tsx; this file only sets colour
+ * and artwork for the appearance.
+ */
+
+.table-container[data-table-theme="blockchainpoker"] .flex-grow.relative {
+    background: #3a3a3a;
+}
+
+.table-container[data-table-theme="blockchainpoker"] .blockchain-poker-background {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    background: #3a3a3a;
+    pointer-events: none;
+}
+
+/* Charcoal rail. Colour lives here (Table.tsx omits the inline colours
+   for this appearance so these rules apply without !important). Width,
+   height, left, and top stay on the element. */
+.table-container[data-table-theme="blockchainpoker"] .table-rail {
+    border: 14px solid #1b1b1b;
+    background: #1b1b1b;
+    box-shadow:
+        0 10px 28px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* Flat forest-green felt, soft vignette, thin inner oval line. */
+.table-container[data-table-theme="blockchainpoker"] .table-surface-shadow {
+    background: radial-gradient(ellipse at center, #256142 0%, #1e5736 78%, #1a4e31 100%);
+    border-color: rgba(0, 0, 0, 0.35);
+    box-shadow:
+        0 4px 20px rgba(0, 0, 0, 0.45),
+        inset 0 0 90px rgba(0, 0, 0, 0.3),
+        inset 0 0 0 1.5px rgba(232, 220, 180, 0.22);
+}
+
+/* Official felt watermark (chevron + wordmark + tagline), centred on the felt
+   and behind the board / pot (z-index 0 vs the felt's z-20). Cards may cover
+   part of it. Sized large in table-stage pixels (felt is 1000×500). Opacity
+   is ~35% so the mark is visible around the cards without competing with them.
+   Transform replaces the default scale(1.5). */
+.table-container[data-table-theme="blockchainpoker"] .table-logo {
+    transform: translate(-50%, -50%);
+}
+
+.table-container[data-table-theme="blockchainpoker"] .table-logo img {
+    width: 640px;
+    opacity: 0.35;
+    object-fit: contain;
+}
+
+/* Empty seats: same icon + "Seat N" + "Click to join", orange recolour only.
+   VacantPlayer.module.css hashes .seatText, so we target via the icon instead. */
+.table-container[data-table-theme="blockchainpoker"] :has(> img[alt="Vacant Seat"]) + div,
+.table-container[data-table-theme="blockchainpoker"] :has(> img[alt="Vacant Seat"]) + div > div:first-child {
+    color: #feac3f;
+}
+
+.table-container[data-table-theme="blockchainpoker"] :has(> img[alt="Vacant Seat"]) + div > div:nth-child(2) {
+    color: #d28b2a;
+}
+
+.table-container[data-table-theme="blockchainpoker"] img[alt="Vacant Seat"] {
+    /* Recolour the grey PokerProfile icon to #FEAC3F without changing size. */
+    filter: brightness(0) saturate(100%) invert(72%) sepia(62%) saturate(620%) hue-rotate(346deg) brightness(101%) contrast(101%);
+}
+
+/* Desktop table-style toggle: orange border and type on charcoal, matching the rail. */
+.table-container[data-table-theme="blockchainpoker"] .table-style-toggle {
+    border: 2px solid #feac3f;
+    background-color: rgba(27, 27, 27, 0.9);
+    color: #feac3f;
+}
+
+/* Mobile hamburger Style row: orange label when this appearance is active. */
+.table-container[data-table-theme="blockchainpoker"] .table-style-menu-row > span:last-child {
+    color: #feac3f;
+}

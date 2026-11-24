@@ -1,9 +1,9 @@
 /**
- * VIP tier badge (ui#589). Shows the tier label and, optionally, the rakeback %.
+ * VIP tier badge (ui#589). Shows the tier label and, optionally, the fee rebate %.
  */
 
 import React from "react";
-import type { VipTier } from "../../types/players";
+import type { VipTier } from "@block52/poker-ui-core/types/players";
 import { getVipTierMeta } from "../../utils/vip";
 
 interface VipBadgeProps {
@@ -20,7 +20,7 @@ export const VipBadge: React.FC<VipBadgeProps> = ({ tier, rakebackPct, showRakeb
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-bold ${meta.badgeClass} ${className}`}>
             {meta.label}
-            {showRakeback && pct > 0 && <span className="font-normal opacity-80">· {pct}% rakeback</span>}
+            {showRakeback && pct > 0 && <span className="font-normal opacity-80">· {pct}% fee rebate</span>}
         </span>
     );
 };

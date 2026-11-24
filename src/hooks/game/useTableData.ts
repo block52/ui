@@ -1,8 +1,8 @@
 import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { PlayerDTO, TexasHoldemRound, GameFormat } from "@block52/poker-vm-sdk";
-import { TableDataReturn } from "../../types/index";
-import { getGameFormat } from "../../utils/gameFormatUtils";
+import { TableDataReturn } from "@block52/poker-ui-core/types";
+import { getGameFormat } from "@block52/poker-ui-core/utils/gameFormatUtils";
 
 /**
  * Custom hook to provide formatted table data

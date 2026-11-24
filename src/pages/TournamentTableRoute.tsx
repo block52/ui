@@ -1,0 +1,24 @@
+import type { ReactNode } from "react";
+import { Navigate, useParams } from "react-router-dom";
+import { useTournament } from "../hooks/tournament/useTournament";
+import { hasValue } from "@block52/ui-sdk/helpers";
+import { tournamentUrl } from "@block52/poker-ui-core/utils/tableUrl";
+import { isTournamentTableLive } from "@block52/poker-ui-core/utils/tournamentTables";
+
+/**
+ * `/tournament/:tournamentId/table/:n`. A table that has been broken up (or never
+ * existed) has no state to show, so its URL, an old link or a stale tab used to
+ * end in "WebSocket server not responding". The tournament knows its live tables:
+ * when this one is not among them, go to the tournament's page, which takes a
+ * seated player to the table they are at now and shows everyone else the standings.
+ * While the tournament record loads, the table renders as usual.
+ */
+export default function TournamentTableRoute({ children }: { children: ReactNode }) {
+    const { tournamentId, n } = useParams<{ tournamentId: string; n: string }>();
+    const { tournament } = useTournament(tournamentId);
+
+    if (hasValue(tournamentId) && hasValue(n) && hasValue(tournament) && tournament.status !== "registering" && !isTournamentTableLive(tournament, Number(n))) {
+        return <Navigate to={tournamentUrl(tournamentId)} replace />;
+    }
+    return <>{children}</>;
+}

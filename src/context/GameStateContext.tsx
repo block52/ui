@@ -3,13 +3,13 @@ import { useNetwork, NETWORK_PRESETS } from "./NetworkContext";
 import type { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
 import { createAuthPayload } from "../utils/cosmos/signing";
 import { setLatestGameState } from "../hooks/playerActions/transportAction";
-import { ClassifiedMessage } from "../bus/ingest";
-import { parseFrame } from "../bus/frame";
-import { GameMessageBus } from "../bus/GameMessageBus";
-import { type GameStreamItem } from "../bus/types";
+import { ClassifiedMessage } from "@block52/poker-ui-core/bus/ingest";
+import { parseFrame } from "@block52/poker-ui-core/bus/frame";
+import { GameMessageBus } from "@block52/poker-ui-core/bus/GameMessageBus";
+import { type GameStreamItem } from "@block52/poker-ui-core/bus/types";
 import { viteEnv } from "../utils/viteEnv";
-import { toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
-import { hasElements, hasValue, isNullish } from "../utils/guards";
+import { toGameFormat, toGameVariant } from "@block52/poker-ui-core/utils/gameFormatUtils";
+import { hasElements, hasValue, isNullish } from "@block52/ui-sdk/helpers";
 import type { ValidationError } from "../components/playPage/TableErrorPage";
 import { CosmosApi } from "../apis/Api";
 import { useCometRpcApiFactory } from "./CosmosApiContext";
@@ -24,8 +24,10 @@ import { ReplayProvider, useReplay } from "./gameState/ReplayContext";
 import { GameActionsProvider, useGameActions } from "./gameState/GameActionsContext";
 import { GameEventsProvider } from "./gameState/GameEventsContext";
 import { IDLE_CONNECTION, isConnectionLive, type ConnectionState } from "./gameState/connection";
-import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "../utils/reconnectBackoff";
+import { RECONNECT_MAX_ATTEMPTS, reconnectDelayMs } from "@block52/poker-ui-core/utils/reconnectBackoff";
 import { AUTH_RENEWAL_CHECK_MS, isAuthRenewalDue, isOwnHandMasked } from "../utils/wsAuth";
+import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
+import { prefersReducedMotion } from "../utils/motion";
 
 // Feature toggle for REST fallback (debug only - disabled by default per Commandment 7)
 const ENABLE_REST_FALLBACK = false;
@@ -64,7 +66,6 @@ export interface GameStateContextType {
     replayActionIndex: number | null;
     subscribeToTable: (tableId: string) => void;
     unsubscribeFromTable: () => void;
-    sendAction: (action: string, amount?: string) => Promise<void>;
     /** actionIndex null = the hand's final state (showdown or last action). */
     loadHistoricalState: (tableId: string, handNumber: number, actionIndex: number | null) => Promise<void>;
     /** One step of a hand replay (ui#816): the public state at a block height. */
@@ -127,7 +128,7 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
     // applyRenderTrack below.
     const busRef = useRef<GameMessageBus | null>(null);
     if (isNullish(busRef.current)) {
-        busRef.current = new GameMessageBus({ setLatestGameState });
+        busRef.current = new GameMessageBus({ setLatestGameState, getLocalAddress: getCosmosAddressSync, getReducedMotion: prefersReducedMotion });
     }
 
     // Stable bridge from the render layer to the bus's animation-ack API (Phase 5).
@@ -568,37 +569,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         setPendingAction(null);
     }, [closeSocket]);
 
-    // Send action through WebSocket for immediate broadcast
-    const sendAction = useCallback(
-        async (action: string, amount?: string): Promise<void> => {
-            if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-                throw new Error("WebSocket not connected");
-            }
-
-            if (!currentTableIdRef.current) {
-                throw new Error("Not subscribed to a table");
-            }
-
-            // Get Cosmos player address
-            const playerAddress = localStorage.getItem(STORAGE_KEYS.cosmosAddress);
-
-            if (!playerAddress) {
-                throw new Error("No Block52 wallet address found. Please connect your wallet.");
-            }
-
-            const actionMessage = {
-                type: "action",
-                gameId: currentTableIdRef.current,
-                playerAddress: playerAddress,
-                action: action,
-                amount: amount
-            };
-
-            wsRef.current.send(JSON.stringify(actionMessage));
-        },
-        []
-    );
-
     // Read-only replay for share links (no WebSocket, no actions):
     //   actionIndex = K    → GameStateAt (pokerchain#160): the current hand only, with
     //                        previousActions truncated at K.
@@ -791,7 +761,6 @@ export const GameStateProvider: React.FC<GameStateProviderProps> = ({ children }
         <GameActionsProvider
             subscribeToTable={subscribeToTable}
             unsubscribeFromTable={unsubscribeFromTable}
-            sendAction={sendAction}
             loadHistoricalState={loadHistoricalState}
             loadHistoricalStateAtHeight={loadHistoricalStateAtHeight}
         >
@@ -832,7 +801,7 @@ export const useGameStateContext = (): GameStateContextType => {
     const { gameFormat, gameVariant, gameName } = useGameMeta();
     const { isLoading, error, validationError, pendingAction, connection } = useGameUI();
     const { isReplayMode, replayHandNumber, replayActionIndex } = useReplay();
-    const { subscribeToTable, unsubscribeFromTable, sendAction, loadHistoricalState, loadHistoricalStateAtHeight } = useGameActions();
+    const { subscribeToTable, unsubscribeFromTable, loadHistoricalState, loadHistoricalStateAtHeight } = useGameActions();
 
     return useMemo(
         () => ({
@@ -850,7 +819,6 @@ export const useGameStateContext = (): GameStateContextType => {
             replayActionIndex,
             subscribeToTable,
             unsubscribeFromTable,
-            sendAction,
             loadHistoricalState,
             loadHistoricalStateAtHeight
         }),
@@ -869,7 +837,6 @@ export const useGameStateContext = (): GameStateContextType => {
             replayActionIndex,
             subscribeToTable,
             unsubscribeFromTable,
-            sendAction,
             loadHistoricalState,
             loadHistoricalStateAtHeight
         ]

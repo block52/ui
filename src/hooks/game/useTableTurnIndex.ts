@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
-import { TableTurnIndexReturn } from "../../types/index";
-import { isEmpty } from "../../utils/guards";
+import { TableTurnIndexReturn } from "@block52/poker-ui-core/types";
+import { isEmpty } from "@block52/ui-sdk/helpers";
 
 /**
  * Custom hook to get the next turn index for actions at a table

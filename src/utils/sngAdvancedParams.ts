@@ -14,8 +14,9 @@
  * - maxPlayers: number of runners/entrants
  */
 
-import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "./guards";
-import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "./blindStructureChoice";
+import { hasValue, isNullish, isBlank, hasElements, isNumber, isRecord } from "@block52/ui-sdk/helpers";
+import type { AnteFormState } from "@block52/poker-ui-core/utils/anteRule";
+import { describeBlindStructureChoice, previewBlindLevels, resolveBlindStructureChoice, type BlindStructureChoice } from "@block52/poker-ui-core/utils/blindStructureChoice";
 
 /** Chain-defined valid entrant counts for a Sit & Go. */
 export const VALID_SNG_RUNNER_COUNTS = [2, 4, 6, 9] as const;
@@ -175,6 +176,8 @@ export interface SngPreviewInput {
     blindStructureChoice?: BlindStructureChoice;
     /** The custom structure text, read when blindStructureChoice is "custom". */
     customBlindText?: string;
+    /** The form's ante controls (ui#891); omitted = each structure's own antes. */
+    anteForm?: AnteFormState;
 }
 
 /**
@@ -189,7 +192,7 @@ export function buildSngPreview(input: SngPreviewInput): SngPreview {
         smallBlind: input.smallBlind,
         bigBlind: input.bigBlind,
         durationMinutes: input.blindLevelDuration
-    });
+    }, input.anteForm);
     const levels: BlindLevelPreview[] = plan.preview
         ? previewBlindLevels(plan.preview, SNG_PREVIEW_LEVEL_COUNT).map(r => ({
               level: r.number,

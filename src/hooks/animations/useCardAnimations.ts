@@ -2,12 +2,12 @@ import { useState, useEffect, useRef } from "react";
 import { useGameStateContext } from "../../context/GameStateContext";
 import { useGameEventsContext } from "../../context/gameState/GameEventsContext";
 import { useAnimationAck } from "./useAnimationAck";
-import { CardAnimationsReturn } from "../../types/index";
+import { CardAnimationsReturn } from "@block52/poker-ui-core/types";
 // The card drop-in duration (Table.css `.animate-fall` runs for the same
 // `--card-drop-ms`). The ack fires this long after the LAST slot is revealed,
 // i.e. when the last staggered drop actually finishes on screen — comfortably
 // inside the decorator's ackTimeoutMs budget, which is built from the same number.
-import { CARD_DROP_MS } from "../../bus/timing";
+import { CARD_DROP_MS } from "@block52/poker-ui-core/bus/timing";
 
 /** Community-card board slots: flop (0–2), turn (3), river (4). */
 const BOARD_SLOTS = 5;

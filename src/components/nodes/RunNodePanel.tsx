@@ -4,7 +4,7 @@ import { useStateSyncTrust } from "../../hooks/nodes/useStateSyncTrust";
 import { SEED_NODES, SNAPSHOT_INTERVAL, STATE_SYNC_RPC_SERVERS, VALIDATOR_PEERS, CHAIN_ID, GENESIS_PATH } from "../../constants/chainNetwork";
 import { appTomlSnippet, configTomlSnippet } from "../../utils/nodePortal";
 import { copyToClipboard } from "../playPage/Table/utils";
-import { hasValue } from "../../utils/guards";
+import { hasValue } from "@block52/ui-sdk/helpers";
 
 const CodeBlock: FC<{ title: string; code: string }> = ({ title, code }) => (
     <div className="mb-5">

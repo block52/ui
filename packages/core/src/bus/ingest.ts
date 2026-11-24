@@ -1,0 +1,210 @@
+/**
+ * WS ingest classifier (WS Action Bus, Phase 0).
+ *
+ * Pure extraction of the branching logic that used to live inline in
+ * `GameStateContext`'s `ws.onmessage` handler. `classifyMessage` takes a
+ * single parsed WebSocket message plus the table it belongs to and returns a
+ * discriminated {@link ClassifiedMessage} describing exactly what the provider
+ * should do with it — no React, no side effects, fully unit-testable.
+ *
+ * Behaviour is preserved 1:1 with the original handler, including the two
+ * distinct validation outcomes (Commandment 7 — surface, never default):
+ *   - a message with NO gameState → `validationErrorNoState` (nothing committed)
+ *   - a message with an invalid-but-present gameState → `state` with a
+ *     non-null `validationError` (the snapshot is still committed so the table
+ *     renders what it can, while the error is surfaced).
+ */
+import { TexasHoldemStateDTO, GameFormat, GameVariant } from "@block52/poker-vm-sdk";
+import { validateGameState, extractGameDataFromMessage, toGameFormat, toGameVariant } from "../utils/gameFormatUtils";
+import type { ValidationError, PendingAction } from "../types/gameUi";
+import { withWinnerDescriptions } from "../utils/winnerDescriptions";
+import { hasValue, isRecord } from "@block52/ui-sdk/helpers";
+
+/**
+ * Cosmos event names that carry a full game-state snapshot.
+ *
+ * `optimistic` is the relay's mempool-arrival push (block52/pokerchain#263): the
+ * same {gameId, ..., gameState} shape as a committed frame, but projected from a
+ * pending action before it commits, so a passive (persistent) subscription sees
+ * the action sub-block instead of after a ~5s block. It carries the full state
+ * and reconciles automatically — the subsequent `action_performed` commit frame
+ * is the authoritative snapshot (same PVM → same state) — so it's rendered like
+ * any other state-bearing event.
+ */
+const COSMOS_STATE_EVENTS = ["state", "optimistic", "player_joined_game", "action_performed", "game_created"];
+
+/**
+ * Loosely-typed inbound WS envelope. There is no SDK type for the transport
+ * envelope itself (only for the `gameState` payload it wraps), so this mirrors
+ * every field the original handler read. `JSON.parse` output assigns to it
+ * without a cast.
+ */
+export interface RawWsMessage {
+    type?: string;
+    event?: string;
+    gameId?: string;
+    tableAddress?: string;
+    code?: string;
+    message?: string;
+    details?: { suggestion?: string };
+    data?: {
+        gameId?: string;
+        actor?: string;
+        action?: string;
+        amount?: string;
+        gameState?: TexasHoldemStateDTO;
+        format?: string;
+        variant?: string;
+        name?: string;
+    };
+    state?: {
+        gameId?: string;
+        format?: string;
+        variant?: string;
+        gameState?: unknown;
+    };
+}
+
+/**
+ * Discriminated result of classifying one inbound message.
+ *
+ * `ignore` covers everything the original handler dropped silently: gateway
+ * `subscribed`/ack frames, unknown message types, and frames for a different
+ * table.
+ */
+export type ClassifiedMessage =
+    | {
+          kind: "state";
+          snapshot: TexasHoldemStateDTO;
+          format: GameFormat | undefined;
+          variant: GameVariant | undefined;
+          /** Optional ENS-style table name (poker-vm#337); undefined for unnamed tables. */
+          name: string | undefined;
+          /** null = valid; non-null = invalid but still committed. */
+          validationError: ValidationError | null;
+          /**
+           * true for the relay's `optimistic` event — a projection of pending
+           * mempool actions, not committed state (ui#609). Rendered like any
+           * state; the logical track carries it as provenance.
+           */
+          optimistic: boolean;
+      }
+    | {
+          kind: "validationErrorNoState";
+          validationError: ValidationError;
+      }
+    | { kind: "pending"; pendingAction: PendingAction }
+    | { kind: "actionAccepted" }
+    | {
+          kind: "error";
+          error: Error;
+          /** true for GAME_NOT_FOUND — the existing game state is cleared. */
+          clearGameState: boolean;
+      }
+    | { kind: "ignore" };
+
+/**
+ * Classify a single parsed WebSocket message for the given table.
+ *
+ * @param raw - the parsed message (cosmos/PVM shape)
+ * @param tableId - the table the provider is currently subscribed to
+ */
+export function classifyMessage(raw: RawWsMessage | null | undefined, tableId: string): ClassifiedMessage {
+    if (!isRecord(raw)) {
+        return { kind: "ignore" };
+    }
+
+    const message: RawWsMessage = raw;
+
+    // A state update is either the old PVM `gameStateUpdate` for this table or
+    // any cosmos state-bearing event for this game.
+    const isStateUpdate =
+        (message.type === "gameStateUpdate" && message.tableAddress === tableId) ||
+        (hasValue(message.event) && COSMOS_STATE_EVENTS.includes(message.event) && message.gameId === tableId);
+
+    if (isStateUpdate) {
+        const { gameState: gameStateData, format: rawFormat, variant: rawVariant, name } = extractGameDataFromMessage(message);
+
+        if (!gameStateData) {
+            return {
+                kind: "validationErrorNoState",
+                validationError: {
+                    missingFields: ["gameState"],
+                    message: "No game state data received from server",
+                    rawData: message
+                }
+            };
+        }
+
+        // The chain no longer carries the winning hand in words (poker-vm#2721);
+        // fill it in once here so both tracks see it.
+        const snapshot = withWinnerDescriptions(gameStateData, rawVariant);
+        const validation = validateGameState(rawFormat, rawVariant, snapshot.gameOptions);
+
+        if (!validation.valid) {
+            // Per Commandment 7: surface the validation error, but still commit
+            // the snapshot so the table renders what it can.
+            return {
+                kind: "state",
+                snapshot,
+                format: toGameFormat(rawFormat),
+                variant: toGameVariant(rawVariant),
+                name,
+                validationError: {
+                    missingFields: validation.missingFields,
+                    message: validation.message,
+                    rawData: message
+                },
+                optimistic: message.event === "optimistic"
+            };
+        }
+
+        return {
+            kind: "state",
+            snapshot,
+            format: toGameFormat(rawFormat),
+            variant: toGameVariant(rawVariant),
+            name,
+            validationError: null,
+            optimistic: message.event === "optimistic"
+        };
+    }
+
+    if (message.event === "pending") {
+        const pendingData = message.data;
+        if (pendingData) {
+            return {
+                kind: "pending",
+                pendingAction: {
+                    gameId: pendingData.gameId || message.gameId || "",
+                    actor: pendingData.actor ?? "",
+                    action: pendingData.action ?? "",
+                    amount: pendingData.amount,
+                    timestamp: Date.now()
+                }
+            };
+        }
+        return { kind: "ignore" };
+    }
+
+    if (message.event === "action_accepted") {
+        // Acknowledgment that our action was accepted — no state change.
+        return { kind: "actionAccepted" };
+    }
+
+    if (message.type === "error" || message.event === "error") {
+        const errorMsg =
+            message.code === "GAME_NOT_FOUND"
+                ? `${message.message}${message.details?.suggestion ? "\n\n" + message.details.suggestion : ""}`
+                : message.message || "An error occurred";
+
+        return {
+            kind: "error",
+            error: new Error(errorMsg),
+            clearGameState: message.code === "GAME_NOT_FOUND"
+        };
+    }
+
+    // Gateway subscribed/ack, unknown types, and wrong-table frames.
+    return { kind: "ignore" };
+}

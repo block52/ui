@@ -89,6 +89,11 @@ Parses share-link params on `/table/{id}`:
 
 The share buttons copy the `?hand=N` form (`buildHandShareUrl`), which keeps working after the hand ends.
 
+### Provably Fair Verification
+
+#### `useHandVerification({ tableId, handNumber, holeCardsPerPlayer, phase, enabled })`
+The chain evidence for a finished hand and its verification (ui#972), behind the table's **Provably fair** tab and its *Verify this hand* window. It reads the `hand_started` tx (its new-hand message carries `seed=<hex>`, read from the REST tx), the `hand_ended` tx (its `hand_completed` event carries the board and the hands shown at showdown) and the public state at that block (the dealt-in seats, used only while it is still that hand's state), on the current node then the official history node. `utils/provablyFair.ts` recomputes the deck from the seed (the SDK's `Deck.shuffleFromSeed`, the chain's shuffle) and checks the board and every shown hand against the engine's deal order. A hand that is still running (`phase === "running"`) is never fetched: its seed would give every card away.
+
 ### Table Discovery & Configuration
 
 #### `useFindGames()`
@@ -378,22 +383,6 @@ const {
 
 **Uses:** Game state + blockchain legal actions
 **Updates:** On every action and game state change
-
-#### `useOptimisticAction()`
-Implements optimistic UI updates for player actions.
-
-```typescript
-const {
-  executeAction,
-  isOptimistic,
-  revertAction
-} = useOptimisticAction();
-```
-
-**Pattern:**
-1. Update UI immediately (optimistic)
-2. Submit to blockchain
-3. Confirm or revert on response
 
 ---
 

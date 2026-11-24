@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useGameData } from "../../context/gameState/GameDataContext";
 import { useGameUI } from "../../context/gameState/GameUIContext";
-import { MinAndMaxBuyInsReturn } from "../../types/index";
+import { MinAndMaxBuyInsReturn } from "@block52/poker-ui-core/types";
 
 /**
  * Custom hook to fetch min and max buy-in values for a table

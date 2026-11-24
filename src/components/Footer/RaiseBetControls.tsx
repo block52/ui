@@ -2,7 +2,7 @@ import React from "react";
 import { RaiseSlider } from "./RaiseSlider";
 import { PotSizedBetButtons } from "./PotSizedBetButtons";
 import type { RaiseBetControlsProps } from "./types";
-import { hasSingleBetAmount } from "../../utils/pockerActionUtils";
+import { hasSingleBetAmount } from "@block52/poker-ui-core/utils/pockerActionUtils";
 
 export const RaiseBetControls: React.FC<RaiseBetControlsProps> = ({
     amount,

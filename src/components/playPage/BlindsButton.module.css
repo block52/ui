@@ -1,0 +1,118 @@
+/* Blinds modal (ui#794): the schedule is the modal's own content, not a card
+   inside it; the shared Modal scrolls when there are many levels. */
+
+.schedule {
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Current level, big. */
+.hero {
+    padding: 0 12px 10px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.heroTop {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+}
+
+.heroLevel {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+.heroTimer {
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.heroBlinds {
+    margin-top: 2px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    line-height: 1.15;
+}
+
+.heroSub {
+    margin-top: 2px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.65);
+}
+
+.countdown {
+    color: #fde047; /* yellow-300 */
+}
+
+.countdownOvertime {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+/* The ladder: Lvl · Blinds (· Ante · Min when needed). */
+.list {
+    display: grid;
+    padding: 4px 0 6px;
+    font-size: 12px;
+}
+
+.colHead {
+    padding: 4px 12px 5px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.cell {
+    padding: 3px 12px;
+    white-space: nowrap;
+    color: #e8edf3;
+}
+
+/* Numbers right-aligned so units sit under units (9 above the 0 of 10). */
+.right {
+    text-align: right;
+}
+
+.lvl {
+    color: rgba(255, 255, 255, 0.5);
+    padding-right: 4px;
+}
+
+.blinds {
+    font-weight: 600;
+}
+
+.rowStripe {
+    background-color: rgba(255, 255, 255, 0.03);
+}
+
+.rowPast {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.rowCurrent {
+    background-color: color-mix(in srgb, var(--brand-primary, #3b82f6) 20%, transparent);
+    color: #fff;
+    font-weight: 800;
+}
+
+.rowCurrent.lvl {
+    box-shadow: inset 3px 0 0 var(--brand-primary, #3b82f6);
+    color: #fff;
+}
+
+.footer {
+    padding: 6px 12px 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 10px;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.55);
+    text-align: center;
+}

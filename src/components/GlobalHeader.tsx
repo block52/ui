@@ -4,8 +4,9 @@ import { NetworkSelector } from "./NetworkSelector";
 import { useNetwork } from "../context/NetworkContext";
 import { getCosmosClient } from "../utils/cosmos/client";
 import { ProfileAvatarButton } from "./profile";
-import { hasElements } from "../utils/guards";
+import { hasElements } from "@block52/ui-sdk/helpers";
 import styles from "./GlobalHeader.module.css";
+import { isTournamentTablePath } from "@block52/poker-ui-core/utils/tableUrl";
 
 interface MenuItem {
     path: string;
@@ -73,7 +74,8 @@ export const GlobalHeader: React.FC = () => {
     // Don't show header on game table pages (they have their own layout)
     // But DO show it on /table/admin
     const hideOnPaths = ["/table/"];
-    const shouldHide = hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin";
+    const shouldHide =
+        (hideOnPaths.some(path => location.pathname.startsWith(path)) && location.pathname !== "/table/admin") || isTournamentTablePath(location.pathname);
 
     // Fetch latest block height
     useEffect(() => {
@@ -118,6 +120,7 @@ export const GlobalHeader: React.FC = () => {
     // Note: Withdrawals moved to Admin > Bridge Management section
     const userMenuItems: MenuItem[] = [
         { path: "/admin/tables", label: "Tables", icon: "M4 6h16M4 10h16M4 14h16M4 18h16" },
+        { path: "/tournaments", label: "Tournaments", icon: "M5 3h14v4a7 7 0 01-14 0V3zm7 11v4m-4 3h8M5 5H3v2a3 3 0 003 3m13-5h2v2a3 3 0 01-3 3" },
         { path: "/explorer", label: "Block Explorer", icon: "M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" },
         { path: "/explorer/distribution", label: "Hand Distribution", icon: "M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" },
         { path: "/nodes", label: "Nodes", icon: "M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" },
