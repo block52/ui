@@ -27,7 +27,7 @@
     "ethers": "^6.15.0"
   },
   "peerDependencies": {
-    "@block52/poker-vm-sdk": ">=1.25.0",
+    "@block52/poker-vm-sdk": ">=1.27.0",
     "@block52/ui-sdk": ">=0.2.0"
   }
 }
