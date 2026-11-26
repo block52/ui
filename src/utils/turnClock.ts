@@ -51,10 +51,54 @@ export const TIMEOUT_BLOCK_TIME_MARGIN_MS = 5_000;
 export const CLOCK_CALLER_STAGGER_MS = 5_000;
 
 /**
+ * When a turn's clock starts, after its anchor (engine
+ * `TurnClockStartAllowanceMs`, ui#944). A move is stamped with its block's
+ * time, which on pokerchain's 5s blocks is ~5.4s before anyone can see it, so
+ * the clock starts one block interval after the stamp. Without this a player
+ * saw ~9s of a 15s pre-flop clock and their own auto-fold fired at that point.
+ */
+export const TURN_CLOCK_START_ALLOWANCE_MS = 5_000;
+
+/** When the turn's own clock starts counting (epoch ms), from its anchor. */
+export const turnClockStartMs = (anchorMs: number): number => anchorMs + TURN_CLOCK_START_ALLOWANCE_MS;
+
+/**
+ * When the countdown starts for a turn first seen on this frame (ui#944).
+ *
+ * A committed frame counts from the chain's clock start. A relay projection of
+ * mempool actions (`isOptimistic`) stamps a pending move with the LAST block's
+ * time, which can be a full block older than the stamp the chain will give it,
+ * so counting from it would cut into the player's clock and fold them early.
+ * A turn first seen on a projection counts from the moment it is seen: the
+ * player gets the full clock, and the chain's real deadline is no earlier.
+ */
+export const turnCountdownStartMs = (anchorMs: number, isOptimistic: boolean, nowMs: number): number =>
+    isOptimistic ? nowMs : turnClockStartMs(anchorMs);
+
+/**
+ * The pre-flop turn clock (poker-vm#2143): 15s to act pre-flop, the table's
+ * full `gameOptions.timeout` on the flop, turn and river. Mirrors the engine's
+ * `PreflopTimeoutSeconds`; a table already shorter than 15s keeps its own.
+ */
+export const PREFLOP_TIMEOUT_SECONDS = 15;
+
+/**
+ * Seconds a player gets to act in `round` on a table whose clock is
+ * `timeoutSeconds` (engine `turnTimeoutSeconds`). The time bank adds on top.
+ */
+export const turnTimeoutSeconds = (timeoutSeconds: number, round: TexasHoldemRound | null | undefined): number => {
+    if (round === TexasHoldemRound.PREFLOP && timeoutSeconds > PREFLOP_TIMEOUT_SECONDS) {
+        return PREFLOP_TIMEOUT_SECONDS;
+    }
+    return timeoutSeconds;
+};
+
+/**
  * Absolute deadline (epoch ms) of the current turn, mirroring the engine's
  * `TurnDeadlineMs` exactly: the latest turn-advancing recorded action (every
  * action but `time-bank`, which extends the turn without advancing it) plus
- * `gameOptions.timeout` seconds, plus one `timeBankMs` per `time-bank` recorded
+ * the street's clock ({@link turnTimeoutSeconds}: 15s pre-flop, else
+ * `gameOptions.timeout` seconds), plus one `timeBankMs` per `time-bank` recorded
  * for this turn (at or after the anchor).
  *
  * `null` when no turn is on the clock: no action clock configured, hand ended,
@@ -81,7 +125,7 @@ export const turnDeadlineMs = (gameState: TexasHoldemStateDTO | null | undefined
         return null;
     }
 
-    return anchor + timeoutSeconds * 1000 + timeBankGrantedMs(gameState);
+    return turnClockStartMs(anchor) + turnTimeoutSeconds(timeoutSeconds, gameState.round) * 1000 + timeBankGrantedMs(gameState);
 };
 
 /**
@@ -115,9 +159,10 @@ type PlayerTimeBank = { timeBankRemainingMs?: number; timeBankLastGrantMs?: numb
 const playerTimeBank = (player: PlayerDTO | null | undefined): PlayerTimeBank => (player ?? {}) as PlayerTimeBank;
 
 /**
- * What one use of the time bank grants this player next (ui#19/#20): 45s the
- * first time, 30s the second, then whatever has refilled. The engine sends it
- * on every table with a time bank; null when the player has none.
+ * What one use of the time bank grants this player next (ui#19/#20/#944):
+ * whatever is left in their bank. It starts at 45s, only the seconds spent come
+ * off it (with a one-time 30s safety net), and it refills 5s per orbit. The
+ * engine sends it on every table with a time bank; null when the player has none.
  */
 export const nextTimeBankMs = (player: PlayerDTO | null | undefined): number | null => {
     return playerTimeBank(player).timeBankRemainingMs ?? null;
@@ -125,23 +170,26 @@ export const nextTimeBankMs = (player: PlayerDTO | null | undefined): number | n
 
 /**
  * Extra time the time bank has granted the current turn (ui#19/#20): for each
- * `time-bank` recorded at or after the clock's anchor, what that player's use
+ * `time-bank` after the last turn-advancing action, what that player's use
  * granted (`timeBankLastGrantMs`), mirroring the engine's TurnDeadlineMs. 0
  * when nobody used it this turn.
+ *
+ * It goes by order, not timestamp (ui#944): every action in a block shares that
+ * block's time, so a tap and the move ending the turn can carry the same stamp.
+ * A timestamp test counted the tap against the next turn too, leaving the alarm
+ * clock stuck on "armed" for a player acting again.
  */
 export const timeBankGrantedMs = (gameState: TexasHoldemStateDTO | null | undefined): number => {
     const previousActions = gameState?.previousActions ?? [];
-    const anchor = turnClockAnchorMs(previousActions);
-    if (isNullish(anchor)) {
-        return 0;
-    }
     const grantOf = (address: string): number => {
         const player = gameState?.players?.find(p => p.address?.toLowerCase() === address.toLowerCase());
         return playerTimeBank(player).timeBankLastGrantMs ?? 0;
     };
-    return previousActions
-        .filter(action => action.action === NonPlayerActionType.TIME_BANK && normalizeTimestamp(action.timestamp) >= anchor)
-        .reduce((total, action) => total + grantOf(action.playerId), 0);
+    let granted = 0;
+    for (let i = previousActions.length - 1; i >= 0 && previousActions[i].action === NonPlayerActionType.TIME_BANK; i--) {
+        granted += grantOf(previousActions[i].playerId);
+    }
+    return granted;
 };
 
 /**
@@ -262,7 +310,7 @@ export interface TurnClockPhase {
 export const turnClockPhase = (args: { nowMs: number; anchorMs: number; baseMs: number; bankGrantedMs: number }): TurnClockPhase => {
     const baseLeft = args.anchorMs + args.baseMs - args.nowMs;
     if (baseLeft > 0 || args.bankGrantedMs <= 0) {
-        return { phase: "base", remainingMs: Math.max(0, baseLeft), totalMs: args.baseMs };
+        return { phase: "base", remainingMs: Math.min(args.baseMs, Math.max(0, baseLeft)), totalMs: args.baseMs };
     }
     return { phase: "bank", remainingMs: Math.max(0, baseLeft + args.bankGrantedMs), totalMs: args.bankGrantedMs };
 };

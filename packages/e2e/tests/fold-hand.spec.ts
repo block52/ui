@@ -35,7 +35,7 @@ test("fold preflop and the opponent wins the pot", async ({ page }) => {
       timeout: 15_000,
     });
     // ... and our folded seat is badged FOLD, proving we didn't win.
-    await expect(page.locator(".seat-banner-text", { hasText: "FOLD" })).toBeVisible();
+    await expect(page.locator(".seat-banner-text", { hasText: /^FOLD$/ })).toBeVisible();
   });
 
   expect(errors, `page errors: ${errors.join(" | ")}`).toHaveLength(0);

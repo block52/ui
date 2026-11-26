@@ -9,6 +9,7 @@ import { formatUSDCToSimpleDollars, bigBlindInStackUnits, formatSeatStack } from
 import { useStacksInBigBlinds } from "../../../context/GameSettingsContext";
 import ProgressBar from "./ProgressBar";
 import { colors } from "../../../utils/colorConfig";
+import { seatBannerMode, type SeatBannerMode } from "../../../utils/seatBannerMode";
 import "./Badge.css";
 
 type BadgeProps = {
@@ -69,16 +70,14 @@ const Badge: React.FC<BadgeProps> = React.memo(({
         seatJoinNotification.isAnimatingOut;
 
     // --- Unified banner mode resolution (priority order) ---
-    // 1. Winner  2. Action  3. Seat-join  4. Timer/status  5. Hidden
-    type BannerMode = "winner" | "action" | "seat-join" | "timer" | "hidden";
-
-    const bannerMode: BannerMode = (() => {
-        if (isWinner) return "winner";
-        if (actionDisplay.isVisible || actionDisplay.isAnimatingOut) return "action";
-        if (seatJoinNotification.isVisible || seatJoinNotification.isAnimatingOut) return "seat-join";
-        if (isTurnTimerActive) return "timer";
-        return "hidden";
-    })();
+    // See seatBannerMode for the order.
+    const bannerMode: SeatBannerMode = seatBannerMode({
+        isWinner: Boolean(isWinner),
+        isOnTheClock: Boolean(isTurnTimerActive) && round !== "showdown",
+        hasActionBadge: actionDisplay.isVisible || actionDisplay.isAnimatingOut,
+        hasSeatJoinNotice: seatJoinNotification.isVisible || seatJoinNotification.isAnimatingOut,
+        hasStatusLine: Boolean(isTurnTimerActive)
+    });
 
     const isBannerVisible = bannerMode !== "hidden";
 
