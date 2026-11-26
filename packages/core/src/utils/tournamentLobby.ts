@@ -19,12 +19,13 @@ import {
     expandBlindLevel,
     resolveBlindPreset,
     type BlindStructureDTO,
+    type ResultDTO,
     type TournamentEntrantStatus,
     type TournamentStatus
 } from "@block52/poker-vm-sdk";
 import { isNullish, isNumber, isRecord, isString } from "@block52/ui-sdk/helpers";
 import { gameIdFromTableId } from "./tournamentFollow";
-import { formatTournamentLateRegistration } from "./tournamentLateRegistration";
+import { formatRunningLateRegistration, formatTournamentLateRegistration, lateRegistrationWindow } from "./tournamentLateRegistration";
 
 export interface TournamentEntrantView {
     address: string;
@@ -59,6 +60,10 @@ export interface TournamentStateDTO {
     entrants: TournamentEntrantView[];
     /** Micro-USDC string. "0" until the tournament starts; the lobby projects it while registering. */
     prizePool: string;
+    /** When the first hand was dealt, epoch ms; present once started. Late registration runs from it. */
+    startedAt?: number;
+    /** Finishers so far; any paid result shuts late registration. */
+    results?: ResultDTO[];
 }
 
 export interface TournamentRecord {
@@ -104,6 +109,11 @@ function parseEntrant(raw: unknown): TournamentEntrantView {
     };
 }
 
+function parseResult(raw: unknown): ResultDTO {
+    if (!isRecord(raw)) throw new Error("tournament result must be an object");
+    return { place: requireInt(raw.place, "result place"), playerId: requireString(raw.playerId, "result playerId"), payout: requireMicro(raw.payout, "result payout") };
+}
+
 function parseBlindStructure(raw: unknown): BlindStructureDTO {
     if (!isRecord(raw)) throw new Error("tournament options.blindStructure must be an object");
     // The structure is the SDK's own BlindStructureDTO, written by the engine; the lobby only displays it.
@@ -136,7 +146,9 @@ export function parseTournamentState(raw: unknown): TournamentStateDTO {
         status,
         options,
         entrants: raw.entrants.map(parseEntrant),
-        prizePool: requireMicro(raw.prizePool, "prizePool")
+        prizePool: requireMicro(raw.prizePool, "prizePool"),
+        ...(isNullish(raw.startedAt) || raw.startedAt === 0 ? {} : { startedAt: requireInt(raw.startedAt, "startedAt") }),
+        ...(Array.isArray(raw.results) ? { results: raw.results.map(parseResult) } : {})
     };
 }
 
@@ -247,6 +259,10 @@ export interface TournamentLobbyCard {
     registerBlockedReason?: string;
     /** The lobby's late-registration line, e.g. "Late reg: until level 15" or "Late reg closed"; empty when there is none (ui#1000 item 2). */
     lateRegistrationLabel: string;
+    /** The tournament is running and still takes late entrants: the viewer may register (ui#1000 item 3). A late entry cannot be undone. */
+    lateEntryOpen: boolean;
+    /** The viewer registered late (or between hands) and is not at a table yet: they are seated at the next hand boundary. */
+    waitingForSeat: boolean;
 }
 
 /** Entrants that count toward the field: registered, or already playing/busted after the start. */
@@ -287,13 +303,15 @@ export function buildTournamentCard(record: TournamentRecord, viewer: string | u
     const mine = isNullish(viewer) ? undefined : state.entrants.find(e => e.address === viewer);
     const isRegistered = !isNullish(mine) && mine.status !== "unregistered";
     const registering = phase === "open" || phase === "full";
+    const lateWindow = lateRegistrationWindow(state, nowMs);
+    const lateEntryOpen = state.status === "running" && lateWindow.open;
     const isProjected = state.status === "registering";
 
     let registerBlockedReason: string | undefined;
     if (isNullish(viewer)) registerBlockedReason = "Connect a wallet to register";
     else if (isRegistered) registerBlockedReason = "You are registered";
     else if (phase === "full") registerBlockedReason = "The tournament is full";
-    else if (!registering) registerBlockedReason = "Registration is closed";
+    else if (!registering && !lateEntryOpen) registerBlockedReason = "Registration is closed";
 
     // Only a running tournament has a seat to take: the chain leaves the winner's status as "playing"
     // (with their table) after the finish, so the status alone would offer a seat in a finished tournament.
@@ -321,11 +339,12 @@ export function buildTournamentCard(record: TournamentRecord, viewer: string | u
         canRegister: isNullish(registerBlockedReason),
         canUnregister: registering && !isNullish(mine) && mine.status === "registered",
         ...(isNullish(registerBlockedReason) ? {} : { registerBlockedReason }),
-        // TODO(poker-vm#2800): the engine is the authority on when the window shuts
-        // (it also closes at the first paid place and while the final table forms),
-        // so `closed` must come from the tournament-level SDK helper once it ships;
-        // until then the label shows the configured target level while it exists.
-        lateRegistrationLabel: formatTournamentLateRegistration(state.options.lateRegistrationLevels, false)
+        lateRegistrationLabel:
+            state.status === "running" || state.status === "finished"
+                ? formatRunningLateRegistration(state.options.lateRegistrationLevels, lateWindow)
+                : formatTournamentLateRegistration(state.options.lateRegistrationLevels, false),
+        lateEntryOpen,
+        waitingForSeat: state.status === "running" && isRegistered && isNullish(myTable)
     };
 }
 

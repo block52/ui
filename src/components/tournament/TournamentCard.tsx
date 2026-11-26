@@ -97,7 +97,7 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({ card, nowMs, onR
                         className="px-4 py-2 rounded-lg text-sm font-medium bg-green-600 hover:bg-green-500 text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         data-testid="tournament-register"
                     >
-                        Register · {formatUsdc(card.cost.gross)}
+                        {card.lateEntryOpen ? "Late register" : "Register"} · {formatUsdc(card.cost.gross)}
                     </button>
                 )}
                 {card.myTable && (
@@ -114,10 +114,17 @@ export const TournamentCard: React.FC<TournamentCardProps> = ({ card, nowMs, onR
                         </span>
                     </>
                 )}
-                {card.isRegistered && !card.myTable && (
-                    <span className="text-xs text-green-400" data-testid="tournament-you-are-in">
-                        You are registered
+                {card.waitingForSeat ? (
+                    <span className="text-xs text-yellow-300" data-testid="tournament-waiting-for-seat">
+                        Waiting for a seat: you are placed at the next hand
                     </span>
+                ) : (
+                    card.isRegistered &&
+                    !card.myTable && (
+                        <span className="text-xs text-green-400" data-testid="tournament-you-are-in">
+                            You are registered
+                        </span>
+                    )
                 )}
                 {!card.canRegister && !card.isRegistered && card.registerBlockedReason && (
                     <span className="text-xs text-gray-400">{card.registerBlockedReason}</span>

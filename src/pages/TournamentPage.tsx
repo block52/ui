@@ -12,6 +12,7 @@ import { startCountdownText } from "../utils/tournamentStart";
 import { useNow } from "../hooks/tournament/useTournamentLobby";
 import { tournamentSize } from "@block52/poker-ui-core/utils/tournamentResult";
 import { getCosmosAddressSync } from "../utils/cosmosAccountUtils";
+import { formatRunningLateRegistration, lateRegistrationWindow } from "@block52/poker-ui-core/utils/tournamentLateRegistration";
 
 /**
  * /tournament/:tournamentId — one multi-table tournament: where it stands and
@@ -34,6 +35,10 @@ export default function TournamentPage() {
     }
 
     const me = getCosmosAddressSync()?.toLowerCase();
+    const lateWindow = isNullish(tournament) ? undefined : lateRegistrationWindow(tournament, now);
+    const lateLabel = isNullish(tournament) || isNullish(lateWindow) ? "" : formatRunningLateRegistration(tournament.options.lateRegistrationLevels, lateWindow);
+    const waitingForSeat =
+        !isNullish(tournament) && tournament.status === "running" && tournament.entrants.some(e => e.address.toLowerCase() === me && e.status === "registered");
 
     return (
         <div className="min-h-screen p-4 sm:p-8 relative">
@@ -89,6 +94,29 @@ export default function TournamentPage() {
                                 </div>
                             </dl>
                         </ExplorerPanel>
+
+                        {waitingForSeat && (
+                            <div className="rounded-lg border border-yellow-700 bg-yellow-900/30 px-4 py-3 text-sm text-yellow-200" data-testid="tournament-waiting-for-seat">
+                                You are registered. Waiting for a seat: you are placed at a table at the next hand, and this page then takes you to it.
+                            </div>
+                        )}
+
+                        {lateLabel !== "" && (
+                            <div
+                                className={`rounded-lg border px-4 py-3 text-sm ${lateWindow?.open ? "border-green-700 bg-green-900/20 text-green-200" : "border-gray-700 text-gray-300"}`}
+                                data-testid="tournament-late-registration"
+                            >
+                                {lateLabel}
+                                {lateWindow?.open && (
+                                    <>
+                                        {" "}
+                                        <Link to="/tournaments" className="text-blue-300 hover:underline">
+                                            Register in the lobby
+                                        </Link>
+                                    </>
+                                )}
+                            </div>
+                        )}
 
                         <ExplorerPanel header="Tables">
                             {hasElements(liveTournamentTables(tournament)) ? (
