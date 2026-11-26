@@ -1,10 +1,12 @@
 import type { BlindStructureDTO } from "@block52/poker-vm-sdk";
 import {
     DEFAULT_TOURNAMENT_LATE_REGISTRATION_LEVELS,
+    formatRunningLateRegistration,
     formatTournamentLateRegistration,
     isValidLateRegistrationLevels,
     lateRegistrationCutoffAt,
     lateRegistrationDurationMinutes,
+    lateRegistrationWindow,
     tournamentLateRegistrationLabel
 } from "./tournamentLateRegistration";
 
@@ -101,5 +103,52 @@ describe("formatTournamentLateRegistration", () => {
         expect(formatTournamentLateRegistration(0, false)).toBe("");
         expect(formatTournamentLateRegistration(undefined, false)).toBe("");
         expect(formatTournamentLateRegistration(0, true)).toBe("");
+    });
+});
+
+describe("lateRegistrationWindow (the SDK helpers, ui#1000 item 5)", () => {
+    const STARTED = Date.UTC(2026, 10, 24, 12, 0, 0);
+    const options = (levels?: number) => ({
+        buyIn: "1000000",
+        startingStack: "1500",
+        seatsPerTable: 9,
+        minEntrants: 4,
+        maxEntrants: 27,
+        startTime: STARTED,
+        blindStructure: DOUBLE_10,
+        actionTimeoutSeconds: 25,
+        ...(levels === undefined ? {} : { lateRegistrationLevels: levels })
+    });
+    const running = (levels: number | undefined, extra: Record<string, unknown> = {}) => ({ status: "running" as const, options: options(levels), startedAt: STARTED, ...extra });
+
+    it("is open until the end of level N, then shuts", () => {
+        const w = lateRegistrationWindow(running(3), STARTED + 29 * 60_000);
+        expect(w).toEqual({ open: true, closesAtMs: STARTED + 30 * 60_000 });
+        expect(lateRegistrationWindow(running(3), STARTED + 30 * 60_000).open).toBe(false);
+    });
+
+    it("shuts once anyone has finished in the money, before the time is up", () => {
+        const paid = [{ place: 3, playerId: "b521x", payout: "500000" }];
+        expect(lateRegistrationWindow(running(3, { results: paid }), STARTED + 60_000).open).toBe(false);
+        const unpaid = [{ place: 9, playerId: "b521y", payout: "0" }];
+        expect(lateRegistrationWindow(running(3, { results: unpaid }), STARTED + 60_000).open).toBe(true);
+    });
+
+    it("has no window without late registration, before the start, or after the finish", () => {
+        expect(lateRegistrationWindow(running(undefined), STARTED + 1)).toEqual({ open: false });
+        expect(lateRegistrationWindow(running(0), STARTED + 1)).toEqual({ open: false });
+        expect(lateRegistrationWindow({ status: "registering", options: options(3) }, STARTED - 1)).toEqual({ open: false });
+        expect(lateRegistrationWindow({ ...running(3), status: "finished" }, STARTED + 1).open).toBe(false);
+        expect(lateRegistrationWindow({ status: "running", options: options(3) }, STARTED + 1)).toEqual({ open: false });
+    });
+});
+
+describe("formatRunningLateRegistration", () => {
+    it("says open with the level, closed once shut, and nothing when never offered", () => {
+        expect(formatRunningLateRegistration(15, { open: true })).toBe("Late registration open until level 15");
+        expect(formatRunningLateRegistration(15, { open: true, closesAtMs: Date.UTC(2026, 10, 24, 12, 0) })).toMatch(/^Late registration open until level 15 · /);
+        expect(formatRunningLateRegistration(15, { open: false })).toBe("Late reg closed");
+        expect(formatRunningLateRegistration(0, { open: false })).toBe("");
+        expect(formatRunningLateRegistration(undefined, { open: false })).toBe("");
     });
 });

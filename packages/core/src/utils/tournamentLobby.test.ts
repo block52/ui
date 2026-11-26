@@ -60,6 +60,13 @@ describe("parseTournamentState", () => {
         expect(parseTournamentState(stateJson({}, { lateRegistrationLevels: 15 })).options.lateRegistrationLevels).toBe(15);
     });
 
+    it("reads when the tournament started and who has finished, else leaves them absent", () => {
+        expect(parseTournamentState(stateJson()).startedAt).toBeUndefined();
+        const s = parseTournamentState(stateJson({ startedAt: START, results: [{ place: 2, playerId: "b521a", payout: "0" }] }));
+        expect(s.startedAt).toBe(START);
+        expect(s.results).toEqual([{ place: 2, playerId: "b521a", payout: "0" }]);
+    });
+
     it("refuses an unknown status instead of defaulting", () => {
         expect(() => parseTournamentState(stateJson({ status: "paused" }))).toThrow("unknown tournament status");
     });
@@ -160,6 +167,44 @@ describe("buildTournamentCard", () => {
         expect(buildTournamentCard(record(), "b521other", START - 1000).lateRegistrationLabel).toBe("");
         expect(buildTournamentCard(record({}, { lateRegistrationLevels: 15 }), "b521other", START - 1000).lateRegistrationLabel).toBe("Late reg: until level 15");
         expect(buildTournamentCard(record({}, { lateRegistrationLevels: 0 }), "b521other", START - 1000).lateRegistrationLabel).toBe("");
+    });
+
+    describe("late entry on a running tournament (ui#1000 item 3)", () => {
+        const RUNNING_AT = START + 60_000;
+        const runningRecord = (over: Record<string, unknown> = {}, levels = 3) =>
+            record({ status: "running", startedAt: START, entrants: [{ address: "b521a", status: "playing", tableId: "0xabc/t1", stack: "1500" }], ...over }, { lateRegistrationLevels: levels });
+
+        it("opens registration to a stranger while the window is open, with the open label", () => {
+            const card = buildTournamentCard(runningRecord(), "b521other", RUNNING_AT);
+            expect(card.canRegister).toBe(true);
+            expect(card.lateEntryOpen).toBe(true);
+            expect(card.canUnregister).toBe(false);
+            expect(card.lateRegistrationLabel).toMatch(/^Late registration open until level 3/);
+        });
+
+        it("closes it after the window, and once a place has been paid", () => {
+            const after = buildTournamentCard(runningRecord(), "b521other", START + 31 * 60_000);
+            expect(after.canRegister).toBe(false);
+            expect(after.registerBlockedReason).toBe("Registration is closed");
+            expect(after.lateRegistrationLabel).toBe("Late reg closed");
+            const paid = buildTournamentCard(runningRecord({ results: [{ place: 3, playerId: "b521z", payout: "1" }] }), "b521other", RUNNING_AT);
+            expect(paid.canRegister).toBe(false);
+        });
+
+        it("shows a late entrant waiting for a seat until they have a table", () => {
+            const waiting = [{ address: ME, status: "registered", stack: "1500" }];
+            const card = buildTournamentCard(runningRecord({ entrants: waiting }), ME, RUNNING_AT);
+            expect(card.waitingForSeat).toBe(true);
+            expect(card.canUnregister).toBe(false);
+            const seated = buildTournamentCard(runningRecord({ entrants: [{ address: ME, status: "playing", tableId: "0xabc/t2", stack: "1500" }] }), ME, RUNNING_AT);
+            expect(seated.waitingForSeat).toBe(false);
+            expect(seated.myTable).toEqual({ gameId: "0xabc-t2", number: 2 });
+        });
+
+        it("does not offer late entry without late registration, or before the start", () => {
+            expect(buildTournamentCard(runningRecord({}, 0), "b521other", RUNNING_AT).canRegister).toBe(false);
+            expect(buildTournamentCard(record({}, { lateRegistrationLevels: 3 }), "b521other", START - 1000).lateEntryOpen).toBe(false);
+        });
     });
 
     it("lets a stranger register and a registered viewer unregister", () => {

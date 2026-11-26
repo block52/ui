@@ -48,7 +48,13 @@ export const TournamentRegisterModal: React.FC<TournamentRegisterModalProps> = (
                     <span>{formatUsdc(card.cost.net)}</span>
                 </div>
                 <p className="text-xs text-gray-400">{registering ? statement.register : statement.unregister}</p>
-                {registering && (
+                {registering && card.lateEntryOpen && (
+                    <p className="text-xs text-gray-400" data-testid="tournament-late-entry-note">
+                        The tournament has started. You join late: you are seated at a table at the next hand boundary with the starting stack of{" "}
+                        {Number(card.startingStack).toLocaleString("en-US")}, and a late entry cannot be unregistered.
+                    </p>
+                )}
+                {registering && !card.lateEntryOpen && (
                     <p className="text-xs text-gray-400">
                         You can unregister until the tournament starts. If fewer than {card.minEntrants} players have registered by then, it is cancelled and only the {formatUsdc(card.cost.net)} held in escrow is returned.
                     </p>
